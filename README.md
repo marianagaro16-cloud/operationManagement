@@ -116,6 +116,24 @@ npm run import:seed         # load the 50 tasks
 npm run dev
 ```
 
+### Bootstrapping the first admin
+
+Registration deliberately grants no access — every new account is `pending`
+until an admin approves it. That leaves a chicken-and-egg on a fresh install,
+so the first admin is promoted directly in SQL.
+
+1. Register normally at `/register`.
+2. Run this once in the Supabase SQL editor, with your email:
+
+```sql
+update public.profiles
+   set role = 'admin', status = 'approved'
+ where email = 'you@example.com';
+```
+
+Every later admin is promoted from `/admin/users` in the app. The app refuses
+to remove the last remaining admin, so you cannot lock yourself out.
+
 ### Environment variables
 
 | Variable | Where | Notes |
