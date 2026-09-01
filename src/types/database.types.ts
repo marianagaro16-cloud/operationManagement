@@ -39,35 +39,29 @@ export type Database = {
   }
   public: {
     Tables: {
-      clients: {
+      categories: {
         Row: {
-          contact_email: string | null
-          contact_phone: string | null
           created_at: string
-          created_by: string
           id: string
           name: string
-          notes: string | null
+          slug: string
+          sort_order: number
           updated_at: string
         }
         Insert: {
-          contact_email?: string | null
-          contact_phone?: string | null
           created_at?: string
-          created_by: string
           id?: string
           name: string
-          notes?: string | null
+          slug: string
+          sort_order?: number
           updated_at?: string
         }
         Update: {
-          contact_email?: string | null
-          contact_phone?: string | null
           created_at?: string
-          created_by?: string
           id?: string
           name?: string
-          notes?: string | null
+          slug?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
@@ -75,120 +69,180 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          email: string | null
-          full_name: string | null
+          email: string
           id: string
-          role: string
+          last_seen_at: string | null
+          name: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["user_status"]
           updated_at: string
         }
         Insert: {
           created_at?: string
-          email?: string | null
-          full_name?: string | null
+          email: string
           id: string
-          role?: string
+          last_seen_at?: string | null
+          name?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
         }
         Update: {
           created_at?: string
-          email?: string | null
-          full_name?: string | null
+          email?: string
           id?: string
-          role?: string
+          last_seen_at?: string | null
+          name?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
         }
         Relationships: []
       }
-      projects: {
+      task_comments: {
         Row: {
-          client_id: string | null
+          body: string
           created_at: string
-          description: string | null
-          due_date: string | null
           id: string
-          name: string
-          owner_id: string
-          start_date: string | null
-          status: Database["public"]["Enums"]["project_status"]
+          occurrence_id: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          occurrence_id: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          occurrence_id?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "task_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_occurrences: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          due_date: string
+          due_date_override: string | null
+          id: string
+          period_key: string
+          skip_reason: string | null
+          skipped_at: string | null
+          skipped_by: string | null
+          status: Database["public"]["Enums"]["occurrence_status"]
+          task_id: string
           updated_at: string
         }
         Insert: {
-          client_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
-          description?: string | null
-          due_date?: string | null
+          due_date: string
+          due_date_override?: string | null
           id?: string
-          name: string
-          owner_id: string
-          start_date?: string | null
-          status?: Database["public"]["Enums"]["project_status"]
+          period_key: string
+          skip_reason?: string | null
+          skipped_at?: string | null
+          skipped_by?: string | null
+          status?: Database["public"]["Enums"]["occurrence_status"]
+          task_id: string
           updated_at?: string
         }
         Update: {
-          client_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
-          description?: string | null
-          due_date?: string | null
+          due_date?: string
+          due_date_override?: string | null
           id?: string
-          name?: string
-          owner_id?: string
-          start_date?: string | null
-          status?: Database["public"]["Enums"]["project_status"]
+          period_key?: string
+          skip_reason?: string | null
+          skipped_at?: string | null
+          skipped_by?: string | null
+          status?: Database["public"]["Enums"]["occurrence_status"]
+          task_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "projects_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: "task_occurrences_task_id_fkey"
+            columns: ["task_id"]
             isOneToOne: false
-            referencedRelation: "clients"
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
       }
       tasks: {
         Row: {
-          assignee_id: string | null
+          category_id: string | null
           created_at: string
+          created_by: string | null
           description: string | null
-          due_date: string | null
+          frequency: Database["public"]["Enums"]["task_frequency"]
           id: string
-          priority: Database["public"]["Enums"]["task_priority"]
-          project_id: string
-          status: Database["public"]["Enums"]["task_status"]
+          is_active: boolean
+          is_skippable: boolean
+          schedule_config: Json | null
           title: string
           updated_at: string
         }
         Insert: {
-          assignee_id?: string | null
+          category_id?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
-          due_date?: string | null
+          frequency: Database["public"]["Enums"]["task_frequency"]
           id?: string
-          priority?: Database["public"]["Enums"]["task_priority"]
-          project_id: string
-          status?: Database["public"]["Enums"]["task_status"]
+          is_active?: boolean
+          is_skippable?: boolean
+          schedule_config?: Json | null
           title: string
           updated_at?: string
         }
         Update: {
-          assignee_id?: string | null
+          category_id?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
-          due_date?: string | null
+          frequency?: Database["public"]["Enums"]["task_frequency"]
           id?: string
-          priority?: Database["public"]["Enums"]["task_priority"]
-          project_id?: string
-          status?: Database["public"]["Enums"]["task_status"]
+          is_active?: boolean
+          is_skippable?: boolean
+          schedule_config?: Json | null
           title?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "tasks_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "tasks_category_id_fkey"
+            columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "projects"
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
         ]
@@ -198,17 +252,86 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      complete_occurrence: {
+        Args: { p_occurrence_id: string }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          due_date: string
+          due_date_override: string | null
+          id: string
+          period_key: string
+          skip_reason: string | null
+          skipped_at: string | null
+          skipped_by: string | null
+          status: Database["public"]["Enums"]["occurrence_status"]
+          task_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "task_occurrences"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      is_admin: { Args: never; Returns: boolean }
+      is_approved: { Args: never; Returns: boolean }
+      reopen_occurrence: {
+        Args: { p_occurrence_id: string }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          due_date: string
+          due_date_override: string | null
+          id: string
+          period_key: string
+          skip_reason: string | null
+          skipped_at: string | null
+          skipped_by: string | null
+          status: Database["public"]["Enums"]["occurrence_status"]
+          task_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "task_occurrences"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      skip_occurrence: {
+        Args: { p_occurrence_id: string; p_reason: string }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          due_date: string
+          due_date_override: string | null
+          id: string
+          period_key: string
+          skip_reason: string | null
+          skipped_at: string | null
+          skipped_by: string | null
+          status: Database["public"]["Enums"]["occurrence_status"]
+          task_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "task_occurrences"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
-      project_status:
-        | "planning"
-        | "active"
-        | "on_hold"
-        | "completed"
-        | "cancelled"
-      task_priority: "low" | "medium" | "high" | "urgent"
-      task_status: "todo" | "in_progress" | "blocked" | "done" | "cancelled"
+      occurrence_status: "pending" | "completed" | "skipped"
+      task_frequency: "daily" | "weekly" | "biweekly" | "monthly" | "semiannual"
+      user_role: "admin" | "user"
+      user_status: "pending" | "approved" | "rejected" | "deactivated"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -339,15 +462,10 @@ export const Constants = {
   },
   public: {
     Enums: {
-      project_status: [
-        "planning",
-        "active",
-        "on_hold",
-        "completed",
-        "cancelled",
-      ],
-      task_priority: ["low", "medium", "high", "urgent"],
-      task_status: ["todo", "in_progress", "blocked", "done", "cancelled"],
+      occurrence_status: ["pending", "completed", "skipped"],
+      task_frequency: ["daily", "weekly", "biweekly", "monthly", "semiannual"],
+      user_role: ["admin", "user"],
+      user_status: ["pending", "approved", "rejected", "deactivated"],
     },
   },
 } as const
