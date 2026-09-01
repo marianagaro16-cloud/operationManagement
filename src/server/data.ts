@@ -150,15 +150,30 @@ export async function getOccurrenceComments(occurrenceId: string) {
 
 export async function getTasksForAdmin(): Promise<(Task & { category: Category | null })[]> {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from('tasks')
-    .select('*, category:categories ( * )')
-    .order('is_active', { ascending: false })
-    .order('frequency')
-    .order('title');
+  const { data, error } = await supabase.from('tasks').select('*, category:categories ( * )');
 
   if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as (Task & { category: Category | null })[];
+  const tasks = (data ?? []) as unknown as (Task & { category: Category | null })[];
+
+  // Ordered by category. PostgREST cannot order parent rows by an embedded
+  // table's column, so the sort happens here rather than in the query — it is
+  // still server-side, and the admin list is ~50 rows.
+  //
+  // Within a category: active before inactive, so deactivated definitions
+  // sink to the bottom of their group instead of interleaving.
+  return tasks.sort((a, b) => {
+    const ac = a.category;
+    const bc = b.category;
+    // Uncategorised always last.
+    if (!ac !== !bc) return ac ? -1 : 1;
+    if (ac && bc) {
+      if (ac.sort_order !== bc.sort_order) return ac.sort_order - bc.sort_order;
+      if (ac.name !== bc.name) return ac.name.localeCompare(bc.name);
+    }
+    if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
+    if (a.frequency !== b.frequency) return a.frequency.localeCompare(b.frequency);
+    return a.title.localeCompare(b.title);
+  });
 }
 
 /** Tasks an admin must configure before they can be scheduled. */

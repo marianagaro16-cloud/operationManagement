@@ -46,6 +46,16 @@ export function TaskManager({ tasks, categories }: { tasks: TaskRow[]; categorie
 
   const open = creating || editing !== null;
 
+  // `tasks` arrives already ordered by category from the server, so grouping
+  // is a single pass — no re-sorting in the component.
+  const groups: { key: string; label: string; items: TaskRow[] }[] = [];
+  for (const task of tasks) {
+    const key = task.category?.slug ?? '__none__';
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.items.push(task);
+    else groups.push({ key, label: task.category?.name ?? t('common.none'), items: [task] });
+  }
+
   return (
     <>
       <PageHeader
@@ -60,44 +70,61 @@ export function TaskManager({ tasks, categories }: { tasks: TaskRow[]; categorie
       />
 
       <Card className="overflow-hidden">
-        <ul className="divide-y divide-border">
-          {tasks.map((task) => {
-            const configured = resolveScheduleConfig(task.frequency, task.schedule_config).ok;
-            return (
-              <li key={task.id} className="flex items-center gap-3 px-3.5 py-2.5">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`truncate text-[13.5px] ${!task.is_active ? 'text-muted line-through' : ''}`}>
-                      {task.title}
-                    </span>
-                    {!configured && task.is_active && (
-                      <Badge tone="warn">
-                        <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
-                        {t('admin.needsConfig')}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11.5px] text-muted">
-                    <span>{t(`frequency.${task.frequency}` as 'frequency.daily')}</span>
-                    {task.category && <span>· {task.category.name}</span>}
-                    {task.is_skippable && <span>· {t('task.skip')}</span>}
-                  </div>
-                </div>
+        {groups.map((group) => (
+          <section key={group.key}>
+            <h2 className="sticky top-14 z-10 flex items-baseline justify-between gap-2 border-y border-border bg-surface-2/90 px-3.5 py-1.5 backdrop-blur first:border-t-0">
+              <span className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">
+                {group.label}
+              </span>
+              <span className="text-[11.5px] tabular text-subtle">{group.items.length}</span>
+            </h2>
+            <ul className="divide-y divide-border">
+              {group.items.map((task) => {
+                const configured = resolveScheduleConfig(task.frequency, task.schedule_config).ok;
+                return (
+                  <li key={task.id} className="flex items-center gap-3 px-3.5 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`truncate text-[13.5px] ${!task.is_active ? 'text-muted line-through' : ''}`}
+                        >
+                          {task.title}
+                        </span>
+                        {!configured && task.is_active && (
+                          <Badge tone="warn">
+                            <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
+                            {t('admin.needsConfig')}
+                          </Badge>
+                        )}
+                      </div>
+                      {/* Category is the group heading now, so it is not repeated here. */}
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11.5px] text-muted">
+                        <span>{t(`frequency.${task.frequency}` as 'frequency.daily')}</span>
+                        {task.is_skippable && <span>· {t('task.skip')}</span>}
+                      </div>
+                    </div>
 
-                <Badge tone={task.is_active ? 'done' : 'neutral'}>
-                  {task.is_active ? t('status.active') : t('status.inactive')}
-                </Badge>
+                    <Badge tone={task.is_active ? 'done' : 'neutral'}>
+                      {task.is_active ? t('status.active') : t('status.inactive')}
+                    </Badge>
 
-                <Button size="icon" variant="ghost" onClick={() => setEditing(task)} aria-label={t('common.edit')}>
-                  <Pencil className="h-3.5 w-3.5" aria-hidden />
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setConfirm(task)}>
-                  {task.is_active ? t('admin.deactivate') : t('admin.activate')}
-                </Button>
-              </li>
-            );
-          })}
-        </ul>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setEditing(task)}
+                      aria-label={t('common.edit')}
+                    >
+                      <Pencil className="h-3.5 w-3.5" aria-hidden />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setConfirm(task)}>
+                      {task.is_active ? t('admin.deactivate') : t('admin.activate')}
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
       </Card>
 
       {open && (
