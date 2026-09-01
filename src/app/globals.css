@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Design tokens.
+ *
+ * One neutral ramp, one accent, three semantic status colours. Status colour
+ * is reserved for status only — it never decorates. This is what keeps a
+ * 50-row operational dashboard calm instead of noisy.
+ */
+:root {
+  --bg: 250 250 249;
+  --surface: 255 255 255;
+  --surface-2: 245 245 244;
+  --border: 231 229 228;
+  --fg: 28 25 23;
+  --muted: 87 83 78;
+  --subtle: 168 162 158;
+
+  --accent: 47 79 143;
+  --accent-fg: 255 255 255;
+
+  --done: 21 128 61;
+  --late: 185 28 28;
+  --skipped: 120 113 108;
+  --warn: 180 83 9;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+[data-theme='dark'] {
+  --bg: 12 12 14;
+  --surface: 24 24 27;
+  --surface-2: 32 32 36;
+  --border: 47 47 53;
+  --fg: 244 244 245;
+  --muted: 161 161 170;
+  --subtle: 113 113 122;
+
+  --accent: 129 165 232;
+  --accent-fg: 12 12 14;
+
+  --done: 74 179 116;
+  --late: 248 113 113;
+  --skipped: 148 143 138;
+  --warn: 234 154 51;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg text-fg font-sans antialiased;
+    /* Respect iOS safe areas so the installed PWA doesn't sit under the notch. */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* Visible, consistent focus for keyboard users across every control. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-bg;
+  }
+  h1, h2, h3 {
+    @apply tracking-[-0.011em];
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Larger hit targets on touch devices without bloating desktop layout. */
+  @media (pointer: coarse) {
+    .touch-target {
+      min-height: 44px;
+    }
+  }
+}

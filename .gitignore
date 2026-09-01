@@ -19,3 +19,17 @@ npm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Source workbook (company data; the normalized snapshot in data/ is what ships)
+*.xlsx
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# TS build info
+*.tsbuildinfo

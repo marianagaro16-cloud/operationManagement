@@ -1,0 +1,659 @@
+[
+  {
+    "title": "Recibir y revisar la mercancía que llega al almacén",
+    "description": null,
+    "frequency": "daily",
+    "category_slug": "almacen",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "daily"
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Registrar entradas en el sistema (Operaciones)",
+    "description": null,
+    "frequency": "daily",
+    "category_slug": "almacen",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "daily"
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Preparar pedidos para entrega o despacho.",
+    "description": null,
+    "frequency": "daily",
+    "category_slug": "almacen",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "daily"
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener el orden en el área de trabajo durante la jornada",
+    "description": null,
+    "frequency": "daily",
+    "category_slug": "almacen",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "daily"
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Realizar el inventario de productos Masamor y Del Barrio.",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "inventario",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Reacomodar los productos según su rotación.",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "almacen",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Aplastar cartón",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "limpieza",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Acomodar el producto en su lugar correspondiente.",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "almacen",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Tirar la basura de los botes negros",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "limpieza",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Aspirar el almacén",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "limpieza",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mopear el almacén (si es necesario)",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "limpieza",
+    "is_skippable": true,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Tirar plástico",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "limpieza",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Recolección de tanques de gas",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "limpieza",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Etiquetar tortillas de trigo retail 12 cm (1 caja).",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "etiquetado",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Etiquetar tortillas de trigo retail 15 cm (2 caja).",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "etiquetado",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Etiquetar tortillas de trigo retail 30 cm (3 unidades).",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "etiquetado",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Etiquetado tortillas trigo Gastro 30 cm + rotación de producto",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "etiquetado",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 50 unidades de Chapulines 15g Retail.",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 20 unidades de Chapulines 100 g gastro.",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Etiquetar chorizo retail",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "etiquetado",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 20 unidades de Chile Guajillo 100g Retail.",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 20 unidades de Chile Ancho 100g Retail.",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 20 unidades de Chile Pasilla 100g Retail.",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 20 unidades de Chile Chipotle (Morita) 100g Retail.",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 20 unidades de Chile Árbol 100g Retail.",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 10 unidades de Jamaica 250g retail",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 10 unidades de Jamaica 1Kg Gastro",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Etiquetar Tomatillo Tatemado 1kg",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "etiquetado",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Etiquetar Nopales en rajas 1kg",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "etiquetado",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Etiquetar Chile Poblano en rajas 1kg",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "etiquetado",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Etiquetar chile poblano entero 1kg",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "etiquetado",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Etiquetar Chile Serrano 1kg",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "etiquetado",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Etiquetar Chile Jalapeño 1kg",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "etiquetado",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 50 unidades de Chile Poblano 500g",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 50 unidades de Chile Serrano 250g",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 15 unidades de Harina 1kg",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Mantener un stock de 20 unidades de Cal 50g",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "stock",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Acomodar los europallets.",
+    "description": null,
+    "frequency": "weekly",
+    "category_slug": "almacen",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "weekly",
+      "weekday": 2
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Realizar el inventario de los productos de Colectivo Comestibles, La Güera del Barrio y Tatemados",
+    "description": null,
+    "frequency": "biweekly",
+    "category_slug": "inventario",
+    "is_skippable": false,
+    "schedule_config": null,
+    "needs_admin_config": true
+  },
+  {
+    "title": "Realizar el reciclaje",
+    "description": null,
+    "frequency": "monthly",
+    "category_slug": "limpieza",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "monthly",
+      "rule": {
+        "type": "nthWeekday",
+        "nth": -1,
+        "weekday": 4
+      }
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Realizar el inventario de Materia prima (maíz, harina Bio, harina No Bio, sal, cal y aceite, etc.)",
+    "description": null,
+    "frequency": "monthly",
+    "category_slug": "inventario",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "monthly",
+      "rule": {
+        "type": "nthWeekday",
+        "nth": -1,
+        "weekday": 4
+      }
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Realizar el inventario de cartón de caja Masamor tortilla",
+    "description": null,
+    "frequency": "monthly",
+    "category_slug": "inventario",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "monthly",
+      "rule": {
+        "type": "nthWeekday",
+        "nth": -1,
+        "weekday": 4
+      }
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Realizar el inventario de cartón de caja Masamor totopo",
+    "description": null,
+    "frequency": "monthly",
+    "category_slug": "inventario",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "monthly",
+      "rule": {
+        "type": "nthWeekday",
+        "nth": -1,
+        "weekday": 4
+      }
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Realizar el inventario de cajas Emmi",
+    "description": null,
+    "frequency": "monthly",
+    "category_slug": "inventario",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "monthly",
+      "rule": {
+        "type": "nthWeekday",
+        "nth": -1,
+        "weekday": 4
+      }
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Realizar el inventario de Empaques Mensuales (bolsas, cartones quesos, etc)",
+    "description": null,
+    "frequency": "monthly",
+    "category_slug": "inventario",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "monthly",
+      "rule": {
+        "type": "nthWeekday",
+        "nth": -1,
+        "weekday": 4
+      }
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Limpieza Palomo",
+    "description": null,
+    "frequency": "monthly",
+    "category_slug": "limpieza",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "monthly",
+      "rule": {
+        "type": "nthWeekday",
+        "nth": -1,
+        "weekday": 4
+      }
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Limpieza Palomo",
+    "description": null,
+    "frequency": "semiannual",
+    "category_slug": "limpieza",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "semiannual",
+      "dates": [
+        {
+          "month": 6,
+          "day": 30
+        },
+        {
+          "month": 12,
+          "day": 31
+        }
+      ]
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Realizar el inventario de Empaques Semestral (bolsas, cartones, etc)",
+    "description": null,
+    "frequency": "semiannual",
+    "category_slug": "inventario",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "semiannual",
+      "dates": [
+        {
+          "month": 6,
+          "day": 30
+        },
+        {
+          "month": 12,
+          "day": 31
+        }
+      ]
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Realizar el inventario de productos Masamor y Del Barrio.",
+    "description": null,
+    "frequency": "semiannual",
+    "category_slug": "inventario",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "semiannual",
+      "dates": [
+        {
+          "month": 6,
+          "day": 30
+        },
+        {
+          "month": 12,
+          "day": 31
+        }
+      ]
+    },
+    "needs_admin_config": false
+  },
+  {
+    "title": "Realizar el inventario de los productos de Colectivo Comestibles, La Güera del Barrio y Tatemados",
+    "description": null,
+    "frequency": "semiannual",
+    "category_slug": "inventario",
+    "is_skippable": false,
+    "schedule_config": {
+      "kind": "semiannual",
+      "dates": [
+        {
+          "month": 6,
+          "day": 30
+        },
+        {
+          "month": 12,
+          "day": 31
+        }
+      ]
+    },
+    "needs_admin_config": false
+  }
+]
