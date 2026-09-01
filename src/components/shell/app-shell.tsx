@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { CalendarDays, LayoutDashboard, Menu, Shield, X } from 'lucide-react';
+import { CalendarDays, LayoutDashboard, Shield } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -148,5 +148,3 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
     </div>
   );
 }
-
-export { Menu, X };

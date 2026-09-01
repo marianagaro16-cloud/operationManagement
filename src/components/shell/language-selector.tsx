@@ -1,7 +1,8 @@
 'use client';
 
 import { Languages } from 'lucide-react';
-import { LOCALES, useI18n, type Locale } from '@/i18n';
+import { useI18n } from '@/i18n';
+import { LOCALES, type Locale } from '@/i18n/config';
 import { cn } from '@/lib/utils';
 
 /** Language switching is a first-class control, not buried in settings. */

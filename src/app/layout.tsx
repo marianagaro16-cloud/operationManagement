@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
-import { I18nProvider, LOCALE_COOKIE, resolveLocale } from '@/i18n';
+import { I18nProvider } from '@/i18n';
+// Server-callable values must come from the non-client module.
+import { LOCALE_COOKIE, resolveLocale } from '@/i18n/config';
 import './globals.css';
 
 export const metadata: Metadata = {

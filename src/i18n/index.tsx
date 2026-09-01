@@ -6,16 +6,14 @@ import { en, type Messages } from './messages/en';
 import { es } from './messages/es';
 import { de } from './messages/de';
 import { BUSINESS_TZ } from '@/lib/datetime';
+import { DEFAULT_LOCALE, LOCALE_COOKIE, type Locale } from './config';
 
-export const LOCALES = ['es', 'de', 'en'] as const;
-export type Locale = (typeof LOCALES)[number];
-
-/** Spanish is the operation's working language, so it is the default. */
-export const DEFAULT_LOCALE: Locale = 'es';
+// Values the server must call live in ./config — see the note there.
+// Only the type is re-exported here; importing a runtime value through a
+// 'use client' module is what breaks Server Components.
+export type { Locale };
 
 const DICTIONARIES: Record<Locale, Messages> = { en, es, de };
-
-export const LOCALE_COOKIE = 'om_locale';
 
 /** Dot-path into the message tree, e.g. `dashboard.todayTitle`. */
 type Leaves<T, P extends string = ''> = {
@@ -102,9 +100,4 @@ export function useI18n(): I18nValue {
   const ctx = useContext(I18nContext);
   if (!ctx) throw new Error('useI18n must be used inside I18nProvider');
   return ctx;
-}
-
-/** Narrow an untrusted string (cookie/header) to a supported locale. */
-export function resolveLocale(value: string | undefined | null): Locale {
-  return LOCALES.includes(value as Locale) ? (value as Locale) : DEFAULT_LOCALE;
 }
