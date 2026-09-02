@@ -1,0 +1,2059 @@
+{
+  "customers": [
+    "La Brea",
+    "Taqueria Altstetten",
+    "Taqueria Badenstrasse",
+    "La Catedral",
+    "Sol",
+    "Catrín",
+    "El Maíz",
+    "Farmy",
+    "La Guadalupana",
+    "Kle",
+    "Mexicana Central",
+    "DAR",
+    "Pastor DK",
+    "Que Rico Shop",
+    "Bieri Food AG",
+    "Taco Factory",
+    "Cartel",
+    "Die Frischlinge",
+    "Emmi",
+    "Ultimo Bacio Winterthur",
+    "Ultimo Bacio",
+    "Ultimo Bacio St Gallen",
+    "Frida",
+    "Fork & Bottle",
+    "Käsers Schloss",
+    "Rio Grande",
+    "Alma Restaurant",
+    "LMN",
+    "BMK",
+    "BMS",
+    "BMA",
+    "FED",
+    "Mexica GmbH",
+    "La Fermata",
+    "Batavia",
+    "MOH",
+    "Olymex",
+    "Santaco",
+    "Lumi Bar Verbier",
+    "Brasserie du Cardinal",
+    "Christian Zurbrügg Heyriès",
+    "Club baur au lac.",
+    "Hotel City Löwen AG",
+    "Arnold Zentrum",
+    "Snack Yo Yo",
+    "Catrina Gourmet",
+    "Beyond.One GmbH",
+    "Centro picante",
+    "Hollenstein Gourmet",
+    "The Counter",
+    "Swissmex",
+    "Barranco",
+    "Puerto",
+    "Los Cuñados",
+    "Mexico Te Amo",
+    "Ulrich Bernhard",
+    "Simetrix GmbH",
+    "Punto Sud",
+    "Le Topinambour",
+    "Polydias SA",
+    "BioBagnes",
+    "Chuchaqui",
+    "Spät",
+    "Christelle Suljmani",
+    "Märit Laden",
+    "Sombrero Latino",
+    "Reust Gastro AG",
+    "Rebecca Clopath GmbH",
+    "Santaco Foodtruck",
+    "Andres Balzaretti",
+    "Friends of Saanenwald",
+    "Chilin Limón",
+    "Frischlinge",
+    "Oscar Morales",
+    "El Verano",
+    "Bio Laden Vita Volta",
+    "Café Tesoro",
+    "Spritzwerk Restaurant",
+    "Street Kitchen",
+    "Badbalgash",
+    "Lazcurain Factory",
+    "Gate Gourmet",
+    "Embajada",
+    "Bistro Albisreiden",
+    "Scandimexico",
+    "I love Arepa",
+    "Du Cardinal",
+    "L’Epis Taff’ Bistrot Sarl",
+    "Ultimo Bacio Gundeli",
+    "Marinello",
+    "Mextraño",
+    "El Kioskito",
+    "MexicoMiAmor",
+    "Frere et Jacques GmbH",
+    "La Esquinita",
+    "Happy Verbier Sárl",
+    "Chekes",
+    "Steigenberger Hotel",
+    "El Sabor St. Gallen",
+    "Greek Gourmet",
+    "Soko restaurant",
+    "Thelma Martinez",
+    "Enveranda",
+    "Lyzamir",
+    "Tacón de Oro",
+    "Le Vieux Manoir",
+    "Restaurant Krone",
+    "La Chamaca",
+    "Taco Jones",
+    "Südhang am Markt",
+    "Mayana",
+    "La Serra",
+    "Taco Connection",
+    "De Böerner",
+    "La Parada",
+    "Yuma",
+    "Le Jadin Vivant",
+    "Mexicas Catering",
+    "Panares Gourmet",
+    "Brasserie Uno",
+    "fürDich GmbH",
+    "Mimi's Restaurant AG",
+    "Bigote Verde",
+    "Dahli Bistro Shoppingcenter Center Herblingertal",
+    "Alejandra Keller",
+    "Naiby",
+    "UBG",
+    "Deli & Wine",
+    "Bicki Lade",
+    "La Cucaracha",
+    "Il Chiringuito",
+    "Bio Bagnes",
+    "Restaurant à la demi-lune Chardonne",
+    "Samigo Amusement",
+    "Casa Iguana",
+    "Los guapos",
+    "Ana Room",
+    "Eventhalle 550",
+    "Mehico Sarl",
+    "Golfpark Otelfingen",
+    "La Lup Glattbrugg",
+    "Los Cuates",
+    "Epicerie Latine",
+    "Monte Rosa",
+    "lowenek zurich",
+    "Abasto di Mauricio Acosta",
+    "La Esquina",
+    "Les agités du bocal",
+    "Restaurant Pick-ando MX",
+    "Loco Birria",
+    "Alma",
+    "Karacho Karamba",
+    "Gino",
+    "WFTA",
+    "Bruno",
+    "Pickando",
+    "Octavio Mejia",
+    "La Table de Lionel Sàrl",
+    "Mexiland",
+    "La Lup Brandschencke",
+    "Esami",
+    "Gilberto Esquer",
+    "Flon bowling sarl",
+    "Lukrezia Brentel",
+    "Raphael Nouailhat",
+    "La crema de la crema",
+    "El Tepeyac Suecia",
+    "El Merkadito Eslovenia",
+    "Tostadas mexicanas",
+    "Monica Contreras",
+    "La Cantine Vert",
+    "William Graham",
+    "Mühlerama",
+    "Amine Bajaar",
+    "Etik Tako",
+    "El Mariachi",
+    "Sofia del Rio",
+    "La Mezcaleria",
+    "Andy's Place GmbH",
+    "Primo Piano Verein",
+    "Abbaye de Salaz SA",
+    "Schleuse GmbH",
+    "Los Compadres",
+    "Restaurante Alma",
+    "les Wagons",
+    "Hotel Monte Rosa",
+    "Heitere Fahne",
+    "Docks Lugano",
+    "HARRY-SEC GmbH",
+    "Luis Romo",
+    "Mexican Heart",
+    "Chornlade",
+    "Urban Bites",
+    "Mighty bites Kalpaktsoglou",
+    "Nice4mex",
+    "Bar Lupo",
+    "Glouglou",
+    "QUARTIER LODZE M",
+    "Cantina",
+    "porzi gmbh",
+    "Connect Ars Culinaria /Sein Restaurant.",
+    "Epicerie Autrement",
+    "La Raiz",
+    "Werkstatt Chur",
+    "Marifer La Mexicana",
+    "La Buena Birria",
+    "Grace St Moritz",
+    "Cefé Nona",
+    "Epicoop",
+    "Hotel Bellevue-Terminus",
+    "Mezcalli Restaurant",
+    "Balzaretti Factory",
+    "Manor",
+    "K9",
+    "K4",
+    "El Sol",
+    "El Catrín",
+    "Cartell",
+    "Sinaloa",
+    "La Reserve",
+    "Samigo",
+    "Five"
+  ],
+  "products": [
+    {
+      "code": "0004",
+      "family": "Tortillas (14cm) BIO",
+      "presentation": "250gr",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0001",
+      "family": "Tortillas (14cm) BIO",
+      "presentation": "500gr",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0036",
+      "family": "Tortillas (14cm) BIO",
+      "presentation": "500g Vacio El Catrín",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0002",
+      "family": "Tortillas (14cm) BIO",
+      "presentation": "1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0051",
+      "family": "Tortillas (14cm) BIO",
+      "presentation": "2kg Fresco",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0013",
+      "family": "Tortillas 12cm BIO",
+      "presentation": "500gr",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0015",
+      "family": "Tortillas 12cm BIO",
+      "presentation": "1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0056",
+      "family": "Tortillas 12cm BIO",
+      "presentation": "1kg Pastor",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0046",
+      "family": "Tortillas 12cm BIO",
+      "presentation": "1.75kg Fresco",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0008",
+      "family": "Tortillas 10cm BIO",
+      "presentation": "500gr",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0093",
+      "family": "Tortillas 10cm BIO",
+      "presentation": "1.25Kg Fresco",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0107",
+      "family": "Tlayuda (19cm) BIO",
+      "presentation": "1.5kg VAC.",
+      "needs_review": true,
+      "review_reason": "code 0107 reused"
+    },
+    {
+      "code": "0107",
+      "family": "Tlayuda (19cm) BIO",
+      "presentation": "1.5kg VAC. Gruesa",
+      "needs_review": true,
+      "review_reason": "code 0107 reused"
+    },
+    {
+      "code": "0039",
+      "family": "Tlayuda (19cm) BIO",
+      "presentation": "1.5kg Fresco",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0057",
+      "family": "Huarachin BIO",
+      "presentation": "10 pcs Vac",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0214",
+      "family": "Huarachin BIO",
+      "presentation": "1.5kg Vacio",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0059",
+      "family": "Huarachin BIO",
+      "presentation": "1.5kg Fresco",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0009",
+      "family": "<3 BIO",
+      "presentation": "500gr Vac.",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0138",
+      "family": "<3 BIO",
+      "presentation": "1.75Kg Fresco",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0144",
+      "family": "Tortillas p/Chips",
+      "presentation": "1 kg/ 6cm Vacio.",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0124",
+      "family": "Tortillas p/Chips",
+      "presentation": "1 kg/ 10cm Vacio.",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0121",
+      "family": "Tortillas p/Chips",
+      "presentation": "1.25 kg/ 10cm Fresco.",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0108",
+      "family": "Tortillas p/Chips",
+      "presentation": "1kg/ 12cm Vacio",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0099",
+      "family": "Tortillas p/Chips",
+      "presentation": "1.75 kg/ 12cm Fresco.",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0066",
+      "family": "Tortillas p/Chips",
+      "presentation": "1 kg/ 14cm Vac.",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0003",
+      "family": "Tortillas p/Chips",
+      "presentation": "2kg/ 14cm Fresco",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0320",
+      "family": "Tortillas p/Chips",
+      "presentation": "1.5kg VAC.",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0075",
+      "family": "Tortillas p/Chips",
+      "presentation": "T. precut 5pzs (caja con 12kg)",
+      "needs_review": true,
+      "review_reason": "duplicate family + presentation"
+    },
+    {
+      "code": "0189",
+      "family": "Tortillas p/Chips",
+      "presentation": "T. precut 8pzs (caja con 12kg)",
+      "needs_review": true,
+      "review_reason": "duplicate family + presentation"
+    },
+    {
+      "code": "0096",
+      "family": "Tortillas p/Chips",
+      "presentation": "1.5Kg Vac. Huarache Flautas",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0005",
+      "family": "Masa Bio",
+      "presentation": "1Kg Vac",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0193",
+      "family": "Masa Bio",
+      "presentation": "3Kg Vac",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0185",
+      "family": "Masa Bio",
+      "presentation": "15Kg Fresco",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0017",
+      "family": "Masa Bio",
+      "presentation": "1kg Vac.",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0190",
+      "family": "Masa Bio",
+      "presentation": "3kg Vac.",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0186",
+      "family": "Tortillas p/Chips",
+      "presentation": "06cm/ 1kg Vac.",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": null,
+      "family": "Tortillas p/Chips",
+      "presentation": "10cm/ 1kg Vac.",
+      "needs_review": true,
+      "review_reason": "missing product code"
+    },
+    {
+      "code": "0055",
+      "family": "Tortillas p/Chips",
+      "presentation": "14cm/ 1kg Vac.",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0089",
+      "family": "Tortillas p/Chips",
+      "presentation": "14cm/ 2kg Fresco",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0192",
+      "family": "Tortillas p/Chips",
+      "presentation": "T. precut 5pzs (caja con 12kg)",
+      "needs_review": true,
+      "review_reason": "duplicate family + presentation"
+    },
+    {
+      "code": "0194",
+      "family": "Tortillas p/Chips",
+      "presentation": "T. precut 8pzs (caja con 12kg)",
+      "needs_review": true,
+      "review_reason": "duplicate family + presentation"
+    },
+    {
+      "code": "0085",
+      "family": "Tortillas p/Chips",
+      "presentation": "Huarachin 1.5Kg Vac",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0088",
+      "family": "Tostadas",
+      "presentation": "06cm-40pcs",
+      "needs_review": true,
+      "review_reason": "duplicate family + presentation"
+    },
+    {
+      "code": "0030",
+      "family": "Tostadas",
+      "presentation": "10cm-30pcs",
+      "needs_review": true,
+      "review_reason": "duplicate family + presentation"
+    },
+    {
+      "code": "0077",
+      "family": "Tostadas",
+      "presentation": "12cm-30pcs",
+      "needs_review": true,
+      "review_reason": "duplicate family + presentation"
+    },
+    {
+      "code": "0195",
+      "family": "Tostadas",
+      "presentation": "14cm-30pcs",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0219",
+      "family": "Totopos Azules \"5\"",
+      "presentation": "40g",
+      "needs_review": true,
+      "review_reason": "code 0219 reused"
+    },
+    {
+      "code": "0218",
+      "family": "Totopos Azules \"5\"",
+      "presentation": "150g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0042",
+      "family": "Totopos Azules \"5\"",
+      "presentation": "500g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0050",
+      "family": "Totopos Azules \"5\"",
+      "presentation": "1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0114",
+      "family": "Totopos Azules \"5\"",
+      "presentation": "Caja 2.5kg CON Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0079",
+      "family": "Totopos Azules \"5\"",
+      "presentation": "Caja 6kg CON Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0200",
+      "family": "Totopos Azules\"8\"",
+      "presentation": "Kilo",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0201",
+      "family": "Totopos Azules\"8\"",
+      "presentation": "Caja 2.5kg CON Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0103",
+      "family": "Totopos Azules\"8\"",
+      "presentation": "Caja 6kg CON Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0041",
+      "family": "Totopos Amarillos \"5\"",
+      "presentation": "150g/ El Catrín",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0217",
+      "family": "Totopos Amarillos \"5\"",
+      "presentation": "40gr",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0216",
+      "family": "Totopos Amarillos \"5\"",
+      "presentation": "150gr",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0010",
+      "family": "Totopos Amarillos \"5\"",
+      "presentation": "500gr",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0006",
+      "family": "Totopos Amarillos \"5\"",
+      "presentation": "1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0111",
+      "family": "Totopos Amarillos \"5\"",
+      "presentation": "Caja 2.5kg CON Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0022",
+      "family": "Totopos Amarillos \"5\"",
+      "presentation": "Caja 6kg CON Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0104",
+      "family": "Totopos Amarillos \"5\"",
+      "presentation": "Caja 6kg SIN Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0196",
+      "family": "Totopo Mixto\"5\"",
+      "presentation": "1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0109",
+      "family": "Totopo Mixto\"5\"",
+      "presentation": "Caja 2.5kg CON Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0086",
+      "family": "Totopo Mixto\"5\"",
+      "presentation": "Caja 6kg CON Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0197",
+      "family": "Totopo Mixto\"5\"",
+      "presentation": "Caja 6kg SIN Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0202",
+      "family": "Totopos Amarillos \"8\"",
+      "presentation": "Caja 2.5kg CON Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0095",
+      "family": "Totopos Amarillos \"8\"",
+      "presentation": "Caja 6kg CON Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0198",
+      "family": "Totopo Mixto \"8\"",
+      "presentation": "Caja 2.5kg CON Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0102",
+      "family": "Totopo Mixto \"8\"",
+      "presentation": "Caja 6kg CON Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0074",
+      "family": "Tostadas",
+      "presentation": "06cm-40pcs",
+      "needs_review": true,
+      "review_reason": "duplicate family + presentation"
+    },
+    {
+      "code": "0027",
+      "family": "Tostadas",
+      "presentation": "10cm-30pcs",
+      "needs_review": true,
+      "review_reason": "duplicate family + presentation"
+    },
+    {
+      "code": "0126",
+      "family": "Tostadas",
+      "presentation": "12cm-30pcs",
+      "needs_review": true,
+      "review_reason": "duplicate family + presentation"
+    },
+    {
+      "code": "0127",
+      "family": "Tostadas",
+      "presentation": "14cm- 30pcs",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0019",
+      "family": "Tostadas",
+      "presentation": "14cm-10 pcs",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0118",
+      "family": "Tostadas",
+      "presentation": "19cm-30 pcs",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0011",
+      "family": "Taco Shells",
+      "presentation": "14cm-15pcs",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0105",
+      "family": "Taco Shells",
+      "presentation": "12cm-15pcs",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0125",
+      "family": "Taco Shells",
+      "presentation": "10cm-15pcs",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0262",
+      "family": "Merchandising",
+      "presentation": "Tote Bag",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0112",
+      "family": "Merchandising",
+      "presentation": "Tortillero",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": null,
+      "family": "Merchandising",
+      "presentation": "Libretas",
+      "needs_review": true,
+      "review_reason": "missing product code"
+    },
+    {
+      "code": null,
+      "family": "Merchandising",
+      "presentation": "Plumas",
+      "needs_review": true,
+      "review_reason": "missing product code"
+    },
+    {
+      "code": null,
+      "family": "Merchandising",
+      "presentation": "Portavasos",
+      "needs_review": true,
+      "review_reason": "missing product code"
+    },
+    {
+      "code": null,
+      "family": "Merchandising",
+      "presentation": "Flyers Como calentar tortillas",
+      "needs_review": true,
+      "review_reason": "missing product code"
+    },
+    {
+      "code": null,
+      "family": "Merchandising",
+      "presentation": "Flyers EMS",
+      "needs_review": true,
+      "review_reason": "missing product code"
+    },
+    {
+      "code": null,
+      "family": "Merchandising",
+      "presentation": "Poster EMS",
+      "needs_review": true,
+      "review_reason": "missing product code"
+    },
+    {
+      "code": null,
+      "family": "Merchandising",
+      "presentation": "Poster La Güera",
+      "needs_review": true,
+      "review_reason": "missing product code"
+    },
+    {
+      "code": "0070",
+      "family": "Queso",
+      "presentation": "250g Fresco",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0048",
+      "family": "Queso",
+      "presentation": "1kg Fresco",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0058",
+      "family": "Queso",
+      "presentation": "250g Oaxaca \"Bola\"",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0054",
+      "family": "Queso",
+      "presentation": "1kg Oaxaca \"Bola\"",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0047",
+      "family": "Queso",
+      "presentation": "2kg Oaxaca \"Rallado\"",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0215",
+      "family": "Queso",
+      "presentation": "1kg Chihuahua \"Rallado\"",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0069",
+      "family": "Queso",
+      "presentation": "250g Panela",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0068",
+      "family": "Queso",
+      "presentation": "1kg Panela",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0273",
+      "family": "Carnes",
+      "presentation": "Arrachera 500g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0274",
+      "family": "Carnes",
+      "presentation": "Arrachera 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0129",
+      "family": "Carnes",
+      "presentation": "Chorizo 250gr",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0087",
+      "family": "Carnes",
+      "presentation": "Chorizo 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0211",
+      "family": "Harina",
+      "presentation": "White Corn Flour 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0358",
+      "family": "Harina",
+      "presentation": "Yellow Corn Flour 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0210",
+      "family": "Cal",
+      "presentation": "50g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0076",
+      "family": "Chapulines",
+      "presentation": "15 g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0062",
+      "family": "Chapulines",
+      "presentation": "100 g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0213",
+      "family": "Tatemados congelados",
+      "presentation": "Chile Poblano Rajas 500g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0239",
+      "family": "Tatemados congelados",
+      "presentation": "Chile Poblano Rajas 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0271",
+      "family": "Tatemados congelados",
+      "presentation": "Chile Poblano Entero 10stk",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0240",
+      "family": "Tatemados congelados",
+      "presentation": "Chile Poblano Entero 40stk",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0282",
+      "family": "Tatemados congelados",
+      "presentation": "Chile Serrano Entero 250g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0242",
+      "family": "Tatemados congelados",
+      "presentation": "Chile Serrano Entero 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0150",
+      "family": "Tatemados congelados",
+      "presentation": "Chile Jalapeño Entero 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0241",
+      "family": "Tatemados congelados",
+      "presentation": "Nopales en rajas 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0151",
+      "family": "Tatemados congelados",
+      "presentation": "Tomatillo Entero 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0163",
+      "family": "Cócteles",
+      "presentation": "Paloma",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0162",
+      "family": "Cócteles",
+      "presentation": "Margarita",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0148",
+      "family": "Cerveza",
+      "presentation": "La Güera del Barrio 33cl",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0321",
+      "family": "Chiles Secos Del Barrio",
+      "presentation": "Guajillo Del Barrio 100g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0322",
+      "family": "Chiles Secos Del Barrio",
+      "presentation": "Ancho Del Barrio 100g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0323",
+      "family": "Chiles Secos Del Barrio",
+      "presentation": "Pasilla Del Barrio 100g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0324",
+      "family": "Chiles Secos Del Barrio",
+      "presentation": "Árbol Del Barrio 100g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0325",
+      "family": "Chiles Secos Del Barrio",
+      "presentation": "Chipotle (Morita) Del Barrio 100g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0276",
+      "family": "Hibiskusblüte",
+      "presentation": "Jamaica Retail 250g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0272",
+      "family": "Hibiskusblüte",
+      "presentation": "Jamaica Gastro 1Kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0256",
+      "family": "Chiles Secos Enteros",
+      "presentation": "Guajillo Xatze 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0255",
+      "family": "Chiles Secos Enteros",
+      "presentation": "Ancho Xatze 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0257",
+      "family": "Chiles Secos Enteros",
+      "presentation": "Pasilla Xatze 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0254",
+      "family": "Chiles Secos Enteros",
+      "presentation": "Árbol Xatze 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0258",
+      "family": "Chiles Secos Enteros",
+      "presentation": "Morita Xatze 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0306",
+      "family": "Chiles Secos Molidos",
+      "presentation": "Chipotle Molido Terana 80g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0287",
+      "family": "Chiles Secos Molidos",
+      "presentation": "Chipotle Molido Xatze 550g",
+      "needs_review": true,
+      "review_reason": "code 0287 reused"
+    },
+    {
+      "code": "0287",
+      "family": "Chiles Secos Molidos",
+      "presentation": "Guajillo Molido Xatze 550g",
+      "needs_review": true,
+      "review_reason": "code 0287 reused"
+    },
+    {
+      "code": "0318",
+      "family": "Chiles Secos Hojuelas",
+      "presentation": "Chipotle Hojuelas Xatze 380g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0304",
+      "family": "Chiles Secos Hojuelas",
+      "presentation": "Árbol Hojuelas Terana 50g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0317",
+      "family": "Chiles Secos Hojuelas",
+      "presentation": "Ancho Hojuelas Xatze 380g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0316",
+      "family": "Chiles Secos Hojuelas",
+      "presentation": "Guajillo Hojuelas Xatze 380g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0223",
+      "family": "Chiles en lata",
+      "presentation": "Chipotle en Adobo Herdez 210g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0165",
+      "family": "Chiles en lata",
+      "presentation": "Chipotle en Adobo La Costeña 198g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0284",
+      "family": "Chiles en lata",
+      "presentation": "Chipotle en Adobo Carey 340g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0303",
+      "family": "Chiles en lata",
+      "presentation": "Jalapeño en rodajas La Costeña 199g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0219",
+      "family": "Chiles en lata",
+      "presentation": "Jalapeño en rodajas Carey 198g",
+      "needs_review": true,
+      "review_reason": "code 0219 reused"
+    },
+    {
+      "code": "0220",
+      "family": "Chiles en lata",
+      "presentation": "Toreados Sliced Serrano La Costeña 220g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0221",
+      "family": "Salsa en lata",
+      "presentation": "Salsa Verde Herdez 210g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0308",
+      "family": "Salsa en lata",
+      "presentation": "Salsa Verde Enchiladas La Costeña 420g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0307",
+      "family": "Salsa en lata",
+      "presentation": "Salsa Roja Enchiladas La Costeña 420g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0293",
+      "family": "Salsa en lata",
+      "presentation": "Salsa Chipotle Herdez 210gr",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0309",
+      "family": "Salsas en botella",
+      "presentation": "Chipotle Molido Clemente Jacques 220g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0250",
+      "family": "Salsas en botella",
+      "presentation": "Salsa Casera con chile habanero Herdez 453g",
+      "needs_review": true,
+      "review_reason": "code 0250 reused"
+    },
+    {
+      "code": "0252",
+      "family": "Salsas en botella",
+      "presentation": "Salsa Chipotle Herdez 453g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0250",
+      "family": "Salsas en botella",
+      "presentation": "Salsa Verde con chile habanero Herdez 240g",
+      "needs_review": true,
+      "review_reason": "code 0250 reused"
+    },
+    {
+      "code": "0288",
+      "family": "Salsas en botella",
+      "presentation": "Habanero Mango La Meridana 150ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0296",
+      "family": "Salsas en botella",
+      "presentation": "Habanero Verde La Meridana 150ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0289",
+      "family": "Salsas en botella",
+      "presentation": "Habanero Tamulada La Meridana 150ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0180",
+      "family": "Salsas en botella",
+      "presentation": "Salsa Valentina 370ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0212",
+      "family": "Salsas en botella",
+      "presentation": "Salsa Taquera Herdez 240g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0179",
+      "family": "Salsas en botella",
+      "presentation": "Salsa Guacamole Herdez 240g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0368",
+      "family": "Salsas en botella",
+      "presentation": "Salsa Guacamole Picante Herdez 240g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0269",
+      "family": "Maíz",
+      "presentation": "Maíz Blanco Mexicano 220g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0171",
+      "family": "Maíz",
+      "presentation": "Maíz Pozolero La Costeña 820g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0204",
+      "family": "Maíz",
+      "presentation": "Maíz Pozolero Carey 860g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0175",
+      "family": "Mole",
+      "presentation": "Mole Poblano Doña Maria",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0224",
+      "family": "Mole",
+      "presentation": "Mole Rojo La Costeña",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0300",
+      "family": "Tomatillo",
+      "presentation": "Tomatillo Entero Carey 380g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0160",
+      "family": "Tomatillo",
+      "presentation": "TomatilloEntero Carey 822g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0285",
+      "family": "Tomatillo",
+      "presentation": "TomatilloMolido Xatze 2.8kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0362",
+      "family": "Tomatillo",
+      "presentation": "Tomatillo Molido Carey - 2.95kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0209",
+      "family": "Tomatillo",
+      "presentation": "Tomatillo Entero La Costeña 794g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0299",
+      "family": "Achiote",
+      "presentation": "Achiote Lol Tun 100g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0261",
+      "family": "Achiote",
+      "presentation": "Achiote El Yucateco 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0260",
+      "family": "Varios",
+      "presentation": "Cajeta Quemada Real del Potosí 660g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0168",
+      "family": "Varios",
+      "presentation": "Hojas de Maíz",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0182",
+      "family": "Varios",
+      "presentation": "Tajin Clásico Seasoning 142g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0326",
+      "family": "Varios",
+      "presentation": "Tajin Clásico Seasoning 400g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0176",
+      "family": "Varios",
+      "presentation": "Nopales en escabeche La Costeña 440g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0363",
+      "family": "Varios",
+      "presentation": "Flor de Calabaza",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0364",
+      "family": "Varios",
+      "presentation": "Huitlacoche",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0350",
+      "family": "Varios",
+      "presentation": "Seasoning para Birria- Sazon Natural - 142g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0349",
+      "family": "Varios",
+      "presentation": "Seasoning para Tacos al Pastor - Sazon Natural - 142g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0352",
+      "family": "Varios",
+      "presentation": "Panela Goya 454g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0249",
+      "family": "Varios",
+      "presentation": "Chocolate Abuelita",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0333",
+      "family": "Dulces",
+      "presentation": "Pulparindo 14g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0334",
+      "family": "Dulces",
+      "presentation": "Mazapan - De la Rosa 28g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0167",
+      "family": "Frijol",
+      "presentation": "Frijolitos Garibaldi Amarillos 420g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0158",
+      "family": "Frijol",
+      "presentation": "Frijolitos Garibaldi Negros 420g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0290",
+      "family": "Frijol",
+      "presentation": "Frijoles Peruanos Refritos Isadora 430g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0302",
+      "family": "Frijol",
+      "presentation": "Frijoles Bayos Refritos Isadora 454g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0310",
+      "family": "Frijol",
+      "presentation": "Frijoles Negros Refritos Isadora 454g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0301",
+      "family": "Frijol",
+      "presentation": "Frijoles Negros Enteros Isadora 454g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0206",
+      "family": "Frijol",
+      "presentation": "Peruano 1kg",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0222",
+      "family": "Papitas",
+      "presentation": "Tostitos Verdes",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0340",
+      "family": "Papitas",
+      "presentation": "Tostitos Flamin Hot",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0341",
+      "family": "Papitas",
+      "presentation": "Fritos Limón y Sal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0246",
+      "family": "Papitas",
+      "presentation": "Fritos Flamin Hot",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0245",
+      "family": "Papitas",
+      "presentation": "Chips Jalapeño",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0291",
+      "family": "Papitas",
+      "presentation": "Ruffles Jalapeño",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0247",
+      "family": "Papitas",
+      "presentation": "Ruffles Flamin Hot",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0292",
+      "family": "Papitas",
+      "presentation": "Chipotle Churritos Con Nopal Nopalia 80 g",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0281",
+      "family": "Papitas",
+      "presentation": "Doritos Rojos",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0248",
+      "family": "Papitas",
+      "presentation": "Runners Originales",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0315",
+      "family": "Bebidas",
+      "presentation": "Jarritos Mexican Cola 370ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0314",
+      "family": "Bebidas",
+      "presentation": "Jarritos Lime 370ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0313",
+      "family": "Bebidas",
+      "presentation": "Jarritos Watermelon 370ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0312",
+      "family": "Bebidas",
+      "presentation": "Jarritos Mango 370ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0311",
+      "family": "Bebidas",
+      "presentation": "Jarritos Mandarin 370ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0356",
+      "family": "Bebidas",
+      "presentation": "Jarritos Guava 370ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0357",
+      "family": "Bebidas",
+      "presentation": "Jarritos Tamarind 370ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0166",
+      "family": "Bebidas",
+      "presentation": "Clamato 946ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0244",
+      "family": "Gin",
+      "presentation": "Nativo Las Californias",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0243",
+      "family": "Gin",
+      "presentation": "Citrico Las Californias",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0265",
+      "family": "Tequila",
+      "presentation": "Blanco Arsenal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0266",
+      "family": "Tequila",
+      "presentation": "Reposado Arsenal",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0343",
+      "family": "Tequila",
+      "presentation": "Blanco 7 Leguas",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0344",
+      "family": "Tequila",
+      "presentation": "Reposado 7 Leguas",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0345",
+      "family": "Tequila",
+      "presentation": "Añejo 7 Leguas",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0232",
+      "family": "Tequila",
+      "presentation": "La Gritona",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0230",
+      "family": "Tequila",
+      "presentation": "Buen Vato Blanco",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0231",
+      "family": "Tequila",
+      "presentation": "Buen Vato Blanco 5litros",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0227",
+      "family": "Non Alcoholic",
+      "presentation": "BLANCO Almave",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0226",
+      "family": "Non Alcoholic",
+      "presentation": "AMBAR Almave",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0366",
+      "family": "Non Alcoholic",
+      "presentation": "Squirt 355ml",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0228",
+      "family": "Non Alcoholic",
+      "presentation": "Beso de Agave",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0225",
+      "family": "Licor",
+      "presentation": "Orange Liqueor Alma Finca",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0229",
+      "family": "Licor",
+      "presentation": "Spicy Tamarindo Gran Malo",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0238",
+      "family": "Licor",
+      "presentation": "Cempa Maleza",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0237",
+      "family": "Licor",
+      "presentation": "Pepita Maleza",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0236",
+      "family": "Licor",
+      "presentation": "Cacahuate Maleza",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0235",
+      "family": "Licor",
+      "presentation": "Axiote Maleza",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0348",
+      "family": "Mezcal",
+      "presentation": "Espadín Bruxo",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0278",
+      "family": "Mezcal",
+      "presentation": "Blood Moon BEÚ",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0279",
+      "family": "Mezcal",
+      "presentation": "Moon Ceremony BEÚ",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0332",
+      "family": "Mezcal",
+      "presentation": "New Moon BEÚ",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0264",
+      "family": "Mezcal",
+      "presentation": "ZOND5 BEÚ",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0169",
+      "family": "Cervezas",
+      "presentation": "Juan Cordero",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0170",
+      "family": "Cervezas",
+      "presentation": "La Lupulosa",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0178",
+      "family": "Cervezas",
+      "presentation": "Rompeolas",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0183",
+      "family": "Cervezas",
+      "presentation": "Tiniebla",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0130",
+      "family": "Vinos",
+      "presentation": "Azul El Héroe Bichis",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0131",
+      "family": "Vinos",
+      "presentation": "Gorda Yori Bichis",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0132",
+      "family": "Vinos",
+      "presentation": "Gordo Guapo Bichis",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0134",
+      "family": "Vinos",
+      "presentation": "La Santa Bichis",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0133",
+      "family": "Vinos",
+      "presentation": "Pet Mex Bichis",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "272",
+      "family": "Vinos",
+      "presentation": "Pepe Nat Bichis",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0329",
+      "family": "Vinos",
+      "presentation": "Egli",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0331",
+      "family": "Vinos",
+      "presentation": "Amor",
+      "needs_review": false,
+      "review_reason": null
+    },
+    {
+      "code": "0330",
+      "family": "Vinos",
+      "presentation": "Tentación",
+      "needs_review": false,
+      "review_reason": null
+    }
+  ],
+  "delivery_methods": [
+    {
+      "slug": "planzer",
+      "name": "Envío refrigerado o pallet (Planzer)",
+      "sort_order": 10
+    },
+    {
+      "slug": "dhl",
+      "name": "Envío por DHL",
+      "sort_order": 20
+    },
+    {
+      "slug": "zurich",
+      "name": "Entrega en Zürich",
+      "sort_order": 30
+    },
+    {
+      "slug": "carlos",
+      "name": "Entrega con Carlos",
+      "sort_order": 40
+    },
+    {
+      "slug": "fabrica",
+      "name": "Se recoge en la fábrica",
+      "sort_order": 50
+    }
+  ],
+  "recurring_templates": [
+    {
+      "customer": "K9",
+      "delivery_weekday": 1
+    },
+    {
+      "customer": "K4",
+      "delivery_weekday": 1
+    },
+    {
+      "customer": "Los Guapos",
+      "delivery_weekday": 1
+    },
+    {
+      "customer": "El Sol",
+      "delivery_weekday": 2
+    },
+    {
+      "customer": "El Catrín",
+      "delivery_weekday": 2
+    },
+    {
+      "customer": "El Maíz",
+      "delivery_weekday": 3
+    },
+    {
+      "customer": "La Guadalupana",
+      "delivery_weekday": 3
+    },
+    {
+      "customer": "Kle",
+      "delivery_weekday": 3
+    },
+    {
+      "customer": "Dar",
+      "delivery_weekday": 3
+    },
+    {
+      "customer": "Cartell",
+      "delivery_weekday": 3
+    },
+    {
+      "customer": "Sinaloa",
+      "delivery_weekday": 3
+    },
+    {
+      "customer": "La Reserve",
+      "delivery_weekday": 3
+    },
+    {
+      "customer": "Samigo",
+      "delivery_weekday": 3
+    },
+    {
+      "customer": "Five",
+      "delivery_weekday": 3
+    },
+    {
+      "customer": "Emmi",
+      "delivery_weekday": 3
+    },
+    {
+      "customer": "Taco Factory",
+      "delivery_weekday": 4
+    },
+    {
+      "customer": "Emmi",
+      "delivery_weekday": 5
+    },
+    {
+      "customer": "K4",
+      "delivery_weekday": 5
+    },
+    {
+      "customer": "K9",
+      "delivery_weekday": 5
+    },
+    {
+      "customer": "La Catedral",
+      "delivery_weekday": 5
+    }
+  ]
+}

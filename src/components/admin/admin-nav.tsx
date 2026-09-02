@@ -12,6 +12,10 @@ export function AdminNav() {
   const items = [
     { href: '/admin', label: t('nav.overview') },
     { href: '/admin/tasks', label: t('nav.tasks') },
+    { href: '/admin/customers', label: t('master.customersTitle') },
+    { href: '/admin/products', label: t('master.productsTitle') },
+    { href: '/admin/delivery-methods', label: t('master.methodsTitle') },
+    { href: '/admin/recurring', label: t('master.recurringTitle') },
     { href: '/admin/users', label: t('nav.users') },
     { href: '/admin/history', label: t('nav.history') },
     { href: '/admin/statistics', label: t('nav.statistics') },

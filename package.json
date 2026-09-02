@@ -19,7 +19,10 @@
     "db:pull": "supabase db pull",
     "db:diff": "supabase db diff",
     "db:migration": "supabase migration new",
-    "db:types": "supabase gen types typescript --linked > src/types/database.types.ts"
+    "db:types": "supabase gen types typescript --linked > src/types/database.types.ts",
+    "orders:extract": "tsx scripts/import-orders.ts extract",
+    "orders:seed": "tsx scripts/import-orders.ts seed",
+    "verify:orders": "node scripts/verify-orders.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

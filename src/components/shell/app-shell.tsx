@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { CalendarDays, LayoutDashboard, Shield } from 'lucide-react';
+import { CalendarDays, ClipboardList, LayoutDashboard, Package, Shield } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,9 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
 
   const nav = [
     { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+    // Lot control is the main floor workflow, so it sits high in the bar.
+    { href: '/preparation', label: t('prep.title'), icon: ClipboardList },
+    { href: '/orders', label: t('orders.title'), icon: Package },
     { href: '/calendar', label: t('nav.calendar'), icon: CalendarDays },
     ...(isAdmin ? [{ href: '/admin', label: t('nav.admin'), icon: Shield }] : []),
   ];

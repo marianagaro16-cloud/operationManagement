@@ -214,3 +214,107 @@ own tables, a domain folder, and routes. They do not require changes to the
 task system. Attachments were deliberately left out of V1 but the schema does
 not block them: an `attachments` table keyed on `occurrence_id` drops in
 without migration of existing data.
+
+---
+
+# Orders module — Order Control + Lotnummerkontrol
+
+Replaces the duplicate data entry between two workbooks:
+`Control de pedidos-Master.xlsx` (monthly order control) and
+`Lotnummerkontrol_Master_para_copiar.xlsx` (weekly preparation).
+
+**The order is entered once.** Order Control and Lotnummerkontrol are two
+views over the same rows — there is no second copy of order data.
+
+```
+customer -> order -> order_line -> lot_allocation
+```
+
+| View | Driven by | Grouping |
+|---|---|---|
+| Order Control (`/orders`) | **delivery** date | day -> customer -> products |
+| Lotnummerkontrol (`/preparation`) | **preparation** date | customer -> products |
+
+Preparation defaults to the delivery date and an admin may move it earlier.
+Deliver Thursday the 10th, prepare Wednesday the 9th: the order appears in
+Lotnummerkontrol on the 9th and in Order Control under the 10th.
+
+## Quantity semantics
+
+A quantity is a **count of packages** of the product's presentation — 9 of
+"Tortillas 12cm BIO / 1.75kg Fresco" means nine 1.75 kg packs, not 9 kg. The
+weight lives in the presentation and the system never converts between them.
+Verified by cross-referencing the same Los Guapos order in both workbooks.
+
+## Rules enforced in the database
+
+- A user may never allocate more than ordered (trigger). An admin may, to
+  correct a real-world miscount.
+- A short preparation requires an explanation before it counts as resolved.
+- Lot numbers are free text — there is deliberately no lot master.
+- A user cannot modify any order definition field. The only order-line column
+  they can write is the shortfall reason, via a `SECURITY DEFINER` RPC.
+- Cancelled orders leave preparation but are kept for the record.
+- Customers, products and delivery methods are deactivated, never deleted;
+  historical orders keep displaying inactive ones.
+
+## Status model
+
+`draft | confirmed | cancelled` — the minimum the workflow needs. Preparation
+progress is **derived** from lot allocations rather than stored, so it cannot
+drift out of sync with the actual lot entries.
+
+## Recurring templates
+
+Templates propose **draft** orders for admin review; they never create a
+confirmed order. Kept separate from the task recurrence engine on purpose —
+an order cadence and an operational task cadence are different concepts.
+
+The 20 templates seeded from the workbook's weekday roster are **inactive**:
+a customer appearing on a Wednesday sheet is evidence of a pattern, not proof
+that the order recurs. Activate the real ones in Admin -> Recurring orders.
+
+## Seed / import
+
+```bash
+npm run orders:extract   # workbooks -> data/orders.seed.json (committed)
+npm run orders:seed      # json -> Supabase (idempotent)
+```
+
+Imports master data only — 222 customers, 246 product variants, 5 delivery
+methods, 20 inactive templates. Historical orders are **not** migrated.
+
+Product codes are not unique in the source (0107, 0026, 0287, 0219 and 0250
+are each reused; 8 variants have none), so the code is a label rather than an
+identifier and 26 products are flagged **needs review** for an admin to
+resolve in Admin -> Products.
+
+## Go-live
+
+```
+NEXT_PUBLIC_ORDERS_GO_LIVE=2026-09-01
+```
+
+Order Control will not navigate to months before this date, so an empty month
+cannot be mistaken for lost data. Set it in `.env` and in Vercel.
+
+## Verification
+
+```bash
+npm test                # 58 unit tests incl. 32 for the orders domain
+npm run verify:orders   # 35 end-to-end checks against the live database
+```
+
+`verify:orders` creates throwaway admin and user accounts, exercises the whole
+workflow — including every permission boundary — and deletes everything it
+created. It asserts real outcomes by reading data back, not just the absence
+of an error.
+
+## Admin manages
+
+| Screen | Purpose |
+|---|---|
+| Admin -> Customers | add / rename / deactivate |
+| Admin -> Products | variants, codes, review flags |
+| Admin -> Delivery methods | Planzer, DHL, Zürich, Carlos, factory pickup |
+| Admin -> Recurring orders | activate templates, generate draft orders |
