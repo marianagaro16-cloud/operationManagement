@@ -18,7 +18,7 @@ import type {
  */
 
 const ORDER_SELECT = `
-  id, reference, customer_id, order_date, delivery_date, preparation_date,
+  id, reference, customer_id, order_date, delivery_date, delivery_time, preparation_date,
   delivery_method_id, status, order_type, note, created_by, updated_by,
   created_at, updated_at,
   customer:customers!inner ( id, name, is_active, created_at, updated_at ),

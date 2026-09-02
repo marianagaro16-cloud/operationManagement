@@ -15,6 +15,7 @@ import { isBeforeGoLive } from '@/domain/orders/config';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { productLabel, type Customer, type DeliveryMethod, type Order, type Product } from '@/types/orders';
 import { OrderDialog } from './order-dialog';
+import { UrgencyBadge } from './urgency-badge';
 
 /**
  * Order Control — replaces the monthly "Control de pedidos" workbook.
@@ -231,6 +232,14 @@ function OrderCard({
         )}
 
         <div className="ml-auto flex items-center gap-2">
+          {/* Countdown to the committed delivery hour, if there is one. */}
+          {!cancelled && (
+            <UrgencyBadge
+              deliveryDate={order.delivery_date}
+              deliveryTime={order.delivery_time}
+              isComplete={progress.isComplete}
+            />
+          )}
           {/* Delivery date leads here; preparation date is exposed alongside. */}
           <span className="text-[11.5px] text-muted">
             {t('orders.preparationOn', { date: formatDate(order.preparation_date, 'short') })}

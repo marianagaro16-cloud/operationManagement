@@ -68,6 +68,8 @@ export interface Order {
   customer_id: string;
   order_date: string;
   delivery_date: string;
+  /** Wall-clock deadline in Europe/Zurich, "HH:MM:SS". Null = no set hour. */
+  delivery_time: string | null;
   preparation_date: string;
   delivery_method_id: string | null;
   status: OrderStatus;

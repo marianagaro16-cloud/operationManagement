@@ -9,9 +9,10 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState, ErrorState, Field, Input, Textarea } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { lineProgress, canAllocate, toQuantity } from '@/domain/orders/progress';
+import { canAllocate, lineProgress, orderProgress, toQuantity } from '@/domain/orders/progress';
 import { weekDays } from '@/domain/orders/scheduling';
 import { addDays } from '@/lib/datetime';
+import { UrgencyBadge } from './urgency-badge';
 import { productLabel, type Order, type OrderLine } from '@/types/orders';
 import { saveLotAllocation, deleteLotAllocation, setShortfallReason } from '@/server/order-actions';
 
@@ -112,6 +113,13 @@ export function PreparationView({
 
 function OrderPreparationCard({ order, isAdmin }: { order: Order; isAdmin: boolean }) {
   const { t, formatDate } = useI18n();
+  const progress = orderProgress(
+    order.lines.map((l) => ({
+      ordered_quantity: l.ordered_quantity,
+      shortfall_reason: l.shortfall_reason,
+      allocations: l.allocations,
+    })),
+  );
 
   return (
     <Card>
@@ -124,9 +132,16 @@ function OrderPreparationCard({ order, isAdmin }: { order: Order; isAdmin: boole
           {order.order_type === 'sample' && <Badge tone="accent">{t('orders.typeSample')}</Badge>}
           {order.status === 'draft' && <Badge tone="warn">{t('orders.statusDraft')}</Badge>}
         </div>
-        <span className="text-[12px] text-muted">
-          {t('orders.deliveryOn', { date: formatDate(order.delivery_date, 'short') })}
-        </span>
+        <div className="flex items-center gap-2">
+          <UrgencyBadge
+            deliveryDate={order.delivery_date}
+            deliveryTime={order.delivery_time}
+            isComplete={progress.isComplete}
+          />
+          <span className="text-[12px] text-muted">
+            {t('orders.deliveryOn', { date: formatDate(order.delivery_date, 'short') })}
+          </span>
+        </div>
       </div>
 
       {/* Order-level note is shown once, never repeated per product. */}

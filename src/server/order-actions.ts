@@ -36,6 +36,8 @@ function revalidateOrders() {
 const orderInputSchema = z.object({
   customer_id: z.string().uuid(),
   delivery_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  // "HH:MM" from an <input type="time">; null when no hour is committed.
+  delivery_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).nullable(),
   preparation_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   delivery_method_id: z.string().uuid().nullable(),
   status: z.enum(['draft', 'confirmed', 'cancelled']),
@@ -89,6 +91,7 @@ export async function saveOrder(
   const header = {
     customer_id: data.customer_id,
     delivery_date: data.delivery_date,
+    delivery_time: data.delivery_time,
     preparation_date: data.preparation_date,
     delivery_method_id: data.delivery_method_id,
     status: data.status,

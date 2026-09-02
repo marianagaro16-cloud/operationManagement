@@ -75,6 +75,18 @@ async function main() {
   const [lineA, lineB] = lines.sort((a, b) => a.position - b.position);
   check('order has a human reference', typeof order.reference === 'number', `#${order.reference}`);
 
+  console.log('\n=== 1b. Delivery time ===');
+  const { error: timeErr } = await A.client.from('orders').update({ delivery_time: '14:00' }).eq('id', order.id);
+  check('admin can set a delivery time', !timeErr, timeErr?.message);
+  const { data: withTime } = await admin.from('orders').select('delivery_time').eq('id', order.id).single();
+  check('stored as a wall-clock time', withTime.delivery_time === '14:00:00', withTime.delivery_time);
+  await U.client.from('orders').update({ delivery_time: '23:59' }).eq('id', order.id);
+  const { data: afterUserTime } = await admin.from('orders').select('delivery_time').eq('id', order.id).single();
+  check('user cannot change the delivery time', afterUserTime.delivery_time === '14:00:00');
+  const { data: auditTime } = await A.client.from('order_audit_log').select('detail').eq('order_id', order.id).eq('action', 'order_updated');
+  check('delivery time change is audited',
+    auditTime.some((a) => a.detail?.after?.delivery_time === '14:00:00'));
+
   console.log('\n=== 2. Same order appears in BOTH views, from one entry ===');
   const { data: control } = await U.client.from('orders').select('id').eq('delivery_date', '2026-09-10').eq('id', order.id);
   check('Order Control finds it by DELIVERY date (10th)', control?.length === 1);

@@ -278,6 +278,7 @@ export type Database = {
           customer_id: string
           delivery_date: string
           delivery_method_id: string | null
+          delivery_time: string | null
           id: string
           note: string | null
           order_date: string
@@ -294,6 +295,7 @@ export type Database = {
           customer_id: string
           delivery_date: string
           delivery_method_id?: string | null
+          delivery_time?: string | null
           id?: string
           note?: string | null
           order_date?: string
@@ -310,6 +312,7 @@ export type Database = {
           customer_id?: string
           delivery_date?: string
           delivery_method_id?: string | null
+          delivery_time?: string | null
           id?: string
           note?: string | null
           order_date?: string
@@ -711,6 +714,7 @@ export type Database = {
           customer_id: string
           delivery_date: string
           delivery_method_id: string | null
+          delivery_time: string | null
           id: string
           note: string | null
           order_date: string

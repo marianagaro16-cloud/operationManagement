@@ -43,6 +43,8 @@ export function OrderDialog({
 
   const [customerId, setCustomerId] = useState(order?.customer_id ?? '');
   const [deliveryDate, setDeliveryDate] = useState(order?.delivery_date ?? today);
+  // Postgres returns TIME as "HH:MM:SS"; <input type="time"> wants "HH:MM".
+  const [deliveryTime, setDeliveryTime] = useState(order?.delivery_time?.slice(0, 5) ?? '');
   const [preparationDate, setPreparationDate] = useState(
     order?.preparation_date ?? defaultPreparationDate(today),
   );
@@ -96,6 +98,7 @@ export function OrderDialog({
         {
           customer_id: customerId,
           delivery_date: deliveryDate,
+          delivery_time: deliveryTime || null,
           preparation_date: preparationDate,
           delivery_method_id: methodId || null,
           status,
@@ -145,13 +148,27 @@ export function OrderDialog({
           </Select>
         </Field>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Field label={t('orders.deliveryDate')} required htmlFor="o-delivery">
             <Input
               id="o-delivery"
               type="date"
               value={deliveryDate}
               onChange={(e) => changeDeliveryDate(e.target.value)}
+            />
+          </Field>
+          {/* Optional. An empty time means no committed hour, and the
+              countdown simply does not apply to the order. */}
+          <Field
+            label={t('urgency.deliveryTime')}
+            hint={t('urgency.deliveryTimeHint')}
+            htmlFor="o-delivery-time"
+          >
+            <Input
+              id="o-delivery-time"
+              type="time"
+              value={deliveryTime}
+              onChange={(e) => setDeliveryTime(e.target.value)}
             />
           </Field>
           <Field
