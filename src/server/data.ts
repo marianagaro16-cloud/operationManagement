@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { generateOccurrences, isScheduleConfigured } from '@/domain/recurrence/engine';
+import { FREQUENCIES } from '@/domain/recurrence/types';
 import { addDays, businessToday, type BusinessDate } from '@/lib/datetime';
 import type { OccurrenceWithTask, Profile, Task, Category } from '@/types/database';
 
@@ -130,9 +131,10 @@ export async function getDashboardData(upcomingDays = 7): Promise<DashboardData>
 
 export async function getOccurrenceComments(occurrenceId: string) {
   const supabase = createClient();
+  // Named FK hint: the author relationship is task_comments.user_id -> profiles.
   const { data, error } = await supabase
     .from('task_comments')
-    .select('id, body, created_at, user_id, profiles:user_id ( name, email )')
+    .select('id, body, created_at, user_id, author:profiles!task_comments_user_id_fkey ( name, email )')
     .eq('occurrence_id', occurrenceId)
     .order('created_at', { ascending: true });
 
@@ -142,7 +144,7 @@ export async function getOccurrenceComments(occurrenceId: string) {
     body: string;
     created_at: string;
     user_id: string;
-    profiles: { name: string | null; email: string } | null;
+    author: { name: string | null; email: string } | null;
   }[];
 }
 
@@ -155,23 +157,19 @@ export async function getTasksForAdmin(): Promise<(Task & { category: Category |
   if (error) throw new Error(error.message);
   const tasks = (data ?? []) as unknown as (Task & { category: Category | null })[];
 
-  // Ordered by category. PostgREST cannot order parent rows by an embedded
-  // table's column, so the sort happens here rather than in the query — it is
-  // still server-side, and the admin list is ~50 rows.
+  // Ordered by frequency, in operational cadence order (daily -> semiannual)
+  // rather than alphabetically, which would put "biweekly" before "daily".
   //
-  // Within a category: active before inactive, so deactivated definitions
+  // Sorted here rather than in the query because FREQUENCIES defines the
+  // meaningful order; it is still server-side, and the list is ~50 rows.
+  // Within a frequency: active before inactive, so deactivated definitions
   // sink to the bottom of their group instead of interleaving.
+  const order = new Map(FREQUENCIES.map((f, i) => [f, i]));
   return tasks.sort((a, b) => {
-    const ac = a.category;
-    const bc = b.category;
-    // Uncategorised always last.
-    if (!ac !== !bc) return ac ? -1 : 1;
-    if (ac && bc) {
-      if (ac.sort_order !== bc.sort_order) return ac.sort_order - bc.sort_order;
-      if (ac.name !== bc.name) return ac.name.localeCompare(bc.name);
-    }
+    const fa = order.get(a.frequency) ?? 99;
+    const fb = order.get(b.frequency) ?? 99;
+    if (fa !== fb) return fa - fb;
     if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
-    if (a.frequency !== b.frequency) return a.frequency.localeCompare(b.frequency);
     return a.title.localeCompare(b.title);
   });
 }

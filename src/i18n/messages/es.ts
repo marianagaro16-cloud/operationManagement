@@ -90,6 +90,8 @@ export const es: Messages = {
     completing: 'Completando…',
     completed: 'Completada',
     reopen: 'Reabrir',
+    undo: 'Deshacer',
+    notYourAction: 'Solo quien la completó, o un administrador, puede deshacerla',
     skip: 'Omitir',
     skipped: 'Omitida',
     comment: 'Comentar',

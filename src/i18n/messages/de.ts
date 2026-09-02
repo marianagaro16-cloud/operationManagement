@@ -90,6 +90,8 @@ export const de: Messages = {
     completing: 'Wird erledigt…',
     completed: 'Erledigt',
     reopen: 'Wieder öffnen',
+    undo: 'Rückgängig',
+    notYourAction: 'Nur wer sie erledigt hat oder ein Administrator kann das rückgängig machen',
     skip: 'Überspringen',
     skipped: 'Übersprungen',
     comment: 'Kommentieren',

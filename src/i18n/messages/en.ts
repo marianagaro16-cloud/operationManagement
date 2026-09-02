@@ -92,6 +92,8 @@ export const en = {
     completing: 'Completing…',
     completed: 'Completed',
     reopen: 'Reopen',
+    undo: 'Undo',
+    notYourAction: 'Only the person who completed this, or an admin, can undo it',
     skip: 'Skip',
     skipped: 'Skipped',
     comment: 'Comment',
