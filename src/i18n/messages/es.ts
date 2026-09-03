@@ -144,6 +144,8 @@ export const es: Messages = {
     inactive: 'Inactiva',
   },
   admin: {
+    dailyWeekdays: 'Días de la semana',
+    dailyWeekdaysHint: 'Los fines de semana se excluyen por defecto porque el almacén está cerrado',
     title: 'Administración',
     overviewSubtitle: 'Estado del sistema y trabajo pendiente',
     pendingUsers: 'Aprobaciones pendientes',

@@ -146,6 +146,8 @@ export const en = {
     inactive: 'Inactive',
   },
   admin: {
+    dailyWeekdays: 'Days of the week',
+    dailyWeekdaysHint: 'Weekends are excluded by default because the warehouse is closed',
     title: 'Administration',
     overviewSubtitle: 'System health and pending work',
     pendingUsers: 'Pending approvals',

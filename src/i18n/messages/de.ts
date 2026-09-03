@@ -144,6 +144,8 @@ export const de: Messages = {
     inactive: 'Inaktiv',
   },
   admin: {
+    dailyWeekdays: 'Wochentage',
+    dailyWeekdaysHint: 'Wochenenden sind standardmässig ausgenommen, da das Lager geschlossen ist',
     title: 'Verwaltung',
     overviewSubtitle: 'Systemzustand und offene Arbeit',
     pendingUsers: 'Offene Freigaben',

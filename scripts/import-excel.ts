@@ -95,7 +95,8 @@ function categoryFor(title: string) {
 function scheduleFor(frequency: Frequency): ScheduleConfig | null {
   switch (frequency) {
     case 'daily':
-      return { kind: 'daily' };
+      // Weekends are not worked; a daily task means every working day.
+      return { kind: 'daily', weekdays: [1, 2, 3, 4, 5] };
     case 'weekly':
       return { kind: 'weekly', weekday: DEFAULT_WEEKLY_WEEKDAY };
     case 'monthly':

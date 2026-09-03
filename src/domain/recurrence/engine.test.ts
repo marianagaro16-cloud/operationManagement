@@ -9,7 +9,9 @@ import {
   type TaskDefinitionLike,
 } from './engine';
 import { periodKeyForDate, periodWindow, weeklyPeriodKey } from './periods';
-import { WEEKDAY } from '@/lib/datetime';
+import { DateTime } from 'luxon';
+import { BUSINESS_TZ, WEEKDAY } from '@/lib/datetime';
+import { DEFAULT_DAILY_WEEKDAYS } from './types';
 
 /**
  * NOTE: vitest.config.ts pins TZ=America/New_York for this suite. Every
@@ -46,6 +48,32 @@ describe('daily', () => {
     );
     // 5th = Saturday, 6th = Sunday 2026
     expect(dates(out)).toEqual(['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04', '2026-09-07']);
+  });
+
+  it('DEFAULT_DAILY_WEEKDAYS excludes the weekend — the warehouse is closed', () => {
+    expect(DEFAULT_DAILY_WEEKDAYS).toEqual([1, 2, 3, 4, 5]);
+
+    const out = generateOccurrences(
+      task({ frequency: 'daily', schedule_config: { kind: 'daily', weekdays: DEFAULT_DAILY_WEEKDAYS } }),
+      '2026-09-01',
+      '2026-09-30',
+    );
+    const weekends = out.filter((o) => {
+      const d = DateTime.fromISO(o.dueDate, { zone: BUSINESS_TZ }).weekday;
+      return d === 6 || d === 7;
+    });
+    expect(weekends).toEqual([]);
+    // September 2026 has 22 working days.
+    expect(out).toHaveLength(22);
+  });
+
+  it('generates every calendar day only when no restriction is set', () => {
+    const out = generateOccurrences(
+      task({ frequency: 'daily', schedule_config: { kind: 'daily' } }),
+      '2026-09-01',
+      '2026-09-30',
+    );
+    expect(out).toHaveLength(30);
   });
 });
 

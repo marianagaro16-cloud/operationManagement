@@ -76,6 +76,9 @@ export const CONFIG_KIND_FOR_FREQUENCY: Record<Frequency, ScheduleConfig['kind']
 };
 
 /** Defined defaults, applied only where the requirements specify one. */
+// The warehouse does not operate at weekends, so a daily task means every
+// working day, not every calendar day.
+export const DEFAULT_DAILY_WEEKDAYS: Weekday[] = [1, 2, 3, 4, 5];
 export const DEFAULT_WEEKLY_WEEKDAY: Weekday = 2; // Tuesday
 export const DEFAULT_MONTHLY_RULE: MonthlyRule = { type: 'nthWeekday', nth: -1, weekday: 4 }; // last Thursday
 export const DEFAULT_SEMIANNUAL_DATES: [MonthDay, MonthDay] = [
