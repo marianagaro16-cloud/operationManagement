@@ -201,7 +201,9 @@ const DRAFTS: Record<string, Draft> = {
   },
   'Realizar el inventario de Materia prima (maíz, harina Bio, harina No Bio, sal, cal y aceite, etc.)': {
     de: 'Inventur der Rohstoffe durchführen (Mais, Bio-Mehl, Nicht-Bio-Mehl, Salz, Kalk und Öl usw.)',
-    en: 'Carry out the raw-material inventory (maize, organic flour, non-organic flour, salt, lime and oil, etc.)',
+    // "cal" stays verbatim: it is nixtamal lime, and "lime" in English
+    // would read as the citrus fruit in a food context.
+    en: 'Carry out the raw-material inventory (maize, organic flour, non-organic flour, salt, cal and oil, etc.)',
   },
 
   // ---------- cleaning / waste ----------
