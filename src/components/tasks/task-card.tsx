@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge, ErrorState } from '@/components/ui/primitives';
 import { completeOccurrence, reopenOccurrence } from '@/server/actions';
 import { daysLate } from '@/domain/recurrence/engine';
+import { localizedTitle, localizedDescription } from '@/lib/localized-content';
 import { SkipDialog } from './skip-dialog';
 import { CommentThread } from './comment-thread';
 import type { OccurrenceWithTask } from '@/types/database';
@@ -20,7 +21,7 @@ interface Props {
 }
 
 export function TaskCard({ occurrence, today, showDueDate }: Props) {
-  const { t, formatDate } = useI18n();
+  const { t, locale, formatDate } = useI18n();
   const [pending, startTransition] = useTransition();
   const [skipOpen, setSkipOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -77,7 +78,7 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
               resolved && 'text-muted line-through decoration-subtle',
             )}
           >
-            {occurrence.task.title}
+            {localizedTitle(occurrence.task, locale)}
           </p>
           <div className="flex shrink-0 items-center gap-1">
             <Badge tone="neutral">
@@ -99,9 +100,9 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
           </div>
         </div>
 
-        {occurrence.task.description && !resolved && (
+        {!resolved && localizedDescription(occurrence.task, locale) && (
           <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
-            {occurrence.task.description}
+            {localizedDescription(occurrence.task, locale)}
           </p>
         )}
 

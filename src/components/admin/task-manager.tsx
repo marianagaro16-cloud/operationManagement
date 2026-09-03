@@ -20,6 +20,7 @@ type TaskRow = Task & { category: Category | null };
 const EMPTY: TaskInput = {
   title: '',
   description: null,
+  translations: {},
   category_id: null,
   frequency: 'daily',
   schedule_config: { kind: 'daily' },
@@ -235,6 +236,7 @@ function TaskDialog({
       ? {
           title: task.title,
           description: task.description,
+          translations: (task.translations ?? {}) as TaskInput['translations'],
           category_id: task.category_id,
           frequency: task.frequency,
           schedule_config: task.schedule_config,
@@ -291,6 +293,37 @@ function TaskDialog({
             onChange={(e) => setForm({ ...form, description: e.target.value || null })}
           />
         </Field>
+
+        {/* Translations. Spanish above is the source; leaving one of these
+            empty simply falls back to it, so partial coverage is fine. */}
+        <div className="rounded-lg border border-border bg-surface-2/40 p-3">
+          <p className="text-[13px] font-medium">{t('admin.translationsTitle')}</p>
+          <p className="mt-0.5 text-[12px] text-muted">{t('admin.translationsHint')}</p>
+          <div className="mt-2.5 space-y-2.5">
+            {(['de', 'en'] as const).map((loc) => (
+              <Field
+                key={loc}
+                label={t(`language.${loc}` as 'language.de')}
+                htmlFor={`task-title-${loc}`}
+              >
+                <Input
+                  id={`task-title-${loc}`}
+                  value={form.translations?.[loc]?.title ?? ''}
+                  placeholder={form.title || undefined}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      translations: {
+                        ...form.translations,
+                        [loc]: { ...form.translations?.[loc], title: e.target.value || null },
+                      },
+                    })
+                  }
+                />
+              </Field>
+            ))}
+          </div>
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('admin.taskCategory')} htmlFor="task-cat">

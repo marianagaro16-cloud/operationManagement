@@ -144,6 +144,9 @@ export const de: Messages = {
     inactive: 'Inaktiv',
   },
   admin: {
+    translationsTitle: 'Übersetzungen',
+    translationsHint: 'Das Spanische oben ist das Original. Ein leeres Feld zeigt in dieser Sprache den spanischen Text.',
+    untranslated: 'Nicht übersetzt',
     dailyWeekdays: 'Wochentage',
     dailyWeekdaysHint: 'Wochenenden sind standardmässig ausgenommen, da das Lager geschlossen ist',
     title: 'Verwaltung',

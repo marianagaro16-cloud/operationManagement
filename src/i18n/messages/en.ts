@@ -146,6 +146,9 @@ export const en = {
     inactive: 'Inactive',
   },
   admin: {
+    translationsTitle: 'Translations',
+    translationsHint: 'Spanish above is the original. Leave a field empty to show the Spanish text in that language.',
+    untranslated: 'Untranslated',
     dailyWeekdays: 'Days of the week',
     dailyWeekdaysHint: 'Weekends are excluded by default because the warehouse is closed',
     title: 'Administration',

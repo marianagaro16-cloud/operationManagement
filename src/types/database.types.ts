@@ -727,6 +727,7 @@ export type Database = {
           is_skippable: boolean
           schedule_config: Json | null
           title: string
+          translations: Json
           updated_at: string
         }
         Insert: {
@@ -740,6 +741,7 @@ export type Database = {
           is_skippable?: boolean
           schedule_config?: Json | null
           title: string
+          translations?: Json
           updated_at?: string
         }
         Update: {
@@ -753,6 +755,7 @@ export type Database = {
           is_skippable?: boolean
           schedule_config?: Json | null
           title?: string
+          translations?: Json
           updated_at?: string
         }
         Relationships: [

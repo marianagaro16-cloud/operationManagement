@@ -38,6 +38,8 @@ export interface Task {
   category_id: string | null;
   frequency: Frequency;
   schedule_config: ScheduleConfig | null;
+  /** Per-locale title/description overrides; Spanish is in the base fields. */
+  translations: Record<string, { title?: string | null; description?: string | null }> | null;
   is_skippable: boolean;
   is_active: boolean;
   created_by: string | null;
@@ -75,6 +77,7 @@ export interface OccurrenceWithTask extends TaskOccurrence {
   task: Pick<
     Task,
     'id' | 'title' | 'description' | 'frequency' | 'is_skippable' | 'is_active' | 'category_id'
+    | 'translations'
   > & { category: Pick<Category, 'slug' | 'name'> | null };
   comment_count?: number;
 }

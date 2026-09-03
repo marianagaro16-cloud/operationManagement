@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { DateTime } from 'luxon';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/i18n';
+import { localizedTitle } from '@/lib/localized-content';
 import { cn } from '@/lib/utils';
 import { Badge, Card, EmptyState } from '@/components/ui/primitives';
 import { BUSINESS_TZ } from '@/lib/datetime';
@@ -156,7 +157,7 @@ export function CalendarView({
                   key={o.id}
                   className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2"
                 >
-                  <span className="min-w-0 flex-1 truncate text-[13px]">{o.task.title}</span>
+                  <span className="min-w-0 flex-1 truncate text-[13px]">{localizedTitle(o.task, locale)}</span>
                   <Badge tone="neutral">
                     {t(`frequency.${o.task.frequency}` as 'frequency.daily')}
                   </Badge>

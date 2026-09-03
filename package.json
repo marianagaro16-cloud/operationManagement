@@ -26,7 +26,8 @@
     "verify:push": "node scripts/verify-push.mjs",
     "master:extract": "tsx scripts/import-master.ts extract",
     "master:seed": "tsx scripts/import-master.ts seed",
-    "verify:master": "node scripts/verify-master.mjs"
+    "verify:master": "node scripts/verify-master.mjs",
+    "tasks:translate": "tsx scripts/seed-task-translations.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

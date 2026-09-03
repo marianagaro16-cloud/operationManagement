@@ -1,6 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n';
+import { localizedTitle } from '@/lib/localized-content';
 import { Badge, Card, EmptyState } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import type { OccurrenceWithTask } from '@/types/database';
@@ -16,7 +17,7 @@ export function HistoryView({
   occurrences: OccurrenceWithTask[];
   names: Record<string, string>;
 }) {
-  const { t, formatDate } = useI18n();
+  const { t, locale, formatDate } = useI18n();
 
   return (
     <>
@@ -43,7 +44,7 @@ export function HistoryView({
                   return (
                     <tr key={o.id}>
                       <td className="max-w-[240px] truncate px-3.5 py-2">
-                        {o.task.title}
+                        {localizedTitle(o.task, locale)}
                         {!o.task.is_active && (
                           <Badge tone="neutral" className="ml-1.5">
                             {t('status.inactive')}

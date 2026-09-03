@@ -16,7 +16,7 @@ const OCCURRENCE_SELECT = `
   completed_by, completed_at, skipped_by, skipped_at, skip_reason,
   created_at, updated_at,
   task:tasks!inner (
-    id, title, description, frequency, is_skippable, is_active, category_id,
+    id, title, description, frequency, is_skippable, is_active, category_id, translations,
     category:categories ( slug, name )
   )
 `;

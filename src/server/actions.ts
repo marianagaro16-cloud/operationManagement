@@ -93,9 +93,19 @@ export async function addComment(
 
 /* ---------------------------- admin: tasks ----------------------------- */
 
+/** Per-locale overrides. Spanish is the source and lives in title/description. */
+const translationSchema = z
+  .object({
+    title: z.string().trim().nullable().optional(),
+    description: z.string().trim().nullable().optional(),
+  })
+  .optional();
+
 const taskInputSchema = z.object({
   title: z.string().trim().min(1),
   description: z.string().trim().nullable().optional(),
+  // Only the locales the app supports; the database CHECK enforces this too.
+  translations: z.object({ de: translationSchema, en: translationSchema }).default({}),
   category_id: z.string().uuid().nullable().optional(),
   frequency: z.enum(FREQUENCIES),
   // Null is a legitimate value: it flags the task as needing configuration

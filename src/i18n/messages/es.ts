@@ -144,6 +144,9 @@ export const es: Messages = {
     inactive: 'Inactiva',
   },
   admin: {
+    translationsTitle: 'Traducciones',
+    translationsHint: 'El español de arriba es el original. Deja un campo vacío para mostrar el texto en español en ese idioma.',
+    untranslated: 'Sin traducir',
     dailyWeekdays: 'Días de la semana',
     dailyWeekdaysHint: 'Los fines de semana se excluyen por defecto porque el almacén está cerrado',
     title: 'Administración',
