@@ -310,6 +310,11 @@ export const en = {
     today: 'Today',
   },
   push: {
+    menuLabel: 'Notifications & settings',
+    promptTitle: 'Turn on delivery alerts',
+    promptBody: 'Get a notification on this device when a delivery is close and not finished — even with the app closed.',
+    iosSteps: 'On iPhone: tap Share at the bottom of Safari, choose "Add to Home Screen", then open the app from that icon and enable notifications there.',
+    testNoDevices: 'No device is registered yet. Enable notifications first.',
     title: 'Notifications on this device',
     onBody: 'This device will be notified when a delivery is close and not finished.',
     offBody: 'Get notified when a delivery deadline is close, even with the app closed.',

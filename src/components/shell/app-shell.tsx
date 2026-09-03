@@ -73,28 +73,40 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
         </div>
 
         {menuOpen && (
-          <div className="animate-fade-in border-t border-border bg-surface">
-            <div className="mx-auto max-w-5xl space-y-2 px-4 py-3">
-              <div>
-                <p className="text-[13px] font-medium">{profile.name ?? profile.email}</p>
-                <p className="text-[12px] text-muted">{profile.email}</p>
+          <>
+            {/* Tapping anywhere outside closes the menu — expected behaviour
+                on a phone, where there is no cursor to move away. */}
+            <button
+              className="fixed inset-0 z-10 cursor-default"
+              aria-hidden
+              tabIndex={-1}
+              onClick={() => setMenuOpen(false)}
+            />
+            <div className="animate-fade-in relative z-20 border-t border-border bg-surface shadow-pop">
+              <div className="mx-auto max-w-5xl px-4 py-3">
+                <div className="mb-2">
+                  <p className="text-[13px] font-medium">{profile.name ?? profile.email}</p>
+                  <p className="text-[12px] text-muted">{profile.email}</p>
+                </div>
+
+                {/* Full-width rows with real hit targets: this menu is used
+                    one-handed on the warehouse floor. */}
+                <Link
+                  href="/settings"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex touch-target items-center gap-2.5 rounded-lg px-2 py-2.5 text-[13.5px] font-medium transition-colors hover:bg-surface-2"
+                >
+                  <Bell className="h-4 w-4 text-muted" aria-hidden />
+                  {t('push.menuLabel')}
+                </Link>
+
+                <div className="mt-1 flex items-center justify-between border-t border-border px-2 pt-2">
+                  <LanguageSelector compact />
+                  <SignOutButton />
+                </div>
               </div>
-              <div className="sm:hidden">
-                <LanguageSelector compact />
-              </div>
-              {/* Notification opt-in lives here so the floor team can reach
-                  it themselves — it is per-device, not an admin setting. */}
-              <Link
-                href="/settings"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
-              >
-                <Bell className="h-3.5 w-3.5" aria-hidden />
-                {t('nav.settings')}
-              </Link>
-              <SignOutButton full />
             </div>
-          </div>
+          </>
         )}
       </header>
 

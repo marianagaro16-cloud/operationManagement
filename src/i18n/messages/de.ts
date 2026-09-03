@@ -308,6 +308,11 @@ export const de: Messages = {
     today: 'Heute',
   },
   push: {
+    menuLabel: 'Benachrichtigungen & Einstellungen',
+    promptTitle: 'Lieferhinweise aktivieren',
+    promptBody: 'Erhalten Sie auf diesem Gerät eine Meldung, wenn eine Lieferung näher rückt und noch nicht fertig ist — auch bei geschlossener App.',
+    iosSteps: 'Auf dem iPhone: unten in Safari auf Teilen tippen, "Zum Home-Bildschirm", die App über dieses Symbol öffnen und dort die Benachrichtigungen aktivieren.',
+    testNoDevices: 'Es ist noch kein Gerät registriert. Aktivieren Sie zuerst die Benachrichtigungen.',
     title: 'Benachrichtigungen auf diesem Gerät',
     onBody: 'Dieses Gerät wird benachrichtigt, wenn eine Lieferung näher rückt und noch nicht fertig ist.',
     offBody: 'Werden Sie benachrichtigt, wenn eine Lieferzeit näher rückt — auch bei geschlossener App.',

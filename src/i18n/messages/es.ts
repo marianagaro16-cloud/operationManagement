@@ -308,6 +308,11 @@ export const es: Messages = {
     today: 'Hoy',
   },
   push: {
+    menuLabel: 'Notificaciones y ajustes',
+    promptTitle: 'Activa los avisos de entrega',
+    promptBody: 'Recibe un aviso en este dispositivo cuando una entrega esté cerca y sin terminar, aunque la app esté cerrada.',
+    iosSteps: 'En iPhone: pulsa Compartir abajo en Safari, elige "Añadir a pantalla de inicio", abre la app desde ese icono y activa ahí las notificaciones.',
+    testNoDevices: 'Todavía no hay ningún dispositivo registrado. Activa primero las notificaciones.',
     title: 'Notificaciones en este dispositivo',
     onBody: 'Este dispositivo recibirá avisos cuando una entrega esté cerca y no esté terminada.',
     offBody: 'Recibe un aviso cuando se acerque la hora de entrega, aunque la app esté cerrada.',
