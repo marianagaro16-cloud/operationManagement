@@ -4,6 +4,10 @@ import {
   periodRange,
   shiftPeriod,
   productReportToCsv,
+  customRange,
+  shiftCustomRange,
+  periodLabel,
+  MAX_CUSTOM_DAYS,
   type ReportPeriod,
 } from './reporting';
 import type { Order } from '@/types/orders';
@@ -291,5 +295,121 @@ describe('CSV export', () => {
       SEP,
     );
     expect(productReportToCsv(r).split('\n')[1]).toContain('"Tortillas; grandes"');
+  });
+});
+
+/* ------------------------- year and custom ranges ------------------------ */
+
+describe('year period', () => {
+  it('bounds a calendar year', () => {
+    const r = periodRange('year', '2026-09-15');
+    expect(r.start).toBe('2026-01-01');
+    expect(r.end).toBe('2026-12-31');
+    expect(r.key).toBe('2026');
+  });
+
+  it('shifts by whole years', () => {
+    expect(shiftPeriod('year', '2026-09-15', -1)).toBe('2025-09-15');
+    expect(shiftPeriod('year', '2026-09-15', 1)).toBe('2027-09-15');
+  });
+
+  it('buckets by month instead of listing 365 days', () => {
+    const year = periodRange('year', '2026-06-01');
+    const r = computeOrderReport(
+      [
+        order({ delivery_date: '2026-03-10', lines: [line('p1', '0001', 'A', 4)] }),
+        order({ delivery_date: '2026-03-20', lines: [line('p1', '0001', 'A', 6)] }),
+        order({ delivery_date: '2026-11-05', lines: [line('p1', '0001', 'A', 1)] }),
+      ],
+      year,
+    );
+    expect(r.byDay).toEqual([]);
+    expect(r.byMonth).toHaveLength(12);
+    const march = r.byMonth.find((m) => m.month === '2026-03')!;
+    expect(march.orders).toBe(2);
+    expect(march.ordered).toBe(10);
+    expect(r.byMonth.find((m) => m.month === '2026-11')!.orders).toBe(1);
+    // Empty months are present as zeros, not missing.
+    expect(r.byMonth.filter((m) => m.orders === 0)).toHaveLength(10);
+  });
+});
+
+describe('custom range', () => {
+  it('takes the two dates exactly as given', () => {
+    const r = customRange('2026-09-03', '2026-10-15');
+    expect(r.kind).toBe('custom');
+    expect(r.start).toBe('2026-09-03');
+    expect(r.end).toBe('2026-10-15');
+    expect(r.clamped).toBe(false);
+  });
+
+  it('swaps reversed dates rather than failing', () => {
+    const r = customRange('2026-10-15', '2026-09-03');
+    expect(r.start).toBe('2026-09-03');
+    expect(r.end).toBe('2026-10-15');
+  });
+
+  it('accepts a single day', () => {
+    const r = customRange('2026-09-03', '2026-09-03');
+    expect(r.start).toBe('2026-09-03');
+    expect(r.end).toBe('2026-09-03');
+  });
+
+  it('clamps an absurd range and says so', () => {
+    const r = customRange('2020-01-01', '2035-12-31');
+    expect(r.clamped).toBe(true);
+    const days = Math.round(
+      (new Date(r.end).getTime() - new Date(r.start).getTime()) / 86400000,
+    ) + 1;
+    expect(days).toBe(MAX_CUSTOM_DAYS);
+  });
+
+  it('uses days for a short range and months for a long one', () => {
+    const short = computeOrderReport([], customRange('2026-09-01', '2026-09-20'));
+    expect(short.byDay).toHaveLength(20);
+    expect(short.byMonth).toEqual([]);
+
+    const long = computeOrderReport([], customRange('2026-01-01', '2026-06-30'));
+    expect(long.byDay).toEqual([]);
+    expect(long.byMonth).toHaveLength(6);
+  });
+
+  it('slides by its own length, keeping the span', () => {
+    const r = customRange('2026-09-01', '2026-09-10'); // 10 days
+    const next = shiftCustomRange(r, 1);
+    expect(next.start).toBe('2026-09-11');
+    expect(next.end).toBe('2026-09-20');
+    const prev = shiftCustomRange(r, -1);
+    expect(prev.start).toBe('2026-08-22');
+    expect(prev.end).toBe('2026-08-31');
+  });
+
+  it('only counts orders inside the range', () => {
+    const r = computeOrderReport(
+      [
+        order({ delivery_date: '2026-09-05', lines: [line('p1', '0001', 'A', 5)] }),
+        order({ delivery_date: '2026-09-25', lines: [line('p1', '0001', 'A', 7)] }),
+      ],
+      customRange('2026-09-01', '2026-09-10'),
+    );
+    // Both orders were passed in; the caller queries by range, so the
+    // report aggregates what it is given. byDay reflects only the window.
+    expect(r.byDay).toHaveLength(10);
+    expect(r.byDay.find((d) => d.date === '2026-09-05')!.ordered).toBe(5);
+    expect(r.byDay.some((d) => d.date === '2026-09-25')).toBe(false);
+  });
+});
+
+describe('period labels', () => {
+  it('labels each kind readably', () => {
+    expect(periodLabel(periodRange('year', '2026-05-05'), 'en')).toBe('2026');
+    expect(periodLabel(periodRange('month', '2026-05-05'), 'en')).toMatch(/May 2026/i);
+    expect(periodLabel(customRange('2026-09-01', '2026-09-30'), 'en')).toMatch(/Sep.*Sep.*2026/);
+  });
+
+  it('shows both years when a custom range crosses one', () => {
+    const label = periodLabel(customRange('2026-12-20', '2027-01-10'), 'en');
+    expect(label).toContain('2026');
+    expect(label).toContain('2027');
   });
 });

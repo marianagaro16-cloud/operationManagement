@@ -4,17 +4,20 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
-import { Badge, Card, CardBody, EmptyState } from '@/components/ui/primitives';
+import { Badge, Card, CardBody, EmptyState, ErrorState, Field, Input } from '@/components/ui/primitives';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 import { PageHeader } from '@/components/shell/app-shell';
 import {
   periodLabel,
   productReportToCsv,
+  shiftCustomRange,
   shiftPeriod,
   type OrderReport,
   type ReportPeriod,
 } from '@/domain/orders/reporting';
 
-const PERIODS: ReportPeriod[] = ['day', 'week', 'month'];
+const PERIODS: ReportPeriod[] = ['day', 'week', 'month', 'year', 'custom'];
 
 /**
  * Order report.
@@ -35,7 +38,27 @@ export function OrderReportView({
   const { t, locale, formatDate } = useI18n();
   const { range } = report;
 
-  const href = (kind: ReportPeriod, date: string) => `/admin/reports?period=${kind}&date=${date}`;
+  const [from, setFrom] = useState(range.start);
+  const [to, setTo] = useState(range.end);
+  const isCustom = range.kind === 'custom';
+
+  const href = (kind: ReportPeriod, date: string) =>
+    kind === 'custom'
+      // Switching INTO custom seeds the pickers with the range being viewed,
+      // so the user adjusts what they were already looking at.
+      ? `/admin/reports?period=custom&from=${range.start}&to=${range.end}`
+      : `/admin/reports?period=${kind}&date=${date}`;
+
+  const customHref = (f: string, t2: string) =>
+    `/admin/reports?period=custom&from=${f}&to=${t2}`;
+
+  // A custom range slides by its own length rather than by a calendar unit.
+  const prevHref = isCustom
+    ? (() => { const r = shiftCustomRange(range, -1); return customHref(r.start, r.end); })()
+    : href(range.kind, shiftPeriod(range.kind, anchor, -1));
+  const nextHref = isCustom
+    ? (() => { const r = shiftCustomRange(range, 1); return customHref(r.start, r.end); })()
+    : href(range.kind, shiftPeriod(range.kind, anchor, 1));
 
   function downloadCsv() {
     // Built in the browser from data already on the page — no round trip.
@@ -84,7 +107,7 @@ export function OrderReportView({
       {/* Period navigation */}
       <div className="mb-4 flex items-center gap-1">
         <Link
-          href={href(range.kind, shiftPeriod(range.kind, anchor, -1))}
+          href={prevHref}
           aria-label={t('calendar.prev')}
           className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
         >
@@ -94,7 +117,7 @@ export function OrderReportView({
           {periodLabel(range, locale)}
         </span>
         <Link
-          href={href(range.kind, shiftPeriod(range.kind, anchor, 1))}
+          href={nextHref}
           aria-label={t('calendar.next')}
           className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
         >
@@ -111,6 +134,27 @@ export function OrderReportView({
           </button>
         )}
       </div>
+
+      {isCustom && (
+        <Card className="mb-4">
+          <CardBody className="pt-3.5">
+            <div className="flex flex-wrap items-end gap-3">
+              <Field label={t('report.from')} htmlFor="r-from">
+                <Input id="r-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+              </Field>
+              <Field label={t('report.to')} htmlFor="r-to">
+                <Input id="r-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+              </Field>
+              <Link href={customHref(from, to)}>
+                <Button variant="primary">{t('report.apply')}</Button>
+              </Link>
+            </div>
+            {range.clamped && (
+              <div className="mt-2"><ErrorState message={t('report.rangeClamped')} /></div>
+            )}
+          </CardBody>
+        </Card>
+      )}
 
       {report.orders === 0 && report.cancelled === 0 ? (
         <EmptyState title={t('report.noOrders')} body={t('report.noOrdersBody')} />
@@ -219,8 +263,41 @@ export function OrderReportView({
             </section>
           )}
 
+          {/* Per-month trend for long ranges — 365 daily rows is unreadable */}
+          {report.byMonth.length > 0 && (
+            <section>
+              <h2 className="mb-2 text-[13px] font-semibold">{t('report.byMonth')}</h2>
+              <Card>
+                <CardBody className="pt-3.5">
+                  <ul className="space-y-1">
+                    {report.byMonth.map((m) => {
+                      const max = Math.max(...report.byMonth.map((x) => x.ordered), 1);
+                      return (
+                        <li key={m.month} className="flex items-center gap-2 text-[12.5px]">
+                          <span className="w-24 shrink-0 capitalize text-muted">
+                            {formatDate(`${m.month}-01`, 'monthYear')}
+                          </span>
+                          <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
+                            <span
+                              className="block h-full rounded-full bg-accent"
+                              style={{ width: `${(m.ordered / max) * 100}%` }}
+                            />
+                          </span>
+                          <span className="w-12 shrink-0 text-right tabular">{m.ordered || '—'}</span>
+                          <span className="w-16 shrink-0 text-right tabular text-subtle">
+                            {m.orders ? `${m.orders} ${t('report.ordersShort')}` : ''}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </CardBody>
+              </Card>
+            </section>
+          )}
+
           {/* Per-day trend, only where it adds something */}
-          {range.kind !== 'day' && (
+          {range.kind !== 'day' && report.byDay.length > 0 && (
             <section>
               <h2 className="mb-2 text-[13px] font-semibold">{t('report.byDay')}</h2>
               <Card>

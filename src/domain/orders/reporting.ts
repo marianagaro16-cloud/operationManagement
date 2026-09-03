@@ -19,17 +19,28 @@ import type { Order } from '@/types/orders';
  * 2 kilos are not 5 of anything.
  */
 
-export type ReportPeriod = 'day' | 'week' | 'month';
+export type ReportPeriod = 'day' | 'week' | 'month' | 'year' | 'custom';
+
+/** Longest custom range accepted, so a typo cannot ask for a decade. */
+export const MAX_CUSTOM_DAYS = 731;
 
 export interface PeriodRange {
   kind: ReportPeriod;
   start: BusinessDate;
   end: BusinessDate;
-  /** Stable identifier for navigation: 2026-09-03 | 2026-W36 | 2026-09. */
+  /** Stable identifier: 2026-09-03 | 2026-W36 | 2026-09 | 2026 | a range. */
   key: string;
+  /** Set when a custom range was clamped to MAX_CUSTOM_DAYS. */
+  clamped?: boolean;
 }
 
-/** Inclusive Europe/Zurich bounds of the period containing `date`. */
+/**
+ * Inclusive Europe/Zurich bounds of the period containing `date`.
+ *
+ * 'custom' is not a period around a date, so it is built by customRange()
+ * and passing it here falls back to the month — the caller should not be
+ * asking this question.
+ */
 export function periodRange(kind: ReportPeriod, date: BusinessDate): PeriodRange {
   const dt = parseBusinessDate(date);
   switch (kind) {
@@ -49,14 +60,66 @@ export function periodRange(kind: ReportPeriod, date: BusinessDate): PeriodRange
         end: toBusinessDate(dt.endOf('month')),
         key: dt.toFormat('yyyy-MM'),
       };
+    case 'year':
+      return {
+        kind,
+        start: toBusinessDate(dt.startOf('year')),
+        end: toBusinessDate(dt.endOf('year')),
+        key: dt.toFormat('yyyy'),
+      };
+    case 'custom':
+      // A custom range needs two dates; treat a single one as that month.
+      return {
+        ...periodRange('month', date),
+        kind: 'custom',
+      };
   }
+}
+
+/**
+ * An explicit from–to range.
+ *
+ * Reversed dates are swapped rather than rejected: someone picking the end
+ * date first is expressing a range, not an error. Over-long ranges are
+ * clamped and flagged so the report says so instead of silently truncating.
+ */
+export function customRange(from: BusinessDate, to: BusinessDate): PeriodRange {
+  let a = parseBusinessDate(from);
+  let b = parseBusinessDate(to);
+  if (b < a) [a, b] = [b, a];
+
+  let clamped = false;
+  const days = Math.round(b.diff(a, 'days').days) + 1;
+  if (days > MAX_CUSTOM_DAYS) {
+    b = a.plus({ days: MAX_CUSTOM_DAYS - 1 });
+    clamped = true;
+  }
+
+  const start = toBusinessDate(a);
+  const end = toBusinessDate(b);
+  return { kind: 'custom', start, end, key: `${start}_${end}`, clamped };
 }
 
 /** Move a whole period forward or back, for previous/next navigation. */
 export function shiftPeriod(kind: ReportPeriod, date: BusinessDate, delta: number): BusinessDate {
   const dt = parseBusinessDate(date);
-  const unit = kind === 'day' ? 'days' : kind === 'week' ? 'weeks' : 'months';
+  const unit =
+    kind === 'day' ? 'days'
+      : kind === 'week' ? 'weeks'
+        : kind === 'year' ? 'years'
+          : 'months';
   return toBusinessDate(dt.plus({ [unit]: delta }));
+}
+
+/** Slide a custom range by its own length, keeping the span identical. */
+export function shiftCustomRange(range: PeriodRange, delta: number): PeriodRange {
+  const a = parseBusinessDate(range.start);
+  const b = parseBusinessDate(range.end);
+  const days = Math.round(b.diff(a, 'days').days) + 1;
+  return customRange(
+    toBusinessDate(a.plus({ days: days * delta })),
+    toBusinessDate(b.plus({ days: days * delta })),
+  );
 }
 
 export interface ProductLine {
@@ -95,6 +158,16 @@ export interface DayLine {
   ordered: number;
 }
 
+export interface MonthLine {
+  /** YYYY-MM */
+  month: string;
+  orders: number;
+  ordered: number;
+}
+
+/** Beyond this many days a per-day list is unreadable, so months are used. */
+export const DAY_BREAKDOWN_LIMIT = 62;
+
 export interface OrderReport {
   range: PeriodRange;
 
@@ -119,7 +192,10 @@ export interface OrderReport {
   byProduct: ProductLine[];
   byCustomer: CustomerLine[];
   byDeliveryMethod: CountLine[];
+  /** Empty for ranges longer than DAY_BREAKDOWN_LIMIT; use byMonth instead. */
   byDay: DayLine[];
+  /** Populated only for ranges too long for a per-day list. */
+  byMonth: MonthLine[];
 }
 
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
@@ -230,16 +306,38 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
 
   const byDeliveryMethod = [...methods.values()].sort((a, b) => b.orders - a.orders);
 
-  // Every day in the range, so a gap reads as a genuine zero rather than a
-  // missing row.
+  // A per-day list is unreadable past a couple of months, so a long range
+  // (a year, or a wide custom span) is bucketed by month instead. Exactly
+  // one of the two is populated.
+  const rangeStart = parseBusinessDate(range.start);
+  const rangeEnd = parseBusinessDate(range.end);
+  const spanDays = Math.round(rangeEnd.diff(rangeStart, 'days').days) + 1;
+  const useDays = spanDays <= DAY_BREAKDOWN_LIMIT;
+
   const byDay: DayLine[] = [];
-  for (
-    let d = parseBusinessDate(range.start);
-    d <= parseBusinessDate(range.end);
-    d = d.plus({ days: 1 })
-  ) {
-    const key = toBusinessDate(d);
-    byDay.push(days.get(key) ?? { date: key, orders: 0, ordered: 0 });
+  const byMonth: MonthLine[] = [];
+
+  if (useDays) {
+    // Every day in the range, so a gap reads as a genuine zero rather than a
+    // missing row.
+    for (let d = rangeStart; d <= rangeEnd; d = d.plus({ days: 1 })) {
+      const key = toBusinessDate(d);
+      byDay.push(days.get(key) ?? { date: key, orders: 0, ordered: 0 });
+    }
+  } else {
+    const monthly = new Map<string, MonthLine>();
+    for (const line of days.values()) {
+      const month = line.date.slice(0, 7);
+      const bucket = monthly.get(month) ?? { month, orders: 0, ordered: 0 };
+      bucket.orders += line.orders;
+      bucket.ordered = round3(bucket.ordered + line.ordered);
+      monthly.set(month, bucket);
+    }
+    // Every month in the range, empty ones included, for the same reason.
+    for (let d = rangeStart.startOf('month'); d <= rangeEnd; d = d.plus({ months: 1 })) {
+      const month = d.toFormat('yyyy-MM');
+      byMonth.push(monthly.get(month) ?? { month, orders: 0, ordered: 0 });
+    }
   }
 
   return {
@@ -260,10 +358,11 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
     byCustomer,
     byDeliveryMethod,
     byDay,
+    byMonth,
   };
 }
 
-/** Human label for a period, e.g. "Week 36 · 31 Aug – 6 Sep 2026". */
+/** Human label for a period, e.g. "31 Aug – 6 Sep 2026". */
 export function periodLabel(range: PeriodRange, locale: string): string {
   const start = DateTime.fromISO(range.start, { zone: BUSINESS_TZ }).setLocale(locale);
   const end = DateTime.fromISO(range.end, { zone: BUSINESS_TZ }).setLocale(locale);
@@ -274,6 +373,13 @@ export function periodLabel(range: PeriodRange, locale: string): string {
       return `${start.toFormat('d LLL')} – ${end.toFormat('d LLL yyyy')}`;
     case 'month':
       return start.toFormat('LLLL yyyy');
+    case 'year':
+      return start.toFormat('yyyy');
+    case 'custom':
+      // Drop the repeated year when both ends share one.
+      return start.year === end.year
+        ? `${start.toFormat('d LLL')} – ${end.toFormat('d LLL yyyy')}`
+        : `${start.toFormat('d LLL yyyy')} – ${end.toFormat('d LLL yyyy')}`;
   }
 }
 
