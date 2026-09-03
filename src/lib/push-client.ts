@@ -39,6 +39,40 @@ function toUint8Array(base64: string): Uint8Array {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
 }
 
+/**
+ * The server's VAPID public key.
+ *
+ * Deliberately fetched rather than read from `process.env.NEXT_PUBLIC_...`:
+ * that value is inlined when the app is BUILT, so adding it to the host and
+ * not redeploying leaves the browser with nothing and the user with a flat
+ * "push_not_configured". Asking the server means the key is always the one it
+ * is actually signing with.
+ *
+ * Cached for the page's lifetime — it changes only when the pair is rotated.
+ */
+let keyCache: string | null | undefined;
+
+async function fetchVapidKey(): Promise<string | null> {
+  if (keyCache !== undefined) return keyCache;
+  try {
+    const res = await fetch('/api/push/key');
+    const json = res.ok ? ((await res.json()) as { key?: string }) : null;
+    keyCache = json?.key ?? null;
+  } catch {
+    keyCache = null; // offline or the route is missing; treated as unconfigured
+  }
+  return keyCache;
+}
+
+/** Does an existing subscription use the key the server signs with? */
+function sameKey(existing: ArrayBuffer | null, wanted: Uint8Array): boolean {
+  // A subscription whose key the browser will not disclose cannot be
+  // verified, so treat it as stale rather than trusting it.
+  if (!existing) return false;
+  const bytes = new Uint8Array(existing);
+  return bytes.length === wanted.length && bytes.every((b, i) => b === wanted[i]);
+}
+
 function isIos(): boolean {
   if (typeof window === 'undefined') return false;
   const ua = navigator.userAgent;
@@ -97,6 +131,7 @@ export function usePushSubscription() {
     const hasNotification = 'Notification' in window;
     const ios = isIos();
     const standalone = isStandalone();
+    const serverKey = await fetchVapidKey();
 
     const base: PushDiagnostics = {
       serviceWorker: hasSw,
@@ -106,7 +141,7 @@ export function usePushSubscription() {
       registered: false,
       active: false,
       subscribed: false,
-      vapidKey: Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
+      vapidKey: Boolean(serverKey),
       standalone,
       ios,
       // Push requires a secure context; localhost counts as secure.
@@ -157,7 +192,7 @@ export function usePushSubscription() {
     setError(null);
     setBusy(true);
     try {
-      const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      const key = await fetchVapidKey();
       if (!key) { setError('push_not_configured'); return false; }
 
       const reg = await getActiveRegistration();
@@ -171,12 +206,22 @@ export function usePushSubscription() {
         return false;
       }
 
-      const sub =
-        (await reg.pushManager.getSubscription()) ??
-        (await reg.pushManager.subscribe({
-          userVisibleOnly: true, // required by Chrome
-          applicationServerKey: toUint8Array(key) as BufferSource,
-        }));
+      // A subscription left over from a DIFFERENT key — an earlier pair, or a
+      // build that shipped a stale one — is worse than none: the push service
+      // keeps accepting it and the server can never deliver to it. Reusing it
+      // blindly is how "I allowed it and nothing happens" becomes permanent,
+      // so replace it whenever the key does not match.
+      const keyBytes = toUint8Array(key);
+      const existing = await reg.pushManager.getSubscription();
+      const usable = existing !== null && sameKey(existing.options.applicationServerKey, keyBytes);
+      if (existing && !usable) await existing.unsubscribe();
+
+      const sub = usable
+        ? existing
+        : await reg.pushManager.subscribe({
+            userVisibleOnly: true, // required by Chrome
+            applicationServerKey: keyBytes as BufferSource,
+          });
 
       const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
       if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
