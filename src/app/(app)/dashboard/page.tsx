@@ -1,4 +1,4 @@
-import { getDashboardData } from '@/server/data';
+import { getDashboardData, getProfile } from '@/server/data';
 import { getOrderDashboardSummary } from '@/server/orders';
 import { businessToday } from '@/lib/datetime';
 import { DashboardView } from '@/components/tasks/dashboard-view';
@@ -11,8 +11,14 @@ export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const today = businessToday();
+  const profile = await getProfile();
+  const isAdmin = profile?.role === 'admin';
+
+  // A regular user's dashboard is the current day. Showing a week ahead
+  // invites working on tomorrow's list, and buries what is due now.
+  // Admins keep the forward view because planning is their job.
   const [data, orders] = await Promise.all([
-    getDashboardData(7),
+    getDashboardData(isAdmin ? 7 : 0),
     getOrderDashboardSummary(today),
   ]);
 
@@ -25,7 +31,7 @@ export default async function DashboardPage() {
       <UrgentAlert orders={orders.toPrepare} />
       {/* Orders summarise into two tiles; today's TASKS remain the focus. */}
       <OrderWidgets toPrepare={orders.toPrepare} delivering={orders.delivering} />
-      <DashboardView data={data} />
+      <DashboardView data={data} showUpcoming={isAdmin} />
     </>
   );
 }

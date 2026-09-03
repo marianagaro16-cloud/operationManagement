@@ -26,8 +26,14 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
     // Lot control is the main floor workflow, so it sits high in the bar.
     { href: '/preparation', label: t('prep.title'), icon: ClipboardList },
     { href: '/orders', label: t('orders.title'), icon: Package },
-    { href: '/calendar', label: t('nav.calendar'), icon: CalendarDays },
-    ...(isAdmin ? [{ href: '/admin', label: t('nav.admin'), icon: Shield }] : []),
+    // The calendar browses future dates, so it is admin-only for the same
+    // reason the dashboard hides upcoming work from regular users.
+    ...(isAdmin
+      ? [
+          { href: '/calendar', label: t('nav.calendar'), icon: CalendarDays },
+          { href: '/admin', label: t('nav.admin'), icon: Shield },
+        ]
+      : []),
   ];
 
   const active = (href: string) =>

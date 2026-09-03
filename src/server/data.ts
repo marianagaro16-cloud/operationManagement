@@ -100,18 +100,26 @@ export interface DashboardData {
   upcoming: OccurrenceWithTask[];
 }
 
+/**
+ * @param upcomingDays how many days ahead to RETURN. Pass 0 to show only
+ *   today — a regular user's view is the current shift, not the week.
+ *   Occurrence generation is unaffected: the horizon is always materialised
+ *   so the data exists for the calendar, reports and the notifier.
+ */
 export async function getDashboardData(upcomingDays = 7): Promise<DashboardData> {
   const today = businessToday();
 
-  // Self-healing: guarantee the visible window exists before querying it.
-  await ensureOccurrences(addDays(today, -1), addDays(today, upcomingDays + 1));
+  // Always generate a full week ahead regardless of what is displayed,
+  // otherwise hiding the upcoming list would stop creating the occurrences.
+  const GENERATION_DAYS = 7;
+  await ensureOccurrences(addDays(today, -1), addDays(today, GENERATION_DAYS + 1));
 
   const supabase = createClient();
   const { data, error } = await supabase
     .from('task_occurrences')
     .select(OCCURRENCE_SELECT)
     .eq('task.is_active', true)
-    .lte('due_date', addDays(today, upcomingDays))
+    .lte('due_date', addDays(today, Math.max(upcomingDays, 0)))
     .order('due_date', { ascending: true });
 
   if (error) throw new Error(error.message);

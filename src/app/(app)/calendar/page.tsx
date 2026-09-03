@@ -1,8 +1,9 @@
 import { DateTime } from 'luxon';
-import { getOccurrencesInRange, ensureOccurrences } from '@/server/data';
+import { getOccurrencesInRange, ensureOccurrences, getProfile } from '@/server/data';
 import { BUSINESS_TZ, businessToday, toBusinessDate } from '@/lib/datetime';
 import { CalendarView } from '@/components/calendar/calendar-view';
 import { CalendarHeading } from '@/components/calendar/calendar-heading';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,11 @@ export default async function CalendarPage({
 }: {
   searchParams: { month?: string };
 }) {
+  // Regular users work the current day; the calendar is a planning tool.
+  // Hiding the nav link alone would leave the route reachable by URL.
+  const profile = await getProfile();
+  if (profile?.role !== 'admin') redirect('/dashboard');
+
   const today = businessToday();
 
   const requested = searchParams.month

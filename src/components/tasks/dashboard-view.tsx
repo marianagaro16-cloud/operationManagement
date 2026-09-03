@@ -17,7 +17,14 @@ import type { DashboardData } from '@/server/data';
  * urgent signal; the extra-task banner sits above everything because missing
  * it is the costliest mistake.
  */
-export function DashboardView({ data }: { data: DashboardData }) {
+export function DashboardView({
+  data,
+  showUpcoming = true,
+}: {
+  data: DashboardData;
+  /** Regular users see only the current day; admins see the week ahead. */
+  showUpcoming?: boolean;
+}) {
   const { t } = useI18n();
   const { today, dailyToday, extraToday, overdue, upcoming } = data;
 
@@ -103,6 +110,9 @@ export function DashboardView({ data }: { data: DashboardData }) {
       )}
 
       {/* ---------------- upcoming ---------------- */}
+      {/* Hidden entirely for regular users — an empty "nothing upcoming"
+          panel would imply the week is clear, which is not what it means. */}
+      {showUpcoming && (
       <section>
         <SectionHeading title={t('dashboard.upcomingTitle')} subtitle={t('dashboard.upcomingSubtitle')} />
         {upcoming.length === 0 ? (
@@ -115,6 +125,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
           </ul>
         )}
       </section>
+      )}
     </div>
   );
 }
