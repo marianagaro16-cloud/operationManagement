@@ -237,6 +237,10 @@ export const es: Messages = {
     noOccurrences: 'No hay ocurrencias este mes',
   },
   orders: {
+    searchCustomer: 'Buscar cliente…',
+    searchProduct: 'Buscar código o producto…',
+    noCustomersFound: 'No se encontraron clientes',
+    noProductsFound: 'No se encontraron productos',
     title: 'Control de pedidos',
     subtitle: 'Pedidos confirmados por fecha de entrega',
     newOrder: 'Nuevo pedido',

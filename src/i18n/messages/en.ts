@@ -239,6 +239,10 @@ export const en = {
     noOccurrences: 'No occurrences this month',
   },
   orders: {
+    searchCustomer: 'Search customer…',
+    searchProduct: 'Search code or product…',
+    noCustomersFound: 'No customers found',
+    noProductsFound: 'No products found',
     title: 'Order control',
     subtitle: 'Confirmed customer orders by delivery date',
     newOrder: 'New order',

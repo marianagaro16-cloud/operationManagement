@@ -237,6 +237,10 @@ export const de: Messages = {
     noOccurrences: 'Keine Vorkommen in diesem Monat',
   },
   orders: {
+    searchCustomer: 'Kunde suchen…',
+    searchProduct: 'Code oder Produkt suchen…',
+    noCustomersFound: 'Keine Kunden gefunden',
+    noProductsFound: 'Keine Produkte gefunden',
     title: 'Bestellkontrolle',
     subtitle: 'Bestätigte Kundenbestellungen nach Lieferdatum',
     newOrder: 'Neue Bestellung',

@@ -6,10 +6,11 @@ import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
+import { Combobox } from '@/components/ui/combobox';
 import { defaultPreparationDate, isValidSchedule } from '@/domain/orders/scheduling';
 import { toQuantity } from '@/domain/orders/progress';
 import { businessToday } from '@/lib/datetime';
-import { productLabel, type Customer, type DeliveryMethod, type Order, type Product } from '@/types/orders';
+import { customerLabel, productLabel, type Customer, type DeliveryMethod, type Order, type Product } from '@/types/orders';
 import { saveOrder } from '@/server/order-actions';
 
 interface DraftLine {
@@ -140,12 +141,29 @@ export function OrderDialog({
     >
       <div className="space-y-3.5">
         <Field label={t('orders.customer')} required htmlFor="o-customer">
-          <Select id="o-customer" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-            <option value="">—</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </Select>
+          {/* Searches company name AND trading name: "catedral" finds
+              "5 Almas AG — La Catedral". */}
+          <Combobox
+            id="o-customer"
+            items={customers}
+            value={customerId || null}
+            onChange={(id) => setCustomerId(id ?? '')}
+            getKey={(c) => c.id}
+            getLabel={customerLabel}
+            getSearchText={(c) => `${c.company_name} ${c.company_name_addition ?? ''}`}
+            placeholder={t('orders.searchCustomer')}
+            emptyMessage={t('orders.noCustomersFound')}
+            renderOption={(c) => (
+              <span className="block">
+                <span className="block truncate">{c.company_name}</span>
+                {c.company_name_addition && (
+                  <span className="block truncate text-[11.5px] text-muted">
+                    {c.company_name_addition}
+                  </span>
+                )}
+              </span>
+            )}
+          />
         </Field>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -223,21 +241,30 @@ export function OrderDialog({
           <div className="space-y-2">
             {lines.map((line, i) => (
               <div key={i} className="flex items-start gap-2">
-                <Select
-                  value={line.product_id}
-                  onChange={(e) =>
-                    setLines(lines.map((l, j) => (j === i ? { ...l, product_id: e.target.value } : l)))
-                  }
-                  aria-label={t('orders.product')}
+                {/* Each line has its own selector; choosing on one never
+                    touches another. Searches code AND name, so "0073",
+                    "tortilla" and "1kg" all find their products. */}
+                <Combobox
                   className="min-w-0 flex-1"
-                >
-                  <option value="">—</option>
-                  {selectableProducts.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {productLabel(p)}{p.code ? ` (${p.code})` : ''}{!p.is_active ? ' ·' : ''}
-                    </option>
-                  ))}
-                </Select>
+                  items={selectableProducts}
+                  value={line.product_id || null}
+                  onChange={(id) =>
+                    setLines(lines.map((l, j) => (j === i ? { ...l, product_id: id ?? '' } : l)))
+                  }
+                  getKey={(p) => p.id}
+                  getLabel={(p) => (p.code ? `${p.code} · ${productLabel(p)}` : productLabel(p))}
+                  getSearchText={(p) => `${p.code ?? ''} ${p.name ?? ''} ${p.family}`}
+                  placeholder={t('orders.searchProduct')}
+                  emptyMessage={t('orders.noProductsFound')}
+                  renderOption={(p) => (
+                    <span className="flex items-baseline gap-2">
+                      <span className="w-12 shrink-0 tabular text-[11.5px] text-subtle">
+                        {p.code ?? '—'}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">{productLabel(p)}</span>
+                    </span>
+                  )}
+                />
                 <Input
                   value={line.ordered_quantity}
                   onChange={(e) =>
