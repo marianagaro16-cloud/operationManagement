@@ -18,6 +18,7 @@ export function AdminNav() {
     { href: '/admin/recurring', label: t('master.recurringTitle') },
     { href: '/admin/users', label: t('nav.users') },
     { href: '/admin/history', label: t('nav.history') },
+    { href: '/admin/reports', label: t('report.title') },
     { href: '/admin/statistics', label: t('nav.statistics') },
     { href: '/admin/settings', label: t('nav.settings') },
   ];
