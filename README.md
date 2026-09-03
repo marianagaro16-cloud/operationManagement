@@ -397,3 +397,19 @@ secrets stop the run with an explicit message.
 GitHub's scheduler is best-effort and can lag by a few minutes under load. The
 urgency thresholds are hours wide, so this does not matter — and because the
 endpoint is idempotent, a missed run simply catches up on the next one.
+
+### Vercel cron and the Hobby plan
+
+`vercel.json` declares **one** cron, `/api/cron/generate`, at `30 3 * * *`.
+
+A sub-daily expression here does **not** get ignored on the Hobby plan — it
+**fails the entire build**, so nothing deploys at all:
+
+```
+Hobby accounts are limited to daily cron jobs. This cron expression
+(*/15 5-20 * * *) would run more than once per day.
+```
+
+The 15-minute notification schedule therefore lives in
+`.github/workflows/notify.yml`, not here. Only move it into `vercel.json`
+after upgrading to Pro.

@@ -4,10 +4,6 @@
     {
       "path": "/api/cron/generate",
       "schedule": "30 3 * * *"
-    },
-    {
-      "path": "/api/cron/notify",
-      "schedule": "*/15 5-20 * * *"
     }
   ]
 }
