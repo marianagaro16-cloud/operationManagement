@@ -8,27 +8,25 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, ErrorState, Field, Input } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { saveCustomer, saveDeliveryMethod } from '@/server/order-actions';
-import type { Customer, DeliveryMethod } from '@/types/orders';
+import { saveDeliveryMethod } from '@/server/order-actions';
+import type { DeliveryMethod } from '@/types/orders';
 
 type Row = { id: string; name: string; is_active: boolean; slug?: string };
 
 /**
- * Shared editor for the simple masters (customers, delivery methods).
+ * Delivery-method editor.
  *
- * Neither is ever deleted: historical orders must keep displaying the
- * customer and delivery method they were placed with, so the only lifecycle
- * operation is active/inactive.
+ * Never deleted: historical orders must keep displaying the delivery method
+ * they were placed with, so the only lifecycle operation is active/inactive.
+ * Customers have their own screen — they carry two name fields and search.
  */
 export function MasterDataManager({
-  kind,
   rows,
   title,
   subtitle,
   addLabel,
 }: {
-  kind: 'customer' | 'delivery_method';
-  rows: (Customer | DeliveryMethod)[];
+  rows: DeliveryMethod[];
   title: string;
   subtitle: string;
   addLabel: string;
@@ -75,7 +73,6 @@ export function MasterDataManager({
       {(creating || editing) && (
         <RowDialog
           key={editing?.id ?? 'new'}
-          kind={kind}
           row={editing}
           onClose={() => { setCreating(false); setEditing(null); }}
           onSaved={() => { setCreating(false); setEditing(null); router.refresh(); }}
@@ -86,12 +83,10 @@ export function MasterDataManager({
 }
 
 function RowDialog({
-  kind,
   row,
   onClose,
   onSaved,
 }: {
-  kind: 'customer' | 'delivery_method';
   row: Row | null;
   onClose: () => void;
   onSaved: () => void;
@@ -106,15 +101,12 @@ function RowDialog({
   function submit() {
     setError(null);
     startTransition(async () => {
-      const res =
-        kind === 'customer'
-          ? await saveCustomer(name, active, row?.id)
-          : await saveDeliveryMethod(
-              name,
-              slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
-              active,
-              row?.id,
-            );
+      const res = await saveDeliveryMethod(
+        name,
+        slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+        active,
+        row?.id,
+      );
       if (!res.ok) return setError(res.error);
       onSaved();
     });
@@ -139,11 +131,9 @@ function RowDialog({
           <Input id="m-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         </Field>
 
-        {kind === 'delivery_method' && (
-          <Field label={t('master.slug')} htmlFor="m-slug">
-            <Input id="m-slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
-          </Field>
-        )}
+        <Field label={t('master.slug')} htmlFor="m-slug">
+          <Input id="m-slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
+        </Field>
 
         <Checkbox
           label={t('status.active')}

@@ -228,14 +228,26 @@ export async function setShortfallReason(
 
 /* ------------------------------ master data ----------------------------- */
 
+const customerSchema = z.object({
+  company_name: z.string().trim().min(1),
+  // Kept separate from the company name on purpose; never merged away.
+  company_name_addition: z.string().trim().nullable(),
+  is_active: z.boolean(),
+});
+
 export async function saveCustomer(
-  name: string,
-  isActive: boolean,
+  input: z.infer<typeof customerSchema>,
   id?: string,
 ): Promise<ActionResult> {
-  if (!name.trim()) return { ok: false, error: 'name_required' };
+  const parsed = customerSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'name_required' };
   const supabase = createClient();
-  const row = { name: name.trim(), is_active: isActive };
+  // `name` is a generated column — derived by Postgres, never written here.
+  const row = {
+    company_name: parsed.data.company_name,
+    company_name_addition: parsed.data.company_name_addition || null,
+    is_active: parsed.data.is_active,
+  };
   const { error } = id
     ? await supabase.from('customers').update(row).eq('id', id)
     : await supabase.from('customers').insert(row);
@@ -246,6 +258,8 @@ export async function saveCustomer(
 
 const productSchema = z.object({
   code: z.string().trim().nullable(),
+  // Stored verbatim. Never parsed into category, weight, size or packaging.
+  name: z.string().trim().min(1),
   family: z.string().trim().min(1),
   presentation: z.string().trim().min(1),
   category: z.string().trim().nullable(),

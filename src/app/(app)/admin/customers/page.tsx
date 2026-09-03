@@ -1,10 +1,10 @@
 import { getCustomers } from '@/server/orders';
-import { CustomersScreen } from '@/components/admin/master-screens';
+import { CustomerManager } from '@/components/admin/customer-manager';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CustomersPage() {
-  // Inactive customers are shown so an admin can reactivate them.
+  // Inactive included so an admin can find and reactivate them.
   const customers = await getCustomers(true);
-  return <CustomersScreen customers={customers} />;
+  return <CustomerManager customers={customers} />;
 }

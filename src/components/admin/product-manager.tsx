@@ -10,14 +10,17 @@ import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Textarea } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { saveProduct } from '@/server/order-actions';
-import type { Product } from '@/types/orders';
+import { productLabel, type Product } from '@/types/orders';
 
 /**
  * Product master.
  *
- * A sellable product is family + presentation. Codes come from the source
- * workbook and are NOT unique there, so imported conflicts are flagged rather
- * than silently resolved — this screen is where an admin settles them.
+ * `code` is the business identifier and is unique among ACTIVE products.
+ * `name` is stored exactly as imported and is never parsed — nothing is
+ * inferred from it into category, weight, size or packaging.
+ *
+ * Products absent from the master file are deactivated, never deleted, so
+ * historical order lines keep resolving.
  */
 export function ProductManager({ products }: { products: Product[] }) {
   const { t } = useI18n();
@@ -25,30 +28,24 @@ export function ProductManager({ products }: { products: Product[] }) {
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState('');
-  const [onlyReview, setOnlyReview] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
 
+  const inactiveCount = products.filter((p) => !p.is_active).length;
   const reviewCount = products.filter((p) => p.needs_review).length;
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((p) => {
-      if (onlyReview && !p.needs_review) return false;
+      if (!showInactive && !p.is_active) return false;
       if (!q) return true;
+      // Searchable by code and by name, which is how people actually look.
       return (
-        p.family.toLowerCase().includes(q) ||
-        p.presentation.toLowerCase().includes(q) ||
-        (p.code ?? '').toLowerCase().includes(q)
+        (p.code ?? '').toLowerCase().includes(q) ||
+        (p.name ?? '').toLowerCase().includes(q) ||
+        p.family.toLowerCase().includes(q)
       );
     });
-  }, [products, query, onlyReview]);
-
-  // Grouped by family so 246 variants stay navigable.
-  const groups: { family: string; items: Product[] }[] = [];
-  for (const p of visible) {
-    const last = groups[groups.length - 1];
-    if (last && last.family === p.family) last.items.push(p);
-    else groups.push({ family: p.family, items: [p] });
-  }
+  }, [products, query, showInactive]);
 
   return (
     <>
@@ -67,75 +64,75 @@ export function ProductManager({ products }: { products: Product[] }) {
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={t('common.search')}
+          placeholder={t('master.searchProducts')}
           className="max-w-xs"
           aria-label={t('common.search')}
         />
-        {reviewCount > 0 && (
+        {inactiveCount > 0 && (
           <button
-            onClick={() => setOnlyReview((v) => !v)}
-            aria-pressed={onlyReview}
+            onClick={() => setShowInactive((v) => !v)}
+            aria-pressed={showInactive}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors',
-              onlyReview
-                ? 'border-warn bg-warn/10 text-warn'
+              'rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors',
+              showInactive
+                ? 'border-accent bg-accent/10 text-accent'
                 : 'border-border bg-surface text-muted hover:text-fg',
             )}
           >
-            <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
-            {t('master.reviewCount', { count: reviewCount })}
+            {t('master.showInactive', { count: inactiveCount })}
           </button>
         )}
+        {reviewCount > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-warn/30 bg-warn/[0.07] px-2.5 py-1.5 text-[13px] font-medium text-warn">
+            <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+            {t('master.reviewCount', { count: reviewCount })}
+          </span>
+        )}
+        <span className="text-[12px] text-subtle">
+          {t('master.showingCount', { shown: visible.length, total: products.length })}
+        </span>
       </div>
 
       {visible.length === 0 ? (
         <EmptyState title={t('stats.noData')} />
       ) : (
-        <div className="space-y-4">
-          {groups.map((group) => (
-            <section key={group.family}>
-              <h2 className="mb-1.5 px-0.5 text-[11.5px] font-semibold uppercase tracking-wide text-muted">
-                {group.family}
-              </h2>
-              <Card className="overflow-hidden">
-                <ul className="divide-y divide-border">
-                  {group.items.map((p) => (
-                    <li key={p.id} className="flex items-center gap-3 px-3.5 py-2">
-                      <span className="w-12 shrink-0 text-[11.5px] tabular text-subtle">
-                        {p.code ?? '—'}
-                      </span>
-                      <span
-                        className={cn(
-                          'min-w-0 flex-1 truncate text-[13px]',
-                          !p.is_active && 'text-muted line-through',
-                        )}
-                      >
-                        {p.presentation}
-                      </span>
-                      {p.needs_review && (
-                        <Badge tone="warn" title={p.notes ?? undefined}>
-                          <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
-                          {t('master.needsReview')}
-                        </Badge>
-                      )}
-                      <Badge tone={p.is_active ? 'done' : 'neutral'}>
-                        {p.is_active ? t('status.active') : t('status.inactive')}
-                      </Badge>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setEditing(p)}
-                        aria-label={t('common.edit')}
-                      >
-                        <Pencil className="h-3.5 w-3.5" aria-hidden />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            </section>
-          ))}
-        </div>
+        <Card className="overflow-hidden">
+          <ul className="divide-y divide-border">
+            {visible.map((p) => (
+              <li key={p.id} className="flex items-center gap-3 px-3.5 py-2">
+                <span className="w-14 shrink-0 text-[11.5px] tabular text-subtle">
+                  {p.code ?? '—'}
+                </span>
+                <span
+                  className={cn(
+                    'min-w-0 flex-1 truncate text-[13px]',
+                    !p.is_active && 'text-muted line-through',
+                  )}
+                  title={productLabel(p)}
+                >
+                  {productLabel(p)}
+                </span>
+                {p.needs_review && (
+                  <Badge tone="warn" title={p.notes ?? undefined}>
+                    <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
+                    {t('master.needsReview')}
+                  </Badge>
+                )}
+                <Badge tone={p.is_active ? 'done' : 'neutral'}>
+                  {p.is_active ? t('status.active') : t('status.inactive')}
+                </Badge>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setEditing(p)}
+                  aria-label={t('common.edit')}
+                >
+                  <Pencil className="h-3.5 w-3.5" aria-hidden />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
 
       {(creating || editing) && (
@@ -161,8 +158,7 @@ function ProductDialog({
 }) {
   const { t } = useI18n();
   const [code, setCode] = useState(product?.code ?? '');
-  const [family, setFamily] = useState(product?.family ?? '');
-  const [presentation, setPresentation] = useState(product?.presentation ?? '');
+  const [name, setName] = useState(product?.name ?? '');
   const [category, setCategory] = useState(product?.category ?? '');
   const [notes, setNotes] = useState(product?.notes ?? '');
   const [active, setActive] = useState(product?.is_active ?? true);
@@ -176,8 +172,10 @@ function ProductDialog({
       const res = await saveProduct(
         {
           code: code.trim() || null,
-          family: family.trim(),
-          presentation: presentation.trim(),
+          name: name.trim(),
+          // Legacy structured fields are preserved as-is, never re-derived.
+          family: product?.family ?? name.trim(),
+          presentation: product?.presentation ?? '—',
           category: category.trim() || null,
           notes: notes.trim() || null,
           is_active: active,
@@ -185,7 +183,10 @@ function ProductDialog({
         },
         product?.id,
       );
-      if (!res.ok) return setError(res.error);
+      if (!res.ok) {
+        setError(res.error.includes('products_code_active_key') ? t('master.codeInUse') : res.error);
+        return;
+      }
       onSaved();
     });
   }
@@ -198,29 +199,25 @@ function ProductDialog({
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
-          <Button
-            variant="primary"
-            onClick={submit}
-            loading={pending}
-            disabled={!family.trim() || !presentation.trim()}
-          >
+          <Button variant="primary" onClick={submit} loading={pending} disabled={!name.trim()}>
             {t('common.save')}
           </Button>
         </>
       }
     >
       <div className="space-y-3.5">
-        <div className="grid grid-cols-3 gap-3">
-          <Field label={t('master.code')} htmlFor="p-code">
-            <Input id="p-code" value={code} onChange={(e) => setCode(e.target.value)} />
-          </Field>
-          <Field label={t('master.family')} required htmlFor="p-family" >
-            <Input id="p-family" value={family} onChange={(e) => setFamily(e.target.value)} />
-          </Field>
-          <Field label={t('master.presentation')} required htmlFor="p-pres">
-            <Input id="p-pres" value={presentation} onChange={(e) => setPresentation(e.target.value)} />
-          </Field>
-        </div>
+        <Field label={t('master.code')} hint={t('master.codeHint')} htmlFor="p-code">
+          <Input id="p-code" value={code} onChange={(e) => setCode(e.target.value)} />
+        </Field>
+
+        <Field
+          label={t('master.productName')}
+          hint={t('master.productNameHint')}
+          required
+          htmlFor="p-name"
+        >
+          <Input id="p-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        </Field>
 
         <Field label={t('master.category')} htmlFor="p-cat">
           <Input id="p-cat" value={category} onChange={(e) => setCategory(e.target.value)} />
@@ -230,7 +227,12 @@ function ProductDialog({
           <Textarea id="p-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </Field>
 
-        <Checkbox label={t('status.active')} checked={active} onChange={(e) => setActive(e.target.checked)} />
+        <Checkbox
+          label={t('status.active')}
+          hint={t('master.activeHint')}
+          checked={active}
+          onChange={(e) => setActive(e.target.checked)}
+        />
         <Checkbox
           label={t('master.needsReview')}
           hint={t('master.needsReviewHint')}

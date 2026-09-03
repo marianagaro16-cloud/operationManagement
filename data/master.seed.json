@@ -1,0 +1,1914 @@
+{
+  "customers": [
+    {
+      "company_name": "Käsers-Schloss AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "5 Almas AG",
+      "company_name_addition": "La Catedral"
+    },
+    {
+      "company_name": "5 Atlantis AG",
+      "company_name_addition": "Five"
+    },
+    {
+      "company_name": "7 Estrellas GmbH",
+      "company_name_addition": "Badi Wülflingen"
+    },
+    {
+      "company_name": "7Peaks Brasserie Sarl",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "À la Demi-Lune Sàrl",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "A Table & CO SA",
+      "company_name_addition": "Los Bandidos"
+    },
+    {
+      "company_name": "A&S Projects GmbH",
+      "company_name_addition": "Santa Arepa"
+    },
+    {
+      "company_name": "ABASTO di Mauricio Acosta",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Agilery AG",
+      "company_name_addition": "Das Provisorium"
+    },
+    {
+      "company_name": "Ahoi Hill GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "AL CHILE",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Alcosuisse AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Alimentarium Fondation Nestlé",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Allcook SA",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Alm Enterprises Limited Liability Company",
+      "company_name_addition": "Brasserie Uno"
+    },
+    {
+      "company_name": "Alma Restaurant",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "AN AG",
+      "company_name_addition": "Restaurant AN"
+    },
+    {
+      "company_name": "ANDINA",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Aragua SARL",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Arepa Caribbean Catering",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Argencol Lateinamerikanische Spezialitäten GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Arnold Zentrum-Markt GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Ars Culinaria GmbH",
+      "company_name_addition": "Sein Restaurant"
+    },
+    {
+      "company_name": "Association Plausch",
+      "company_name_addition": "Ana Pereira"
+    },
+    {
+      "company_name": "Azienda Agricola Caina",
+      "company_name_addition": "Davide Prati"
+    },
+    {
+      "company_name": "Bachser Märt Albisrieden",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Bachser Märt Kalkbreite",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Bachser Märt Seefeld",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Bad Balgach Restaurant",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Badi Bistro",
+      "company_name_addition": "Seebad Länder"
+    },
+    {
+      "company_name": "Bar Basso",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Barrio Peruano AG",
+      "company_name_addition": "Restaurant Barranco"
+    },
+    {
+      "company_name": "Bartolomeo Causarano",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Basalto Collective",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Batavia - épicerie moderne",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "BaW Gastro AG / Bar am Wasser",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Bernisches Historisches Museum",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Bettio Comestibles GmbH",
+      "company_name_addition": "Bettio Comestibles"
+    },
+    {
+      "company_name": "Betty Bossi, Division der Coop Genossenschaft",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Bicki Lade",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Bigote Verde GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Bio Bagnes SàrL",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Bio Laden Vita Volta",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Biolaade Gundeli",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Brasserie du cardinal",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Brix Company SA",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Café Restaurant Le Central SA",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Café-restaurant Eden-Parc SA",
+      "company_name_addition": "Taqueria los cunados"
+    },
+    {
+      "company_name": "Candelaria",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Cappuccino Gstaad",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Caribbean Flair GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Casa Iguana Mini Lido",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Catering Sabores Latinos",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Centro Picante",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Cevicheria zum Mitnehmen",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Chatita Linda Shop",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Chekes Mexican Food",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Chilin Limon GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "CHORCHÉ AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Chornlade Idaplatz",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Club Baur Au Lac",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Colectivo Anonimo GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Comelón Burrito Bar",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Coopérative Le NID",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Dalchini GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Damn Delicious GmbH",
+      "company_name_addition": "Restaurant Weisses Rössli"
+    },
+    {
+      "company_name": "Damn Delicious GmbH",
+      "company_name_addition": "Restaurant Casi Casa"
+    },
+    {
+      "company_name": "Das Lehrerzimmer",
+      "company_name_addition": "Pascal Thalmann"
+    },
+    {
+      "company_name": "De Börner GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "die frischlinge",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Dora Projects AG",
+      "company_name_addition": "Restaurant DAR"
+    },
+    {
+      "company_name": "El Burrito Feliz",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "El Catrín",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "El Cielo Take Away y Catereing Florentino",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "El Maiz Mexican Products",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "El Mijin",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "El Sabor",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "El Sol AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "El Tacón de Oro",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Embajada de México",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Emmi Schweiz AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Epicerie LYZAMIR",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Epicoop",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "ERNST GROSS GmbH",
+      "company_name_addition": "Gainsbourg Bar"
+    },
+    {
+      "company_name": "Even GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Feuerwehrverein Urtenen-Schönbühl-Mattstetten",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "FIFA Museum AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Flon Bowling Sàrl",
+      "company_name_addition": "Mexicana Grill"
+    },
+    {
+      "company_name": "Fly EYE Sagl",
+      "company_name_addition": "Taqueria La Cucaracha"
+    },
+    {
+      "company_name": "Fork & Bottle",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Freestylecooking Zermatt",
+      "company_name_addition": "Luis Romo Aguirre"
+    },
+    {
+      "company_name": "Fritz & Paulette GmbH",
+      "company_name_addition": "Raygrodski"
+    },
+    {
+      "company_name": "Gastronomia Los Guapos GmbH",
+      "company_name_addition": "Los Guapos"
+    },
+    {
+      "company_name": "Gastrophysik GmbH",
+      "company_name_addition": "Restaurant Soko"
+    },
+    {
+      "company_name": "GBRC Sàrl",
+      "company_name_addition": "Los Cuates"
+    },
+    {
+      "company_name": "Genossenschaft Migros Zürich",
+      "company_name_addition": "RW Hauptbuch / KST 511"
+    },
+    {
+      "company_name": "Genossenschaft Quartierdepot",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Genossenschaft ZFV Unternehmungen",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Genussspecht GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Gerardo Chico",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Gino. Kitchen by Gino Miodragovic",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Glouglou",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Golfpark Otelfingen/ Ein Unternehmen der Migros Golf AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "GRACE ST MORITZ GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Greek Gourmet AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Gut mit Hut GmbH",
+      "company_name_addition": "La Esquinita"
+    },
+    {
+      "company_name": "Halle 550/ Stage One",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Heitere Fahne",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Hotel Bellevue Terminus",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Hotel City Löwen AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Hotel Eden au Lac AG, Zürich",
+      "company_name_addition": "La Reserve"
+    },
+    {
+      "company_name": "Hotel Monte Rosa",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Hotel Restaurante Les Rangiers",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Igniv by Andreas Caminada",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Karacho Caramba GmbH",
+      "company_name_addition": "Tostadas Mexicanas / coffee to go"
+    },
+    {
+      "company_name": "Kleinwäscherei",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "L' Ultimo Bacio GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "L' Ultimo Bacio St. Gallen",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "L' Ultimo Bacio Winterthur",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "La Cantine Verte",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "LA FERMATA. SA",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "La Guadalupana GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "La Mezcaleria",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "La Patrona GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "La Raíz Sàrl",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "La Serra",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "La Table de Lionel Sàrl",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "La Taqueria Gastro GmbH (K4)",
+      "company_name_addition": "Badenerstrasse"
+    },
+    {
+      "company_name": "La Taqueria Gastro GmbH (K9)",
+      "company_name_addition": "Altstetten"
+    },
+    {
+      "company_name": "Le Jardin Vivant",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Le monde moderne de la gastronomie",
+      "company_name_addition": "(MOGA) Sàrl"
+    },
+    {
+      "company_name": "Le Topinambour",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Limón & Sal",
+      "company_name_addition": "Ana Camacho"
+    },
+    {
+      "company_name": "LMN Suisse Sàrl",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "LocoBirria Birria",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Los Capitanos",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Lucha Libre",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Lumi Bar Verbier",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Maison Leo Ag",
+      "company_name_addition": "Bar Lupo"
+    },
+    {
+      "company_name": "Mammertsberg",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Marcos Gilberto y Theo \"Puros Mexicanos\"",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Marifer \"La Mexicana\"",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Marinello & Co AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Märit Laden",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Matt & Elly, Brewery & Kitchen",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "MAX SCHWARZ AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "MCH Group s.r.o.",
+      "company_name_addition": "Mezcalli Bratislava"
+    },
+    {
+      "company_name": "Mehico Sarl",
+      "company_name_addition": "Boca Restaurant"
+    },
+    {
+      "company_name": "Mexica GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Mexican Take Away El Sombrero Latino",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Mexicana Sàrl",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "MexicoMiAmor UG (hb)",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "MGIQ Sarl",
+      "company_name_addition": "FarelBistro"
+    },
+    {
+      "company_name": "Mighty bites Kalpaktsoglou",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Migros-Genossenschafts-Bund",
+      "company_name_addition": "SQTS"
+    },
+    {
+      "company_name": "MIMI'S Restaurant AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Min Min Group GmbH",
+      "company_name_addition": "Cartell Zürich"
+    },
+    {
+      "company_name": "Mirjam Eberle",
+      "company_name_addition": "Private Chef GmbH"
+    },
+    {
+      "company_name": "Mischkultur GmbH",
+      "company_name_addition": "Bar und Restaurant Werkstatt"
+    },
+    {
+      "company_name": "Mobility Genossenschaft",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Mondieu GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Mühle Tiefenbrunnen Gastronomie AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "MULTI-CULTIX Sàrl",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Museum Mühlerama",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Muster Colectivo Anonimo GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "New World",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Nice4Mex AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Oasi A&D Sagl",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Oliver Oberlin",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Olymex Partyservice",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Panares Gourmet & Frida S.A.",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Pons culinaris AG",
+      "company_name_addition": "Basic"
+    },
+    {
+      "company_name": "Pons culinaris AG",
+      "company_name_addition": "Bridge"
+    },
+    {
+      "company_name": "Primo Piano - Taco Amor",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Punto Sud sarl.",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Qué Rico Shop",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "redOrange gmbh",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Reposiciones El Mini Super",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Restaurant Aussicht",
+      "company_name_addition": "Restaurant Aussicht"
+    },
+    {
+      "company_name": "Restaurant The Counter",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Restaurant Bar La Esquina",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Reust Gastro AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Ristorantes Argentinos Streetfood",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Rubí Gastrobar",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Samigo Amusement AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Santaco",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Santé GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "SCHÜWO AG",
+      "company_name_addition": "SCHÜWO Trink-Kultur"
+    },
+    {
+      "company_name": "Sidëfiin GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Silverbogen AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Simetrix GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Sportgastro AG",
+      "company_name_addition": "Restaurant Allmend"
+    },
+    {
+      "company_name": "Street Kitchen Lausanne Sàrl",
+      "company_name_addition": "Emma Litkie & Antonio Schwab"
+    },
+    {
+      "company_name": "Südhang AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Suiza pro Mexico",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Swissmex Sarl",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Taco Factory GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Taco Jones",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Taco Velo GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Tante Emmer - Bioladen",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Taquería Don Vergas",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Taste Craft Ventures AG",
+      "company_name_addition": "Restaurante Nido"
+    },
+    {
+      "company_name": "Terrago",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Tesoro Café",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "The Secret Kitchen GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "TL Catering GmbH",
+      "company_name_addition": "Los Antojitos"
+    },
+    {
+      "company_name": "Tobi's & Friends",
+      "company_name_addition": "Tobias Moritz"
+    },
+    {
+      "company_name": "Todobueno GmbH",
+      "company_name_addition": "Restaurant Erlenmoos"
+    },
+    {
+      "company_name": "UrbanBites GmbH",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Van der Linden Catering GmbH",
+      "company_name_addition": "Adriana Rivera"
+    },
+    {
+      "company_name": "Verein Zentralwäscherei",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Villa Patria B&B, La Casa sul Lago",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Villegas Iturbe Gourmet",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "Yuma Group AG",
+      "company_name_addition": null
+    },
+    {
+      "company_name": "ZH Projects GmbH",
+      "company_name_addition": "Restaurant KLE"
+    }
+  ],
+  "products": [
+    {
+      "code": "0073",
+      "name": "Bio Mais Tortillas 1kg - Ø06cm"
+    },
+    {
+      "code": "0299",
+      "name": "Achiote - Lol-Tun - 100g"
+    },
+    {
+      "code": "0261",
+      "name": "Achiote Pasta \"El Yucateco\" - 1kg"
+    },
+    {
+      "code": "0225",
+      "name": "Alma Finca - Finest Orange Liqueur - 70cl"
+    },
+    {
+      "code": "0226",
+      "name": "Almave - Ambar Non Alcoholic - 70cl"
+    },
+    {
+      "code": "0227",
+      "name": "Almave - Blanco Non Alcoholic - 70cl"
+    },
+    {
+      "code": "0277",
+      "name": "Almave - HUMO Non Alcoholic - 70cl"
+    },
+    {
+      "code": "0331",
+      "name": "Amor - Sentimenti - 75cl"
+    },
+    {
+      "code": "0274",
+      "name": "Arrachera \"del Barrio\" - 1Kg"
+    },
+    {
+      "code": "0273",
+      "name": "Arrachera \"del Barrio\" - 500g"
+    },
+    {
+      "code": "0235",
+      "name": "Axiote Licor \"Maleza\" - 70cl"
+    },
+    {
+      "code": "0228",
+      "name": "Beso Organic - Blue Agave Sweetener - 75cl"
+    },
+    {
+      "code": "0097",
+      "name": "Beutel Weizen Tortillas \"del Barrio\" - Ø15cm"
+    },
+    {
+      "code": "0090",
+      "name": "Beutel Weizen Tortillas \"del Barrio\" - Ø30cm"
+    },
+    {
+      "code": "0156",
+      "name": "Bio Mais Tortillas zum frittieren- Vakuum Verpackt- (5 Stück Schnitt) - 2kg"
+    },
+    {
+      "code": "0085",
+      "name": "Bio Blaue Mais Huarache \" Flautas\" Vakuumverpackt- 1.5kg"
+    },
+    {
+      "code": "0033",
+      "name": "Bio Blaue Mais Tortilla 0.25kg - Ø14cm"
+    },
+    {
+      "code": "0286",
+      "name": "Bio Blaue Mais Tortilla 0.5 kg - Ø10cm"
+    },
+    {
+      "code": "0031",
+      "name": "Bio Blaue Mais Tortilla 0.5 kg - Ø10cm"
+    },
+    {
+      "code": "0034",
+      "name": "Bio Blaue Mais Tortilla 0.5 kg - Ø12cm"
+    },
+    {
+      "code": "0026",
+      "name": "Bio Blaue Mais Tortilla 0.5 kg - Ø14cm"
+    },
+    {
+      "code": "0044",
+      "name": "Bio Blaue Mais Tortilla 1.5kg- Vakuumverpackt- 19cmØ"
+    },
+    {
+      "code": "0115",
+      "name": "Bio Blaue Mais Tortillas Frisch Verpackt 1.75kg - Ø12cm"
+    },
+    {
+      "code": "0187",
+      "name": "Bio Blaue Mais Tortillas Frisch Verpackt 2kg - Ø14cm"
+    },
+    {
+      "code": "0192",
+      "name": "Bio Blaue Mais Tortillas für Totopos (5 Stück Schnitt) - 12kg"
+    },
+    {
+      "code": "0194",
+      "name": "Bio Blaue Mais Tortillas für Totopos (8 Stück Schnitt) - 12kg"
+    },
+    {
+      "code": "0359",
+      "name": "Bio Blaue Mais Tortillas zum frittieren- Vakuum Verpackt- 1kg - Ø10cm"
+    },
+    {
+      "code": "0055",
+      "name": "Bio Blaue Mais Tortillas zum frittieren- Vakuum Verpackt- 1kg - Ø14cm"
+    },
+    {
+      "code": "0186",
+      "name": "Bio Blaue Mais Tortillas zum frittieren- Vakuum Verpackt- 1kg- Ø06cm"
+    },
+    {
+      "code": "0017",
+      "name": "Bio Blaue Masa - 1kg"
+    },
+    {
+      "code": "0190",
+      "name": "Bio Blaue Masa- 3kg"
+    },
+    {
+      "code": "0107",
+      "name": "Bio Gelbe Mais Tortilla 1.5kg- Vakuumverpackt- 19cmØ"
+    },
+    {
+      "code": "0039",
+      "name": "Bio Gelbe Mais Tortillas \"Frisch Verpackt\" 1.5kg - Ø19cm"
+    },
+    {
+      "code": "0005",
+      "name": "Bio Gelbe Masa - 1kg"
+    },
+    {
+      "code": "0193",
+      "name": "Bio Gelbe Masa- 3kg"
+    },
+    {
+      "code": "0096",
+      "name": "Bio Gelber Mais Huarache \" Flautas\" Vakuumverpackt- 1.5kg"
+    },
+    {
+      "code": "0059",
+      "name": "Bio Mais Huarache \"Frisch Verpackt\"- 1.5kg"
+    },
+    {
+      "code": "0214",
+      "name": "Bio Mais Huarache Vakuumverpackt - 1.5kg"
+    },
+    {
+      "code": "0057",
+      "name": "Bio Mais Huaraches- 10 pcs"
+    },
+    {
+      "code": "0009",
+      "name": "Bio Mais Tortilla 0.5 kg - Corazón"
+    },
+    {
+      "code": "0138",
+      "name": "Bio Mais Tortilla 1.75 kg - Corazón"
+    },
+    {
+      "code": "0036",
+      "name": "Bio Mais Tortillas \"El Catrín\" 0.5 kg - Ø14cm"
+    },
+    {
+      "code": "0093",
+      "name": "Bio Mais Tortillas \"Frisch Verpackt\" 1.25 kg - Ø10cm"
+    },
+    {
+      "code": "0056",
+      "name": "Bio Mais Tortillas \"Pastor DK\" 1 kg - Ø12cm"
+    },
+    {
+      "code": "0004",
+      "name": "Bio Mais Tortillas 0.25 kg - Ø14cm"
+    },
+    {
+      "code": "0008",
+      "name": "Bio Mais Tortillas 0.5 kg - Ø10cm"
+    },
+    {
+      "code": "0013",
+      "name": "Bio Mais Tortillas 0.5 kg - Ø12cm"
+    },
+    {
+      "code": "0001",
+      "name": "Bio Mais Tortillas 0.5 kg - Ø14cm"
+    },
+    {
+      "code": "0015",
+      "name": "Bio Mais Tortillas 1 kg - Ø12cm"
+    },
+    {
+      "code": "0002",
+      "name": "Bio Mais Tortillas 1kg - Ø14cm"
+    },
+    {
+      "code": "0046",
+      "name": "Bio Mais Tortillas Frisch Verpackt 1.75kg - Ø12cm"
+    },
+    {
+      "code": "0051",
+      "name": "Bio Mais Tortillas Frisch Verpackt 2kg - Ø14cm"
+    },
+    {
+      "code": "0075",
+      "name": "Bio Mais Tortillas für Totopos (5 Stück Schnitt) - 12kg"
+    },
+    {
+      "code": "0189",
+      "name": "Bio Mais Tortillas für Totopos (8 Stück Schnitt) - 12kg"
+    },
+    {
+      "code": "0121",
+      "name": "Bio Mais Tortillas zum frittieren 1.25kg- Ø10cm"
+    },
+    {
+      "code": "0099",
+      "name": "Bio Mais Tortillas zum frittieren 1.75kg- Ø12cm"
+    },
+    {
+      "code": "0003",
+      "name": "Bio Mais Tortillas zum Frittieren 2kg - Ø14cm"
+    },
+    {
+      "code": "0320",
+      "name": "Bio Mais Tortillas zum frittieren- Vakuum Verpackt- 1.5kg - Ø19cm"
+    },
+    {
+      "code": "0066",
+      "name": "Bio Mais Tortillas zum frittieren- Vakuum Verpackt- 1kg - Ø14cm"
+    },
+    {
+      "code": "0144",
+      "name": "Bio Mais Tortillas zum frittieren- Vakuum Verpackt- 1kg- Ø06cm"
+    },
+    {
+      "code": "0124",
+      "name": "Bio Mais Tortillas zum frittieren- Vakuum Verpackt- 1kg- Ø10cm"
+    },
+    {
+      "code": "0108",
+      "name": "Bio Mais Tortillas zum frittieren- Vakuum Verpackt- 1kg- Ø12cm"
+    },
+    {
+      "code": "0185",
+      "name": "Bio Masa Frisch Verpackt 15kg"
+    },
+    {
+      "code": "0030",
+      "name": "Blaue Mais Tostadas \"Gastro\" 30 Stück- Ø10cm"
+    },
+    {
+      "code": "0077",
+      "name": "Blaue Mais Tostadas \"Gastro\" 30 Stück- Ø12cm"
+    },
+    {
+      "code": "0195",
+      "name": "Blaue Mais Tostadas \"Gastro\" 30 Stück- Ø14cm"
+    },
+    {
+      "code": "0088",
+      "name": "Blaue Mais Tostadas \"Gastro\" 40 Stück- 6cm"
+    },
+    {
+      "code": "0218",
+      "name": "Blaue Mais Totopos - 150g"
+    },
+    {
+      "code": "2019",
+      "name": "Blaue Mais Totopos - 40g"
+    },
+    {
+      "code": "0042",
+      "name": "Blaue Mais Totopos - 500g"
+    },
+    {
+      "code": "0050",
+      "name": "Blaue Mais Totopos (5 Stück Schnitt) - 1kg"
+    },
+    {
+      "code": "0114",
+      "name": "Blaue Mais Totopos (5 Stück Schnitt) - 2.5kg"
+    },
+    {
+      "code": "0079",
+      "name": "Blaue Mais Totopos (5 Stück Schnitt)- 6kg"
+    },
+    {
+      "code": "0200",
+      "name": "Blaue Mais Totopos (8 Stück Schnitt) - 1kg"
+    },
+    {
+      "code": "0201",
+      "name": "Blaue Mais Totopos (8 Stück Schnitt) - 2.5kg"
+    },
+    {
+      "code": "0103",
+      "name": "Blaue MaisTotopos (8 Stück Schnitt) -6kg"
+    },
+    {
+      "code": "0278",
+      "name": "Blood Moon – Agave Spirit by BEÚ Spirits - 70cl"
+    },
+    {
+      "code": "0230",
+      "name": "Buen Vato- Tequila Blanco - 70cl"
+    },
+    {
+      "code": "0236",
+      "name": "Cacahuate Licor \"Maleza\" - 70cl"
+    },
+    {
+      "code": "0260",
+      "name": "Cajeta Quemada \"Real del Potosí\" - 660g"
+    },
+    {
+      "code": "0210",
+      "name": "Cal \"del Barrio\" - 50g"
+    },
+    {
+      "code": "0238",
+      "name": "Cempasúchil Licor \"Maleza\" - 70cl"
+    },
+    {
+      "code": "0076",
+      "name": "Chapulines Enchilados \"del Barrio\" - 15g"
+    },
+    {
+      "code": "0062",
+      "name": "Chapulines Enchilados- 100g"
+    },
+    {
+      "code": "0317",
+      "name": "Chile Ancho Hojuelas - Xatzé - 380g"
+    },
+    {
+      "code": "0255",
+      "name": "Chile Ancho Xatzé - 1kg"
+    },
+    {
+      "code": "0322",
+      "name": "Chile Ancho- Del Barrio - 100g"
+    },
+    {
+      "code": "0324",
+      "name": "Chile Árbol - Del Barrio - 100g"
+    },
+    {
+      "code": "0318",
+      "name": "Chile Chipotle Hojuelas - Xatzé - 380g"
+    },
+    {
+      "code": "0258",
+      "name": "Chile Chipotle (Morita) Xatzé - 1kg"
+    },
+    {
+      "code": "0325",
+      "name": "Chile Chipotle (Morita)- Del Barrio - 100g"
+    },
+    {
+      "code": "0306",
+      "name": "Chile Chipotle Molido - Terana - 80g"
+    },
+    {
+      "code": "0287",
+      "name": "Chile Chipotle Molido - Xatzé - 550g"
+    },
+    {
+      "code": "0254",
+      "name": "Chile de Árbol - Xatzé - 1kg"
+    },
+    {
+      "code": "0304",
+      "name": "Chile de Árbol Flocken - Terana - 50 g"
+    },
+    {
+      "code": "0321",
+      "name": "Chile Guajillo - Del Barrio - 100g"
+    },
+    {
+      "code": "0316",
+      "name": "Chile Guajillo Hojuelas - Xatzé - 380g"
+    },
+    {
+      "code": "0283",
+      "name": "Chile Guajillo Molido - Xatzé - 550g"
+    },
+    {
+      "code": "0256",
+      "name": "Chile Guajillo Xatzé - 1kg"
+    },
+    {
+      "code": "0303",
+      "name": "Chile Jalapeño Nacho - La Costeña - 199g"
+    },
+    {
+      "code": "0323",
+      "name": "Chile Pasilla - Del Barrio - 100g"
+    },
+    {
+      "code": "0257",
+      "name": "Chile Pasilla Xatzé- 1kg"
+    },
+    {
+      "code": "0292",
+      "name": "Chipotle Churritos with Nopal - Nopalia - 80 g"
+    },
+    {
+      "code": "0309",
+      "name": "Chipotle Molido Clemente Jacques - 220g"
+    },
+    {
+      "code": "0284",
+      "name": "Chipotles en Adobo - Carey - 340g"
+    },
+    {
+      "code": "0223",
+      "name": "Chipotles en Adobo - Herdez - 210g"
+    },
+    {
+      "code": "0165",
+      "name": "Chipotles en Adobo - La Costeña - 198g"
+    },
+    {
+      "code": "0087",
+      "name": "Chorizo Mexicano \"del Barrio\" - 1kg"
+    },
+    {
+      "code": "0129",
+      "name": "Chorizo Mexicano \"del Barrio\" - 250g"
+    },
+    {
+      "code": "0305",
+      "name": "Cilantro getrockneteblätter Terana - 12g"
+    },
+    {
+      "code": "0243",
+      "name": "Citrico \"Las Californias\" - 70cl"
+    },
+    {
+      "code": "0166",
+      "name": "Clamato - 987ml"
+    },
+    {
+      "code": "0364",
+      "name": "Cuitlacoche- San Miguel - 215g"
+    },
+    {
+      "code": "0281",
+      "name": "Doritos Nacho - 58g"
+    },
+    {
+      "code": "0329",
+      "name": "Egli- Sentimenti - 75cl"
+    },
+    {
+      "code": "0139",
+      "name": "Flasche Azul 2022- Bichi Wines - 75cl"
+    },
+    {
+      "code": "0140",
+      "name": "Flasche Gorda Yori 2022- Bichi Wines -75cl"
+    },
+    {
+      "code": "0141",
+      "name": "Flasche Gordo Guapo 2022- Bichi Wines - 75cl"
+    },
+    {
+      "code": "272",
+      "name": "Flasche Pepe Nat Cachito 2023- Bichi Wines - 75cl"
+    },
+    {
+      "code": "0137",
+      "name": "Flasche Pet Mex 2020- Bichi Wines - 75cl"
+    },
+    {
+      "code": "0142",
+      "name": "Flasche Santa 2022- Bichi Wines - 75cl"
+    },
+    {
+      "code": "0363",
+      "name": "Flor de Calabaza - San Miguel - 215g"
+    },
+    {
+      "code": "0206",
+      "name": "Frijol Peruano - 1kg"
+    },
+    {
+      "code": "0302",
+      "name": "Frijoles Bayos Refritos \"Isadora\" - 454g"
+    },
+    {
+      "code": "0327",
+      "name": "Frijoles Claros Enteros \"Isadora\" - 454g"
+    },
+    {
+      "code": "0301",
+      "name": "Frijoles Negros Enteros \"Isadora\" - 454g"
+    },
+    {
+      "code": "0310",
+      "name": "Frijoles Negros Refritos \"Isadora\" - 454g"
+    },
+    {
+      "code": "0290",
+      "name": "Frijoles Peruanos Refritos \"Isadora\" - 430g"
+    },
+    {
+      "code": "0246",
+      "name": "Fritos Flaming Hot - 70g"
+    },
+    {
+      "code": "0341",
+      "name": "Fritos Limón y Sal - 70g"
+    },
+    {
+      "code": "0125",
+      "name": "Gelbe Mais Taco Shell \"Gastro\" 15 Stück - Ø10cm"
+    },
+    {
+      "code": "0105",
+      "name": "Gelbe Mais Taco Shell \"Gastro\" 15 Stück - Ø12cm"
+    },
+    {
+      "code": "0011",
+      "name": "Gelbe Mais Taco Shell \"Gastro\" 15 Stück - Ø14cm"
+    },
+    {
+      "code": "0153",
+      "name": "Gelbe Mais Tostadas \"Gastro Corazón\" 30 Stück- Ø11cm"
+    },
+    {
+      "code": "0027",
+      "name": "Gelbe Mais Tostadas \"Gastro\" 30 Stück- Ø10cm"
+    },
+    {
+      "code": "0126",
+      "name": "Gelbe Mais Tostadas \"Gastro\" 30 Stück- Ø12cm"
+    },
+    {
+      "code": "0127",
+      "name": "Gelbe Mais Tostadas \"Gastro\" 30 Stück- Ø14cm"
+    },
+    {
+      "code": "0118",
+      "name": "Gelbe Mais Tostadas \"Gastro\" 30 Stück- Ø19cm"
+    },
+    {
+      "code": "0074",
+      "name": "Gelbe Mais Tostadas \"Gastro\" 40 Stück- 6cm"
+    },
+    {
+      "code": "0019",
+      "name": "Gelbe Mais Tostadas 10 Stück- Ø14cm"
+    },
+    {
+      "code": "0216",
+      "name": "Gelbe Mais Totopos - 150g"
+    },
+    {
+      "code": "0018",
+      "name": "Gelbe Mais Totopos - 180g"
+    },
+    {
+      "code": "0006",
+      "name": "Gelbe Mais Totopos - 1kg"
+    },
+    {
+      "code": "0217",
+      "name": "Gelbe Mais Totopos - 40g"
+    },
+    {
+      "code": "0010",
+      "name": "Gelbe Mais Totopos - 500g"
+    },
+    {
+      "code": "0041",
+      "name": "Gelbe Mais Totopos \"El Catrín\" - 150g"
+    },
+    {
+      "code": "0111",
+      "name": "Gelbe Mais Totopos (5 Stück Schnitt) - 2.5kg"
+    },
+    {
+      "code": "0202",
+      "name": "Gelbe Mais Totopos (8 Stück Schnitt) - 2.5kg"
+    },
+    {
+      "code": "0022",
+      "name": "Gelbe MaisTotopos (5 Stück Schnitt) - 6kg"
+    },
+    {
+      "code": "0095",
+      "name": "Gelbe MaisTotopos (8 Stück Schnitt) -6kg"
+    },
+    {
+      "code": "0104",
+      "name": "Gelbe MaisTotopos ungesalzen (5 Stück Schnitt) -6kg"
+    },
+    {
+      "code": "0271",
+      "name": "Geröstete Chile Poblano \"del Barrio\" - 10 Stk"
+    },
+    {
+      "code": "0240",
+      "name": "Geröstete Chile Poblano \"del Barrio\" - 40 Stk"
+    },
+    {
+      "code": "0213",
+      "name": "Geröstete Chile Poblano \"del Barrio\" - 0.5kg"
+    },
+    {
+      "code": "0149",
+      "name": "Geröstete Chile Poblano \"del Barrio\" - 2.27kg"
+    },
+    {
+      "code": "0239",
+      "name": "Geröstete Chile Poblano in Streifen \"del Barrio\" - 1kg"
+    },
+    {
+      "code": "0282",
+      "name": "Geröstete Chile Serrano \"del Barrio\" - 0.25Kg"
+    },
+    {
+      "code": "0242",
+      "name": "Geröstete Chile Serrano \"del Barrio\" - 1Kg"
+    },
+    {
+      "code": "0241",
+      "name": "Geröstete Nopales in Streifen \"del Barrio\" - 1Kg"
+    },
+    {
+      "code": "0151",
+      "name": "Geröstete Tomatillo \"del Barrio\" - 1kg"
+    },
+    {
+      "code": "0267",
+      "name": "Getrockneter Epazote Terana - 190 g"
+    },
+    {
+      "code": "0354",
+      "name": "Getrockneter Epazote Terana - 400 g"
+    },
+    {
+      "code": "0297",
+      "name": "Getrockneter Epazote Terana - 26 g"
+    },
+    {
+      "code": "0229",
+      "name": "Gran Malo - Spicy Tamarind Liqueur 75cl"
+    },
+    {
+      "code": "0272",
+      "name": "Hibiskusblüte \"Del Barrio\" - 1Kg"
+    },
+    {
+      "code": "0276",
+      "name": "Hibiskusblüte \"Del Barrio\" - 250g"
+    },
+    {
+      "code": "0356",
+      "name": "Jarritos Guava - 370ml"
+    },
+    {
+      "code": "0314",
+      "name": "Jarritos Lime - 370ml"
+    },
+    {
+      "code": "0311",
+      "name": "Jarritos Mandarin - 370ml"
+    },
+    {
+      "code": "0312",
+      "name": "Jarritos Mango - 370ml"
+    },
+    {
+      "code": "0315",
+      "name": "Jarritos Mexican Cola - 370ml"
+    },
+    {
+      "code": "0357",
+      "name": "Jarritos Tamarinde - 370ml"
+    },
+    {
+      "code": "0313",
+      "name": "Jarritos Watermelon - 370ml"
+    },
+    {
+      "code": "0169",
+      "name": "Juan Cordero - Insurgente - 35cl"
+    },
+    {
+      "code": "0231",
+      "name": "Karton Buen Vato - Tequila Blanco 5 Liter"
+    },
+    {
+      "code": "0361",
+      "name": "Karton Weizen Tortillas \"del Barrio\" - Ø15cm"
+    },
+    {
+      "code": "0360",
+      "name": "Karton Weizen Tortillas \"del Barrio\" - Ø30cm"
+    },
+    {
+      "code": "0148",
+      "name": "La Güera del Barrio- Organic Mexican Lager - 33cl"
+    },
+    {
+      "code": "0170",
+      "name": "La Lupulosa - Insurgente - 35cl"
+    },
+    {
+      "code": "0196",
+      "name": "Mais Totopos Mix - 1kg"
+    },
+    {
+      "code": "0109",
+      "name": "Mais Totopos Mix (5 Stück Schnitt) - 2.5kg"
+    },
+    {
+      "code": "0086",
+      "name": "Mais Totopos Mix (5 Stück Schnitt) - 6kg"
+    },
+    {
+      "code": "0198",
+      "name": "Mais Totopos Mix (8 Stück Schnitt) - 2.5kg"
+    },
+    {
+      "code": "0197",
+      "name": "Mais Totopos Mix ungesalzen (5 Stück Schnitt) - 6kg"
+    },
+    {
+      "code": "0168",
+      "name": "Maisblätter"
+    },
+    {
+      "code": "0351",
+      "name": "Maisblätter - Papagayo - 240g"
+    },
+    {
+      "code": "0102",
+      "name": "MaisTotopos Mix (8 Stück Schnitt) -6kg"
+    },
+    {
+      "code": "0269",
+      "name": "Maiz Blanco Mexicano - Herdez - 220gr"
+    },
+    {
+      "code": "0171",
+      "name": "Maíz Pozolero - La Costeña - 820g"
+    },
+    {
+      "code": "0204",
+      "name": "Maíz Pozolero Carey - 860g"
+    },
+    {
+      "code": "0334",
+      "name": "Mazapan - De la Rosa 28g"
+    },
+    {
+      "code": "0298",
+      "name": "Mexikanischer Oregano Terana - 21 g"
+    },
+    {
+      "code": "0355",
+      "name": "Mexikanischer Oregano Terana - 400 g"
+    },
+    {
+      "code": "0367",
+      "name": "Mezcal Espadín - Bruxo No. 1 - 70cl"
+    },
+    {
+      "code": "0348",
+      "name": "Mezcal Espadín - Bruxo X - 70cl"
+    },
+    {
+      "code": "0175",
+      "name": "Mole Poblano - Doña Maria - 233g"
+    },
+    {
+      "code": "0224",
+      "name": "Mole Rojo - La Costeña - 235g"
+    },
+    {
+      "code": "0279",
+      "name": "Moon Ceremony – Agave Spirit by BEÚ Spirits - 70cl"
+    },
+    {
+      "code": "0244",
+      "name": "Nativo \"Las Californias\" - 70cl"
+    },
+    {
+      "code": "0332",
+      "name": "New Moon – Agave Spirit by BEÚ Spirits - 70cl"
+    },
+    {
+      "code": "0176",
+      "name": "Nopales en escabeche \"La Costeña\" - 440g"
+    },
+    {
+      "code": "0268",
+      "name": "Oregano Mexicano Xatzé - 142g"
+    },
+    {
+      "code": "0352",
+      "name": "Panela Redonda - Goya - 454g"
+    },
+    {
+      "code": "0237",
+      "name": "Pepita Licor \"Maleza\" - 70cl"
+    },
+    {
+      "code": "0333",
+      "name": "Pulparindo 14g"
+    },
+    {
+      "code": "0215",
+      "name": "Queso Chihuahua \"del Barrio\" - 1kg"
+    },
+    {
+      "code": "0048",
+      "name": "Queso Fresco \"del Barrio\" - 1kg"
+    },
+    {
+      "code": "0070",
+      "name": "Queso Fresco \"del Barrio\" - 250g"
+    },
+    {
+      "code": "0054",
+      "name": "Queso Oaxaca Ganz \"del Barrio\" - 1kg"
+    },
+    {
+      "code": "0058",
+      "name": "Queso Oaxaca Ganz \"del Barrio\" - 250g"
+    },
+    {
+      "code": "0047",
+      "name": "Queso Oaxaca Gerieben \"del Barrio\" - 2kg"
+    },
+    {
+      "code": "0068",
+      "name": "Queso Panela \" del Barrio\" - 1kg"
+    },
+    {
+      "code": "0069",
+      "name": "Queso Panela \"del Barrio\" - 250g"
+    },
+    {
+      "code": "0220",
+      "name": "Rodajas de serranos toreados - La Costeña - 220g"
+    },
+    {
+      "code": "0178",
+      "name": "Rompeolas - Insurgente - 35cl"
+    },
+    {
+      "code": "0291",
+      "name": "RufflesJalapeño - 50g"
+    },
+    {
+      "code": "0251",
+      "name": "Salsa Casera con chile habanero - Herdez 453gr"
+    },
+    {
+      "code": "0293",
+      "name": "Salsa Chipotle - Herdez - 210gr"
+    },
+    {
+      "code": "0179",
+      "name": "Salsa Guacamole - Herdez - 240gr"
+    },
+    {
+      "code": "0368",
+      "name": "Salsa Guacamole Picante - Herdez - 240gr"
+    },
+    {
+      "code": "0288",
+      "name": "Salsa Habanera Mango - La Meridana - 150ml"
+    },
+    {
+      "code": "0289",
+      "name": "Salsa Habanera Tamulada Roasted - La Meridana - 150ml"
+    },
+    {
+      "code": "0296",
+      "name": "Salsa Habanera Verde - La Meridana - 150ml"
+    },
+    {
+      "code": "0307",
+      "name": "Salsa Roja Enchiladas - La Costeña - 420g"
+    },
+    {
+      "code": "0212",
+      "name": "Salsa Taquera Herdez - Herdez - 240gr"
+    },
+    {
+      "code": "0180",
+      "name": "Salsa Valentina - 370ml"
+    },
+    {
+      "code": "0221",
+      "name": "Salsa Verde - Herdez - 210gr"
+    },
+    {
+      "code": "0250",
+      "name": "Salsa Verde con chile habanero - Herdez - 240gr"
+    },
+    {
+      "code": "0308",
+      "name": "Salsa Verde Enchiladas - La Costeña - 420g"
+    },
+    {
+      "code": "0335",
+      "name": "Salsa Verde Picante- Herdez - 240gr"
+    },
+    {
+      "code": "0350",
+      "name": "Seasoning para Birria- Sazon Natural - 142g"
+    },
+    {
+      "code": "0349",
+      "name": "Seasoning para Tacos al Pastor - Sazon Natural - 142g"
+    },
+    {
+      "code": "0245",
+      "name": "Snack Chips Jalapeño - 42g"
+    },
+    {
+      "code": "0247",
+      "name": "Snack Ruffles Flamin Hot - 42g"
+    },
+    {
+      "code": "0248",
+      "name": "Snack Runners - 58g"
+    },
+    {
+      "code": "0340",
+      "name": "Snack Tostitos Flamin Hot - 62g"
+    },
+    {
+      "code": "0222",
+      "name": "Snack Tostitos Salsa Verde - 62g"
+    },
+    {
+      "code": "0366",
+      "name": "Squirt - 355ml"
+    },
+    {
+      "code": "0182",
+      "name": "Tajin Clásico Seasoning - 142g"
+    },
+    {
+      "code": "0326",
+      "name": "Tajin Clásico Seasoning - 400g"
+    },
+    {
+      "code": "0330",
+      "name": "Tentación- Sentimenti - 75cl"
+    },
+    {
+      "code": "0353",
+      "name": "Tepache \"Del Barrio\"-"
+    },
+    {
+      "code": "0345",
+      "name": "Tequila Añejo - Siete Leguas - 70cl"
+    },
+    {
+      "code": "0347",
+      "name": "Tequila Blanco - RB Rey - 70cl"
+    },
+    {
+      "code": "0343",
+      "name": "Tequila Blanco - Siete Leguas - 70cl"
+    },
+    {
+      "code": "0265",
+      "name": "Tequila Blanco \"Arsenal\" - 1L"
+    },
+    {
+      "code": "0232",
+      "name": "Tequila Reposado - La Gritona - 5cl"
+    },
+    {
+      "code": "0346",
+      "name": "Tequila Reposado - RB Rey - 70cl"
+    },
+    {
+      "code": "0344",
+      "name": "Tequila Reposado - Siete Leguas - 70cl"
+    },
+    {
+      "code": "0266",
+      "name": "Tequila Reposado \"Arsenal\" - 1L"
+    },
+    {
+      "code": "0183",
+      "name": "Tiniebla - Insurgente - 35cl"
+    },
+    {
+      "code": "0160",
+      "name": "Tomatillo Carey - 822g"
+    },
+    {
+      "code": "0209",
+      "name": "Tomatillo Entero - La Costeña - 794g"
+    },
+    {
+      "code": "0300",
+      "name": "Tomatillo Entero Carey - 380g"
+    },
+    {
+      "code": "0285",
+      "name": "Tomatillo Molido Xatzé - 2.8kg"
+    },
+    {
+      "code": "0362",
+      "name": "Tomatillo Molido Carey - 2.95kg"
+    },
+    {
+      "code": "0112",
+      "name": "Tortillero MASAMOR - Tortilla Warmer"
+    },
+    {
+      "code": "0262",
+      "name": "Tote bag MASAMOR"
+    },
+    {
+      "code": "0211",
+      "name": "White Corn Flour \"del Barrio\" - 1kg"
+    },
+    {
+      "code": "0358",
+      "name": "Yellow Corn Flour \"del Barrio\" - 1kg"
+    },
+    {
+      "code": "0264",
+      "name": "ZOND5 – Agave Spirit by BEÚ Spirits - 70cl"
+    }
+  ]
+}

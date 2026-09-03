@@ -36,7 +36,7 @@ async function main() {
 
   // ---- fixtures ----
   const { data: cust, error: custErr } = await admin
-    .from('customers').insert({ name: `ZZ Test Customer ${Date.now()}` }).select().single();
+    .from('customers').insert({ company_name: `ZZ Test Customer ${Date.now()}` }).select().single();
   if (custErr) throw new Error('fixture customer: ' + custErr.message);
   created.customers.push(cust.id);
 
@@ -44,9 +44,9 @@ async function main() {
   const { data: prods, error: prodErr } = await admin.from('products').insert([
     // Every row carries the same keys: a bulk insert with heterogeneous keys
     // sends NULL for the missing ones instead of taking the column default.
-    { code: `Z${stamp}A`, family: `ZZ Test Family ${stamp}`, presentation: '500gr', is_active: true },
-    { code: `Z${stamp}B`, family: `ZZ Test Family ${stamp}`, presentation: '1kg', is_active: true },
-    { code: `Z${stamp}C`, family: `ZZ Test Family ${stamp}`, presentation: 'inactive', is_active: false },
+    { code: `Z${stamp}A`, name: `ZZ Test A ${stamp}`, family: `ZZ Test Family ${stamp}`, presentation: '500gr', is_active: true },
+    { code: `Z${stamp}B`, name: `ZZ Test B ${stamp}`, family: `ZZ Test Family ${stamp}`, presentation: '1kg', is_active: true },
+    { code: `Z${stamp}C`, name: `ZZ Test C ${stamp}`, family: `ZZ Test Family ${stamp}`, presentation: 'inactive', is_active: false },
   ]).select();
   if (prodErr) throw new Error('fixture products: ' + prodErr.message);
   created.products.push(...prods.map((p) => p.id));
@@ -121,9 +121,9 @@ async function main() {
   await U.client.from('products').update({ family: 'HACKED' }).eq('id', pA.id);
   const { data: prodAfter } = await admin.from('products').select('family').eq('id', pA.id).single();
   check('user cannot edit the product master', prodAfter.family !== 'HACKED');
-  await U.client.from('customers').update({ name: 'HACKED' }).eq('id', cust.id);
-  const { data: custAfter } = await admin.from('customers').select('name').eq('id', cust.id).single();
-  check('user cannot edit the customer master', custAfter.name !== 'HACKED');
+  await U.client.from('customers').update({ company_name: 'HACKED' }).eq('id', cust.id);
+  const { data: custAfter } = await admin.from('customers').select('company_name').eq('id', cust.id).single();
+  check('user cannot edit the customer master', custAfter.company_name !== 'HACKED');
 
   console.log('\n=== 6. Admin changes quantity after preparation started ===');
   await A.client.from('order_lines').update({ ordered_quantity: 12 }).eq('id', lineA.id);

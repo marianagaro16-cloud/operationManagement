@@ -68,24 +68,30 @@ export type Database = {
       }
       customers: {
         Row: {
+          company_name: string
+          company_name_addition: string | null
           created_at: string
           id: string
           is_active: boolean
-          name: string
+          name: string | null
           updated_at: string
         }
         Insert: {
+          company_name: string
+          company_name_addition?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
-          name: string
+          name?: string | null
           updated_at?: string
         }
         Update: {
+          company_name?: string
+          company_name_addition?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
-          name?: string
+          name?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -394,6 +400,7 @@ export type Database = {
           family: string
           id: string
           is_active: boolean
+          name: string | null
           needs_review: boolean
           notes: string | null
           presentation: string
@@ -406,6 +413,7 @@ export type Database = {
           family: string
           id?: string
           is_active?: boolean
+          name?: string | null
           needs_review?: boolean
           notes?: string | null
           presentation: string
@@ -418,6 +426,7 @@ export type Database = {
           family?: string
           id?: string
           is_active?: boolean
+          name?: string | null
           needs_review?: boolean
           notes?: string | null
           presentation?: string

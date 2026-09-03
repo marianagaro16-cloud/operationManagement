@@ -23,7 +23,10 @@
     "orders:extract": "tsx scripts/import-orders.ts extract",
     "orders:seed": "tsx scripts/import-orders.ts seed",
     "verify:orders": "node scripts/verify-orders.mjs",
-    "verify:push": "node scripts/verify-push.mjs"
+    "verify:push": "node scripts/verify-push.mjs",
+    "master:extract": "tsx scripts/import-master.ts extract",
+    "master:seed": "tsx scripts/import-master.ts seed",
+    "verify:master": "node scripts/verify-master.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",
