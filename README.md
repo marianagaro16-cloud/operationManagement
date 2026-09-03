@@ -141,9 +141,17 @@ to remove the last remaining admin, so you cannot lock yourself out.
 | `NEXT_PUBLIC_SUPABASE_URL` | app + Vercel | public |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | app + Vercel | public by design; RLS is the boundary |
 | `SUPABASE_SERVICE_ROLE_KEY` | server + Vercel (Sensitive) | bypasses RLS — never `NEXT_PUBLIC_` |
-| `CRON_SECRET` | Vercel | Vercel Cron sends `Authorization: Bearer <value>` |
+| `CRON_SECRET` | Vercel (Sensitive) | schedulers send `Authorization: Bearer <value>` |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | app + Vercel | **plain, not Sensitive** — it ships to every browser |
+| `VAPID_PRIVATE_KEY` | server + Vercel (Sensitive) | signs push requests — never `NEXT_PUBLIC_` |
+| `VAPID_SUBJECT` | server + Vercel | `mailto:` contact required by the Web Push spec |
 | `SUPABASE_ACCESS_TOKEN` | **local CLI only** | account-wide; never deploy |
 | `SUPABASE_DB_PASSWORD` | **local CLI only** | never deploy |
+
+`NEXT_PUBLIC_*` values are **inlined into the browser bundle at build time**,
+not read at runtime. Adding or changing one in Vercel does nothing until the
+next deploy — a missing `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is what makes *Enable
+notifications* fail with `push_not_configured`.
 
 ### Seed / import
 
@@ -345,12 +353,22 @@ than silently consumed.
 
 ### Scheduling
 
-`/api/cron/notify` is listed in `vercel.json` at `*/15 5-20 * * *`.
+`/api/cron/notify` is **not** in `vercel.json`: a sub-daily cron there fails
+the whole build on the Hobby plan (see below). Anything that can issue an
+HTTP GET on a schedule will do, as long as it sends
+`Authorization: Bearer <CRON_SECRET>`.
 
-**Vercel's Hobby plan runs crons once daily**, so on Hobby that schedule is
-not honoured. For a useful cadence, point an external scheduler
-(cron-job.org, GitHub Actions, Upstash QStash) at the endpoint every 15
-minutes with the header `Authorization: Bearer <CRON_SECRET>`.
+Two schedulers are set up in this repo. **Use one, not both** — running both
+is harmless, because each `(order, level)` is claimed before sending, but it
+doubles the traffic for nothing.
+
+| Option | Where | Notes |
+|---|---|---|
+| GitHub Actions | `.github/workflows/notify.yml` | zero setup beyond two repo secrets |
+| Supabase `pg_cron` | `supabase/migrations/*_schedule_delivery_notifications.sql` | no third party; secrets stay in Vault |
+
+Both are free. Nothing about Web Push itself costs money — delivery is done
+by the browser vendors' push services, and the VAPID keypair is self-issued.
 
 The endpoint **fails closed**: without `CRON_SECRET` set it refuses to run in
 production rather than being open to anyone.
@@ -398,6 +416,55 @@ GitHub's scheduler is best-effort and can lag by a few minutes under load. The
 urgency thresholds are hours wide, so this does not matter — and because the
 endpoint is idempotent, a missed run simply catches up on the next one.
 
+### Scheduling with Supabase pg_cron
+
+`supabase/migrations/20260903230000_schedule_delivery_notifications.sql` does
+the same job from inside the database, using `pg_cron` for the schedule and
+`pg_net` for the outbound call. Both extensions are free on every Supabase
+tier. Prefer this over GitHub Actions if you would rather not depend on a
+third party for an operational alert, or want a tighter cadence than GitHub's
+best-effort scheduler gives.
+
+The URL and the token are **not** in the migration. They live in Supabase
+Vault, so the file stays committable and the token never lands in
+`cron.job.command`, which is readable by anyone with cron access. Apply the
+migration and then create the two secrets once:
+
+```bash
+npm run db:push
+```
+
+```sql
+-- Supabase dashboard → SQL editor, once:
+select vault.create_secret('https://your-app.vercel.app', 'app_url');
+select vault.create_secret('<the CRON_SECRET set in Vercel>', 'cron_secret');
+```
+
+Until both secrets exist the job runs and no-ops with a notice, rather than
+failing every 15 minutes and burying a real error.
+
+Check it is working:
+
+```sql
+select * from cron.job where jobname = 'delivery-notifications';
+select * from private.notification_runs limit 20;   -- dispatches + HTTP replies
+```
+
+`private.notification_runs` joins each dispatch to its pg_net response by
+request id. A null `status_code` means the reply has not arrived yet or pg_net
+has already pruned it — it keeps responses only a few hours.
+
+To switch back to GitHub Actions, unschedule the job rather than deleting the
+migration:
+
+```sql
+select cron.unschedule('delivery-notifications');
+```
+
+The helper lives in a `private` schema, which `supabase/config.toml` does not
+expose through the Data API, so no logged-in user can invoke the notifier as
+an RPC.
+
 ### Vercel cron and the Hobby plan
 
 `vercel.json` declares **one** cron, `/api/cron/generate`, at `30 3 * * *`.
@@ -411,5 +478,7 @@ Hobby accounts are limited to daily cron jobs. This cron expression
 ```
 
 The 15-minute notification schedule therefore lives in
-`.github/workflows/notify.yml`, not here. Only move it into `vercel.json`
-after upgrading to Pro.
+`.github/workflows/notify.yml` or in Supabase `pg_cron`, not here. Only move it
+into `vercel.json` after upgrading to Pro — and note that Hobby is licensed for
+non-commercial use, which is the more relevant limit for a production
+operations tool.
