@@ -108,6 +108,24 @@ export function dayOfMonthClamped(year: number, month: number, day: number): Bus
   return toBusinessDate(first.set({ day: Math.min(day, first.daysInMonth as number) }));
 }
 
+/**
+ * Pull a date back to the preceding Friday when it lands on a weekend.
+ *
+ * A fixed calendar date — 30 June, 31 December — will eventually fall on a
+ * Saturday or Sunday, when the warehouse is closed. The work is then done on
+ * the last working day BEFORE it rather than after, because these are
+ * period-closing activities: an inventory for the half-year cannot
+ * meaningfully be counted once the next period has started.
+ *
+ * Saturday moves back one day, Sunday two. Weekdays are returned unchanged.
+ */
+export function shiftWeekendToPrecedingFriday(date: BusinessDate): BusinessDate {
+  const dt = parseBusinessDate(date);
+  if (dt.weekday === 6) return toBusinessDate(dt.minus({ days: 1 })); // Sat -> Fri
+  if (dt.weekday === 7) return toBusinessDate(dt.minus({ days: 2 })); // Sun -> Fri
+  return date;
+}
+
 function monthlyDueDate(year: number, month: number, rule: MonthlyRule): BusinessDate {
   return rule.type === 'dayOfMonth'
     ? dayOfMonthClamped(year, month, rule.day)
@@ -192,12 +210,19 @@ export function generateOccurrences(
     }
 
     case 'semiannual': {
-      for (let year = start.year; year <= end.year; year++) {
+      // Widen by a year on each side: a scheduled date can shift back across
+      // a year boundary (1 January on a Sunday becomes 30 December), and the
+      // shifted date is what has to fall inside the range.
+      for (let year = start.year - 1; year <= end.year + 1; year++) {
         for (const md of config.dates) {
-          const dueDate = dayOfMonthClamped(year, md.month, md.day);
+          const scheduled = dayOfMonthClamped(year, md.month, md.day);
+          const dueDate = shiftWeekendToPrecedingFriday(scheduled);
           const due = parseBusinessDate(dueDate);
           if (due >= start && due <= end) {
-            out.push({ periodKey: semiannualPeriodKey(dueDate), dueDate });
+            // The period key comes from the SCHEDULED date, not the shifted
+            // one. Otherwise a date pulled back over a year boundary would be
+            // filed under the wrong half-year and could collide with it.
+            out.push({ periodKey: semiannualPeriodKey(scheduled), dueDate });
           }
         }
       }

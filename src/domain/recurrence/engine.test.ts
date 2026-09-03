@@ -6,6 +6,7 @@ import {
   dayOfMonthClamped,
   isOverdue,
   daysLate,
+  shiftWeekendToPrecedingFriday,
   type TaskDefinitionLike,
 } from './engine';
 import { periodKeyForDate, periodWindow, weeklyPeriodKey } from './periods';
@@ -237,6 +238,90 @@ describe('semiannual', () => {
   it('bounds the half-year window correctly', () => {
     expect(periodWindow('semiannual', '2026-06-30')).toEqual({ start: '2026-01-01', end: '2026-06-30' });
     expect(periodWindow('semiannual', '2026-12-31')).toEqual({ start: '2026-07-01', end: '2026-12-31' });
+  });
+
+  describe('weekend dates move to the preceding Friday', () => {
+    const semiannual = (from: string, to: string) =>
+      generateOccurrences(
+        task({
+          frequency: 'semiannual',
+          schedule_config: { kind: 'semiannual', dates: [{ month: 6, day: 30 }, { month: 12, day: 31 }] },
+        }),
+        from,
+        to,
+      );
+
+    it('leaves a weekday date alone', () => {
+      // 2026-06-30 is a Tuesday, 2026-12-31 a Thursday.
+      expect(dates(semiannual('2026-01-01', '2026-12-31')))
+        .toEqual(['2026-06-30', '2026-12-31']);
+    });
+
+    it('moves a Saturday back one day', () => {
+      // 2029-06-30 is a Saturday -> Friday the 29th.
+      const out = semiannual('2029-01-01', '2029-06-30');
+      expect(dates(out)).toEqual(['2029-06-29']);
+      expect(keys(out)).toEqual(['2029-H1']);
+    });
+
+    it('moves a Sunday back two days', () => {
+      // 2030-06-30 is a Sunday -> Friday the 28th.
+      const out = semiannual('2030-01-01', '2030-06-30');
+      expect(dates(out)).toEqual(['2030-06-28']);
+      expect(keys(out)).toEqual(['2030-H1']);
+    });
+
+    it('applies to 31 December too', () => {
+      // 2028-12-31 Sunday -> Fri 29th; 2033-12-31 Saturday -> Fri 30th.
+      expect(dates(semiannual('2028-07-01', '2028-12-31'))).toEqual(['2028-12-29']);
+      expect(dates(semiannual('2033-07-01', '2033-12-31'))).toEqual(['2033-12-30']);
+    });
+
+    it('keeps the period key of the SCHEDULED date, not the shifted one', () => {
+      // 1 January 2034 is a Sunday, so it shifts back to 30 December 2033 —
+      // but it is still the 2034 first-half requirement, not 2033 H2.
+      const out = generateOccurrences(
+        task({
+          frequency: 'semiannual',
+          schedule_config: { kind: 'semiannual', dates: [{ month: 1, day: 1 }, { month: 7, day: 1 }] },
+        }),
+        '2033-12-01',
+        '2034-01-31',
+      );
+      const jan = out.find((o) => o.dueDate === '2033-12-30');
+      expect(jan).toBeDefined();
+      expect(jan?.periodKey).toBe('2034-H1');
+    });
+
+    it('still produces one requirement per half-year after shifting', () => {
+      const out = semiannual('2028-01-01', '2035-12-31');
+      expect(new Set(keys(out)).size).toBe(out.length);
+      // No generated date may land on a weekend.
+      for (const o of out) {
+        const wd = DateTime.fromISO(o.dueDate, { zone: BUSINESS_TZ }).weekday;
+        expect(wd).toBeLessThanOrEqual(5);
+      }
+    });
+  });
+});
+
+describe('weekend shift helper', () => {
+  it('moves Saturday and Sunday back to Friday', () => {
+    expect(shiftWeekendToPrecedingFriday('2029-06-30')).toBe('2029-06-29'); // Sat
+    expect(shiftWeekendToPrecedingFriday('2030-06-30')).toBe('2030-06-28'); // Sun
+  });
+
+  it('leaves every weekday untouched', () => {
+    for (const d of ['2026-06-29', '2026-06-30', '2026-07-01', '2026-07-02', '2026-07-03']) {
+      expect(shiftWeekendToPrecedingFriday(d)).toBe(d);
+    }
+  });
+
+  it('crosses a month and year boundary when it has to', () => {
+    // 2033-10-01 is a Saturday -> 30 September.
+    expect(shiftWeekendToPrecedingFriday('2033-10-01')).toBe('2033-09-30');
+    // 2034-01-01 is a Sunday -> 30 December 2033.
+    expect(shiftWeekendToPrecedingFriday('2034-01-01')).toBe('2033-12-30');
   });
 });
 
