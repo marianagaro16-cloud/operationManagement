@@ -308,6 +308,8 @@ export const de: Messages = {
     today: 'Heute',
   },
   push: {
+    problemTitle: 'Benachrichtigungen funktionieren auf diesem Gerät nicht',
+    noWorker: 'Die App konnte ihren Hintergrundprozess nicht starten. Schliessen Sie alle Tabs der App und öffnen Sie sie erneut; bleibt es dabei, löschen Sie die Websitedaten.',
     menuLabel: 'Benachrichtigungen & Einstellungen',
     promptTitle: 'Lieferhinweise aktivieren',
     promptBody: 'Erhalten Sie auf diesem Gerät eine Meldung, wenn eine Lieferung näher rückt und noch nicht fertig ist — auch bei geschlossener App.',

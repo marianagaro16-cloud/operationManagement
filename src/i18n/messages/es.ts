@@ -308,6 +308,8 @@ export const es: Messages = {
     today: 'Hoy',
   },
   push: {
+    problemTitle: 'Las notificaciones no funcionan en este dispositivo',
+    noWorker: 'La app no pudo iniciar su proceso en segundo plano. Cierra todas las pestañas de la app y ábrela de nuevo; si sigue igual, borra los datos del sitio.',
     menuLabel: 'Notificaciones y ajustes',
     promptTitle: 'Activa los avisos de entrega',
     promptBody: 'Recibe un aviso en este dispositivo cuando una entrega esté cerca y sin terminar, aunque la app esté cerrada.',

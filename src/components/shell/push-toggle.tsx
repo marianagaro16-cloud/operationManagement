@@ -17,7 +17,7 @@ import { sendTestNotification } from '@/server/push-actions';
  */
 export function PushToggle() {
   const { t } = useI18n();
-  const { state, error, busy, enable, disable } = usePushSubscription();
+  const { state, error, busy, diagnostics, enable, disable } = usePushSubscription();
   const [message, setMessage] = useState<string | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -30,6 +30,7 @@ export function PushToggle() {
 
   const body =
     state === 'unsupported' ? t('push.unsupported')
+      : state === 'no-sw' ? t('push.noWorker')
       : state === 'needs-install' ? t('push.iosSteps')
         : state === 'denied' ? t('push.denied')
           : state === 'on' ? t('push.onBody')

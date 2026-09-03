@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, Share, X } from 'lucide-react';
+import { Bell, BellOff, Share, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/primitives';
@@ -13,22 +13,25 @@ import { dismissPrompt, isPromptDismissed, usePushSubscription } from '@/lib/pus
  *
  * Nobody goes looking for a notifications setting, so relying on a menu item
  * means the feature is never switched on. The banner enables in one tap and
- * disappears for good once handled — it is an invitation, not a nag.
+ * disappears for good once handled — an invitation, not a nag.
+ *
+ * It also appears for the states a user CANNOT fix by tapping (permission
+ * blocked, iOS not installed), because a silent absence gives them nothing
+ * to act on and nothing to report.
  */
 export function PushPrompt() {
   const { t } = useI18n();
   const { state, error, busy, enable } = usePushSubscription();
-  const [dismissed, setDismissed] = useState(true); // assume hidden until checked
+  const [dismissed, setDismissed] = useState(true); // hidden until checked
   const [justEnabled, setJustEnabled] = useState(false);
 
   useEffect(() => {
     setDismissed(isPromptDismissed());
   }, []);
 
-  // Nothing useful to say when it is already on, unsupported, or dismissed.
-  if (dismissed || state === 'loading' || state === 'on' || state === 'unsupported') return null;
-  // A denial can only be undone in browser settings, so a banner cannot help.
-  if (state === 'denied') return null;
+  if (dismissed) return null;
+  // Still probing, already on, or genuinely impossible: say nothing.
+  if (state === 'loading' || state === 'on' || state === 'unsupported') return null;
 
   if (justEnabled) {
     return (
@@ -39,26 +42,43 @@ export function PushPrompt() {
     );
   }
 
-  // iOS in a browser tab: enabling is impossible until the app is installed,
-  // so the banner explains how rather than offering a button that cannot work.
+  const blocked = state === 'denied';
   const iosInstall = state === 'needs-install';
+  const noWorker = state === 'no-sw';
+  // Only 'off' can be resolved by tapping a button here.
+  const actionable = state === 'off';
+
+  const body =
+    iosInstall ? t('push.iosSteps')
+      : blocked ? t('push.denied')
+        : noWorker ? t('push.noWorker')
+          : t('push.promptBody');
+
+  const icon =
+    iosInstall ? <Share className="h-4 w-4" aria-hidden />
+      : blocked || noWorker ? <BellOff className="h-4 w-4" aria-hidden />
+        : <Bell className="h-4 w-4" aria-hidden />;
+
+  const tone = blocked || noWorker
+    ? { border: 'border-warn/30', bg: 'bg-warn/[0.06]', chip: 'bg-warn/15 text-warn' }
+    : { border: 'border-accent/25', bg: 'bg-accent/[0.06]', chip: 'bg-accent/15 text-accent' };
 
   return (
-    <section className="mb-4 rounded-xl border border-accent/25 bg-accent/[0.06] p-3.5">
+    <section className={`mb-4 rounded-xl border ${tone.border} ${tone.bg} p-3.5`}>
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
-          {iosInstall ? <Share className="h-4 w-4" aria-hidden /> : <Bell className="h-4 w-4" aria-hidden />}
+        <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${tone.chip}`}>
+          {icon}
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-semibold leading-snug">{t('push.promptTitle')}</p>
-          <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">
-            {iosInstall ? t('push.iosSteps') : t('push.promptBody')}
+          <p className="text-[14px] font-semibold leading-snug">
+            {blocked || noWorker ? t('push.problemTitle') : t('push.promptTitle')}
           </p>
+          <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">{body}</p>
 
           {error && <div className="mt-2"><ErrorState message={error} /></div>}
 
-          {!iosInstall && (
+          {actionable && (
             <Button
               className="mt-2.5"
               variant="primary"

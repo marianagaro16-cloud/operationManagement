@@ -12,9 +12,25 @@ export type PushState =
   | 'loading'
   | 'unsupported'   // browser cannot do push at all
   | 'needs-install' // iOS Safari: only works once added to the home screen
+  | 'no-sw'         // service worker never became active
   | 'denied'        // blocked; only recoverable in browser settings
   | 'off'
   | 'on';
+
+/** Everything needed to diagnose a device without being in front of it. */
+export interface PushDiagnostics {
+  serviceWorker: boolean;
+  pushManager: boolean;
+  notification: boolean;
+  permission: string;
+  registered: boolean;
+  active: boolean;
+  subscribed: boolean;
+  vapidKey: boolean;
+  standalone: boolean;
+  ios: boolean;
+  secure: boolean;
+}
 
 function toUint8Array(base64: string): Uint8Array {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
@@ -23,44 +39,116 @@ function toUint8Array(base64: string): Uint8Array {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
 }
 
-/** iOS delivers push only to a home-screen install, never to a Safari tab. */
-function isIosSafariTab(): boolean {
+function isIos(): boolean {
   if (typeof window === 'undefined') return false;
   const ua = navigator.userAgent;
-  const isIos = /iPad|iPhone|iPod/.test(ua) ||
-    // iPadOS reports as a Mac; the touch check distinguishes it.
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (!isIos) return false;
-  const standalone =
+  return (
+    /iPad|iPhone|iPod/.test(ua) ||
+    // iPadOS reports itself as a Mac; the touch check distinguishes it.
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+}
+
+function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as { standalone?: boolean }).standalone === true;
-  return !standalone;
+    (window.navigator as { standalone?: boolean }).standalone === true
+  );
+}
+
+/**
+ * Get an ACTIVE service worker registration.
+ *
+ * `navigator.serviceWorker.ready` never resolves when nothing is registered —
+ * it does not reject, it simply hangs, which would leave the UI stuck on
+ * "loading" forever. So: look for an existing registration, register
+ * explicitly if there is none, and race `ready` against a timeout so this
+ * always returns.
+ */
+async function getActiveRegistration(timeoutMs = 6000): Promise<ServiceWorkerRegistration | null> {
+  try {
+    const existing = await navigator.serviceWorker.getRegistration();
+    if (existing?.active) return existing;
+
+    // Idempotent: registering an already-registered worker is a no-op.
+    await navigator.serviceWorker.register('/sw.js');
+
+    return await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+    ]);
+  } catch {
+    return null;
+  }
 }
 
 export function usePushSubscription() {
   const [state, setState] = useState<PushState>('loading');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<PushDiagnostics | null>(null);
 
   const refresh = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-      // On iOS the APIs are simply absent in a tab, so check that first to
-      // give an actionable message instead of a flat "unsupported".
-      setState(isIosSafariTab() ? 'needs-install' : 'unsupported');
+    const hasSw = 'serviceWorker' in navigator;
+    const hasPush = 'PushManager' in window;
+    const hasNotification = 'Notification' in window;
+    const ios = isIos();
+    const standalone = isStandalone();
+
+    const base: PushDiagnostics = {
+      serviceWorker: hasSw,
+      pushManager: hasPush,
+      notification: hasNotification,
+      permission: hasNotification ? Notification.permission : 'n/a',
+      registered: false,
+      active: false,
+      subscribed: false,
+      vapidKey: Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
+      standalone,
+      ios,
+      // Push requires a secure context; localhost counts as secure.
+      secure: window.isSecureContext,
+    };
+
+    // On iOS the APIs are absent in a tab, so check that first to give an
+    // actionable message rather than a flat "unsupported".
+    if (ios && !standalone) {
+      setDiagnostics(base);
+      setState('needs-install');
       return;
     }
-    if (isIosSafariTab()) { setState('needs-install'); return; }
-    if (Notification.permission === 'denied') { setState('denied'); return; }
-
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      setState(sub ? 'on' : 'off');
-    } catch {
-      setState('off');
+    if (!hasSw || !hasPush || !hasNotification) {
+      setDiagnostics(base);
+      setState('unsupported');
+      return;
     }
+
+    const reg = await getActiveRegistration();
+    base.registered = Boolean(reg);
+    base.active = Boolean(reg?.active);
+
+    if (!reg) {
+      setDiagnostics(base);
+      setState('no-sw');
+      return;
+    }
+
+    let sub: PushSubscription | null = null;
+    try {
+      sub = await reg.pushManager.getSubscription();
+    } catch {
+      sub = null;
+    }
+    base.subscribed = Boolean(sub);
+    setDiagnostics(base);
+
+    // Permission is checked AFTER the registration probe so the diagnostics
+    // are complete even for a denied device.
+    if (Notification.permission === 'denied') { setState('denied'); return; }
+    setState(sub ? 'on' : 'off');
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
@@ -69,6 +157,12 @@ export function usePushSubscription() {
     setError(null);
     setBusy(true);
     try {
+      const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!key) { setError('push_not_configured'); return false; }
+
+      const reg = await getActiveRegistration();
+      if (!reg) { setError('service_worker_unavailable'); setState('no-sw'); return false; }
+
       // Permission is only ever requested from a real tap; a prompt on page
       // load is the fastest way to be permanently denied.
       const permission = await Notification.requestPermission();
@@ -77,10 +171,6 @@ export function usePushSubscription() {
         return false;
       }
 
-      const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!key) { setError('push_not_configured'); return false; }
-
-      const reg = await navigator.serviceWorker.ready;
       const sub =
         (await reg.pushManager.getSubscription()) ??
         (await reg.pushManager.subscribe({
@@ -103,6 +193,7 @@ export function usePushSubscription() {
       if (!res.ok) { setError(res.error); return false; }
 
       setState('on');
+      void refresh();
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -110,25 +201,26 @@ export function usePushSubscription() {
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [refresh]);
 
   const disable = useCallback(async () => {
     setBusy(true);
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
+      const reg = await getActiveRegistration();
+      const sub = reg ? await reg.pushManager.getSubscription() : null;
       if (sub) {
         const endpoint = sub.endpoint;
         await sub.unsubscribe();
         await deletePushSubscription(endpoint);
       }
       setState('off');
+      void refresh();
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [refresh]);
 
-  return { state, error, busy, enable, disable, refresh };
+  return { state, error, busy, diagnostics, enable, disable, refresh };
 }
 
 /* ------------------------- prompt dismissal ---------------------------- */

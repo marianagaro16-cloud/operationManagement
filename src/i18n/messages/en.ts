@@ -310,6 +310,8 @@ export const en = {
     today: 'Today',
   },
   push: {
+    problemTitle: 'Notifications are not working on this device',
+    noWorker: 'The app could not start its background worker. Close all tabs of this app and open it again; if it persists, clear the site data.',
     menuLabel: 'Notifications & settings',
     promptTitle: 'Turn on delivery alerts',
     promptBody: 'Get a notification on this device when a delivery is close and not finished — even with the app closed.',
