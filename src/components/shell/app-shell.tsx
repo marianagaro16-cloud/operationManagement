@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { Bell, CalendarDays, ClipboardList, LayoutDashboard, Package, Shield } from 'lucide-react';
+import { Bell, CalendarDays, ClipboardList, LayoutDashboard, Package, Settings, Shield } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -61,6 +61,21 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
           <div className="hidden sm:block">
             <LanguageSelector />
           </div>
+
+          {/* Always-visible route to notifications. A link in a menu that has
+              to be opened first is a link nobody finds on a phone. */}
+          <Link
+            href="/settings"
+            aria-label={t('push.menuLabel')}
+            className={cn(
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+              pathname === '/settings'
+                ? 'bg-surface-2 text-fg'
+                : 'text-muted hover:bg-surface-2 hover:text-fg',
+            )}
+          >
+            <Settings className="h-[18px] w-[18px]" aria-hidden />
+          </Link>
 
           <button
             onClick={() => setMenuOpen((v) => !v)}
