@@ -30,19 +30,20 @@ export async function savePushSubscription(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'not_authorized' };
 
-  // Re-subscribing the same browser returns the same endpoint, so upsert
-  // rather than insert — and reset failure_count, since it clearly works.
-  const { error } = await supabase.from('push_subscriptions').upsert(
-    {
-      user_id: user.id,
-      endpoint: parsed.data.endpoint,
-      p256dh: parsed.data.p256dh,
-      auth: parsed.data.auth,
-      user_agent: parsed.data.user_agent ?? null,
-      failure_count: 0,
-    },
-    { onConflict: 'endpoint' },
-  );
+  // An endpoint identifies the browser, not the person. On a shared device
+  // the second person to enable notifications gets the SAME endpoint, which
+  // is UNIQUE — so a plain upsert lands on the first person's row and RLS
+  // refuses it ("new row violates row-level security policy"), leaving them
+  // with a button that appears to do nothing.
+  //
+  // claim_push_subscription transfers the endpoint to whoever is signed in
+  // now, which is the only correct answer for a device two people share.
+  const { error } = await supabase.rpc('claim_push_subscription', {
+    p_endpoint: parsed.data.endpoint,
+    p_p256dh: parsed.data.p256dh,
+    p_auth: parsed.data.auth,
+    p_user_agent: parsed.data.user_agent ?? null,
+  });
 
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: undefined };

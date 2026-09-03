@@ -773,6 +773,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_push_subscription: {
+        Args: {
+          p_auth: string
+          p_endpoint: string
+          p_p256dh: string
+          p_user_agent?: string
+        }
+        Returns: undefined
+      }
       complete_occurrence: {
         Args: { p_occurrence_id: string }
         Returns: {
