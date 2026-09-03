@@ -318,3 +318,56 @@ of an error.
 | Admin -> Products | variants, codes, review flags |
 | Admin -> Delivery methods | Planzer, DHL, Zürich, Carlos, factory pickup |
 | Admin -> Recurring orders | activate templates, generate draft orders |
+
+---
+
+## Push notifications
+
+Reaches the floor team when the app is closed. Opt-in per device, from the
+user menu -> Settings.
+
+**Enabled by the person, not the admin.** A push endpoint is a capability URL
+for delivering to someone's device, so RLS restricts every operation to
+`user_id = auth.uid()` — even an admin cannot read another user's endpoints.
+
+### What fires
+
+Only unfinished work whose delivery deadline is close. Levels `warning` (6h),
+`critical` (2h) and `overdue`; `soon` (24h) deliberately does not notify.
+A completed or cancelled order never notifies, however close the deadline.
+
+Each `(order, level)` fires **once**, enforced by a UNIQUE constraint on
+`order_notifications`. An order escalating warning -> critical -> overdue
+produces exactly three notifications over its life, no matter how often the
+scheduler runs. The claim is taken *before* sending, so two concurrent runs
+cannot both send; if a send reaches nobody the claim is released again rather
+than silently consumed.
+
+### Scheduling
+
+`/api/cron/notify` is listed in `vercel.json` at `*/15 5-20 * * *`.
+
+**Vercel's Hobby plan runs crons once daily**, so on Hobby that schedule is
+not honoured. For a useful cadence, point an external scheduler
+(cron-job.org, GitHub Actions, Upstash QStash) at the endpoint every 15
+minutes with the header `Authorization: Bearer <CRON_SECRET>`.
+
+The endpoint **fails closed**: without `CRON_SECRET` set it refuses to run in
+production rather than being open to anyone.
+
+### Setup
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Put the pair in `.env` and in Vercel as `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY` (Sensitive) and `VAPID_SUBJECT`, plus a `CRON_SECRET`.
+
+**iOS requires the app to be installed to the home screen first** — Safari
+does not deliver web push to a normal browser tab. Android and desktop
+Chrome/Edge/Firefox work from the tab.
+
+```bash
+npm run verify:push   # 19 checks: VAPID, encryption, RLS, dedupe
+```

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { CalendarDays, ClipboardList, LayoutDashboard, Package, Shield } from 'lucide-react';
+import { Bell, CalendarDays, ClipboardList, LayoutDashboard, Package, Shield } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -82,6 +82,16 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
               <div className="sm:hidden">
                 <LanguageSelector compact />
               </div>
+              {/* Notification opt-in lives here so the floor team can reach
+                  it themselves — it is per-device, not an admin setting. */}
+              <Link
+                href="/settings"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+              >
+                <Bell className="h-3.5 w-3.5" aria-hidden />
+                {t('nav.settings')}
+              </Link>
               <SignOutButton full />
             </div>
           </div>

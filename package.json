@@ -22,7 +22,8 @@
     "db:types": "supabase gen types typescript --linked > src/types/database.types.ts",
     "orders:extract": "tsx scripts/import-orders.ts extract",
     "orders:seed": "tsx scripts/import-orders.ts seed",
-    "verify:orders": "node scripts/verify-orders.mjs"
+    "verify:orders": "node scripts/verify-orders.mjs",
+    "verify:push": "node scripts/verify-push.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",
@@ -34,6 +35,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^3.6.0",
+    "web-push": "^3.6.7",
     "zod": "^4.5.4"
   },
   "devDependencies": {
@@ -41,6 +43,7 @@
     "@types/node": "^26.4.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.5.4",
     "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",

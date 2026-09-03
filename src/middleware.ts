@@ -53,5 +53,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icons|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  // `api` is excluded deliberately: route handlers authenticate themselves
+  // (the cron endpoints check CRON_SECRET), and redirecting a machine caller
+  // to /login would silently break every scheduled job.
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|icons|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };

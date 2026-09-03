@@ -1,0 +1,85 @@
+'use server';
+
+import { z } from 'zod';
+import { createClient } from '@/lib/supabase/server';
+import type { ActionResult } from './actions';
+
+/**
+ * Push subscription management.
+ *
+ * A subscription belongs to the person who created it. RLS restricts every
+ * operation to `user_id = auth.uid()`, and even admins cannot read another
+ * user's endpoints — a push endpoint is a capability URL for delivering to
+ * someone's device, not team data.
+ */
+
+const subscriptionSchema = z.object({
+  endpoint: z.string().url(),
+  p256dh: z.string().min(1),
+  auth: z.string().min(1),
+  user_agent: z.string().nullable().optional(),
+});
+
+export async function savePushSubscription(
+  input: z.infer<typeof subscriptionSchema>,
+): Promise<ActionResult> {
+  const parsed = subscriptionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'invalid_subscription' };
+
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'not_authorized' };
+
+  // Re-subscribing the same browser returns the same endpoint, so upsert
+  // rather than insert — and reset failure_count, since it clearly works.
+  const { error } = await supabase.from('push_subscriptions').upsert(
+    {
+      user_id: user.id,
+      endpoint: parsed.data.endpoint,
+      p256dh: parsed.data.p256dh,
+      auth: parsed.data.auth,
+      user_agent: parsed.data.user_agent ?? null,
+      failure_count: 0,
+    },
+    { onConflict: 'endpoint' },
+  );
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: undefined };
+}
+
+export async function deletePushSubscription(endpoint: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: undefined };
+}
+
+/** How many devices the current user has registered. */
+export async function countPushSubscriptions(): Promise<number> {
+  const supabase = createClient();
+  const { count } = await supabase
+    .from('push_subscriptions')
+    .select('id', { count: 'exact', head: true });
+  return count ?? 0;
+}
+
+/** Send a test notification to the caller's own devices. */
+export async function sendTestNotification(): Promise<ActionResult<{ sent: number }>> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'not_authorized' };
+
+  const { sendToUser } = await import('./push');
+  try {
+    const sent = await sendToUser(user.id, {
+      title: 'Operation Manager',
+      body: 'Las notificaciones están activadas correctamente.',
+      tag: 'test',
+      url: '/dashboard',
+    });
+    return { ok: true, data: { sent } };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
