@@ -54,7 +54,14 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
   return (
     <div className="min-h-dvh bg-bg">
       {/* ---------------- header ---------------- */}
-      <header className="sticky top-0 z-20 border-b border-border bg-bg/85 backdrop-blur">
+      <header
+        className={cn(
+          'sticky top-0 border-b border-border bg-bg/85 backdrop-blur',
+          // Lifted above the dismiss overlay while the menu is open, so the
+          // menu itself and the avatar stay clickable.
+          menuOpen ? 'z-40' : 'z-20',
+        )}
+      >
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4">
           <div className="min-w-0 flex-1">
             <p className="truncate text-[15px] font-semibold leading-tight">
@@ -94,42 +101,49 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
         </div>
 
         {menuOpen && (
-          <>
-            {/* Tapping anywhere outside closes the menu — expected behaviour
-                on a phone, where there is no cursor to move away. */}
-            <button
-              className="fixed inset-0 z-10 cursor-default"
-              aria-hidden
-              tabIndex={-1}
-              onClick={() => setMenuOpen(false)}
-            />
-            <div className="animate-fade-in relative z-20 border-t border-border bg-surface shadow-pop">
-              <div className="mx-auto max-w-5xl px-4 py-3">
-                <div className="mb-2">
-                  <p className="text-[13px] font-medium">{profile.name ?? profile.email}</p>
-                  <p className="text-[12px] text-muted">{profile.email}</p>
-                </div>
+          <div className="animate-fade-in relative border-t border-border bg-surface shadow-pop">
+            <div className="mx-auto max-w-5xl px-4 py-3">
+              <div className="mb-2">
+                <p className="text-[13px] font-medium">{profile.name ?? profile.email}</p>
+                <p className="text-[12px] text-muted">{profile.email}</p>
+              </div>
 
-                {/* Full-width rows with real hit targets: this menu is used
-                    one-handed on the warehouse floor. */}
-                <Link
-                  href="/settings"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex touch-target items-center gap-2.5 rounded-lg px-2 py-2.5 text-[13.5px] font-medium transition-colors hover:bg-surface-2"
-                >
-                  <Bell className="h-4 w-4 text-muted" aria-hidden />
-                  {t('push.menuLabel')}
-                </Link>
+              {/* Full-width rows with real hit targets: this menu is used
+                  one-handed on the warehouse floor. */}
+              <Link
+                href="/settings"
+                onClick={() => setMenuOpen(false)}
+                className="flex touch-target items-center gap-2.5 rounded-lg px-2 py-2.5 text-[13.5px] font-medium transition-colors hover:bg-surface-2"
+              >
+                <Bell className="h-4 w-4 text-muted" aria-hidden />
+                {t('push.menuLabel')}
+              </Link>
 
-                <div className="mt-1 flex items-center justify-between border-t border-border px-2 pt-2">
-                  <LanguageSelector compact />
-                  <SignOutButton />
-                </div>
+              <div className="mt-1 flex items-center justify-between border-t border-border px-2 pt-2">
+                <LanguageSelector compact />
+                <SignOutButton />
               </div>
             </div>
-          </>
+          </div>
         )}
       </header>
+
+      {/* Tap anywhere outside to close — expected on a phone, where there is
+          no cursor to move away.
+
+          Deliberately a sibling of the header rather than a child of it: the
+          header carries `backdrop-blur`, and an element with a backdrop-filter
+          becomes the containing block for its fixed-position descendants. From
+          inside, `fixed inset-0` covered only the 56px header strip, so taps on
+          the page never reached it and the menu would not close. */}
+      {menuOpen && (
+        <button
+          className="fixed inset-0 z-30 cursor-default"
+          aria-hidden
+          tabIndex={-1}
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
 
       <div className="mx-auto flex max-w-5xl gap-6 px-4">
         {/* ---------------- sidebar (md+) ---------------- */}

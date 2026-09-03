@@ -362,10 +362,10 @@ Two schedulers are set up in this repo. **Use one, not both** — running both
 is harmless, because each `(order, level)` is claimed before sending, but it
 doubles the traffic for nothing.
 
-| Option | Where | Notes |
+| Option | Where | Status |
 |---|---|---|
-| GitHub Actions | `.github/workflows/notify.yml` | zero setup beyond two repo secrets |
-| Supabase `pg_cron` | `supabase/migrations/*_schedule_delivery_notifications.sql` | no third party; secrets stay in Vault |
+| Supabase `pg_cron` | `supabase/migrations/*_schedule_delivery_notifications.sql` | **active** — no third party; secrets stay in Vault |
+| GitHub Actions | `.github/workflows/notify.yml` | schedule commented out; manual `workflow_dispatch` only |
 
 Both are free. Nothing about Web Push itself costs money — delivery is done
 by the browser vendors' push services, and the VAPID keypair is self-issued.
@@ -390,11 +390,16 @@ Chrome/Edge/Firefox work from the tab.
 npm run verify:push   # 19 checks: VAPID, encryption, RLS, dedupe
 ```
 
-### Scheduling with GitHub Actions
+### Scheduling with GitHub Actions (fallback, currently off)
 
-`.github/workflows/notify.yml` calls the notifier every 15 minutes between
-05:00 and 20:00 UTC (roughly 06:00–22:00 Zurich year-round). Use it when the
-Vercel plan does not allow a sub-daily cron.
+`.github/workflows/notify.yml` can call the notifier every 15 minutes between
+05:00 and 20:00 UTC (roughly 06:00–22:00 Zurich year-round). **Its `schedule`
+trigger is commented out** — pg_cron drives the notifier now, and two
+schedulers hitting the same endpoint is duplication. The workflow still runs
+on demand from the Actions tab.
+
+To switch back, uncomment the `schedule:` block and stop the database job with
+`select cron.unschedule('delivery-notifications');`.
 
 Add two **repository secrets** under Settings → Secrets and variables →
 Actions:

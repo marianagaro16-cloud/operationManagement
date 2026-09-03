@@ -7,16 +7,24 @@ name: Delivery notifications
 # no cost. The endpoint is idempotent — each (order, level) notifies once — so
 # calling it often is safe and a missed run simply catches up on the next one.
 
+# DISABLED as a schedule. Supabase pg_cron now drives the notifier from the
+# database (supabase/migrations/*_schedule_delivery_notifications.sql), and two
+# schedulers calling the same endpoint is pure duplication — the endpoint is
+# idempotent, so nothing broke, it was just twice the traffic and twice the
+# noise when one of them failed.
+#
+# Kept rather than deleted because it is the fallback if pg_cron or pg_net is
+# ever unavailable: restore the block below and disable the database job with
+# `select cron.unschedule('delivery-notifications');`.
+#
+#  schedule:
+#    # Every 15 minutes, 05:00–20:00 UTC — roughly 06:00–22:00 in Zurich all
+#    # year, so a late-evening deadline still alerts while the scheduler stays
+#    # quiet overnight.
+#    - cron: '*/15 5-20 * * *'
 on:
-  schedule:
-    # Every 15 minutes, 05:00–20:00 UTC. That covers roughly 06:00–22:00 in
-    # Zurich year-round, so a late-evening deadline still alerts while the
-    # scheduler stays quiet overnight.
-    #
-    # GitHub's scheduler is best-effort and can lag by several minutes under
-    # load; the app's own thresholds are hours wide, so that does not matter.
-    - cron: '*/15 5-20 * * *'
-  # Lets you fire it by hand from the Actions tab to test the wiring.
+  # Manual only. Still useful for testing the endpoint by hand from the
+  # Actions tab without touching the database schedule.
   workflow_dispatch:
 
 # Never run two at once: a slow run overlapping the next would be harmless

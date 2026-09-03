@@ -32,8 +32,13 @@ export const viewport: Viewport = {
   ],
   width: 'device-width',
   initialScale: 1,
-  // Allow zoom: pinching a task list is a legitimate accessibility need.
-  maximumScale: 5,
+  // Locked to the device width. This is used one-handed on the warehouse
+  // floor, where a stray pinch leaves the layout zoomed and half off-screen
+  // with no obvious way back. Fixing the scale also stops iOS Safari zooming
+  // in whenever a form field below 16px is focused, which shifted the page
+  // under the user's thumb mid-entry.
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: 'cover',
 };
 
