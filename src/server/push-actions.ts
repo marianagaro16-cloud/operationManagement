@@ -55,32 +55,3 @@ export async function deletePushSubscription(endpoint: string): Promise<ActionRe
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: undefined };
 }
-
-/** How many devices the current user has registered. */
-export async function countPushSubscriptions(): Promise<number> {
-  const supabase = createClient();
-  const { count } = await supabase
-    .from('push_subscriptions')
-    .select('id', { count: 'exact', head: true });
-  return count ?? 0;
-}
-
-/** Send a test notification to the caller's own devices. */
-export async function sendTestNotification(): Promise<ActionResult<{ sent: number }>> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'not_authorized' };
-
-  const { sendToUser } = await import('./push');
-  try {
-    const sent = await sendToUser(user.id, {
-      title: 'Operation Manager',
-      body: 'Las notificaciones están activadas correctamente.',
-      tag: 'test',
-      url: '/dashboard',
-    });
-    return { ok: true, data: { sent } };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}

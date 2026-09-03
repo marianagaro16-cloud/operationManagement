@@ -17,21 +17,6 @@ export type PushState =
   | 'off'
   | 'on';
 
-/** Everything needed to diagnose a device without being in front of it. */
-export interface PushDiagnostics {
-  serviceWorker: boolean;
-  pushManager: boolean;
-  notification: boolean;
-  permission: string;
-  registered: boolean;
-  active: boolean;
-  subscribed: boolean;
-  vapidKey: boolean;
-  standalone: boolean;
-  ios: boolean;
-  secure: boolean;
-}
-
 function toUint8Array(base64: string): Uint8Array {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
   const normalized = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -121,55 +106,20 @@ export function usePushSubscription() {
   const [state, setState] = useState<PushState>('loading');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [diagnostics, setDiagnostics] = useState<PushDiagnostics | null>(null);
 
   const refresh = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
-    const hasSw = 'serviceWorker' in navigator;
-    const hasPush = 'PushManager' in window;
-    const hasNotification = 'Notification' in window;
-    const ios = isIos();
-    const standalone = isStandalone();
-    const serverKey = await fetchVapidKey();
-
-    const base: PushDiagnostics = {
-      serviceWorker: hasSw,
-      pushManager: hasPush,
-      notification: hasNotification,
-      permission: hasNotification ? Notification.permission : 'n/a',
-      registered: false,
-      active: false,
-      subscribed: false,
-      vapidKey: Boolean(serverKey),
-      standalone,
-      ios,
-      // Push requires a secure context; localhost counts as secure.
-      secure: window.isSecureContext,
-    };
-
     // On iOS the APIs are absent in a tab, so check that first to give an
     // actionable message rather than a flat "unsupported".
-    if (ios && !standalone) {
-      setDiagnostics(base);
-      setState('needs-install');
-      return;
-    }
-    if (!hasSw || !hasPush || !hasNotification) {
-      setDiagnostics(base);
+    if (isIos() && !isStandalone()) { setState('needs-install'); return; }
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
       setState('unsupported');
       return;
     }
 
     const reg = await getActiveRegistration();
-    base.registered = Boolean(reg);
-    base.active = Boolean(reg?.active);
-
-    if (!reg) {
-      setDiagnostics(base);
-      setState('no-sw');
-      return;
-    }
+    if (!reg) { setState('no-sw'); return; }
 
     let sub: PushSubscription | null = null;
     try {
@@ -177,11 +127,7 @@ export function usePushSubscription() {
     } catch {
       sub = null;
     }
-    base.subscribed = Boolean(sub);
-    setDiagnostics(base);
 
-    // Permission is checked AFTER the registration probe so the diagnostics
-    // are complete even for a denied device.
     if (Notification.permission === 'denied') { setState('denied'); return; }
     setState(sub ? 'on' : 'off');
   }, []);
@@ -265,7 +211,7 @@ export function usePushSubscription() {
     }
   }, [refresh]);
 
-  return { state, error, busy, diagnostics, enable, disable, refresh };
+  return { state, error, busy, enable, disable, refresh };
 }
 
 /* ------------------------- prompt dismissal ---------------------------- */

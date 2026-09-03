@@ -1,12 +1,10 @@
 'use client';
 
-import { useState, useTransition } from 'react';
 import { Bell, BellOff, BellRing, Share } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, ErrorState } from '@/components/ui/primitives';
 import { usePushSubscription } from '@/lib/push-client';
-import { sendTestNotification } from '@/server/push-actions';
 
 /**
  * Notification control on the settings page.
@@ -17,10 +15,7 @@ import { sendTestNotification } from '@/server/push-actions';
  */
 export function PushToggle() {
   const { t } = useI18n();
-  const { state, error, busy, diagnostics, enable, disable } = usePushSubscription();
-  const [message, setMessage] = useState<string | null>(null);
-  const [testError, setTestError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { state, error, busy, enable, disable } = usePushSubscription();
 
   const icon =
     state === 'on' ? <BellRing className="h-4 w-4 text-done" aria-hidden />
@@ -46,46 +41,20 @@ export function PushToggle() {
             <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">{body}</p>
 
             {state === 'off' && (
-              <Button
-                className="mt-3"
-                variant="primary"
-                loading={busy}
-                onClick={() => { setMessage(null); void enable(); }}
-              >
+              <Button className="mt-3" variant="primary" loading={busy} onClick={() => void enable()}>
                 <Bell className="h-3.5 w-3.5" aria-hidden />
                 {t('push.enable')}
               </Button>
             )}
 
             {state === 'on' && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  loading={pending}
-                  onClick={() =>
-                    startTransition(async () => {
-                      setTestError(null);
-                      setMessage(null);
-                      const res = await sendTestNotification();
-                      if (!res.ok) setTestError(res.error);
-                      else if (res.data.sent === 0) setTestError(t('push.testNoDevices'));
-                      else setMessage(t('push.testSent', { count: res.data.sent }));
-                    })
-                  }
-                >
-                  {t('push.test')}
-                </Button>
-                <Button variant="ghost" loading={busy} onClick={() => void disable()}>
-                  <BellOff className="h-3.5 w-3.5" aria-hidden />
-                  {t('push.disable')}
-                </Button>
-              </div>
+              <Button className="mt-3" variant="ghost" loading={busy} onClick={() => void disable()}>
+                <BellOff className="h-3.5 w-3.5" aria-hidden />
+                {t('push.disable')}
+              </Button>
             )}
 
-            {message && <p className="mt-2 text-[12.5px] text-done">{message}</p>}
-            {(error || testError) && (
-              <div className="mt-2"><ErrorState message={testError ?? error ?? ''} /></div>
-            )}
+            {error && <div className="mt-2"><ErrorState message={error} /></div>}
           </div>
         </div>
       </CardBody>
