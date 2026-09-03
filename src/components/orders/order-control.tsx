@@ -9,11 +9,12 @@ import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState, Select } from '@/components/ui/primitives';
+import { Combobox } from '@/components/ui/combobox';
 import { PageHeader } from '@/components/shell/app-shell';
 import { lineProgress, orderProgress, toQuantity } from '@/domain/orders/progress';
 import { isBeforeGoLive } from '@/domain/orders/config';
 import { BUSINESS_TZ } from '@/lib/datetime';
-import { productLabel, type Customer, type DeliveryMethod, type Order, type Product } from '@/types/orders';
+import { customerLabel, productLabel, type Customer, type DeliveryMethod, type Order, type Product } from '@/types/orders';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
 
@@ -119,16 +120,28 @@ export function OrderControl({
         </div>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <Select
-            value={filters.customerId ?? ''}
-            onChange={(e) => setFilter('customer', e.target.value)}
-            aria-label={t('orders.customer')}
-          >
-            <option value="">{t('orders.allCustomers')}</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </Select>
+          {/* Searchable: 216 customers is far too many to scroll. An empty
+              field means "all", which is why clearing it removes the filter. */}
+          <Combobox
+            items={customers}
+            value={filters.customerId ?? null}
+            onChange={(id) => setFilter('customer', id ?? '')}
+            getKey={(c) => c.id}
+            getLabel={customerLabel}
+            getSearchText={(c) => `${c.company_name} ${c.company_name_addition ?? ''}`}
+            placeholder={t('orders.allCustomers')}
+            emptyMessage={t('orders.noCustomersFound')}
+            renderOption={(c) => (
+              <span className="block">
+                <span className="block truncate">{c.company_name}</span>
+                {c.company_name_addition && (
+                  <span className="block truncate text-[11.5px] text-muted">
+                    {c.company_name_addition}
+                  </span>
+                )}
+              </span>
+            )}
+          />
           <Select
             value={filters.deliveryMethodId ?? ''}
             onChange={(e) => setFilter('method', e.target.value)}
