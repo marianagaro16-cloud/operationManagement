@@ -371,3 +371,29 @@ Chrome/Edge/Firefox work from the tab.
 ```bash
 npm run verify:push   # 19 checks: VAPID, encryption, RLS, dedupe
 ```
+
+### Scheduling with GitHub Actions
+
+`.github/workflows/notify.yml` calls the notifier every 15 minutes between
+05:00 and 20:00 UTC (roughly 06:00–22:00 Zurich year-round). Use it when the
+Vercel plan does not allow a sub-daily cron.
+
+Add two **repository secrets** under Settings → Secrets and variables →
+Actions:
+
+| Secret | Value |
+|---|---|
+| `APP_URL` | your deployed URL, e.g. `https://operation-manager.vercel.app` |
+| `CRON_SECRET` | the same value set in Vercel |
+
+Then run it once by hand from the **Actions** tab (*Delivery notifications* →
+*Run workflow*) to confirm the wiring. The response is printed in the run
+summary.
+
+The run **fails loudly** on a bad secret or an unreachable app rather than
+passing silently, so a broken schedule is visible in the Actions list. Missing
+secrets stop the run with an explicit message.
+
+GitHub's scheduler is best-effort and can lag by a few minutes under load. The
+urgency thresholds are hours wide, so this does not matter — and because the
+endpoint is idempotent, a missed run simply catches up on the next one.
