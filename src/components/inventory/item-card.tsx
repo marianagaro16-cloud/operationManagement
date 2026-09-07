@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { ChevronDown, CircleSlash, History, MessageSquare, ShieldCheck } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { cn } from '@/lib/utils';
+import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Field, Input, Textarea } from '@/components/ui/primitives';
@@ -188,7 +188,7 @@ export function ItemCard({
             <ul className="space-y-1.5 rounded-lg bg-surface-2/40 p-2">
               {item.comments.map((c) => (
                 <li key={c.id} className="text-[12.5px]">
-                  <span className="font-medium">{c.author?.name ?? c.author?.email ?? '—'}</span>
+                  <span className="font-medium">{c.author ? displayName(c.author) : '—'}</span>
                   <span className="text-muted"> · {c.body}</span>
                 </li>
               ))}
@@ -502,7 +502,7 @@ function ItemHistoryDialog({
               <li key={r.id} className="rounded-lg border border-border p-2 text-[12.5px]">
                 <p className="text-fg">{r.note}</p>
                 <p className="mt-1 text-muted">
-                  {r.author?.name ?? r.author?.email ?? '—'} ·{' '}
+                  {r.author ? displayName(r.author) : '—'} ·{' '}
                   {new Date(r.resolved_at).toLocaleString()} · {t('inventory.difference')}{' '}
                   <DifferenceValue value={r.difference_at} className="text-[12.5px]" />
                 </p>
@@ -527,7 +527,7 @@ function ItemHistoryDialog({
                   from: h.previous_digital ?? t('inventory.notSet'),
                   to: h.new_digital ?? t('inventory.notSet'),
                 })}{' '}
-                · {h.author?.name ?? h.author?.email ?? '—'} ·{' '}
+                · {h.author ? displayName(h.author) : '—'} ·{' '}
                 {new Date(h.changed_at).toLocaleString()}
               </li>
             ))}

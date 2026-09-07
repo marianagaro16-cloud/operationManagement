@@ -5,10 +5,9 @@ import Link from 'next/link';
 import { ArrowRight, TriangleAlert } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
-import { orderProgress } from '@/domain/orders/progress';
 import { compareUrgency, deliveryUrgency, formatDeliveryTime } from '@/domain/orders/urgency';
 import { countdownLabel } from './urgency-badge';
-import type { Order } from '@/types/orders';
+import type { OrderWithProgress } from '@/types/orders';
 
 /**
  * The in-app alert.
@@ -20,7 +19,7 @@ import type { Order } from '@/types/orders';
  * Recomputed every minute so it becomes more urgent on its own, without the
  * operator refreshing the page.
  */
-export function UrgentAlert({ orders }: { orders: Order[] }) {
+export function UrgentAlert({ orders }: { orders: OrderWithProgress[] }) {
   const { t } = useI18n();
   const [now, setNow] = useState<Date | null>(null);
 
@@ -33,25 +32,16 @@ export function UrgentAlert({ orders }: { orders: Order[] }) {
   const current = now ?? new Date();
 
   const alerts = orders
-    .map((order) => {
-      const progress = orderProgress(
-        order.lines.map((l) => ({
-          ordered_quantity: l.ordered_quantity,
-          shortfall_reason: l.shortfall_reason,
-          allocations: l.allocations,
-        })),
-      );
-      return {
-        order,
-        progress,
-        urgency: deliveryUrgency(
-          order.delivery_date,
-          order.delivery_time,
-          progress.isComplete,
-          current,
-        ),
-      };
-    })
+    .map((order) => ({
+      order,
+      progress: order.progress,
+      urgency: deliveryUrgency(
+        order.delivery_date,
+        order.delivery_time,
+        order.progress.isComplete,
+        current,
+      ),
+    }))
     .filter((a) => a.urgency.isAlert)
     .sort((a, b) => compareUrgency(a.urgency, b.urgency));
 

@@ -9,11 +9,12 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState, ErrorState, Field, Input, Textarea } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { canAllocate, lineProgress, orderProgress, toQuantity } from '@/domain/orders/progress';
+import { canAllocate, lineProgress, toQuantity } from '@/domain/orders/progress';
 import { weekDays } from '@/domain/orders/scheduling';
 import { addDays } from '@/lib/datetime';
 import { UrgencyBadge } from './urgency-badge';
-import { productLabel, type Order, type OrderLine } from '@/types/orders';
+import { productLabel, type OrderLine, type OrderWithProgress } from '@/types/orders';
+import { StatusChip, statusPresentation } from '@/components/ui/status-chip';
 import { saveLotAllocation, deleteLotAllocation, setShortfallReason } from '@/server/order-actions';
 
 /**
@@ -29,7 +30,7 @@ export function PreparationView({
   date,
   canManage,
 }: {
-  orders: Order[];
+  orders: OrderWithProgress[];
   date: string;
   canManage: boolean;
 }) {
@@ -37,7 +38,7 @@ export function PreparationView({
 
   // Several orders may exist for one customer on one day; they stay separate
   // records and are only grouped visually.
-  const byCustomer = new Map<string, Order[]>();
+  const byCustomer = new Map<string, OrderWithProgress[]>();
   for (const o of orders) {
     const list = byCustomer.get(o.customer.name);
     if (list) list.push(o);
@@ -111,15 +112,10 @@ export function PreparationView({
   );
 }
 
-function OrderPreparationCard({ order, canManage }: { order: Order; canManage: boolean }) {
+function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; canManage: boolean }) {
   const { t, formatDate } = useI18n();
-  const progress = orderProgress(
-    order.lines.map((l) => ({
-      ordered_quantity: l.ordered_quantity,
-      shortfall_reason: l.shortfall_reason,
-      allocations: l.allocations,
-    })),
-  );
+  // Computed once by the query layer; see OrderWithProgress.
+  const progress = order.progress;
 
   return (
     <Card>
@@ -130,7 +126,7 @@ function OrderPreparationCard({ order, canManage }: { order: Order; canManage: b
             <Badge tone="neutral">{order.delivery_method.name}</Badge>
           )}
           {order.order_type === 'sample' && <Badge tone="accent">{t('orders.typeSample')}</Badge>}
-          {order.status === 'draft' && <Badge tone="warn">{t('orders.statusDraft')}</Badge>}
+          {order.status !== 'confirmed' && <StatusChip domain="order" status={order.status} />}
         </div>
         <div className="flex items-center gap-2">
           <UrgencyBadge
@@ -173,17 +169,11 @@ function PreparationLine({ line, canManage }: { line: OrderLine; canManage: bool
 
   const progress = lineProgress(line.ordered_quantity, line.allocations, line.shortfall_reason);
 
-  const tone =
-    progress.status === 'complete' ? 'done'
-      : progress.status === 'over_allocated' ? 'late'
-        : progress.status === 'partial' ? 'warn'
-          : 'neutral';
-
-  const statusLabel =
-    progress.status === 'complete' ? t('prep.statusComplete')
-      : progress.status === 'over_allocated' ? t('prep.statusOver')
-        : progress.status === 'partial' ? t('prep.statusPartial')
-          : t('prep.statusNotPrepared');
+  // Both the label and the colour come from the one registry, instead of two
+  // parallel four-branch ladders that had to be kept in step by hand.
+  const presentation = statusPresentation('line', progress.status);
+  const tone = presentation?.tone ?? 'neutral';
+  const statusLabel = presentation ? t(presentation.key) : '';
 
   function submitLot() {
     setError(null);

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Plus, ShieldCheck } from 'lucide-react';
 import { useI18n } from '@/i18n';
+import { displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
@@ -70,7 +71,7 @@ export function InventoryPermissionManager({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[13.5px] font-medium">
-                        {g.user?.name ?? g.user?.email ?? '—'}
+                        {g.user ? displayName(g.user) : '—'}
                       </p>
                       <p className="mt-0.5 text-[12px] text-muted">
                         {g.scope === 'all'
@@ -195,7 +196,7 @@ function GrantDialog({
               .filter((u) => u.status === 'approved')
               .map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.name ?? u.email}
+                  {displayName(u)}
                 </option>
               ))}
           </Select>

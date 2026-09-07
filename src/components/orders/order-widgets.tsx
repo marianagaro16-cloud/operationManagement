@@ -5,8 +5,7 @@ import { AlertTriangle, ArrowRight, ClipboardList, Package } from 'lucide-react'
 import { useI18n } from '@/i18n';
 import { Card } from '@/components/ui/primitives';
 import { cn } from '@/lib/utils';
-import { orderProgress } from '@/domain/orders/progress';
-import type { Order } from '@/types/orders';
+import type { OrderWithProgress } from '@/types/orders';
 
 /**
  * Dashboard widgets for the orders module.
@@ -20,35 +19,18 @@ export function OrderWidgets({
   delivering,
   canManage,
 }: {
-  toPrepare: Order[];
-  delivering: Order[];
+  toPrepare: OrderWithProgress[];
+  delivering: OrderWithProgress[];
   /** Whether this viewer can open Order Control at all. */
   canManage: boolean;
 }) {
   const { t } = useI18n();
   if (toPrepare.length === 0 && delivering.length === 0) return null;
 
-  // Lines where work has started but is short and unexplained.
-  const needsAttention = toPrepare.filter((o) =>
-    orderProgress(
-      o.lines.map((l) => ({
-        ordered_quantity: l.ordered_quantity,
-        shortfall_reason: l.shortfall_reason,
-        allocations: l.allocations,
-      })),
-    ).hasUnexplainedShortfall,
-  );
-
-  const incomplete = toPrepare.filter((o) => {
-    const p = orderProgress(
-      o.lines.map((l) => ({
-        ordered_quantity: l.ordered_quantity,
-        shortfall_reason: l.shortfall_reason,
-        allocations: l.allocations,
-      })),
-    );
-    return !p.isComplete;
-  });
+  // Two filters over one already-computed field. This used to be two full
+  // passes of orderProgress() over the same array in the same render.
+  const needsAttention = toPrepare.filter((o) => o.progress.hasUnexplainedShortfall);
+  const incomplete = toPrepare.filter((o) => !o.progress.isComplete);
 
   return (
     <section className="mb-6">

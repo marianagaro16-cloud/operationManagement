@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useI18n } from '@/i18n';
 import { Badge, Card, EmptyState } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { cn } from '@/lib/utils';
+import { cn, displayName } from '@/lib/utils';
 import type { OperationalAuditRow, SecurityAuditRow } from '@/server/permissions';
 
 /**
@@ -32,7 +32,7 @@ export function AuditLog({
   const [tab, setTab] = useState<'operational' | 'security'>('operational');
 
   const who = (actor: { name: string | null; email: string } | null) =>
-    actor?.name ?? actor?.email ?? t('audit.system');
+    actor ? displayName(actor) : t('audit.system');
 
   const when = (iso: string) =>
     `${formatDate(iso.slice(0, 10), 'short')} ${iso.slice(11, 16)}`;
@@ -83,7 +83,17 @@ export function AuditLog({
                       <td className="whitespace-nowrap px-3.5 py-2 tabular text-muted">{when(r.created_at)}</td>
                       <td className="px-3.5 py-2">{who(r.actor)}</td>
                       <td className="px-3.5 py-2">
-                        <Badge tone={r.source === 'inventory' ? 'accent' : 'neutral'}>{r.action}</Badge>
+                        {/* Three sources now, not two: task completions,
+                            skips and definition edits were never audited. */}
+                        <Badge
+                          tone={
+                            r.source === 'inventory' ? 'accent'
+                              : r.source === 'task' ? 'done'
+                                : 'neutral'
+                          }
+                        >
+                          {r.action}
+                        </Badge>
                       </td>
                       <td className="max-w-[22rem] truncate px-3.5 py-2 font-mono text-[11.5px] text-muted">
                         {value(r.detail)}

@@ -40,7 +40,7 @@ export function SectionHeading({
 
 /* ------------------------------- badge -------------------------------- */
 
-type Tone = 'neutral' | 'accent' | 'done' | 'late' | 'skipped' | 'warn';
+export type Tone = 'neutral' | 'accent' | 'done' | 'late' | 'skipped' | 'warn';
 
 const TONES: Record<Tone, string> = {
   neutral: 'bg-surface-2 text-muted border-border',

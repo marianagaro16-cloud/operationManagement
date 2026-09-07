@@ -3,6 +3,13 @@ import {
   nthWeekdayOfMonth,
   shiftWeekendToPrecedingFriday,
 } from '@/domain/recurrence/engine';
+import {
+  biweeklyPeriodKey,
+  monthlyOrdinalPeriodKey,
+  monthlyPeriodKey,
+  semiannualPeriodKey,
+  weeklyPeriodKey,
+} from '@/domain/recurrence/periods';
 import type { MonthlyRule } from '@/domain/recurrence/types';
 import { parseBusinessDate, toBusinessDate, type BusinessDate } from '@/lib/datetime';
 import {
@@ -22,8 +29,11 @@ import {
  * route, and the seed script.
  *
  * Every date calculation delegates to the existing recurrence engine
- * (nthWeekdayOfMonth, dayOfMonthClamped, shiftWeekendToPrecedingFriday).
- * Nothing about "last Thursday" or the weekend rule is reimplemented here.
+ * (nthWeekdayOfMonth, dayOfMonthClamped, shiftWeekendToPrecedingFriday), and
+ * every period key to domain/recurrence/periods. Nothing about "last
+ * Thursday", the weekend rule, or the shape of a period key is reimplemented
+ * here — the key formats used to be written out again in this file, which is
+ * how two modules came to own one string format.
  */
 
 export function resolveInventorySchedule(
@@ -66,13 +76,13 @@ export function isInventoryScheduleConfigured(
   return resolveInventorySchedule(frequency, raw).ok;
 }
 
-/** ISO calendar week of a business date — the "KW" the operation counts in. */
-export function calendarWeek(date: BusinessDate): { isoYear: number; isoWeek: number } {
-  const dt = parseBusinessDate(date);
-  return { isoYear: dt.weekYear, isoWeek: dt.weekNumber };
-}
-
-/** "KW 37" style label, used in headings and report filters. */
+/**
+ * "KW 37" style label, used in headings and report filters.
+ *
+ * The week NUMBER itself is not computed here. `inventory_instances.iso_week`
+ * is a generated column in Postgres, so there is one implementation of "which
+ * ISO week is this" and it is the database's.
+ */
 export function formatCalendarWeek(isoWeek: number): string {
   return `KW ${String(isoWeek).padStart(2, '0')}`;
 }
@@ -84,8 +94,7 @@ function monthlyDate(year: number, month: number, rule: MonthlyRule): BusinessDa
 }
 
 function plan(inventoryDate: BusinessDate, periodKey: string): PlannedInventory {
-  const { isoYear, isoWeek } = calendarWeek(inventoryDate);
-  return { inventoryDate, periodKey, isoYear, isoWeek };
+  return { inventoryDate, periodKey };
 }
 
 /**
@@ -126,7 +135,7 @@ export function generateInventories(
         const due = cursor.plus({ days: schedule.weekday - 1 });
         if (due >= start && due <= end) {
           const date = toBusinessDate(due);
-          out.push(plan(date, `${due.weekYear}-W${String(due.weekNumber).padStart(2, '0')}`));
+          out.push(plan(date, weeklyPeriodKey(date)));
         }
         cursor = cursor.plus({ weeks: 1 });
       }
@@ -142,7 +151,7 @@ export function generateInventories(
         if (due > end) break;
         if (due >= start) {
           const date = toBusinessDate(due);
-          out.push(plan(date, `BW-${date}`));
+          out.push(plan(date, biweeklyPeriodKey(date)));
         }
       }
       break;
@@ -157,11 +166,12 @@ export function generateInventories(
         const dates = schedule.rules
           .map((rule) => monthlyDate(cursor.year, cursor.month, rule))
           .sort();
-        const month = `${cursor.year}-${String(cursor.month).padStart(2, '0')}`;
         dates.forEach((date, index) => {
           const due = parseBusinessDate(date);
           if (due < start || due > end) return;
-          out.push(plan(date, multiple ? `${month}#${index + 1}` : month));
+          // Both rule kinds resolve inside the cursor's month, so the key is
+          // the resolved date's month either way.
+          out.push(plan(date, multiple ? monthlyOrdinalPeriodKey(date, index + 1) : monthlyPeriodKey(date)));
         });
         cursor = cursor.plus({ months: 1 });
       }
@@ -183,8 +193,7 @@ export function generateInventories(
           if (due < start || due > end) continue;
           // Keyed by the SCHEDULED date, so a date pulled back across a year
           // boundary is still filed under the half-year it closes.
-          const sd = parseBusinessDate(scheduled);
-          out.push(plan(date, `${sd.year}-H${sd.month <= 6 ? 1 : 2}`));
+          out.push(plan(date, semiannualPeriodKey(scheduled)));
         }
       }
       break;

@@ -8,6 +8,7 @@ import { useI18n } from '@/i18n';
 import { localizedTitle } from '@/lib/localized-content';
 import { cn } from '@/lib/utils';
 import { Badge, Card, EmptyState } from '@/components/ui/primitives';
+import { StatusChip } from '@/components/ui/status-chip';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import type { OccurrenceWithTask } from '@/types/database';
 
@@ -33,7 +34,7 @@ export function CalendarView({
   const byDate = useMemo(() => {
     const map = new Map<string, OccurrenceWithTask[]>();
     for (const o of occurrences) {
-      const key = o.due_date_override ?? o.due_date;
+      const key = o.effective_due_date;
       const list = map.get(key);
       if (list) list.push(o);
       else map.set(key, [o]);
@@ -161,13 +162,7 @@ export function CalendarView({
                   <Badge tone="neutral">
                     {t(`frequency.${o.task.frequency}` as 'frequency.daily')}
                   </Badge>
-                  <Badge
-                    tone={
-                      o.status === 'completed' ? 'done' : o.status === 'skipped' ? 'skipped' : 'neutral'
-                    }
-                  >
-                    {t(`status.${o.status}` as 'status.pending')}
-                  </Badge>
+                  <StatusChip domain="task" status={o.status} />
                 </li>
               ))}
             </ul>

@@ -37,7 +37,7 @@ export function AdminNav({ caps, role }: { caps: Permission[]; role: Role }) {
     { href: '/admin/history', label: t('nav.history'), permission: 'tasks.manage_occurrences' },
     { href: '/admin/audit', label: t('audit.title'), permission: 'audit.view_operational' },
     { href: '/admin/reports', label: t('report.title'), permission: 'reports.view' },
-    { href: '/admin/statistics', label: t('nav.statistics'), permission: 'reports.view' },
+
     { href: '/admin/settings', label: t('nav.settings'), permission: 'system.configure' },
   ];
 

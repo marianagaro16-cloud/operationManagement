@@ -1,6 +1,7 @@
 import { getOccurrencesInRange, getUsers } from '@/server/data';
 import { addDays, businessToday } from '@/lib/datetime';
 import { HistoryView } from '@/components/admin/history-view';
+import { displayName } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ export default async function HistoryPage() {
     getUsers(),
   ]);
 
-  const names = Object.fromEntries(users.map((u) => [u.id, u.name ?? u.email]));
+  const names = Object.fromEntries(users.map((u) => [u.id, displayName(u)]));
 
   return <HistoryView occurrences={[...occurrences].reverse()} names={names} />;
 }

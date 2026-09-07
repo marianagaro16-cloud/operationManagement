@@ -10,7 +10,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { defaultPreparationDate, isValidSchedule } from '@/domain/orders/scheduling';
 import { toQuantity } from '@/domain/orders/progress';
 import { businessToday } from '@/lib/datetime';
-import { customerLabel, productLabel, type Customer, type DeliveryMethod, type Order, type Product } from '@/types/orders';
+import { productLabel, type Customer, type DeliveryMethod, type Order, type Product } from '@/types/orders';
 import { saveOrder } from '@/server/order-actions';
 
 interface DraftLine {
@@ -149,7 +149,7 @@ export function OrderDialog({
             value={customerId || null}
             onChange={(id) => setCustomerId(id ?? '')}
             getKey={(c) => c.id}
-            getLabel={customerLabel}
+            getLabel={(c) => c.name}
             getSearchText={(c) => `${c.company_name} ${c.company_name_addition ?? ''}`}
             placeholder={t('orders.searchCustomer')}
             emptyMessage={t('orders.noCustomersFound')}

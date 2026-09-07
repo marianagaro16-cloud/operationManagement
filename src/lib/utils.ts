@@ -7,9 +7,26 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function initials(name: string | null, email: string): string {
-  const source = name?.trim() || email;
+  const source = displayName({ name, email });
   const parts = source.split(/[\s@._-]+/).filter(Boolean);
   return (parts.slice(0, 2).map((p) => p[0]).join('') || '?').toUpperCase();
+}
+
+/**
+ * How a person is named on screen.
+ *
+ * A profile's `name` is optional — an account that has never been given one
+ * falls back to its email, which is at least identifying. That fallback was
+ * written out by hand at five call sites (the statistics page, the history
+ * page, the comment thread, the app shell's initials, and the audit log), and
+ * three of them wrote it slightly differently: two used `?? email`, which
+ * keeps an empty-string name, and one used `|| email`, which does not.
+ *
+ * Trimming and falling back on blank is the correct behaviour, so it lives
+ * here once.
+ */
+export function displayName(person: { name: string | null; email: string }): string {
+  return person.name?.trim() || person.email;
 }
 
 /**

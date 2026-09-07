@@ -5,6 +5,7 @@ import { generateOccurrences, isScheduleConfigured } from '@/domain/recurrence/e
 import { FREQUENCIES } from '@/domain/recurrence/types';
 import { addDays, businessToday, type BusinessDate } from '@/lib/datetime';
 import { atLeast, can, type Permission, type Role } from '@/lib/authz';
+import { bucketByDay } from '@/domain/buckets';
 import type { OccurrenceWithTask, Profile, Task, Category } from '@/types/database';
 
 /**
@@ -25,7 +26,7 @@ export interface Viewer {
  */
 
 const OCCURRENCE_SELECT = `
-  id, task_id, period_key, due_date, due_date_override, status,
+  id, task_id, period_key, due_date, due_date_override, effective_due_date, status,
   completed_by, completed_at, skipped_by, skipped_at, skip_reason,
   created_at, updated_at,
   task:tasks!inner (
@@ -122,31 +123,37 @@ export interface DashboardData {
 export async function getDashboardData(upcomingDays = 7): Promise<DashboardData> {
   const today = businessToday();
 
-  // Always generate a full week ahead regardless of what is displayed,
-  // otherwise hiding the upcoming list would stop creating the occurrences.
-  const GENERATION_DAYS = 7;
-  await ensureOccurrences(addDays(today, -1), addDays(today, GENERATION_DAYS + 1));
-
+  // Reads only. Materialising occurrences is the scheduler's job — see
+  // server/scheduling.ts — not a side effect of somebody opening this page.
   const supabase = createClient();
   const { data, error } = await supabase
     .from('task_occurrences')
     .select(OCCURRENCE_SELECT)
     .eq('task.is_active', true)
-    .lte('due_date', addDays(today, Math.max(upcomingDays, 0)))
-    .order('due_date', { ascending: true });
+    // Bounded on the EFFECTIVE date, so an occurrence an admin moved into or
+    // out of this window is fetched according to the date it now carries.
+    .lte('effective_due_date', addDays(today, Math.max(upcomingDays, 0)))
+    .order('effective_due_date', { ascending: true });
 
   if (error) throw new Error(error.message);
 
   const all = (data ?? []) as unknown as OccurrenceWithTask[];
-  const dueDate = (o: OccurrenceWithTask) => o.due_date_override ?? o.due_date;
+
+  // One bucketing rule, shared with the inventory dashboard, so "overdue"
+  // means the same thing on both halves of the screen.
+  const buckets = bucketByDay(all, today, {
+    dateOf: (o) => o.effective_due_date,
+    isOpen: (o) => o.status === 'pending',
+  });
 
   return {
     today,
-    dailyToday: all.filter((o) => dueDate(o) === today && o.task.frequency === 'daily'),
-    extraToday: all.filter((o) => dueDate(o) === today && o.task.frequency !== 'daily'),
-    // Overdue keeps showing until resolved, however old it is.
-    overdue: all.filter((o) => dueDate(o) < today && o.status === 'pending'),
-    upcoming: all.filter((o) => dueDate(o) > today && o.status === 'pending'),
+    // The only task-specific split: the routine daily checklist is the
+    // dashboard's spine, and anything else due today is an interruption.
+    dailyToday: buckets.today.filter((o) => o.task.frequency === 'daily'),
+    extraToday: buckets.today.filter((o) => o.task.frequency !== 'daily'),
+    overdue: buckets.overdue,
+    upcoming: buckets.upcoming,
   };
 }
 
@@ -275,9 +282,9 @@ export async function getOccurrencesInRange(
   const { data, error } = await supabase
     .from('task_occurrences')
     .select(OCCURRENCE_SELECT)
-    .gte('due_date', from)
-    .lte('due_date', to)
-    .order('due_date', { ascending: true });
+    .gte('effective_due_date', from)
+    .lte('effective_due_date', to)
+    .order('effective_due_date', { ascending: true });
 
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as OccurrenceWithTask[];

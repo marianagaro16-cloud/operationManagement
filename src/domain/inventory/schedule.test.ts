@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  calendarWeek,
   formatCalendarWeek,
   generateInventories,
   nextInventoryDate,
@@ -59,7 +58,6 @@ describe('weekly — Masamor / Del Barrio', () => {
       '2026-09-07',
       '2026-09-27',
     );
-    expect(plans.map((p) => p.isoWeek)).toEqual([37, 38, 39]);
     expect(plans.map((p) => p.periodKey)).toEqual(['2026-W37', '2026-W38', '2026-W39']);
   });
 });
@@ -209,11 +207,9 @@ describe('generation is inert when it cannot be trusted', () => {
 });
 
 describe('calendar week', () => {
-  it('uses the ISO week year at a year boundary', () => {
-    // 1 January 2027 is a Friday in ISO week 53 of 2026.
-    expect(calendarWeek('2027-01-01')).toEqual({ isoYear: 2026, isoWeek: 53 });
-  });
-
+  // The week NUMBER is no longer computed here: inventory_instances.iso_week
+  // is a generated column, so Postgres owns it and there is nothing in
+  // TypeScript left to disagree with. Only the label remains.
   it('formats a KW label with a padded number', () => {
     expect(formatCalendarWeek(7)).toBe('KW 07');
     expect(formatCalendarWeek(37)).toBe('KW 37');

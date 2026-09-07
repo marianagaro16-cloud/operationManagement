@@ -71,9 +71,11 @@ export async function getSecurityAudit(limit = 100): Promise<SecurityAuditRow[]>
   return (data ?? []) as unknown as SecurityAuditRow[];
 }
 
+export type AuditSource = 'inventory' | 'order' | 'task';
+
 export interface OperationalAuditRow {
   id: string;
-  source: 'inventory' | 'order';
+  source: AuditSource;
   action: string;
   created_at: string;
   actor: Pick<Profile, 'id' | 'name' | 'email'> | null;
@@ -81,70 +83,70 @@ export interface OperationalAuditRow {
 }
 
 /**
- * The operational trail, merged from the two module logs.
+ * The operational trail.
  *
- * Both tables have been written by triggers since their modules shipped, but
- * neither was ever read — there was no screen for them. This is that screen's
- * data source.
+ * ONE query against the `operational_audit` view, which unions the three
+ * module logs into a common shape in SQL.
  *
- * Merged in memory rather than by a SQL union: they are different shapes, the
- * combined volume per page is small, and a view would have to be kept in step
- * with two schemas that evolve independently.
+ * It used to read 100 rows from each of two tables and merge them in memory,
+ * then slice 100 from the sorted result — so the busier module pushed the
+ * quieter one off a page that claimed to be the whole trail, and an offset
+ * could not be expressed at all. Now the ordering and the limit apply across
+ * every source at once, which is what makes both filtering and paging correct.
+ *
+ * Actors are resolved in a second query rather than embedded: a UNION view
+ * carries no foreign keys, so PostgREST cannot infer the relationship to
+ * profiles. It is one small indexed lookup over the distinct ids on the page.
  */
-export async function getOperationalAudit(limit = 100): Promise<OperationalAuditRow[]> {
+export async function getOperationalAudit(
+  limit = 100,
+  options: { source?: AuditSource; offset?: number } = {},
+): Promise<OperationalAuditRow[]> {
   const supabase = createClient();
+  const offset = options.offset ?? 0;
 
-  const [inventory, orders] = await Promise.all([
-    supabase
-      .from('inventory_audit_log')
-      .select(`
-        id, action, created_at, previous_value, new_value,
-        actor:profiles!inventory_audit_log_actor_id_fkey ( id, name, email )
-      `)
-      .order('created_at', { ascending: false })
-      .limit(limit),
-    supabase
-      .from('order_audit_log')
-      .select(`
-        id, action, created_at, detail,
-        actor:profiles!order_audit_log_actor_id_fkey ( id, name, email )
-      `)
-      .order('created_at', { ascending: false })
-      .limit(limit),
-  ]);
+  let query = supabase
+    .from('operational_audit')
+    .select('id, source, action, actor_id, created_at, previous_value, new_value')
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
 
-  type InvRow = {
-    id: string; action: string; created_at: string;
+  // Filtering in SQL, not after truncation.
+  if (options.source) query = query.eq('source', options.source);
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  const rows = (data ?? []) as unknown as {
+    id: string;
+    source: AuditSource;
+    action: string;
+    actor_id: string | null;
+    created_at: string;
     previous_value: Record<string, unknown> | null;
     new_value: Record<string, unknown> | null;
-    actor: OperationalAuditRow['actor'];
-  };
-  type OrdRow = {
-    id: string; action: string; created_at: string;
-    detail: Record<string, unknown> | null;
-    actor: OperationalAuditRow['actor'];
-  };
+  }[];
 
-  const rows: OperationalAuditRow[] = [
-    ...((inventory.data ?? []) as unknown as InvRow[]).map((r) => ({
-      id: r.id,
-      source: 'inventory' as const,
-      action: r.action,
-      created_at: r.created_at,
-      actor: r.actor,
-      detail: r.new_value ?? r.previous_value,
-    })),
-    ...((orders.data ?? []) as unknown as OrdRow[]).map((r) => ({
-      id: r.id,
-      source: 'order' as const,
-      action: r.action,
-      created_at: r.created_at,
-      actor: r.actor,
-      detail: r.detail,
-    })),
-  ];
+  const actorIds = [...new Set(rows.map((r) => r.actor_id).filter((id): id is string => !!id))];
+  const actors = new Map<string, OperationalAuditRow['actor']>();
+  if (actorIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, email')
+      .in('id', actorIds);
+    for (const p of (profiles ?? []) as Pick<Profile, 'id' | 'name' | 'email'>[]) {
+      actors.set(p.id, p);
+    }
+  }
 
-  return rows
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .slice(0, limit);
+  return rows.map((r) => ({
+    id: r.id,
+    source: r.source,
+    action: r.action,
+    created_at: r.created_at,
+    actor: r.actor_id ? actors.get(r.actor_id) ?? null : null,
+    // The same normalisation the in-memory merge did: the order log carries a
+    // single blob, the other two a before/after pair.
+    detail: r.new_value ?? r.previous_value,
+  }));
 }

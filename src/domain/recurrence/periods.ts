@@ -37,6 +37,18 @@ export function monthlyPeriodKey(date: BusinessDate): string {
   return `${dt.year}-${String(dt.month).padStart(2, '0')}`;
 }
 
+/**
+ * `2026-09#2` — a month that legitimately holds several occurrences.
+ *
+ * The task engine never needs this (one requirement per period is its whole
+ * invariant) but the inventory engine does: Colectivo Comestibles is counted
+ * on the second AND the last Thursday. It lives here anyway, so every period
+ * key in the system is built by one module.
+ */
+export function monthlyOrdinalPeriodKey(date: BusinessDate, ordinal: number): string {
+  return `${monthlyPeriodKey(date)}#${ordinal}`;
+}
+
 /** `2026-H1` (Jan–Jun) or `2026-H2` (Jul–Dec) */
 export function semiannualPeriodKey(date: BusinessDate): string {
   const dt = parseBusinessDate(date);

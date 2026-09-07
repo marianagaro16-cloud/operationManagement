@@ -1,16 +1,30 @@
 'use client';
 
-import Link from 'next/link';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Card, CardBody, EmptyState } from '@/components/ui/primitives';
-import { PageHeader } from '@/components/shell/app-shell';
+import { ReportShell } from '@/components/reports/report-shell';
+import type { PeriodRange } from '@/domain/orders/reporting';
 import type { Breakdown, Stats } from '@/domain/stats';
 
-const RANGES = ['day', 'week', 'month', 'year'] as const;
-export type StatsRange = (typeof RANGES)[number];
-
-export function StatsView({ stats, range }: { stats: Stats; range: StatsRange }) {
+/**
+ * Task statistics — the Tasks tab of /admin/reports.
+ *
+ * This was /admin/statistics, a separate screen with its own four range
+ * buttons and its own inline startOf/endOf period maths. It now shares
+ * ReportShell's period model with the other two tabs, so "September" means
+ * one thing across the whole reporting area and switching tabs keeps the
+ * period you were looking at.
+ */
+export function StatsView({
+  stats,
+  range,
+  anchor,
+}: {
+  stats: Stats;
+  range: PeriodRange;
+  anchor: string;
+}) {
   const { t } = useI18n();
 
   const tiles = [
@@ -21,24 +35,7 @@ export function StatsView({ stats, range }: { stats: Stats; range: StatsRange })
   ];
 
   return (
-    <>
-      <PageHeader title={t('admin.statsTitle')} subtitle={t('admin.statsSubtitle')} />
-
-      <div className="mb-4 flex gap-1">
-        {RANGES.map((r) => (
-          <Link
-            key={r}
-            href={`/admin/statistics?range=${r}`}
-            className={cn(
-              'rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors',
-              range === r ? 'bg-surface-2 text-fg' : 'text-muted hover:text-fg',
-            )}
-          >
-            {t(`stats.range${r[0].toUpperCase()}${r.slice(1)}` as 'stats.rangeDay')}
-          </Link>
-        ))}
-      </div>
-
+    <ReportShell tab="tasks" range={range} anchor={anchor}>
       {stats.total === 0 ? (
         <EmptyState title={t('stats.noData')} />
       ) : (
@@ -65,7 +62,7 @@ export function StatsView({ stats, range }: { stats: Stats; range: StatsRange })
           />
         </div>
       )}
-    </>
+    </ReportShell>
   );
 }
 

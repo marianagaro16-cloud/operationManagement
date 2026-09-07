@@ -4,9 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { scheduleConfigSchema, FREQUENCIES } from '@/domain/recurrence/types';
-import { addDays, businessToday } from '@/lib/datetime';
 import { ROLES, wouldOrphanAdmins, type Role } from '@/lib/authz';
-import { countApprovedAdmins, ensureOccurrences } from './data';
+import { countApprovedAdmins } from './data';
+import { ensureScheduled } from './scheduling';
 
 /**
  * Server actions.
@@ -161,7 +161,9 @@ export async function overrideOccurrenceDate(
     .update({ due_date_override: date })
     .eq('id', occurrenceId);
   if (error) return fail(error);
-  revalidatePath('/admin/calendar');
+  // The calendar lives at /calendar, not /admin/calendar — the stale path
+  // meant moving an occurrence never refreshed the screen it was moved on.
+  revalidatePath('/calendar');
   revalidatePath('/dashboard');
   return { ok: true, data: undefined };
 }
@@ -224,20 +226,31 @@ export async function setUserRole(userId: string, role: Role): Promise<ActionRes
 
 /* -------------------------- occurrence horizon ------------------------- */
 
-/** Manual generation from the admin settings screen. */
-export async function generateHorizon(days = 60): Promise<ActionResult<{ created: number }>> {
+/**
+ * Manual generation from the admin settings screen.
+ *
+ * Covers BOTH task occurrences and inventories. It used to cover tasks only,
+ * so an admin who noticed a gap in the inventory schedule had no way to close
+ * it and had to wait for the next cron run.
+ */
+export async function generateHorizon(
+  days = 60,
+): Promise<ActionResult<{ created: number; inventories: number }>> {
   // Self-gated because what follows uses the SERVICE-ROLE client, which
   // bypasses RLS entirely — so this check is the only one that runs.
   const supabase = createClient();
   const { data: allowed } = await supabase.rpc('has_permission', { p_key: 'tasks.manage_occurrences' });
   if (!allowed) return { ok: false, error: 'not_authorized' };
 
-  const today = businessToday();
   try {
-    const { created } = await ensureOccurrences(today, addDays(today, days));
+    const run = await ensureScheduled(days, days);
     revalidatePath('/dashboard');
+    revalidatePath('/inventory');
     revalidatePath('/admin');
-    return { ok: true, data: { created } };
+    return {
+      ok: true,
+      data: { created: run.tasks.created, inventories: run.inventories.created },
+    };
   } catch (e) {
     return fail(e);
   }

@@ -57,8 +57,18 @@ export interface TaskOccurrence {
   id: string;
   task_id: string;
   period_key: string;
+  /** The rule's date. Read `effective_due_date` instead — see below. */
   due_date: string;
+  /** An admin moved this single occurrence. Null means "follows the rule". */
   due_date_override: string | null;
+  /**
+   * coalesce(due_date_override, due_date), generated in Postgres.
+   *
+   * THE date this occurrence is due. Every filter, sort and bucket uses it;
+   * hand-coalescing the two columns above is what let a moved occurrence fall
+   * outside a window bounded on the raw due_date and disappear.
+   */
+  effective_due_date: string;
   status: OccurrenceStatus;
   completed_by: string | null;
   completed_at: string | null;

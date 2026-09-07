@@ -33,7 +33,7 @@ export interface Stats {
 function summarise(items: OccurrenceWithTask[], today: BusinessDate) {
   let completed = 0, skipped = 0, overdue = 0, pending = 0;
   for (const o of items) {
-    const due = o.due_date_override ?? o.due_date;
+    const due = o.effective_due_date;
     if (o.status === 'completed') completed++;
     else if (o.status === 'skipped') skipped++;
     else if (due < today) overdue++;

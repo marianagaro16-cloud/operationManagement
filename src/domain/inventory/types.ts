@@ -111,14 +111,18 @@ export const SEMIANNUAL_CLOSE_DATES: [MonthDay, MonthDay] = [
 
 /* ------------------------------ generation ------------------------------- */
 
-/** One inventory the schedule says must exist, before it is persisted. */
+/**
+ * One inventory the schedule says must exist, before it is persisted.
+ *
+ * Deliberately carries no ISO week: `inventory_instances.iso_week` and
+ * `iso_year` are generated columns in Postgres and cannot be written, so
+ * computing them here as well would be a second answer to a question that
+ * already has one.
+ */
 export interface PlannedInventory {
   inventoryDate: BusinessDate;
   /** Human-readable period label, e.g. `2026-W37`, `2026-09#2`, `2026-H2`. */
   periodKey: string;
-  /** ISO calendar week — the "KW" the operation refers to inventories by. */
-  isoWeek: number;
-  isoYear: number;
 }
 
 /** Why a template cannot currently generate inventories. */

@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
 import { BUSINESS_TZ, parseBusinessDate, toBusinessDate, type BusinessDate } from '@/lib/datetime';
-import { allocatedQuantity, toQuantity } from './progress';
-import type { Order } from '@/types/orders';
+import { lineProgress, toQuantity } from './progress';
+import { productLabel, type Order } from '@/types/orders';
 
 /**
  * Order reporting.
@@ -254,24 +254,34 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
       lines++;
       cust.lines++;
 
-      const ordered = toQuantity(line.ordered_quantity);
-      const prepared = allocatedQuantity(line.allocations ?? []);
+      // The SAME rule the dashboard, the preparation screen and the notifier
+      // use. This used to re-derive "prepared" and "short" independently,
+      // which agreed with lineProgress() only by coincidence.
+      const progress = lineProgress(
+        line.ordered_quantity,
+        line.allocations ?? [],
+        line.shortfall_reason,
+      );
+      const ordered = progress.ordered;
+      const prepared = progress.allocated;
       totalOrdered += ordered;
       totalPrepared += prepared;
       cust.ordered += ordered;
       day.ordered += ordered;
 
-      if (prepared < ordered) {
+      if (progress.status === 'partial') {
         shortLines++;
-        if (!line.shortfall_reason?.trim()) unexplainedShortLines++;
+        if (progress.needsReason) unexplainedShortLines++;
       }
 
       const p = products.get(line.product_id) ?? {
         productId: line.product_id,
         code: line.product?.code ?? null,
-        // Falls back through the legacy fields so a product imported before
-        // the master-data reshape still names itself.
-        name: line.product?.name ?? line.product?.family ?? '—',
+        // productLabel() is the one implementation of "what is this product
+        // called". This used to inline a shortened copy of it that dropped the
+        // presentation, so the report named a product differently from every
+        // screen that showed it.
+        name: line.product ? productLabel(line.product) : '—',
         ordered: 0,
         prepared: 0,
         missing: 0,

@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { ArrowDown, ArrowUp, Link2, Plus, Search } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { cn } from '@/lib/utils';
+import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
@@ -235,7 +235,7 @@ function AssigneeCard({
           .map((u) => (
             <Checkbox
               key={u.id}
-              label={u.name ?? u.email}
+              label={displayName(u)}
               checked={selected.includes(u.id)}
               onChange={() => toggle(u.id)}
             />

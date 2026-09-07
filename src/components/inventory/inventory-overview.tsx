@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { ClipboardList, Filter, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { cn } from '@/lib/utils';
+import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, Checkbox, EmptyState, Field, Input, SectionHeading, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
@@ -295,7 +295,7 @@ function FilterPanel({
             <option value="">{t('inventory.filterAll')}</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.name ?? u.email}
+                {displayName(u)}
               </option>
             ))}
           </Select>

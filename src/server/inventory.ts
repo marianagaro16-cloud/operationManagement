@@ -4,6 +4,7 @@ import { generateInventories, isInventoryScheduleConfigured } from '@/domain/inv
 import { isPastEditDeadline } from '@/domain/inventory/calc';
 import { addDays, businessToday, type BusinessDate } from '@/lib/datetime';
 import { getViewer } from './data';
+import { bucketByDay, OVERDUE_LOOKBACK_DAYS } from '@/domain/buckets';
 import type {
   InventoryDetail,
   InventoryEditGrant,
@@ -54,13 +55,13 @@ export async function ensureInventoryInstances(
     template_id: string;
     inventory_date: string;
     period_key: string;
-    iso_week: number;
-    iso_year: number;
     // Snapshot columns are NOT NULL but are overwritten by the BEFORE INSERT
     // trigger from the template, which is the only authority on them.
     name_snapshot: string;
     kind: string;
     digital_enabled: boolean;
+    // iso_week and iso_year are deliberately absent: they are GENERATED
+    // columns, so Postgres rejects a write to them outright.
   }[] = [];
   let skippedTemplates = 0;
 
@@ -78,8 +79,6 @@ export async function ensureInventoryInstances(
         template_id: t.id,
         inventory_date: plan.inventoryDate,
         period_key: plan.periodKey,
-        iso_week: plan.isoWeek,
-        iso_year: plan.isoYear,
         name_snapshot: '',
         kind: 'expiry',
         digital_enabled: false,
@@ -217,22 +216,27 @@ export async function getInventoryDashboard(days = 14): Promise<{
 }> {
   const today = businessToday();
 
-  // Always materialise a horizon regardless of what is displayed, so hiding
-  // the upcoming list never stops the inventories from being created.
-  await ensureInventoryInstances(addDays(today, -1), addDays(today, days + 1));
-
+  // Reads only. Materialising inventories is the scheduler's job — see
+  // server/scheduling.ts — so this function returns the same thing whether it
+  // is called from the dashboard or from the inventory screen.
   const [live, review] = await Promise.all([
-    getInventories({ from: addDays(today, -60), to: addDays(today, days), limit: 100 }),
+    getInventories({ from: addDays(today, -OVERDUE_LOOKBACK_DAYS), to: addDays(today, days), limit: 100 }),
     getInventories({ to: today, limit: 100 }),
   ]);
 
-  const open = (r: InventoryListRow) => r.status === 'in_progress';
+  // The same bucketing the task dashboard uses. Only the two things that
+  // genuinely differ per module are supplied here: which date an item is due
+  // on, and what counts as unfinished.
+  const buckets = bucketByDay(live.rows, today, {
+    dateOf: (r) => r.inventory_date,
+    isOpen: (r) => r.status === 'in_progress',
+  });
 
   return {
     today,
-    dueToday: live.rows.filter((r) => r.inventory_date === today),
-    overdue: live.rows.filter((r) => r.inventory_date < today && open(r)),
-    upcoming: live.rows.filter((r) => r.inventory_date > today),
+    dueToday: buckets.today,
+    overdue: buckets.overdue,
+    upcoming: buckets.upcoming,
     needsReview: review.rows.filter((r) => r.review_count > 0),
     digitalPending: review.rows.filter((r) => r.digital_pending_count > 0),
   };

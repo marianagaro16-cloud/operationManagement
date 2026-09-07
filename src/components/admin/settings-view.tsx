@@ -37,8 +37,15 @@ export function SettingsView() {
                       setError(null);
                       setResult(null);
                       const res = await generateHorizon(60);
-                      if (res.ok) setResult(t('admin.generated', { count: res.data.created }));
-                      else setError(res.error);
+                      // Reports both halves: the button now materialises
+                      // inventories as well as task occurrences, and saying so
+                      // is the only way an admin knows it did.
+                      if (res.ok) {
+                        setResult(
+                          `${t('admin.generated', { count: res.data.created })} · ` +
+                            `${t('inventory.generated', { count: res.data.inventories })}`,
+                        );
+                      } else setError(res.error);
                     })
                   }
                 >

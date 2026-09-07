@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/i18n';
+import { displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Badge, Card, EmptyState, ErrorState, Select } from '@/components/ui/primitives';
@@ -196,7 +197,7 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
         open={confirm !== null}
         onClose={() => setConfirm(null)}
         loading={pending}
-        title={confirm?.user.name ?? confirm?.user.email ?? ''}
+        title={confirm ? displayName(confirm.user) : ''}
         message={confirm?.message ?? ''}
         confirmLabel={t('common.confirm')}
         cancelLabel={t('common.cancel')}

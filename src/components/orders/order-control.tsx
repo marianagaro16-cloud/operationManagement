@@ -10,11 +10,12 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState, Select } from '@/components/ui/primitives';
 import { Combobox } from '@/components/ui/combobox';
+import { StatusChip } from '@/components/ui/status-chip';
 import { PageHeader } from '@/components/shell/app-shell';
-import { lineProgress, orderProgress, toQuantity } from '@/domain/orders/progress';
+import { lineProgress, toQuantity } from '@/domain/orders/progress';
 import { isBeforeGoLive } from '@/domain/orders/config';
 import { BUSINESS_TZ } from '@/lib/datetime';
-import { customerLabel, productLabel, type Customer, type DeliveryMethod, type Order, type Product } from '@/types/orders';
+import { productLabel, type Customer, type DeliveryMethod, type OrderWithProgress, type Product } from '@/types/orders';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
 
@@ -36,7 +37,7 @@ export function OrderControl({
   filters,
   canManage,
 }: {
-  orders: Order[];
+  orders: OrderWithProgress[];
   customers: Customer[];
   products: Product[];
   deliveryMethods: DeliveryMethod[];
@@ -46,7 +47,7 @@ export function OrderControl({
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
-  const [editing, setEditing] = useState<Order | null>(null);
+  const [editing, setEditing] = useState<OrderWithProgress | null>(null);
   const [creating, setCreating] = useState(false);
 
   const anchor = DateTime.fromISO(`${month}-01`, { zone: BUSINESS_TZ });
@@ -54,7 +55,7 @@ export function OrderControl({
 
   // DAY -> CUSTOMER -> orders. Orders are never merged: two orders from one
   // customer on one day stay distinct rows for traceability.
-  const byDay = new Map<string, Map<string, Order[]>>();
+  const byDay = new Map<string, Map<string, OrderWithProgress[]>>();
   for (const o of orders) {
     let day = byDay.get(o.delivery_date);
     if (!day) { day = new Map(); byDay.set(o.delivery_date, day); }
@@ -127,7 +128,7 @@ export function OrderControl({
             value={filters.customerId ?? null}
             onChange={(id) => setFilter('customer', id ?? '')}
             getKey={(c) => c.id}
-            getLabel={customerLabel}
+            getLabel={(c) => c.name}
             getSearchText={(c) => `${c.company_name} ${c.company_name_addition ?? ''}`}
             placeholder={t('orders.allCustomers')}
             emptyMessage={t('orders.noCustomersFound')}
@@ -216,18 +217,13 @@ function OrderCard({
   canManage,
   onEdit,
 }: {
-  order: Order;
+  order: OrderWithProgress;
   canManage: boolean;
   onEdit: () => void;
 }) {
   const { t, formatDate } = useI18n();
-  const progress = orderProgress(
-    order.lines.map((l) => ({
-      ordered_quantity: l.ordered_quantity,
-      shortfall_reason: l.shortfall_reason,
-      allocations: l.allocations,
-    })),
-  );
+  // Computed once by the query layer; see OrderWithProgress.
+  const progress = order.progress;
 
   const cancelled = order.status === 'cancelled';
 
@@ -237,11 +233,18 @@ function OrderCard({
         <span className="text-[12px] font-medium tabular text-muted">#{order.reference}</span>
         {order.delivery_method && <Badge tone="neutral">{order.delivery_method.name}</Badge>}
         {order.order_type === 'sample' && <Badge tone="accent">{t('orders.typeSample')}</Badge>}
-        {order.status === 'draft' && <Badge tone="warn">{t('orders.statusDraft')}</Badge>}
-        {cancelled && <Badge tone="late">{t('orders.statusCancelled')}</Badge>}
-        {!cancelled && progress.isComplete && <Badge tone="done">{t('prep.statusComplete')}</Badge>}
+        {/* Provenance. A generated order used to be indistinguishable from a
+            hand-typed one, so a draft gave the reviewer nothing to review. */}
+        {order.generated_from_template_id && (
+          <Badge tone="neutral">{t('orders.fromTemplate')}</Badge>
+        )}
+        {/* Label and tone both come from STATUS_PRESENTATION, so an order
+            status and an inventory status can no longer be tinted by two
+            independent decisions that happen to agree. */}
+        {order.status !== 'confirmed' && <StatusChip domain="order" status={order.status} />}
+        {!cancelled && progress.isComplete && <StatusChip domain="line" status="complete" />}
         {!cancelled && progress.hasUnexplainedShortfall && (
-          <Badge tone="warn">{t('prep.statusPartial')}</Badge>
+          <StatusChip domain="line" status="partial" />
         )}
 
         <div className="ml-auto flex items-center gap-2">
@@ -274,11 +277,25 @@ function OrderCard({
       <ul className="divide-y divide-border">
         {order.lines.map((line) => {
           const p = lineProgress(line.ordered_quantity, line.allocations, line.shortfall_reason);
+          // Only a genuine divergence is worth showing. A null proposal means
+          // the line was typed by hand, or predates provenance being recorded
+          // — neither is "changed", so neither gets a marker.
+          const proposed =
+            line.generated_quantity === null ? null : toQuantity(line.generated_quantity);
+          const diverged = proposed !== null && proposed !== toQuantity(line.ordered_quantity);
           return (
             <li key={line.id} className="flex items-center gap-3 px-3.5 py-2">
               <span className="min-w-0 flex-1 truncate text-[13px]">
                 {productLabel(line.product)}
               </span>
+              {diverged && (
+                <span
+                  className="shrink-0 text-[11.5px] tabular text-muted"
+                  title={t('orders.proposedQuantity', { qty: proposed })}
+                >
+                  {t('orders.proposedQuantity', { qty: proposed })}
+                </span>
+              )}
               <span className="shrink-0 text-[13px] font-medium tabular">
                 {toQuantity(line.ordered_quantity)}
               </span>

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { Bell, Boxes, CalendarDays, ClipboardList, LayoutDashboard, Package, Settings, Shield } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { cn, initials } from '@/lib/utils';
+import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { LanguageSelector } from './language-selector';
 import { SignOutButton } from './sign-out-button';
@@ -126,7 +126,7 @@ export function AppShell({
           <div className="animate-fade-in relative border-t border-border bg-surface shadow-pop">
             <div className="mx-auto max-w-5xl px-4 py-3">
               <div className="mb-2">
-                <p className="text-[13px] font-medium">{profile.name ?? profile.email}</p>
+                <p className="text-[13px] font-medium">{displayName(profile)}</p>
                 <p className="text-[12px] text-muted">{profile.email}</p>
               </div>
 

@@ -6,6 +6,7 @@ import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge, ErrorState } from '@/components/ui/primitives';
+import { StatusChip } from '@/components/ui/status-chip';
 import { completeOccurrence, reopenOccurrence } from '@/server/actions';
 import { daysLate } from '@/domain/recurrence/engine';
 import { localizedTitle, localizedDescription } from '@/lib/localized-content';
@@ -31,7 +32,7 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
   const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
   const status = optimisticStatus ?? occurrence.status;
 
-  const due = occurrence.due_date_override ?? occurrence.due_date;
+  const due = occurrence.effective_due_date;
   const isOverdue = status === 'pending' && due < today;
   const late = isOverdue ? daysLate(due, today) : 0;
   const isDone = status === 'completed';
@@ -90,13 +91,9 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
                 {late === 1 ? t('task.overdueByOne') : t('task.overdueBy', { days: late })}
               </Badge>
             )}
-            {isDone && (
-              <Badge tone="done">
-                <Check className="h-2.5 w-2.5" aria-hidden />
-                {t('status.completed')}
-              </Badge>
-            )}
-            {isSkipped && <Badge tone="skipped">{t('status.skipped')}</Badge>}
+            {/* Label and tone from the shared registry. */}
+            {isDone && <StatusChip domain="task" status="completed" />}
+            {isSkipped && <StatusChip domain="task" status="skipped" />}
           </div>
         </div>
 

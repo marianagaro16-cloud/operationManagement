@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
-import { getOccurrencesInRange, ensureOccurrences, getViewer } from '@/server/data';
+import { getOccurrencesInRange, getViewer } from '@/server/data';
+import { ensureCalendarWindow } from '@/server/scheduling';
 import { BUSINESS_TZ, businessToday, toBusinessDate } from '@/lib/datetime';
 import { CalendarView } from '@/components/calendar/calendar-view';
 import { CalendarHeading } from '@/components/calendar/calendar-heading';
@@ -30,7 +31,7 @@ export default async function CalendarPage({
   const to = toBusinessDate(anchor.endOf('month').endOf('week'));
 
   // Make a future month legible by materialising the window being viewed.
-  await ensureOccurrences(from, to);
+  await ensureCalendarWindow(from, to);
   const occurrences = await getOccurrencesInRange(from, to);
 
   return (

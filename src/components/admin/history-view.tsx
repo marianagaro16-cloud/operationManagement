@@ -3,6 +3,7 @@
 import { useI18n } from '@/i18n';
 import { localizedTitle } from '@/lib/localized-content';
 import { Badge, Card, EmptyState } from '@/components/ui/primitives';
+import { StatusChip } from '@/components/ui/status-chip';
 import { PageHeader } from '@/components/shell/app-shell';
 import type { OccurrenceWithTask } from '@/types/database';
 
@@ -53,16 +54,10 @@ export function HistoryView({
                       </td>
                       <td className="px-2 py-2 tabular text-muted">{o.period_key}</td>
                       <td className="px-2 py-2 tabular text-muted">
-                        {formatDate(o.due_date_override ?? o.due_date, 'short')}
+                        {formatDate(o.effective_due_date, 'short')}
                       </td>
                       <td className="px-2 py-2">
-                        <Badge
-                          tone={
-                            o.status === 'completed' ? 'done' : o.status === 'skipped' ? 'skipped' : 'neutral'
-                          }
-                        >
-                          {t(`status.${o.status}` as 'status.pending')}
-                        </Badge>
+                        <StatusChip domain="task" status={o.status} />
                       </td>
                       <td className="px-3.5 py-2 text-muted">
                         {actor ? (

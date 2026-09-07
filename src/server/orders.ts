@@ -1,10 +1,12 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
+import { orderProgress } from '@/domain/orders/progress';
 import type { BusinessDate } from '@/lib/datetime';
 import type {
   Customer,
   DeliveryMethod,
   Order,
+  OrderWithProgress,
   Product,
   RecurringTemplate,
 } from '@/types/orders';
@@ -19,12 +21,12 @@ import type {
 
 const ORDER_SELECT = `
   id, reference, customer_id, order_date, delivery_date, delivery_time, preparation_date,
-  delivery_method_id, status, order_type, note, created_by, updated_by,
+  delivery_method_id, status, order_type, note, generated_from_template_id, created_by, updated_by,
   created_at, updated_at,
-  customer:customers!inner ( id, company_name, company_name_addition, name, is_active, created_at, updated_at ),
+  customer:customers!inner ( id, name, is_active ),
   delivery_method:delivery_methods ( id, slug, name, sort_order, is_active ),
   lines:order_lines (
-    id, order_id, product_id, ordered_quantity, note, shortfall_reason, position,
+    id, order_id, product_id, ordered_quantity, generated_quantity, note, shortfall_reason, position,
     product:products ( id, code, name, family, presentation, category, notes, needs_review, is_active ),
     allocations:lot_allocations (
       id, order_line_id, lot_number, quantity, note, created_by, created_at, updated_at,
@@ -43,6 +45,26 @@ function sortLines(orders: Order[]): Order[] {
   return orders;
 }
 
+/**
+ * Attach preparation progress once, here, where the rows already are.
+ *
+ * Every consumer reads `order.progress` instead of calling orderProgress()
+ * itself, so the rule has one call site and a change to it — "a cancelled
+ * line does not count", say — cannot land in three of five places.
+ */
+function withProgress(orders: Order[]): OrderWithProgress[] {
+  return orders.map((o) => ({
+    ...o,
+    progress: orderProgress(
+      (o.lines ?? []).map((l) => ({
+        ordered_quantity: l.ordered_quantity,
+        shortfall_reason: l.shortfall_reason,
+        allocations: l.allocations ?? [],
+      })),
+    ),
+  }));
+}
+
 /** Order Control: filtered by DELIVERY date. */
 export async function getOrdersByDelivery(filters: {
   from: BusinessDate;
@@ -50,7 +72,7 @@ export async function getOrdersByDelivery(filters: {
   customerId?: string;
   deliveryMethodId?: string;
   status?: string;
-}): Promise<Order[]> {
+}): Promise<OrderWithProgress[]> {
   const supabase = createClient();
   let q = supabase
     .from('orders')
@@ -66,14 +88,14 @@ export async function getOrdersByDelivery(filters: {
 
   const { data, error } = await q;
   if (error) throw new Error(error.message);
-  return sortLines((data ?? []) as unknown as Order[]);
+  return withProgress(sortLines((data ?? []) as unknown as Order[]));
 }
 
 /**
  * Lotnummerkontrol: filtered by PREPARATION date.
  * Cancelled orders are excluded — there is nothing to prepare.
  */
-export async function getOrdersForPreparation(date: BusinessDate): Promise<Order[]> {
+export async function getOrdersForPreparation(date: BusinessDate): Promise<OrderWithProgress[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('orders')
@@ -83,15 +105,15 @@ export async function getOrdersForPreparation(date: BusinessDate): Promise<Order
     .order('reference', { ascending: true });
 
   if (error) throw new Error(error.message);
-  return sortLines((data ?? []) as unknown as Order[]);
+  return withProgress(sortLines((data ?? []) as unknown as Order[]));
 }
 
-export async function getOrder(id: string): Promise<Order | null> {
+export async function getOrder(id: string): Promise<OrderWithProgress | null> {
   const supabase = createClient();
   const { data, error } = await supabase.from('orders').select(ORDER_SELECT).eq('id', id).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
-  return sortLines([data as unknown as Order])[0];
+  return withProgress(sortLines([data as unknown as Order]))[0];
 }
 
 /* ------------------------------ master data ----------------------------- */

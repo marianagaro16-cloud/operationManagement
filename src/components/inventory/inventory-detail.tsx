@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { CheckCircle2, Lock, MessageSquare, RotateCcw, Search, Users } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { cn } from '@/lib/utils';
+import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, EmptyState, ErrorState, Input, SectionHeading } from '@/components/ui/primitives';
@@ -86,7 +86,7 @@ export function InventoryDetailView({
             <strong className="text-fg">
               {detail.assignees.length === 0
                 ? t('inventory.unassigned')
-                : detail.assignees.map((a) => a.name ?? a.email).join(', ')}
+                : detail.assignees.map((a) => displayName(a)).join(', ')}
             </strong>
           </span>
 
@@ -94,7 +94,7 @@ export function InventoryDetailView({
             <span className="text-muted">
               {t('inventory.completedBy')}{' '}
               <strong className="text-fg">
-                {detail.completed_by_profile?.name ?? detail.completed_by_profile?.email ?? '—'}
+                {detail.completed_by_profile ? displayName(detail.completed_by_profile) : '—'}
               </strong>
             </span>
           )}
@@ -144,7 +144,7 @@ export function InventoryDetailView({
           <ul className="space-y-1.5">
             {detail.general_comments.map((c) => (
               <li key={c.id} className="text-[12.5px]">
-                <span className="font-medium">{c.author?.name ?? c.author?.email ?? '—'}</span>
+                <span className="font-medium">{c.author ? displayName(c.author) : '—'}</span>
                 <span className="text-muted"> · {c.body}</span>
               </li>
             ))}
@@ -361,7 +361,7 @@ function AssignDialog({
           .map((u) => (
             <Checkbox
               key={u.id}
-              label={u.name ?? u.email}
+              label={displayName(u)}
               hint={u.name ? u.email : undefined}
               checked={selected.includes(u.id)}
               onChange={() => toggle(u.id)}

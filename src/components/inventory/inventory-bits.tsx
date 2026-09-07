@@ -1,9 +1,10 @@
 'use client';
 
 import { Clock } from 'lucide-react';
-import { useI18n, type MessageKey } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/primitives';
+import { StatusChip } from '@/components/ui/status-chip';
 import { formatCalendarWeek } from '@/domain/inventory/schedule';
 import type { InventoryStatus } from '@/types/inventory';
 
@@ -16,23 +17,17 @@ import type { InventoryStatus } from '@/types/inventory';
  * different state.
  */
 
-const STATUS_TONE = {
-  in_progress: 'accent',
-  completed: 'done',
-  to_review: 'late',
-  resolved: 'skipped',
-} as const satisfies Record<InventoryStatus, 'accent' | 'done' | 'late' | 'skipped'>;
-
-const STATUS_KEY = {
-  in_progress: 'inventory.statusInProgress',
-  completed: 'inventory.statusCompleted',
-  to_review: 'inventory.statusToReview',
-  resolved: 'inventory.statusResolved',
-} as const satisfies Record<InventoryStatus, MessageKey>;
-
+/**
+ * The inventory status badge.
+ *
+ * A thin wrapper over the shared StatusChip so this module's call sites keep
+ * their familiar name. The label and the tone used to be declared here, in
+ * two local maps that no other module could see — which is how an inventory
+ * "Completed" and an order "Confirmed" came to be coloured by two independent
+ * decisions. Both now come from STATUS_PRESENTATION.
+ */
 export function StatusBadge({ status }: { status: InventoryStatus }) {
-  const { t } = useI18n();
-  return <Badge tone={STATUS_TONE[status]}>{t(STATUS_KEY[status])}</Badge>;
+  return <StatusChip domain="inventory" status={status} />;
 }
 
 /**

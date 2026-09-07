@@ -12,20 +12,21 @@ export interface Customer {
   company_name: string;
   /** Trading name, e.g. "La Catedral". Kept separate on purpose. */
   company_name_addition: string | null;
-  /** Derived display value: company_name [— addition]. Generated in Postgres. */
+  /**
+   * "5 Almas AG — La Catedral", or just the company where there is no
+   * addition. A GENERATED column in Postgres, so it can never disagree with
+   * the two fields above.
+   *
+   * This is the customer's display name everywhere. There used to be a
+   * customerLabel() here that rebuilt the same string in TypeScript, and both
+   * shipped — the combobox rendered the TypeScript version while the list
+   * underneath rendered the column, so one separator change would have given
+   * one customer two spellings on one screen.
+   */
   name: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
-}
-
-/** "5 Almas AG — La Catedral", or just the company when there is no addition. */
-export function customerLabel(
-  c: Pick<Customer, 'company_name' | 'company_name_addition'>,
-): string {
-  return c.company_name_addition?.trim()
-    ? `${c.company_name} — ${c.company_name_addition}`
-    : c.company_name;
 }
 
 export interface DeliveryMethod {
@@ -81,6 +82,11 @@ export interface OrderLine {
   order_id: string;
   product_id: string;
   ordered_quantity: number | string;
+  /**
+   * What the recurring template proposed for this line, frozen at generation.
+   * Null on hand-created lines. Never authoritative — ordered_quantity ships.
+   */
+  generated_quantity: number | string | null;
   note: string | null;
   shortfall_reason: string | null;
   position: number;
@@ -101,6 +107,8 @@ export interface Order {
   status: OrderStatus;
   order_type: OrderType;
   note: string | null;
+  /** The recurring template this order was generated from, if any. */
+  generated_from_template_id: string | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
@@ -108,6 +116,24 @@ export interface Order {
   customer: Customer;
   delivery_method: DeliveryMethod | null;
   lines: OrderLine[];
+}
+
+/**
+ * An order with its preparation progress already computed.
+ *
+ * Progress is still DERIVED from the lot allocations and is still not stored
+ * in the database — that decision is deliberate and unchanged. What changed is
+ * where the derivation runs: once, in the query layer, instead of at every
+ * component that happens to need it.
+ *
+ * It used to be recomputed five times over the same rows — twice inside
+ * OrderWidgets alone, again in UrgentAlert on the same page, again in
+ * PreparationView, and again server-side in the notifier — with the report
+ * quietly running a sixth, separate implementation. They agreed by
+ * coincidence, not by construction.
+ */
+export interface OrderWithProgress extends Order {
+  progress: import('@/domain/orders/progress').OrderProgress;
 }
 
 export interface RecurringTemplate {

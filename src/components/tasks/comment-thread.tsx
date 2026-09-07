@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useTransition } from 'react';
 import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
 import { createClient } from '@/lib/supabase/client';
+import { displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ErrorState, Spinner, Textarea } from '@/components/ui/primitives';
 import { addComment } from '@/server/actions';
@@ -79,7 +80,7 @@ export function CommentThread({ occurrenceId, taskId }: { occurrenceId: string; 
           {comments.map((c) => (
             <li key={c.id} className="text-[12.5px]">
               <div className="flex items-baseline gap-1.5">
-                <span className="font-medium">{c.author?.name ?? c.author?.email ?? '—'}</span>
+                <span className="font-medium">{c.author ? displayName(c.author) : '—'}</span>
                 <span className="text-[11px] text-subtle">
                   {DateTime.fromISO(c.created_at)
                     .setZone(BUSINESS_TZ)

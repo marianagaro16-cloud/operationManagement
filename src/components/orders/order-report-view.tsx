@@ -1,32 +1,24 @@
 'use client';
 
-import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
-import { Badge, Card, CardBody, EmptyState, ErrorState, Field, Input } from '@/components/ui/primitives';
-import { Button } from '@/components/ui/button';
-import { useState } from 'react';
-import { PageHeader } from '@/components/shell/app-shell';
-import {
-  periodLabel,
-  productReportToCsv,
-  shiftCustomRange,
-  shiftPeriod,
-  type OrderReport,
-  type ReportPeriod,
-} from '@/domain/orders/reporting';
-
-const PERIODS: ReportPeriod[] = ['day', 'week', 'month', 'year', 'custom'];
+import { Badge, Card, CardBody, EmptyState } from '@/components/ui/primitives';
+import { ReportShell } from '@/components/reports/report-shell';
+import { productReportToCsv, type OrderReport } from '@/domain/orders/reporting';
 
 /**
- * Order report.
+ * Order report — the Orders tab of /admin/reports.
  *
  * Answers, for a day, a week or a month: how many orders, how much of each
  * product went out, who bought it, and how much of it was actually prepared.
  *
  * Keyed on DELIVERY date — this is the commercial view. Lotnummerkontrol
  * remains the preparation-date view of the same orders.
+ *
+ * The period selector, the navigation and the custom-range pickers used to
+ * live in this file, which is why the statistics screen next door grew its own
+ * incompatible copy. They are now in ReportShell and shared by all three tabs.
  */
 export function OrderReportView({
   report,
@@ -35,30 +27,8 @@ export function OrderReportView({
   report: OrderReport;
   anchor: string;
 }) {
-  const { t, locale, formatDate } = useI18n();
+  const { t, formatDate } = useI18n();
   const { range } = report;
-
-  const [from, setFrom] = useState(range.start);
-  const [to, setTo] = useState(range.end);
-  const isCustom = range.kind === 'custom';
-
-  const href = (kind: ReportPeriod, date: string) =>
-    kind === 'custom'
-      // Switching INTO custom seeds the pickers with the range being viewed,
-      // so the user adjusts what they were already looking at.
-      ? `/admin/reports?period=custom&from=${range.start}&to=${range.end}`
-      : `/admin/reports?period=${kind}&date=${date}`;
-
-  const customHref = (f: string, t2: string) =>
-    `/admin/reports?period=custom&from=${f}&to=${t2}`;
-
-  // A custom range slides by its own length rather than by a calendar unit.
-  const prevHref = isCustom
-    ? (() => { const r = shiftCustomRange(range, -1); return customHref(r.start, r.end); })()
-    : href(range.kind, shiftPeriod(range.kind, anchor, -1));
-  const nextHref = isCustom
-    ? (() => { const r = shiftCustomRange(range, 1); return customHref(r.start, r.end); })()
-    : href(range.kind, shiftPeriod(range.kind, anchor, 1));
 
   function downloadCsv() {
     // Built in the browser from data already on the page — no round trip.
@@ -83,79 +53,22 @@ export function OrderReportView({
   ];
 
   return (
-    <>
-      <PageHeader title={t('report.title')} subtitle={t('report.subtitle')} />
-
-      {/* Period type */}
-      <div className="mb-3 flex flex-wrap items-center gap-1.5">
-        {PERIODS.map((p) => (
-          <Link
-            key={p}
-            href={href(p, anchor)}
-            className={cn(
-              'rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors',
-              range.kind === p
-                ? 'border-accent bg-accent/10 text-accent'
-                : 'border-border bg-surface text-muted hover:text-fg',
-            )}
-          >
-            {t(`report.period${p[0].toUpperCase()}${p.slice(1)}` as 'report.periodDay')}
-          </Link>
-        ))}
-      </div>
-
-      {/* Period navigation */}
-      <div className="mb-4 flex items-center gap-1">
-        <Link
-          href={prevHref}
-          aria-label={t('calendar.prev')}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-        </Link>
-        <span className="min-w-[190px] text-center text-[14px] font-semibold capitalize">
-          {periodLabel(range, locale)}
-        </span>
-        <Link
-          href={nextHref}
-          aria-label={t('calendar.next')}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
-        >
-          <ChevronRight className="h-4 w-4" aria-hidden />
-        </Link>
-
-        {report.byProduct.length > 0 && (
+    <ReportShell
+      tab="orders"
+      range={range}
+      anchor={anchor}
+      action={
+        report.byProduct.length > 0 ? (
           <button
             onClick={downloadCsv}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg"
           >
             <Download className="h-3.5 w-3.5" aria-hidden />
             {t('report.exportCsv')}
           </button>
-        )}
-      </div>
-
-      {isCustom && (
-        <Card className="mb-4">
-          <CardBody className="pt-3.5">
-            <div className="flex flex-wrap items-end gap-3">
-              <Field label={t('report.from')} htmlFor="r-from">
-                <Input id="r-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-              </Field>
-              <Field label={t('report.to')} htmlFor="r-to">
-                <Input id="r-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-              </Field>
-              <Link href={customHref(from, to)}>
-                <Button variant="primary">{t('report.apply')}</Button>
-              </Link>
-            </div>
-            {range.clamped && (
-              <div className="mt-2"><ErrorState message={t('report.rangeClamped')} /></div>
-            )}
-          </CardBody>
-        </Card>
-      )}
-
+        ) : undefined
+      }
+    >
       {report.orders === 0 && report.cancelled === 0 ? (
         <EmptyState title={t('report.noOrders')} body={t('report.noOrdersBody')} />
       ) : (
@@ -347,6 +260,6 @@ export function OrderReportView({
           )}
         </div>
       )}
-    </>
+    </ReportShell>
   );
 }
