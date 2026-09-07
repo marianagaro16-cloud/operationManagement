@@ -664,6 +664,10 @@ export const de: Messages = {
     errLocationRequired: 'Bitte einen Lagerort wählen',
     errGrantWindow: 'Das Ende muss nach dem Beginn liegen',
     enteredByAdmin: 'Von Hand erfasst von {name}',
+    sumOfEntries: 'Summe aus {count} Einträgen',
+    sumOfEntriesOne: 'Summe aus 1 Eintrag',
+    snapshotName: 'Name zum Zeitpunkt der Inventur',
+    digitalIsManual: 'Von einer Administratorin erfasst, nicht aus einem System gelesen',
   },
   roles: {
     admin: 'Administrator',

@@ -101,6 +101,14 @@ export function InventoryDetailView({
 
           {digitalPendingCount > 0 && <DigitalPendingBadge count={digitalPendingCount} />}
           <Badge tone="neutral">{t('inventory.itemsCounted', { count: detail.items.length })}</Badge>
+
+          {/* The title is a frozen snapshot, deliberately not the live
+              template name — a renamed template must not rewrite history.
+              That was true and invisible, so a rename made every past count
+              look wrong. */}
+          {detail.template && detail.template.name !== detail.name_snapshot && (
+            <span className="text-[11.5px] text-subtle">{t('inventory.snapshotName')}</span>
+          )}
         </div>
 
         <div className="mt-3 flex flex-wrap gap-1.5">

@@ -54,7 +54,11 @@ export const STATUS_PRESENTATION: Record<string, Presentation> = {
   'inventory.in_progress': { key: 'inventory.statusInProgress', tone: 'accent' },
   'inventory.completed':   { key: 'inventory.statusCompleted',  tone: 'done' },
   'inventory.to_review':   { key: 'inventory.statusToReview',   tone: 'late' },
-  'inventory.resolved':    { key: 'inventory.statusResolved',   tone: 'skipped' },
+  // `done`, not `skipped`. A resolved difference is a signed-off outcome — an
+  // admin looked at it and recorded why it stands. Rendering it in the grey
+  // reserved for "somebody declined to do this" said the opposite, and it was
+  // the one place two unrelated meanings shared a colour on purpose.
+  'inventory.resolved':    { key: 'inventory.statusResolved',   tone: 'done' },
 };
 
 /** Look up a presentation, or null when the pair is not a known status. */

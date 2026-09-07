@@ -664,6 +664,10 @@ export const es: Messages = {
     errLocationRequired: 'Elige una ubicación',
     errGrantWindow: 'La hora de fin debe ser posterior a la de inicio',
     enteredByAdmin: 'Introducido a mano por {name}',
+    sumOfEntries: 'Suma de {count} registros',
+    sumOfEntriesOne: 'Suma de 1 registro',
+    snapshotName: 'Nombre en el momento del inventario',
+    digitalIsManual: 'Introducido por un administrador, no leído de ningún sistema',
   },
   roles: {
     admin: 'Administrador',

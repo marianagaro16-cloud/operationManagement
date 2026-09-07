@@ -79,6 +79,16 @@ export function ItemCard({
     digitalEnabled && item.digital_quantity !== null ? stock - item.digital_quantity : null;
   const digitalPending = digitalEnabled && item.digital_quantity === null;
 
+  // Who last set the digital figure. The history is ordered oldest-first, so
+  // the current value is the last row that actually assigned one.
+  const digitalAuthor = (() => {
+    for (let i = item.digital_history.length - 1; i >= 0; i--) {
+      const h = item.digital_history[i];
+      if (h.new_digital !== null) return h.author?.name ?? h.author?.email ?? null;
+    }
+    return null;
+  })();
+
   return (
     <li
       className={cn(
@@ -134,6 +144,35 @@ export function ItemCard({
               <Badge tone="neutral">{item.entries.length}</Badge>
             )}
           </div>
+
+          {/* ------------------------- provenance -------------------------
+              These two numbers sit side by side in identical type, and they
+              are not the same kind of fact. Physical Stock is arithmetic over
+              the entries below; Inventory Digital is a figure an administrator
+              typed by hand — there is no integration behind it. Without this
+              line the hand-entered one reads as a system value, which is what
+              turns every difference into an argument. */}
+          {(state !== 'uncounted' || (digitalEnabled && !digitalPending)) && (
+            <p className="mt-1 text-[11px] leading-snug text-subtle">
+              {state !== 'uncounted' && (
+                <span>
+                  {item.entries.length === 1
+                    ? t('inventory.sumOfEntriesOne')
+                    : t('inventory.sumOfEntries', { count: item.entries.length })}
+                </span>
+              )}
+              {state !== 'uncounted' && digitalEnabled && !digitalPending && (
+                <span aria-hidden> · </span>
+              )}
+              {digitalEnabled && !digitalPending && (
+                <span>
+                  {digitalAuthor
+                    ? t('inventory.enteredByAdmin', { name: digitalAuthor })
+                    : t('inventory.digitalIsManual')}
+                </span>
+              )}
+            </p>
+          )}
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-1">

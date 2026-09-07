@@ -71,11 +71,37 @@ export function UrgencyBadge({
           {(urgency.level === 'overdue' || urgency.level === 'critical') && (
             <TriangleAlert className="h-2.5 w-2.5" aria-hidden />
           )}
+          {/* The severity WORD, not only the tint. "Urgent" and "Due soon"
+              were translated into all three languages and rendered nowhere,
+              which left the level encoded in colour alone — unreadable in
+              greyscale, and to anyone who cannot separate amber from red. */}
+          <span className="font-semibold">{levelLabel(urgency.level, t)}</span>
+          <span aria-hidden className="opacity-50">·</span>
           {countdownLabel(urgency, t)}
         </Badge>
       )}
     </span>
   );
+}
+
+/**
+ * The severity as a word.
+ *
+ * `none` has no label because it renders no badge; every other level has had
+ * a translated string in the dictionary since the module shipped.
+ */
+export function levelLabel(
+  level: Urgency['level'],
+  t: (key: never, vars?: Record<string, string | number>) => string,
+): string {
+  const tt = t as unknown as (k: string) => string;
+  switch (level) {
+    case 'overdue': return tt('urgency.overdue');
+    case 'critical': return tt('urgency.critical');
+    case 'warning': return tt('urgency.warning');
+    case 'soon': return tt('urgency.soon');
+    default: return '';
+  }
 }
 
 /** Human countdown, degrading to a plain level when there is no exact time. */

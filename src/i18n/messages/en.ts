@@ -676,6 +676,10 @@ export const en = {
     errLocationRequired: 'Choose a location',
     errGrantWindow: 'The end time must be after the start time',
     enteredByAdmin: 'Entered by hand by {name}',
+    sumOfEntries: 'Sum of {count} entries',
+    sumOfEntriesOne: 'Sum of 1 entry',
+    snapshotName: 'Name as of the count',
+    digitalIsManual: 'Typed by an administrator, not read from a system',
   },
   roles: {
     admin: 'Admin',
