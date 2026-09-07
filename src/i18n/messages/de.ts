@@ -97,7 +97,7 @@ export const de: Messages = {
     completed: 'Erledigt',
     reopen: 'Wieder öffnen',
     undo: 'Rückgängig',
-    notYourAction: 'Nur wer sie erledigt hat oder ein Administrator kann das rückgängig machen',
+    notYourAction: 'Nur wer sie gesetzt hat oder die geplante Arbeit verwaltet, kann das rückgängig machen',
     skip: 'Überspringen',
     skipped: 'Übersprungen',
     comment: 'Kommentieren',
@@ -135,7 +135,6 @@ export const de: Messages = {
     unblock: 'Freigeben',
     blockedTitle: 'Blockiert',
     blockedSubtitle: 'Wartet auf etwas ausserhalb dieser Liste',
-    notYourBlock: 'Nur wer sie blockiert hat oder die geplante Arbeit verwaltet, kann sie freigeben',
   },
   frequency: {
     daily: 'Täglich',

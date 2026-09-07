@@ -38,6 +38,9 @@ export const STATUS_PRESENTATION: Record<string, Presentation> = {
   // Not a stored status: derived from the due date. Listed here so an overdue
   // chip cannot be tinted differently from screen to screen.
   'task.overdue':   { key: 'status.overdue',   tone: 'late' },
+  // `warn`, not `late`: blocked work needs attention but is not somebody's
+  // failure to act, and giving it the overdue red would say it is.
+  'task.blocked':   { key: 'task.blocked',     tone: 'warn' },
 
   /* --- orders --- */
   'order.draft':     { key: 'orders.statusDraft',     tone: 'warn' },

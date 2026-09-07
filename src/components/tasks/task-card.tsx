@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { DateTime } from 'luxon';
-import { Check, MessageSquare, RotateCcw, SkipForward, TriangleAlert } from 'lucide-react';
+import { Ban, Check, MessageSquare, RotateCcw, SkipForward, TriangleAlert } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { BUSINESS_TZ } from '@/lib/datetime';
@@ -13,6 +13,7 @@ import { completeOccurrence, reopenOccurrence } from '@/server/actions';
 import { daysLate } from '@/domain/recurrence/engine';
 import { localizedTitle, localizedDescription } from '@/lib/localized-content';
 import { SkipDialog } from './skip-dialog';
+import { BlockDialog } from './block-dialog';
 import { CommentThread } from './comment-thread';
 import type { OccurrenceWithTask } from '@/types/database';
 
@@ -27,6 +28,7 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
   const { t, locale, formatDate } = useI18n();
   const [pending, startTransition] = useTransition();
   const [skipOpen, setSkipOpen] = useState(false);
+  const [blockOpen, setBlockOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,6 +37,9 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
   const status = optimisticStatus ?? occurrence.status;
 
   const due = occurrence.effective_due_date;
+  // Blocked work is never overdue: it is waiting on something, and calling it
+  // late puts the delay on the person who reported it.
+  const isBlocked = status === 'blocked';
   const isOverdue = status === 'pending' && due < today;
   const late = isOverdue ? daysLate(due, today) : 0;
   const isDone = status === 'completed';
@@ -60,6 +65,7 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
       case 'skip_reason_required': return t('task.skipReasonRequired');
       case 'task_not_skippable': return t('task.notSkippable');
       case 'not_your_action': return t('task.notYourAction');
+      case 'block_reason_required': return t('task.blockReasonRequired');
       case 'not_authorized': return t('common.error');
       default: return code ?? t('common.error');
     }
@@ -96,6 +102,7 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
             {/* Label and tone from the shared registry. */}
             {isDone && <StatusChip domain="task" status="completed" />}
             {isSkipped && <StatusChip domain="task" status="skipped" />}
+            {isBlocked && <StatusChip domain="task" status="blocked" />}
           </div>
         </div>
 
@@ -141,6 +148,12 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
           </p>
         )}
 
+        {isBlocked && occurrence.blocked_reason && (
+          <p className="mt-1.5 rounded-md border border-warn/25 bg-warn/[0.06] px-2 py-1 text-[12px] text-fg">
+            <span className="font-medium">{t('task.blockReason')}</span> {occurrence.blocked_reason}
+          </p>
+        )}
+
         {error && <div className="mt-2"><ErrorState message={error} /></div>}
 
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
@@ -156,16 +169,27 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
             </Button>
           )}
 
-          {!resolved && occurrence.task.is_skippable && (
+          {!resolved && !isBlocked && occurrence.task.is_skippable && (
             <Button size="sm" variant="ghost" onClick={() => setSkipOpen(true)} disabled={pending}>
               <SkipForward className="h-3.5 w-3.5" aria-hidden />
               {t('task.skip')}
             </Button>
           )}
 
+          {/* Deliberately NOT gated on is_skippable. Declining to do a task and
+              being unable to do it are different statements, and a task nobody
+              is allowed to skip is exactly the one that must not rot silently
+              in the overdue list. */}
+          {!resolved && !isBlocked && (
+            <Button size="sm" variant="ghost" onClick={() => setBlockOpen(true)} disabled={pending}>
+              <Ban className="h-3.5 w-3.5" aria-hidden />
+              {t('task.block')}
+            </Button>
+          )}
+
           {/* Undo. Always offered on a resolved occurrence so a mistaken tap
               is one click away from being reversed. */}
-          {resolved && (
+          {(resolved || isBlocked) && (
             <Button
               size="sm"
               variant="secondary"
@@ -191,6 +215,13 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
       <SkipDialog
         open={skipOpen}
         onClose={() => setSkipOpen(false)}
+        occurrenceId={occurrence.id}
+        onError={(e) => setError(translateError(e))}
+      />
+
+      <BlockDialog
+        open={blockOpen}
+        onClose={() => setBlockOpen(false)}
         occurrenceId={occurrence.id}
         onError={(e) => setError(translateError(e))}
       />

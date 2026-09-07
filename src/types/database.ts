@@ -75,6 +75,16 @@ export interface TaskOccurrence {
   skipped_by: string | null;
   skipped_at: string | null;
   skip_reason: string | null;
+  /**
+   * Why this work cannot proceed. Mandatory while status is 'blocked'.
+   *
+   * Blocked is not a resolution and not lateness: the work is still owed, and
+   * is waiting on something outside the operator's control. It leaves the
+   * day's count without being counted against anyone.
+   */
+  blocked_reason: string | null;
+  blocked_by: string | null;
+  blocked_at: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -97,7 +97,7 @@ export const es: Messages = {
     completed: 'Completada',
     reopen: 'Reabrir',
     undo: 'Deshacer',
-    notYourAction: 'Solo quien la completó, o un administrador, puede deshacerla',
+    notYourAction: 'Solo quien la marcó, o alguien que gestiona el trabajo programado, puede deshacerla',
     skip: 'Omitir',
     skipped: 'Omitida',
     comment: 'Comentar',
@@ -135,7 +135,6 @@ export const es: Messages = {
     unblock: 'Desbloquear',
     blockedTitle: 'Bloqueadas',
     blockedSubtitle: 'Esperando algo fuera de esta lista',
-    notYourBlock: 'Solo quien la bloqueó, o alguien que gestiona el trabajo programado, puede desbloquearla',
   },
   frequency: {
     daily: 'Diaria',

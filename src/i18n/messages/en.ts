@@ -99,7 +99,7 @@ export const en = {
     completed: 'Completed',
     reopen: 'Reopen',
     undo: 'Undo',
-    notYourAction: 'Only the person who completed this, or an admin, can undo it',
+    notYourAction: 'Only the person who set this, or someone who manages scheduled work, can undo it',
     skip: 'Skip',
     skipped: 'Skipped',
     comment: 'Comment',
@@ -137,7 +137,6 @@ export const en = {
     unblock: 'Unblock',
     blockedTitle: 'Blocked',
     blockedSubtitle: 'Waiting on something outside this list',
-    notYourBlock: 'Only the person who blocked this, or someone who manages scheduled work, can unblock it',
   },
   frequency: {
     daily: 'Daily',

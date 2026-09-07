@@ -600,6 +600,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["inventory_kind"]
           name_snapshot: string
           period_key: string
+          source: Database["public"]["Enums"]["schedule_source"]
           status: Database["public"]["Enums"]["inventory_status"]
           template_id: string
           updated_at: string
@@ -616,6 +617,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["inventory_kind"]
           name_snapshot: string
           period_key: string
+          source?: Database["public"]["Enums"]["schedule_source"]
           status?: Database["public"]["Enums"]["inventory_status"]
           template_id: string
           updated_at?: string
@@ -632,6 +634,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["inventory_kind"]
           name_snapshot?: string
           period_key?: string
+          source?: Database["public"]["Enums"]["schedule_source"]
           status?: Database["public"]["Enums"]["inventory_status"]
           template_id?: string
           updated_at?: string
@@ -1621,6 +1624,9 @@ export type Database = {
       }
       task_occurrences: {
         Row: {
+          blocked_at: string | null
+          blocked_by: string | null
+          blocked_reason: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
@@ -1632,11 +1638,15 @@ export type Database = {
           skip_reason: string | null
           skipped_at: string | null
           skipped_by: string | null
+          source: Database["public"]["Enums"]["schedule_source"]
           status: Database["public"]["Enums"]["occurrence_status"]
           task_id: string
           updated_at: string
         }
         Insert: {
+          blocked_at?: string | null
+          blocked_by?: string | null
+          blocked_reason?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
@@ -1648,11 +1658,15 @@ export type Database = {
           skip_reason?: string | null
           skipped_at?: string | null
           skipped_by?: string | null
+          source?: Database["public"]["Enums"]["schedule_source"]
           status?: Database["public"]["Enums"]["occurrence_status"]
           task_id: string
           updated_at?: string
         }
         Update: {
+          blocked_at?: string | null
+          blocked_by?: string | null
+          blocked_reason?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
@@ -1664,6 +1678,7 @@ export type Database = {
           skip_reason?: string | null
           skipped_at?: string | null
           skipped_by?: string | null
+          source?: Database["public"]["Enums"]["schedule_source"]
           status?: Database["public"]["Enums"]["occurrence_status"]
           task_id?: string
           updated_at?: string
@@ -1747,6 +1762,35 @@ export type Database = {
       }
     }
     Functions: {
+      block_occurrence: {
+        Args: { p_occurrence_id: string; p_reason: string }
+        Returns: {
+          blocked_at: string | null
+          blocked_by: string | null
+          blocked_reason: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          due_date: string
+          due_date_override: string | null
+          effective_due_date: string | null
+          id: string
+          period_key: string
+          skip_reason: string | null
+          skipped_at: string | null
+          skipped_by: string | null
+          source: Database["public"]["Enums"]["schedule_source"]
+          status: Database["public"]["Enums"]["occurrence_status"]
+          task_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "task_occurrences"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       claim_push_subscription: {
         Args: {
           p_auth: string
@@ -1759,6 +1803,9 @@ export type Database = {
       complete_occurrence: {
         Args: { p_occurrence_id: string }
         Returns: {
+          blocked_at: string | null
+          blocked_by: string | null
+          blocked_reason: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
@@ -1770,6 +1817,7 @@ export type Database = {
           skip_reason: string | null
           skipped_at: string | null
           skipped_by: string | null
+          source: Database["public"]["Enums"]["schedule_source"]
           status: Database["public"]["Enums"]["occurrence_status"]
           task_id: string
           updated_at: string
@@ -1824,6 +1872,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["inventory_kind"]
           name_snapshot: string
           period_key: string
+          source: Database["public"]["Enums"]["schedule_source"]
           status: Database["public"]["Enums"]["inventory_status"]
           template_id: string
           updated_at: string
@@ -1883,6 +1932,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["inventory_kind"]
           name_snapshot: string
           period_key: string
+          source: Database["public"]["Enums"]["schedule_source"]
           status: Database["public"]["Enums"]["inventory_status"]
           template_id: string
           updated_at: string
@@ -1987,6 +2037,9 @@ export type Database = {
       reopen_occurrence: {
         Args: { p_occurrence_id: string }
         Returns: {
+          blocked_at: string | null
+          blocked_by: string | null
+          blocked_reason: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
@@ -1998,6 +2051,7 @@ export type Database = {
           skip_reason: string | null
           skipped_at: string | null
           skipped_by: string | null
+          source: Database["public"]["Enums"]["schedule_source"]
           status: Database["public"]["Enums"]["occurrence_status"]
           task_id: string
           updated_at: string
@@ -2037,6 +2091,9 @@ export type Database = {
       skip_occurrence: {
         Args: { p_occurrence_id: string; p_reason: string }
         Returns: {
+          blocked_at: string | null
+          blocked_by: string | null
+          blocked_reason: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
@@ -2048,6 +2105,7 @@ export type Database = {
           skip_reason: string | null
           skipped_at: string | null
           skipped_by: string | null
+          source: Database["public"]["Enums"]["schedule_source"]
           status: Database["public"]["Enums"]["occurrence_status"]
           task_id: string
           updated_at: string
@@ -2065,9 +2123,10 @@ export type Database = {
       inventory_grant_scope: "instance" | "all"
       inventory_kind: "expiry" | "lot" | "location"
       inventory_status: "in_progress" | "completed" | "to_review" | "resolved"
-      occurrence_status: "pending" | "completed" | "skipped"
+      occurrence_status: "pending" | "completed" | "skipped" | "blocked"
       order_status: "draft" | "confirmed" | "cancelled"
       order_type: "sale" | "sample"
+      schedule_source: "auto" | "manual"
       task_frequency: "daily" | "weekly" | "biweekly" | "monthly" | "semiannual"
       user_role: "admin" | "user" | "manager" | "power_user"
       user_status: "pending" | "approved" | "rejected" | "deactivated"
@@ -2205,9 +2264,10 @@ export const Constants = {
       inventory_grant_scope: ["instance", "all"],
       inventory_kind: ["expiry", "lot", "location"],
       inventory_status: ["in_progress", "completed", "to_review", "resolved"],
-      occurrence_status: ["pending", "completed", "skipped"],
+      occurrence_status: ["pending", "completed", "skipped", "blocked"],
       order_status: ["draft", "confirmed", "cancelled"],
       order_type: ["sale", "sample"],
+      schedule_source: ["auto", "manual"],
       task_frequency: ["daily", "weekly", "biweekly", "monthly", "semiannual"],
       user_role: ["admin", "user", "manager", "power_user"],
       user_status: ["pending", "approved", "rejected", "deactivated"],

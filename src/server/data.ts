@@ -170,6 +170,14 @@ export interface DashboardData {
   overdue: OccurrenceWithTask[];
   /** Open, due in the next `upcomingDays`. */
   upcoming: OccurrenceWithTask[];
+  /**
+   * Waiting on something outside this list, whatever their due date.
+   *
+   * Not date-bucketed on purpose: blocked work is not late, so it is excluded
+   * from `overdue`, and without its own bucket a blocked occurrence from last
+   * week would simply disappear.
+   */
+  blocked: OccurrenceWithTask[];
 }
 
 /**
@@ -208,10 +216,19 @@ export async function getDashboardData(upcomingDays = 7): Promise<DashboardData>
     today,
     // The only task-specific split: the routine daily checklist is the
     // dashboard's spine, and anything else due today is an interruption.
-    dailyToday: buckets.today.filter((o) => o.task.frequency === 'daily'),
-    extraToday: buckets.today.filter((o) => o.task.frequency !== 'daily'),
+    dailyToday: buckets.today.filter(
+      (o) => o.task.frequency === 'daily' && o.status !== 'blocked',
+    ),
+    extraToday: buckets.today.filter(
+      (o) => o.task.frequency !== 'daily' && o.status !== 'blocked',
+    ),
     overdue: buckets.overdue,
     upcoming: buckets.upcoming,
+    // Blocked work is deliberately NOT bucketed by date. `isOpen` excludes it
+    // from overdue and upcoming — which is the point, it is not late — but
+    // that would also make a blocked occurrence from last week vanish from
+    // every list. It keeps its own section until somebody clears it.
+    blocked: all.filter((o) => o.status === 'blocked'),
   };
 }
 

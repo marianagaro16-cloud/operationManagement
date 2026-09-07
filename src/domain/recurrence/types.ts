@@ -93,7 +93,13 @@ export interface PlannedOccurrence {
   dueDate: BusinessDate;
 }
 
-export type OccurrenceStatus = 'pending' | 'completed' | 'skipped';
+/**
+ * `blocked` is neither done nor late: the work is still owed and is waiting on
+ * something the operator does not control. It is excluded from the overdue
+ * bucket on purpose — an overdue count that mixes real lateness with work
+ * nobody could have done is one people stop reading.
+ */
+export type OccurrenceStatus = 'pending' | 'completed' | 'skipped' | 'blocked';
 
 /** Why a task cannot currently generate occurrences. */
 export interface ScheduleProblem {

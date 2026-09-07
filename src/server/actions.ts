@@ -24,6 +24,7 @@ function fail(error: unknown): { ok: false; error: string } {
   const message = error instanceof Error ? error.message : String(error);
   // Map the RPC's error codes to stable, translatable identifiers.
   if (message.includes('skip_reason_required')) return { ok: false, error: 'skip_reason_required' };
+  if (message.includes('block_reason_required')) return { ok: false, error: 'block_reason_required' };
   if (message.includes('task_not_skippable')) return { ok: false, error: 'task_not_skippable' };
   if (message.includes('not_authorized')) return { ok: false, error: 'not_authorized' };
   if (message.includes('not_your_action')) return { ok: false, error: 'not_your_action' };
@@ -51,6 +52,31 @@ export async function skipOccurrence(
   }
   const supabase = createClient();
   const { error } = await supabase.rpc('skip_occurrence', {
+    p_occurrence_id: occurrenceId,
+    p_reason: reason.trim(),
+  });
+  if (error) return fail(error);
+  revalidatePath('/dashboard');
+  return { ok: true, data: undefined };
+}
+
+/**
+ * "I cannot do this, and it is not my decision."
+ *
+ * Distinct from a skip, which records a decision NOT to do the work. A block
+ * says the work is still owed and is waiting on something else, so it leaves
+ * the day's count without being counted as late.
+ */
+export async function blockOccurrence(
+  occurrenceId: string,
+  reason: string,
+): Promise<ActionResult> {
+  // Checked here for a fast, translated message; the database checks it again.
+  if (!reason || reason.trim().length === 0) {
+    return { ok: false, error: 'block_reason_required' };
+  }
+  const supabase = createClient();
+  const { error } = await supabase.rpc('block_occurrence', {
     p_occurrence_id: occurrenceId,
     p_reason: reason.trim(),
   });
