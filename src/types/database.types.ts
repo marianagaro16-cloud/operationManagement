@@ -126,6 +126,796 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          instance_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          instance_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          instance_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_assignments_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entry_id: string | null
+          id: string
+          instance_id: string | null
+          instance_item_id: string | null
+          new_value: Json | null
+          previous_value: Json | null
+          template_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entry_id?: string | null
+          id?: string
+          instance_id?: string | null
+          instance_item_id?: string | null
+          new_value?: Json | null
+          previous_value?: Json | null
+          template_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entry_id?: string | null
+          id?: string
+          instance_id?: string | null
+          instance_item_id?: string | null
+          new_value?: Json | null
+          previous_value?: Json | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_audit_log_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_audit_log_instance_item_id_fkey"
+            columns: ["instance_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instance_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_audit_log_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          instance_id: string
+          instance_item_id: string | null
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          instance_id: string
+          instance_item_id?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          instance_id?: string
+          instance_item_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_comments_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_comments_instance_item_id_fkey"
+            columns: ["instance_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instance_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_digital_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          instance_id: string
+          instance_item_id: string
+          new_difference: number | null
+          new_digital: number | null
+          physical_stock_at: number
+          previous_difference: number | null
+          previous_digital: number | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          instance_id: string
+          instance_item_id: string
+          new_difference?: number | null
+          new_digital?: number | null
+          physical_stock_at: number
+          previous_difference?: number | null
+          previous_digital?: number | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          instance_id?: string
+          instance_item_id?: string
+          new_difference?: number | null
+          new_digital?: number | null
+          physical_stock_at?: number
+          previous_difference?: number | null
+          previous_digital?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_digital_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_digital_history_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_digital_history_instance_item_id_fkey"
+            columns: ["instance_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instance_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_edit_grants: {
+        Row: {
+          created_at: string
+          ends_at: string
+          granted_by: string | null
+          id: string
+          instance_id: string | null
+          reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          scope: Database["public"]["Enums"]["inventory_grant_scope"]
+          starts_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          granted_by?: string | null
+          id?: string
+          instance_id?: string | null
+          reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scope: Database["public"]["Enums"]["inventory_grant_scope"]
+          starts_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          granted_by?: string | null
+          id?: string
+          instance_id?: string | null
+          reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scope?: Database["public"]["Enums"]["inventory_grant_scope"]
+          starts_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_edit_grants_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_edit_grants_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_edit_grants_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_edit_grants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_entries: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expiry_date: string | null
+          id: string
+          instance_id: string
+          instance_item_id: string
+          location_id: string | null
+          location_name: string | null
+          lot_number: string | null
+          note: string | null
+          position: number
+          quantity: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string | null
+          id?: string
+          instance_id: string
+          instance_item_id: string
+          location_id?: string | null
+          location_name?: string | null
+          lot_number?: string | null
+          note?: string | null
+          position?: number
+          quantity?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string | null
+          id?: string
+          instance_id?: string
+          instance_item_id?: string
+          location_id?: string | null
+          location_name?: string | null
+          lot_number?: string | null
+          note?: string | null
+          position?: number
+          quantity?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_entries_item_fk"
+            columns: ["instance_item_id", "instance_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instance_items"
+            referencedColumns: ["id", "instance_id"]
+          },
+          {
+            foreignKeyName: "inventory_entries_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_entries_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_instance_items: {
+        Row: {
+          created_at: string
+          difference: number | null
+          digital_quantity: number | null
+          id: string
+          instance_id: string
+          is_resolved: boolean
+          item_group: string | null
+          item_name: string
+          item_sort_order: number
+          physical_stock: number
+          product_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["inventory_status"]
+          template_item_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          difference?: number | null
+          digital_quantity?: number | null
+          id?: string
+          instance_id: string
+          is_resolved?: boolean
+          item_group?: string | null
+          item_name: string
+          item_sort_order?: number
+          physical_stock?: number
+          product_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["inventory_status"]
+          template_item_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          difference?: number | null
+          digital_quantity?: number | null
+          id?: string
+          instance_id?: string
+          is_resolved?: boolean
+          item_group?: string | null
+          item_name?: string
+          item_sort_order?: number
+          physical_stock?: number
+          product_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["inventory_status"]
+          template_item_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_instance_items_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_instance_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_instance_items_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_instance_items_template_item_id_fkey"
+            columns: ["template_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_template_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_instances: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          digital_enabled: boolean
+          id: string
+          inventory_date: string
+          iso_week: number | null
+          iso_year: number | null
+          kind: Database["public"]["Enums"]["inventory_kind"]
+          name_snapshot: string
+          period_key: string
+          status: Database["public"]["Enums"]["inventory_status"]
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          digital_enabled: boolean
+          id?: string
+          inventory_date: string
+          iso_week?: number | null
+          iso_year?: number | null
+          kind: Database["public"]["Enums"]["inventory_kind"]
+          name_snapshot: string
+          period_key: string
+          status?: Database["public"]["Enums"]["inventory_status"]
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          digital_enabled?: boolean
+          id?: string
+          inventory_date?: string
+          iso_week?: number | null
+          iso_year?: number | null
+          kind?: Database["public"]["Enums"]["inventory_kind"]
+          name_snapshot?: string
+          period_key?: string
+          status?: Database["public"]["Enums"]["inventory_status"]
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_instances_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_instances_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_locations: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventory_notifications: {
+        Row: {
+          id: string
+          instance_id: string
+          kind: string
+          recipients: number
+          sent_at: string
+        }
+        Insert: {
+          id?: string
+          instance_id: string
+          kind: string
+          recipients?: number
+          sent_at?: string
+        }
+        Update: {
+          id?: string
+          instance_id?: string
+          kind?: string
+          recipients?: number
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_notifications_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_resolutions: {
+        Row: {
+          difference_at: number | null
+          digital_at: number | null
+          id: string
+          instance_id: string
+          instance_item_id: string
+          note: string
+          physical_stock_at: number
+          resolved_at: string
+          resolved_by: string | null
+          superseded_at: string | null
+        }
+        Insert: {
+          difference_at?: number | null
+          digital_at?: number | null
+          id?: string
+          instance_id: string
+          instance_item_id: string
+          note: string
+          physical_stock_at: number
+          resolved_at?: string
+          resolved_by?: string | null
+          superseded_at?: string | null
+        }
+        Update: {
+          difference_at?: number | null
+          digital_at?: number | null
+          id?: string
+          instance_id?: string
+          instance_item_id?: string
+          note?: string
+          physical_stock_at?: number
+          resolved_at?: string
+          resolved_by?: string | null
+          superseded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_resolutions_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_resolutions_instance_item_id_fkey"
+            columns: ["instance_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instance_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_resolutions_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_template_assignees: {
+        Row: {
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_template_assignees_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_template_assignees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_template_items: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          item_group: string | null
+          name: string
+          product_id: string | null
+          sort_order: number
+          template_id: string
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          item_group?: string | null
+          name: string
+          product_id?: string | null
+          sort_order?: number
+          template_id: string
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          item_group?: string | null
+          name?: string
+          product_id?: string | null
+          sort_order?: number
+          template_id?: string
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_template_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          digital_enabled: boolean
+          frequency: Database["public"]["Enums"]["inventory_frequency"]
+          id: string
+          is_active: boolean
+          kind: Database["public"]["Enums"]["inventory_kind"]
+          name: string
+          schedule_config: Json | null
+          slug: string
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          digital_enabled?: boolean
+          frequency: Database["public"]["Enums"]["inventory_frequency"]
+          id?: string
+          is_active?: boolean
+          kind: Database["public"]["Enums"]["inventory_kind"]
+          name: string
+          schedule_config?: Json | null
+          slug: string
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          digital_enabled?: boolean
+          frequency?: Database["public"]["Enums"]["inventory_frequency"]
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["inventory_kind"]
+          name?: string
+          schedule_config?: Json | null
+          slug?: string
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lot_allocations: {
         Row: {
           created_at: string
@@ -229,6 +1019,7 @@ export type Database = {
       order_lines: {
         Row: {
           created_at: string
+          generated_quantity: number | null
           id: string
           note: string | null
           order_id: string
@@ -240,6 +1031,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          generated_quantity?: number | null
           id?: string
           note?: string | null
           order_id: string
@@ -251,6 +1043,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          generated_quantity?: number | null
           id?: string
           note?: string | null
           order_id?: string
@@ -317,6 +1110,7 @@ export type Database = {
           delivery_date: string
           delivery_method_id: string | null
           delivery_time: string | null
+          generated_from_template_id: string | null
           id: string
           note: string | null
           order_date: string
@@ -334,6 +1128,7 @@ export type Database = {
           delivery_date: string
           delivery_method_id?: string | null
           delivery_time?: string | null
+          generated_from_template_id?: string | null
           id?: string
           note?: string | null
           order_date?: string
@@ -351,6 +1146,7 @@ export type Database = {
           delivery_date?: string
           delivery_method_id?: string | null
           delivery_time?: string | null
+          generated_from_template_id?: string | null
           id?: string
           note?: string | null
           order_date?: string
@@ -384,6 +1180,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orders_generated_from_template_id_fkey"
+            columns: ["generated_from_template_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_order_templates"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
@@ -391,6 +1194,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      permission_catalog: {
+        Row: {
+          is_configurable: boolean
+          key: string
+          module: string
+          sort_order: number
+        }
+        Insert: {
+          is_configurable?: boolean
+          key: string
+          module: string
+          sort_order?: number
+        }
+        Update: {
+          is_configurable?: boolean
+          key?: string
+          module?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -610,6 +1434,142 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          granted_by: string | null
+          permission: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          granted_by?: string | null
+          permission: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          granted_by?: string | null
+          permission?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_permission_fkey"
+            columns: ["permission"]
+            isOneToOne: false
+            referencedRelation: "permission_catalog"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      security_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          new_value: Json | null
+          previous_value: Json | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          previous_value?: Json | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          previous_value?: Json | null
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_audit_log_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          new_value: Json | null
+          occurrence_id: string | null
+          previous_value: Json | null
+          task_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          occurrence_id?: string | null
+          previous_value?: Json | null
+          task_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          occurrence_id?: string | null
+          previous_value?: Json | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_audit_log_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "task_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_audit_log_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_comments: {
         Row: {
           body: string
@@ -666,6 +1626,7 @@ export type Database = {
           created_at: string
           due_date: string
           due_date_override: string | null
+          effective_due_date: string | null
           id: string
           period_key: string
           skip_reason: string | null
@@ -681,6 +1642,7 @@ export type Database = {
           created_at?: string
           due_date: string
           due_date_override?: string | null
+          effective_due_date?: string | null
           id?: string
           period_key: string
           skip_reason?: string | null
@@ -696,6 +1658,7 @@ export type Database = {
           created_at?: string
           due_date?: string
           due_date_override?: string | null
+          effective_due_date?: string | null
           id?: string
           period_key?: string
           skip_reason?: string | null
@@ -770,7 +1733,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      operational_audit: {
+        Row: {
+          action: string | null
+          actor_id: string | null
+          created_at: string | null
+          id: string | null
+          new_value: Json | null
+          previous_value: Json | null
+          source: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       claim_push_subscription: {
@@ -790,6 +1764,7 @@ export type Database = {
           created_at: string
           due_date: string
           due_date_override: string | null
+          effective_due_date: string | null
           id: string
           period_key: string
           skip_reason: string | null
@@ -815,6 +1790,7 @@ export type Database = {
           delivery_date: string
           delivery_method_id: string | null
           delivery_time: string | null
+          generated_from_template_id: string | null
           id: string
           note: string | null
           order_date: string
@@ -832,8 +1808,182 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      has_permission: { Args: { p_key: string }; Returns: boolean }
+      inventory_can_edit: { Args: { p_instance_id: string }; Returns: boolean }
+      inventory_complete: {
+        Args: { p_instance_id: string }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          digital_enabled: boolean
+          id: string
+          inventory_date: string
+          iso_week: number | null
+          iso_year: number | null
+          kind: Database["public"]["Enums"]["inventory_kind"]
+          name_snapshot: string
+          period_key: string
+          status: Database["public"]["Enums"]["inventory_status"]
+          template_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inventory_instances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      inventory_edit_deadline: { Args: { p_date: string }; Returns: string }
+      inventory_grant_edit: {
+        Args: {
+          p_ends_at: string
+          p_instance_id: string
+          p_reason?: string
+          p_scope: Database["public"]["Enums"]["inventory_grant_scope"]
+          p_starts_at: string
+          p_user_id: string
+        }
+        Returns: {
+          created_at: string
+          ends_at: string
+          granted_by: string | null
+          id: string
+          instance_id: string | null
+          reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          scope: Database["public"]["Enums"]["inventory_grant_scope"]
+          starts_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inventory_edit_grants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      inventory_instance_exists: {
+        Args: { p_instance_id: string }
+        Returns: boolean
+      }
+      inventory_reopen: {
+        Args: { p_instance_id: string }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          digital_enabled: boolean
+          id: string
+          inventory_date: string
+          iso_week: number | null
+          iso_year: number | null
+          kind: Database["public"]["Enums"]["inventory_kind"]
+          name_snapshot: string
+          period_key: string
+          status: Database["public"]["Enums"]["inventory_status"]
+          template_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inventory_instances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      inventory_resolve_item: {
+        Args: { p_item_id: string; p_note: string }
+        Returns: {
+          created_at: string
+          difference: number | null
+          digital_quantity: number | null
+          id: string
+          instance_id: string
+          is_resolved: boolean
+          item_group: string | null
+          item_name: string
+          item_sort_order: number
+          physical_stock: number
+          product_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["inventory_status"]
+          template_item_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inventory_instance_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      inventory_revoke_grant: {
+        Args: { p_grant_id: string }
+        Returns: {
+          created_at: string
+          ends_at: string
+          granted_by: string | null
+          id: string
+          instance_id: string | null
+          reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          scope: Database["public"]["Enums"]["inventory_grant_scope"]
+          starts_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inventory_edit_grants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      inventory_set_digital: {
+        Args: { p_item_id: string; p_value: number }
+        Returns: {
+          created_at: string
+          difference: number | null
+          digital_quantity: number | null
+          id: string
+          instance_id: string
+          is_resolved: boolean
+          item_group: string | null
+          item_name: string
+          item_sort_order: number
+          physical_stock: number
+          product_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["inventory_status"]
+          template_item_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inventory_instance_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      inventory_sync_instance_status: {
+        Args: { p_instance_id: string }
+        Returns: undefined
+      }
       is_admin: { Args: never; Returns: boolean }
       is_approved: { Args: never; Returns: boolean }
+      is_at_least: {
+        Args: { r: Database["public"]["Enums"]["user_role"] }
+        Returns: boolean
+      }
+      preparation_date_for: {
+        Args: { p_delivery_date: string; p_lead_days: number }
+        Returns: string
+      }
       reopen_occurrence: {
         Args: { p_occurrence_id: string }
         Returns: {
@@ -842,6 +1992,7 @@ export type Database = {
           created_at: string
           due_date: string
           due_date_override: string | null
+          effective_due_date: string | null
           id: string
           period_key: string
           skip_reason: string | null
@@ -858,10 +2009,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      role_rank: {
+        Args: { r: Database["public"]["Enums"]["user_role"] }
+        Returns: number
+      }
       set_line_shortfall_reason: {
         Args: { p_order_line_id: string; p_reason: string }
         Returns: {
           created_at: string
+          generated_quantity: number | null
           id: string
           note: string | null
           order_id: string
@@ -886,6 +2042,7 @@ export type Database = {
           created_at: string
           due_date: string
           due_date_override: string | null
+          effective_due_date: string | null
           id: string
           period_key: string
           skip_reason: string | null
@@ -904,6 +2061,10 @@ export type Database = {
       }
     }
     Enums: {
+      inventory_frequency: "weekly" | "biweekly" | "monthly" | "semiannual"
+      inventory_grant_scope: "instance" | "all"
+      inventory_kind: "expiry" | "lot" | "location"
+      inventory_status: "in_progress" | "completed" | "to_review" | "resolved"
       occurrence_status: "pending" | "completed" | "skipped"
       order_status: "draft" | "confirmed" | "cancelled"
       order_type: "sale" | "sample"
@@ -1040,6 +2201,10 @@ export const Constants = {
   },
   public: {
     Enums: {
+      inventory_frequency: ["weekly", "biweekly", "monthly", "semiannual"],
+      inventory_grant_scope: ["instance", "all"],
+      inventory_kind: ["expiry", "lot", "location"],
+      inventory_status: ["in_progress", "completed", "to_review", "resolved"],
       occurrence_status: ["pending", "completed", "skipped"],
       order_status: ["draft", "confirmed", "cancelled"],
       order_type: ["sale", "sample"],
