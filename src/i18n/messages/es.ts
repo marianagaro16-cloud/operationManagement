@@ -62,6 +62,10 @@ export const es: Messages = {
     statistics: 'Estadísticas',
     settings: 'Configuración',
     overview: 'Resumen',
+    manage: 'Gestión',
+    groupSetup: 'Configuración',
+    groupReview: 'Revisión',
+    groupSystem: 'Sistema',
   },
   dashboard: {
     greetingMorning: 'Buenos días',
@@ -383,6 +387,8 @@ export const es: Messages = {
     openPreparationDay: 'Abrir el día de preparación',
     orderNotFound: 'Este pedido ya no existe',
     linesTitle: 'Productos de este pedido',
+    searchOrders: 'Buscar cliente, número de pedido o producto…',
+    searchAcrossMonths: '{count} resultados en todos los meses',
   },
   prep: {
     title: 'Control de lotes',

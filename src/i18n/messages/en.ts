@@ -64,6 +64,10 @@ export const en = {
     statistics: 'Statistics',
     settings: 'Settings',
     overview: 'Overview',
+    manage: 'Manage',
+    groupSetup: 'Setup',
+    groupReview: 'Review',
+    groupSystem: 'System',
   },
   dashboard: {
     greetingMorning: 'Good morning',
@@ -385,6 +389,8 @@ export const en = {
     openPreparationDay: 'Open the preparation day',
     orderNotFound: 'This order no longer exists',
     linesTitle: 'Products on this order',
+    searchOrders: 'Search customer, order number or product…',
+    searchAcrossMonths: '{count} matches across all months',
   },
   prep: {
     title: 'Lot control',

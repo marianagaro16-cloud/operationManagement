@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Pencil, Plus } from 'lucide-react';
 import { useI18n } from '@/i18n';
+import { filterByQuery } from '@/lib/search';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -33,18 +34,20 @@ export function CustomerManager({ customers }: { customers: Customer[] }) {
 
   const inactiveCount = customers.filter((c) => !c.is_active).length;
 
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return customers.filter((c) => {
-      if (!showInactive && !c.is_active) return false;
-      if (!q) return true;
-      // Search covers BOTH fields, since the team may know either.
-      return (
-        c.company_name.toLowerCase().includes(q) ||
-        (c.company_name_addition ?? '').toLowerCase().includes(q)
-      );
-    });
-  }, [customers, query, showInactive]);
+  // The same matcher the order picker uses: accent-folded and multi-term, so
+  // "wulflingen" finds Wülflingen here as well. This screen used to roll its
+  // own lowercase substring test, which meant the same typed string found a
+  // customer on one screen and reported nothing on another.
+  const visible = useMemo(
+    () =>
+      filterByQuery(
+        customers.filter((c) => showInactive || c.is_active),
+        query,
+        // Search covers BOTH fields, since the team may know either.
+        (c) => `${c.company_name} ${c.company_name_addition ?? ''}`,
+      ),
+    [customers, query, showInactive],
+  );
 
   return (
     <>

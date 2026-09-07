@@ -62,6 +62,10 @@ export const de: Messages = {
     statistics: 'Statistik',
     settings: 'Einstellungen',
     overview: 'Überblick',
+    manage: 'Verwaltung',
+    groupSetup: 'Einrichtung',
+    groupReview: 'Auswertung',
+    groupSystem: 'System',
   },
   dashboard: {
     greetingMorning: 'Guten Morgen',
@@ -383,6 +387,8 @@ export const de: Messages = {
     openPreparationDay: 'Vorbereitungstag öffnen',
     orderNotFound: 'Diese Bestellung existiert nicht mehr',
     linesTitle: 'Produkte dieser Bestellung',
+    searchOrders: 'Kunde, Bestellnummer oder Produkt suchen…',
+    searchAcrossMonths: '{count} Treffer über alle Monate',
   },
   prep: {
     title: 'Lotnummernkontrolle',

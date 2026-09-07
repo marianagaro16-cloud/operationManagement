@@ -3,12 +3,12 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Pencil, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Badge, Card, EmptyState, Select } from '@/components/ui/primitives';
+import { Badge, Card, EmptyState, Input, Select } from '@/components/ui/primitives';
 import { Combobox } from '@/components/ui/combobox';
 import { StatusChip } from '@/components/ui/status-chip';
 import { PageHeader } from '@/components/shell/app-shell';
@@ -42,13 +42,20 @@ export function OrderControl({
   products: Product[];
   deliveryMethods: DeliveryMethod[];
   month: string;
-  filters: { customerId?: string; deliveryMethodId?: string; status?: string };
+  filters: {
+    customerId?: string;
+    deliveryMethodId?: string;
+    status?: string;
+    /** Free text. When set, the search spans every month, not just this one. */
+    query?: string;
+  };
   canManage: boolean;
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
   const [editing, setEditing] = useState<OrderWithProgress | null>(null);
   const [creating, setCreating] = useState(false);
+  const [draftQuery, setDraftQuery] = useState(filters.query ?? '');
 
   const anchor = DateTime.fromISO(`${month}-01`, { zone: BUSINESS_TZ });
   const shiftMonth = (delta: number) => anchor.plus({ months: delta }).toFormat('yyyy-MM');
@@ -70,10 +77,41 @@ export function OrderControl({
     if (filters.customerId) params.set('customer', filters.customerId);
     if (filters.deliveryMethodId) params.set('method', filters.deliveryMethodId);
     if (filters.status) params.set('status', filters.status);
+    if (filters.query) params.set('q', filters.query);
     if (value) params.set(key, value);
     else params.delete(key);
     router.push(`/orders?${params.toString()}`);
   };
+
+  // What is currently narrowing the list, as removable chips.
+  //
+  // The filters lived in the URL already — which is right — but nothing said
+  // they were on and nothing cleared them, so a customer filter left from a
+  // previous visit made a month look empty.
+  const activeFilters = [
+    filters.query && {
+      key: 'q',
+      label: `"${filters.query}"`,
+    },
+    filters.customerId && {
+      key: 'customer',
+      label: customers.find((c) => c.id === filters.customerId)?.name ?? t('orders.customer'),
+    },
+    filters.deliveryMethodId && {
+      key: 'method',
+      label:
+        deliveryMethods.find((m) => m.id === filters.deliveryMethodId)?.name ??
+        t('orders.deliveryMethod'),
+    },
+    filters.status && {
+      key: 'status',
+      label: t(
+        filters.status === 'draft' ? 'orders.statusDraft'
+          : filters.status === 'confirmed' ? 'orders.statusConfirmed'
+            : 'orders.statusCancelled',
+      ),
+    },
+  ].filter(Boolean) as { key: string; label: string }[];
 
   return (
     <>
@@ -92,6 +130,35 @@ export function OrderControl({
 
       {/* Month navigation + filters */}
       <div className="mb-4 space-y-2">
+        {/* Free text across every month. Submitted rather than typed-through,
+            because a query widens the query window to the whole go-live range
+            and firing that on each keystroke would be wasteful. */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setFilter('q', draftQuery.trim());
+          }}
+          className="relative"
+        >
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle"
+            aria-hidden
+          />
+          <Input
+            value={draftQuery}
+            onChange={(e) => setDraftQuery(e.target.value)}
+            placeholder={t('orders.searchOrders')}
+            aria-label={t('orders.searchOrders')}
+            className="pl-9"
+          />
+        </form>
+
+        {filters.query && (
+          <p className="text-[12px] text-muted">
+            {t('orders.searchAcrossMonths', { count: orders.length })}
+          </p>
+        )}
+
         <div className="flex items-center gap-1">
           {/* Months before go-live hold no data — that history lives in Excel,
               so navigating there would look like data loss. */}
@@ -164,6 +231,32 @@ export function OrderControl({
             <option value="cancelled">{t('orders.statusCancelled')}</option>
           </Select>
         </div>
+
+        {/* Removable chips + one clear, matching the inventory screen. */}
+        {activeFilters.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+            {activeFilters.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => {
+                  if (f.key === 'q') setDraftQuery('');
+                  setFilter(f.key, '');
+                }}
+                className="inline-flex items-center gap-1 rounded-md border border-accent/25 bg-accent/[0.08] px-2 py-1 text-[12px] font-medium text-accent transition-colors hover:bg-accent/15"
+              >
+                {f.label}
+                <X className="h-3 w-3" aria-hidden />
+              </button>
+            ))}
+            <Link
+              href={`/orders?month=${month}`}
+              onClick={() => setDraftQuery('')}
+              className="px-1.5 py-1 text-[12px] font-medium text-muted transition-colors hover:text-fg"
+            >
+              {t('inventory.clearFilters')}
+            </Link>
+          </div>
+        )}
       </div>
 
       {orders.length === 0 ? (

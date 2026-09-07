@@ -52,14 +52,16 @@ export function AppShell({
       : []),
     // The management area opens at power_user; its own nav filters the tabs.
     ...(atLeast(role, 'power_user')
-      ? [{ href: '/admin', label: t('nav.admin'), icon: Shield }]
+      ? [{ href: '/admin', label: t('nav.manage'), icon: Shield }]
       : []),
   ];
 
-  // Section-aware: an inventory detail page must keep the Inventory tab lit,
-  // exactly as an admin subpage keeps Admin lit.
+  // Section-aware: a detail page must keep its section's tab lit, exactly as
+  // an admin subpage keeps the management tab lit. `/orders` joined the list
+  // when orders gained a detail route of their own.
+  const SECTIONS = ['/admin', '/inventory', '/orders'];
   const active = (href: string) =>
-    href === '/admin' || href === '/inventory' ? pathname.startsWith(href) : pathname === href;
+    SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
 
   const greeting = (() => {
     const hour = Number(
@@ -73,6 +75,15 @@ export function AppShell({
 
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zurich' }).format(new Date());
 
+  const onDashboard = pathname === '/dashboard';
+
+  // Which section the header names. Falls back to the app's own name rather
+  // than going blank on a route the nav does not own (a detail page, say —
+  // those carry their own title and back link in the content).
+  const sectionLabel =
+    nav.find(({ href }) => active(href))?.label ??
+    (pathname === '/settings' ? t('nav.settings') : t('common.appName'));
+
   return (
     <div className="min-h-dvh bg-bg">
       {/* ---------------- header ---------------- */}
@@ -85,12 +96,22 @@ export function AppShell({
         )}
       >
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4">
+          {/* The greeting is a greeting: it belongs on the screen you land on.
+              Everywhere else this 56px bar is the only persistent thing on a
+              phone, and it was spending all of it saying good afternoon while
+              the name of the screen you were on scrolled away below. */}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-semibold leading-tight">
-              {greeting}
-              {profile.name ? `, ${profile.name.split(' ')[0]}` : ''}
-            </p>
-            <p className="truncate text-[12px] text-muted">{formatDate(today, 'weekday')}</p>
+            {onDashboard ? (
+              <>
+                <p className="truncate text-[15px] font-semibold leading-tight">
+                  {greeting}
+                  {profile.name ? `, ${profile.name.split(' ')[0]}` : ''}
+                </p>
+                <p className="truncate text-[12px] text-muted">{formatDate(today, 'weekday')}</p>
+              </>
+            ) : (
+              <p className="truncate text-[15px] font-semibold leading-tight">{sectionLabel}</p>
+            )}
           </div>
 
           <div className="hidden sm:block">

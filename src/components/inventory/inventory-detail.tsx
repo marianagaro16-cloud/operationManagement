@@ -1,8 +1,10 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { CheckCircle2, Lock, MessageSquare, RotateCcw, Search, Users } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, CheckCircle2, Lock, MessageSquare, RotateCcw, Search, Users } from 'lucide-react';
 import { useI18n } from '@/i18n';
+import { filterByQuery } from '@/lib/search';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
@@ -50,17 +52,21 @@ export function InventoryDetailView({
     ? detail.items.filter((i) => i.digital_quantity === null).length
     : 0;
 
-  const items = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return detail.items.filter((item) => {
-      if (onlyOpen && item.status !== 'in_progress' && item.status !== 'to_review') return false;
-      if (!q) return true;
-      return (
-        item.item_name.toLowerCase().includes(q) ||
-        (item.item_group ?? '').toLowerCase().includes(q)
-      );
-    });
-  }, [detail.items, query, onlyOpen]);
+  // The shared matcher. A 114-item count is exactly where accent folding and
+  // multi-term search earn their place, and it was the one list still using a
+  // bare substring test.
+  const items = useMemo(
+    () =>
+      filterByQuery(
+        detail.items.filter(
+          (item) =>
+            !onlyOpen || item.status === 'in_progress' || item.status === 'to_review',
+        ),
+        query,
+        (item) => `${item.item_name} ${item.item_group ?? ''}`,
+      ),
+    [detail.items, query, onlyOpen],
+  );
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
@@ -72,6 +78,17 @@ export function InventoryDetailView({
 
   return (
     <div>
+      {/* Back to the list. The tab bar returns to the overview, which is not
+          where you came from if you arrived through the filtered history —
+          and on a phone the tab bar was the only way back at all. */}
+      <Link
+        href="/inventory"
+        className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+        {t('common.back')}
+      </Link>
+
       <PageHeader
         title={detail.name_snapshot}
         subtitle={`${formatDate(detail.inventory_date, 'medium')} · ${formatCalendarWeek(detail.iso_week)}`}

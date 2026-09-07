@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, Pencil, Plus } from 'lucide-react';
 import { useI18n } from '@/i18n';
+import { filterByQuery } from '@/lib/search';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -33,19 +34,19 @@ export function ProductManager({ products }: { products: Product[] }) {
   const inactiveCount = products.filter((p) => !p.is_active).length;
   const reviewCount = products.filter((p) => p.needs_review).length;
 
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return products.filter((p) => {
-      if (!showInactive && !p.is_active) return false;
-      if (!q) return true;
-      // Searchable by code and by name, which is how people actually look.
-      return (
-        (p.code ?? '').toLowerCase().includes(q) ||
-        (p.name ?? '').toLowerCase().includes(q) ||
-        p.family.toLowerCase().includes(q)
-      );
-    });
-  }, [products, query, showInactive]);
+  // The shared matcher, so this screen agrees with the order form's product
+  // picker: accent-folded, and terms are ANDed so "tortilla 1kg" narrows
+  // instead of returning nothing.
+  const visible = useMemo(
+    () =>
+      filterByQuery(
+        products.filter((p) => showInactive || p.is_active),
+        query,
+        // Searchable by code and by name, which is how people actually look.
+        (p) => `${p.code ?? ''} ${p.name ?? ''} ${p.family}`,
+      ),
+    [products, query, showInactive],
+  );
 
   return (
     <>
