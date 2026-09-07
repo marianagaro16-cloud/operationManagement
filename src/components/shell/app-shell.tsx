@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { Bell, Boxes, CalendarDays, ClipboardList, LayoutDashboard, Package, Settings, Shield } from 'lucide-react';
+import { Bell, Boxes, CalendarDays, ClipboardList, LayoutDashboard, Package, ScanSearch, Settings, Shield } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,13 @@ export function AppShell({
     // inventory; the order book is not theirs to browse, so it follows the
     // capability rather than being shown to everyone.
     ...(can(role, held, 'orders.manage')
-      ? [{ href: '/orders', label: t('orders.title'), icon: Package }]
+      ? [
+          { href: '/orders', label: t('orders.title'), icon: Package },
+          // Traceability sits beside the order book, not inside Inventory:
+          // it answers a question about ORDERS — where a lot was used — and
+          // its one call to action is to open the order and fix it there.
+          { href: '/lot-tracker', label: t('lot.title'), icon: ScanSearch },
+        ]
       : []),
     // Counting happens on the floor, so inventory sits in the main bar rather
     // than behind the admin section — the people who do it are not admins.
@@ -59,7 +65,7 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker'];
   const active = (href: string) =>
     SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
 
