@@ -18,6 +18,7 @@ export default async function DashboardPage() {
   // A regular user's dashboard is the current day. Showing a week ahead
   // invites working on tomorrow's list, and buries what is due now.
   const plans = viewer?.can('tasks.manage_occurrences') ?? false;
+  const canManageOrders = viewer?.can('orders.manage') ?? false;
   const [data, orders, inventory] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
@@ -34,7 +35,11 @@ export default async function DashboardPage() {
       {/* Deadline pressure outranks everything else on the page. */}
       <UrgentAlert orders={orders.toPrepare} />
       {/* Orders summarise into two tiles; today's TASKS remain the focus. */}
-      <OrderWidgets toPrepare={orders.toPrepare} delivering={orders.delivering} />
+      <OrderWidgets
+        toPrepare={orders.toPrepare}
+        delivering={orders.delivering}
+        canManage={canManageOrders}
+      />
       {/* Renders nothing unless a count is due or late, so it never becomes
           empty furniture people learn to scroll past. */}
       <InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} />

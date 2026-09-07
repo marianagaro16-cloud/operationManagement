@@ -35,7 +35,13 @@ export function AppShell({
     { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
     // Lot control is the main floor workflow, so it sits high in the bar.
     { href: '/preparation', label: t('prep.title'), icon: ClipboardList },
-    { href: '/orders', label: t('orders.title'), icon: Package },
+    // Order Control is the ORDER BOOK — customers, dates, quantities, the
+    // definitions themselves. A person on the floor works lot control and
+    // inventory; the order book is not theirs to browse, so it follows the
+    // capability rather than being shown to everyone.
+    ...(can(role, held, 'orders.manage')
+      ? [{ href: '/orders', label: t('orders.title'), icon: Package }]
+      : []),
     // Counting happens on the floor, so inventory sits in the main bar rather
     // than behind the admin section — the people who do it are not admins.
     { href: '/inventory', label: t('inventory.title'), icon: Boxes },

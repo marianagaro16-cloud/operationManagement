@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { AlertTriangle, ArrowRight, ClipboardList, Package } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Card } from '@/components/ui/primitives';
+import { cn } from '@/lib/utils';
 import { orderProgress } from '@/domain/orders/progress';
 import type { Order } from '@/types/orders';
 
@@ -17,9 +18,12 @@ import type { Order } from '@/types/orders';
 export function OrderWidgets({
   toPrepare,
   delivering,
+  canManage,
 }: {
   toPrepare: Order[];
   delivering: Order[];
+  /** Whether this viewer can open Order Control at all. */
+  canManage: boolean;
 }) {
   const { t } = useI18n();
   if (toPrepare.length === 0 && delivering.length === 0) return null;
@@ -48,7 +52,7 @@ export function OrderWidgets({
 
   return (
     <section className="mb-6">
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className={cn('grid gap-2.5', canManage ? 'grid-cols-2' : 'grid-cols-1')}>
         <Tile
           href="/preparation"
           icon={<ClipboardList className="h-4 w-4" aria-hidden />}
@@ -57,14 +61,20 @@ export function OrderWidgets({
           hint={t('orders.remaining')}
           tone={incomplete.length > 0 ? 'accent' : 'done'}
         />
-        <Tile
-          href="/orders"
-          icon={<Package className="h-4 w-4" aria-hidden />}
-          label={t('orders.title')}
-          value={String(delivering.length)}
-          hint={t('orders.deliveryDate')}
-          tone="neutral"
-        />
+        {/* The deliveries tile opens the order book, so it is only offered to
+            someone who can actually get there — otherwise it is a tile that
+            bounces the person straight back to this page. Lot control, which
+            IS their work, keeps its tile and takes the full width. */}
+        {canManage && (
+          <Tile
+            href="/orders"
+            icon={<Package className="h-4 w-4" aria-hidden />}
+            label={t('orders.title')}
+            value={String(delivering.length)}
+            hint={t('orders.deliveryDate')}
+            tone="neutral"
+          />
+        )}
       </div>
 
       {needsAttention.length > 0 && (

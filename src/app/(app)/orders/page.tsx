@@ -4,6 +4,7 @@ import { getViewer } from '@/server/data';
 import { monthRange } from '@/domain/orders/scheduling';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 import { OrderControl } from '@/components/orders/order-control';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,9 +19,14 @@ export default async function OrdersPage({
     ? (searchParams.month as string)
     : DateTime.fromISO(businessToday(), { zone: BUSINESS_TZ }).toFormat('yyyy-MM');
 
+  // Hiding the tab would leave the route reachable by URL, and an approved
+  // user can READ orders under RLS — so the gate has to be here too.
+  const viewer = await getViewer();
+  if (!viewer?.can('orders.manage')) redirect('/dashboard');
+
   const { start, end } = monthRange(month);
 
-  const [orders, customers, products, deliveryMethods, viewer] = await Promise.all([
+  const [orders, customers, products, deliveryMethods] = await Promise.all([
     getOrdersByDelivery({
       from: start,
       to: end,
@@ -31,7 +37,6 @@ export default async function OrdersPage({
     getCustomers(),
     getProducts(),
     getDeliveryMethods(),
-    getViewer(),
   ]);
 
   return (
@@ -46,7 +51,7 @@ export default async function OrdersPage({
         deliveryMethodId: searchParams.method,
         status: searchParams.status,
       }}
-      canManage={viewer?.can('orders.manage') ?? false}
+      canManage
     />
   );
 }
