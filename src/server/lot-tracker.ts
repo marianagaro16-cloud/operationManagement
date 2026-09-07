@@ -2,6 +2,7 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { getViewer } from './data';
 import type { BusinessDate } from '@/lib/datetime';
+import type { Database } from '@/types/database.types';
 
 /**
  * Lot Nummer Tracker — the read layer.
@@ -123,17 +124,31 @@ function contains(value: string): string {
 }
 
 /**
- * The view is not in the generated database types — it ships in the same
- * migration as this file — so the client is widened here rather than every
- * call site being cast. Regenerating types after the migration removes the
- * need for this.
+ * A row of the view, as Postgres describes it. Every column is nullable
+ * because a view carries no NOT NULL guarantees — shape() is where that is
+ * resolved into the non-null contract the UI relies on.
  */
+type SearchRow = Database['public']['Views']['lot_allocation_search']['Row'];
+
 function fromSearch() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (createClient() as any).from('lot_allocation_search');
+  return createClient().from('lot_allocation_search');
 }
 
-/** Every filter, applied once, so the page and its total can never disagree. */
+/** What awaiting a filtered query gives back, once the builder is widened. */
+interface QueryResult {
+  data: SearchRow[] | null;
+  error: { message: string } | null;
+  count: number | null;
+}
+
+/**
+ * Every filter, applied once, so the page and its total can never disagree.
+ */
+// The builder is widened for the duration of this function only. Supabase's
+// generics resolve the row type through every chained call, and a helper that
+// stays generic across five different operators hits an instantiation depth
+// limit. The RESULT is typed again at each call site, so the rows the rest of
+// the file works with are fully checked.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applyFilters(query: any, filters: LotFilters): any {
   let q = query;
@@ -162,7 +177,7 @@ function applyFilters(query: any, filters: LotFilters): any {
   return q;
 }
 
-function shape(r: Record<string, unknown>): LotAllocationRow {
+function shape(r: SearchRow): LotAllocationRow {
   return {
     id: r.id as string,
     lot_number: r.lot_number as string,
@@ -205,10 +220,10 @@ export async function searchLotAllocations(
     .order('id', { ascending: true })
     .range(offset, offset + limit - 1);
 
-  const { data, error, count } = await page;
+  const { data, error, count } = (await page) as QueryResult;
   if (error) throw new Error(error.message);
 
-  const rows = (data ?? []).map((r: Record<string, unknown>) => shape(r));
+  const rows = (data ?? []).map(shape);
   const total = count ?? rows.length;
 
   return {
@@ -235,13 +250,10 @@ async function sumQuantity(
 ): Promise<number> {
   if (total <= limit) return rows.reduce((sum, r) => sum + r.quantity, 0);
 
-  const { data, error } = await applyFilters(fromSearch().select('quantity'), filters);
+  const { data, error } = (await applyFilters(fromSearch().select('quantity'), filters)) as QueryResult;
   if (error) throw new Error(error.message);
 
-  return ((data ?? []) as { quantity: number }[]).reduce(
-    (sum, r) => sum + Number(r.quantity),
-    0,
-  );
+  return (data ?? []).reduce((sum, r) => sum + Number(r.quantity ?? 0), 0);
 }
 
 /**
@@ -261,14 +273,14 @@ export async function getLotDetail(lotNumber: string): Promise<{
 } | null> {
   if (!(await canUseLotTracker())) return null;
 
-  const { data, error } = await fromSearch()
+  const { data, error } = (await fromSearch()
     .select(COLUMNS)
     .eq('lot_number', lotNumber)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })) as QueryResult;
 
   if (error) throw new Error(error.message);
 
-  const rows = (data ?? []).map((r: Record<string, unknown>) => shape(r));
+  const rows = (data ?? []).map(shape);
   if (rows.length === 0) return null;
 
   return {

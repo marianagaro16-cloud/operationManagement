@@ -568,6 +568,13 @@ export type Database = {
             foreignKeyName: "inventory_instance_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_instance_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -851,6 +858,13 @@ export type Database = {
             foreignKeyName: "inventory_template_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_template_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -965,6 +979,13 @@ export type Database = {
             foreignKeyName: "lot_allocations_order_line_id_fkey"
             columns: ["order_line_id"]
             isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["order_line_id"]
+          },
+          {
+            foreignKeyName: "lot_allocations_order_line_id_fkey"
+            columns: ["order_line_id"]
+            isOneToOne: false
             referencedRelation: "order_lines"
             referencedColumns: ["id"]
           },
@@ -1009,6 +1030,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_audit_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["order_id"]
           },
           {
             foreignKeyName: "order_audit_log_order_id_fkey"
@@ -1061,8 +1089,22 @@ export type Database = {
             foreignKeyName: "order_lines_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "order_lines_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_lines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "order_lines_product_id_fkey"
@@ -1096,6 +1138,13 @@ export type Database = {
           sent_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "order_notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["order_id"]
+          },
           {
             foreignKeyName: "order_notifications_order_id_fkey"
             columns: ["order_id"]
@@ -1174,6 +1223,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
           },
           {
             foreignKeyName: "orders_delivery_method_id_fkey"
@@ -1368,6 +1424,13 @@ export type Database = {
             foreignKeyName: "recurring_order_template_lines_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "recurring_order_template_lines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -1427,6 +1490,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_order_templates_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
           },
           {
             foreignKeyName: "recurring_order_templates_delivery_method_id_fkey"
@@ -1748,6 +1818,49 @@ export type Database = {
       }
     }
     Views: {
+      lot_allocation_search: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          customer_active: boolean | null
+          customer_addition: string | null
+          customer_id: string | null
+          customer_name: string | null
+          delivery_date: string | null
+          entered_by: string | null
+          id: string | null
+          lot_number: string | null
+          modified_by: string | null
+          note: string | null
+          order_id: string | null
+          order_line_id: string | null
+          order_reference: number | null
+          order_status: string | null
+          preparation_date: string | null
+          product_code: string | null
+          product_id: string | null
+          product_name: string | null
+          quantity: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lot_allocations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lot_allocations_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operational_audit: {
         Row: {
           action: string | null
@@ -2088,6 +2201,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       skip_occurrence: {
         Args: { p_occurrence_id: string; p_reason: string }
         Returns: {
