@@ -115,15 +115,15 @@ export function orderProgress(
  * Would this allocation exceed what was ordered?
  *
  * Mirrors the database trigger exactly so the UI can block early with a clear
- * message — but the database is what actually enforces it. An admin is
- * permitted to exceed, because correcting a real-world miscount is an admin
- * responsibility.
+ * message — but the database is what actually enforces it. A role holding
+ * orders.manage is permitted to exceed, because correcting a real-world
+ * miscount is a management responsibility.
  */
 export function canAllocate(
   orderedQuantity: unknown,
   existingAllocations: AllocationLike[],
   newQuantity: unknown,
-  isAdmin: boolean,
+  canOverAllocate: boolean,
   /** When editing, the allocation being replaced is excluded from the total. */
   excludeQuantity = 0,
 ): { ok: true } | { ok: false; reason: 'over_allocation' | 'invalid_quantity'; available: number } {
@@ -134,7 +134,7 @@ export function canAllocate(
   const already = round3(allocatedQuantity(existingAllocations) - toQuantity(excludeQuantity));
   const available = round3(ordered - already);
 
-  if (isAdmin) return { ok: true };
+  if (canOverAllocate) return { ok: true };
   if (round3(already + qty) > ordered) {
     return { ok: false, reason: 'over_allocation', available: Math.max(0, available) };
   }

@@ -31,7 +31,7 @@ export function ItemCard({
   digitalEnabled,
   locations,
   canEdit,
-  isAdmin,
+  canManage,
   defaultOpen,
 }: {
   item: InventoryItemDetail;
@@ -40,7 +40,7 @@ export function ItemCard({
   digitalEnabled: boolean;
   locations: InventoryLocation[];
   canEdit: boolean;
-  isAdmin: boolean;
+  canManage: boolean;
   defaultOpen?: boolean;
 }) {
   const { t } = useI18n();
@@ -155,13 +155,13 @@ export function ItemCard({
               {t('inventory.addComment')}
             </Button>
 
-            {isAdmin && digitalEnabled && (
+            {canManage && digitalEnabled && (
               <Button size="sm" variant="ghost" onClick={() => setDigitalOpen(true)}>
                 {t('inventory.setDigital')}
               </Button>
             )}
 
-            {isAdmin && (item.status === 'to_review' || item.status === 'resolved') && (
+            {canManage && (item.status === 'to_review' || item.status === 'resolved') && (
               <Button size="sm" variant="ghost" onClick={() => setResolveOpen(true)}>
                 <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
                 {t('inventory.resolve')}

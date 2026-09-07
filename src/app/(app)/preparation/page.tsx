@@ -1,5 +1,5 @@
 import { getOrdersForPreparation } from '@/server/orders';
-import { getProfile } from '@/server/data';
+import { getViewer } from '@/server/data';
 import { businessToday } from '@/lib/datetime';
 import { PreparationView } from '@/components/orders/preparation-view';
 
@@ -15,7 +15,7 @@ export default async function PreparationPage({
     ? (searchParams.date as string)
     : businessToday();
 
-  const [orders, profile] = await Promise.all([getOrdersForPreparation(date), getProfile()]);
+  const [orders, viewer] = await Promise.all([getOrdersForPreparation(date), getViewer()]);
 
-  return <PreparationView orders={orders} date={date} isAdmin={profile?.role === 'admin'} />;
+  return <PreparationView orders={orders} date={date} canManage={viewer?.can('orders.manage') ?? false} />;
 }

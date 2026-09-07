@@ -28,12 +28,12 @@ export function InventoryDetailView({
   detail,
   locations,
   users,
-  isAdmin,
+  canManage,
 }: {
   detail: InventoryDetail;
   locations: InventoryLocation[];
   users: Profile[];
-  isAdmin: boolean;
+  canManage: boolean;
 }) {
   const { t, formatDate } = useI18n();
   const translateError = useInventoryError();
@@ -104,7 +104,7 @@ export function InventoryDetailView({
         </div>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {isAdmin && (
+          {canManage && (
             <Button size="sm" variant="ghost" onClick={() => setAssignOpen(true)}>
               <Users className="h-3.5 w-3.5" aria-hidden />
               {t('inventory.assign')}
@@ -114,7 +114,7 @@ export function InventoryDetailView({
             <MessageSquare className="h-3.5 w-3.5" aria-hidden />
             {t('inventory.generalComment')}
           </Button>
-          {isAdmin && detail.completed_at && (
+          {canManage && detail.completed_at && (
             <Button size="sm" variant="ghost" onClick={() => run(() => reopenInventory(detail.id))} loading={pending}>
               <RotateCcw className="h-3.5 w-3.5" aria-hidden />
               {t('inventory.reopen')}
@@ -187,7 +187,7 @@ export function InventoryDetailView({
               digitalEnabled={detail.digital_enabled}
               locations={locations}
               canEdit={canEdit}
-              isAdmin={isAdmin}
+              canManage={canManage}
             />
           ))}
         </ul>

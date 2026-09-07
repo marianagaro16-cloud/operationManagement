@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
-import { Badge, Card, EmptyState, ErrorState } from '@/components/ui/primitives';
+import { Badge, Card, EmptyState, ErrorState, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { setUserRole, setUserStatus } from '@/server/actions';
+import { ROLES, type Role } from '@/lib/authz';
 import type { Profile, UserStatus } from '@/types/database';
 
 const STATUS_TONE = {
@@ -15,6 +16,14 @@ const STATUS_TONE = {
   approved: 'done',
   rejected: 'late',
   deactivated: 'skipped',
+} as const;
+
+// Privilege reads as colour: the more a role can do, the louder the badge.
+const ROLE_TONE = {
+  admin: 'accent',
+  manager: 'done',
+  power_user: 'warn',
+  user: 'neutral',
 } as const;
 
 export function UserManager({ users, currentUserId }: { users: Profile[]; currentUserId: string }) {
@@ -51,11 +60,21 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
     });
   }
 
-  function toggleRole(user: Profile) {
+  const roleLabel = (role: Role) => {
+    switch (role) {
+      case 'admin': return t('roles.admin');
+      case 'manager': return t('roles.manager');
+      case 'power_user': return t('roles.powerUser');
+      case 'user': return t('roles.user');
+    }
+  };
+
+  function changeRole(user: Profile, role: Role) {
+    if (role === user.role) return;
     startTransition(async () => {
-      const res = await setUserRole(user.id, user.role === 'admin' ? 'user' : 'admin');
+      const res = await setUserRole(user.id, role);
       // Refuse to strip the final admin, which would lock everyone out.
-      if (!res.ok) setError(res.error === 'last_admin' ? t('common.error') : res.error);
+      if (!res.ok) setError(res.error === 'last_admin' ? t('roles.lastAdmin') : res.error);
       router.refresh();
     });
   }
@@ -67,9 +86,7 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
         <p className="truncate text-[12px] text-muted">{user.email}</p>
       </div>
 
-      <Badge tone={user.role === 'admin' ? 'accent' : 'neutral'}>
-        {user.role === 'admin' ? t('admin.roleAdmin') : t('admin.roleUser')}
-      </Badge>
+      <Badge tone={ROLE_TONE[user.role]}>{roleLabel(user.role)}</Badge>
       <Badge tone={STATUS_TONE[user.status]}>{statusLabel(user.status)}</Badge>
 
       <span className="hidden w-24 shrink-0 text-right text-[11.5px] tabular text-subtle sm:inline">
@@ -104,9 +121,19 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
 
         {user.status === 'approved' && user.id !== currentUserId && (
           <>
-            <Button size="sm" variant="ghost" disabled={pending} onClick={() => toggleRole(user)}>
-              {user.role === 'admin' ? t('admin.removeAdmin') : t('admin.makeAdmin')}
-            </Button>
+            {/* A picker rather than the old admin/not-admin toggle: with four
+                roles there is no longer an "other" one to flip to. */}
+            <Select
+              aria-label={t('roles.changeRole')}
+              className="h-8 w-auto py-0 text-[12.5px]"
+              value={user.role}
+              disabled={pending}
+              onChange={(e) => changeRole(user, e.target.value as Role)}
+            >
+              {ROLES.map((r) => (
+                <option key={r} value={r}>{roleLabel(r)}</option>
+              ))}
+            </Select>
             <Button
               size="sm"
               variant="ghost"

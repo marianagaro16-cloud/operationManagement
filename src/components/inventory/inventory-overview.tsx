@@ -37,12 +37,12 @@ export function InventoryOverview({
   data,
   templates,
   users,
-  isAdmin,
+  canManage,
 }: {
   data: OverviewData;
   templates: { id: string; name: string; translations: unknown }[];
   users: Profile[];
-  isAdmin: boolean;
+  canManage: boolean;
 }) {
   const { t } = useI18n();
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -70,10 +70,10 @@ export function InventoryOverview({
 
       {/* Admin-owed work. A regular user cannot act on either of these, so the
           sections are theirs alone rather than noise on everyone's screen. */}
-      {isAdmin && data.needsReview.length > 0 && (
+      {canManage && data.needsReview.length > 0 && (
         <Section title={t('inventory.needsReview')} rows={data.needsReview} today={data.today} tone="late" />
       )}
-      {isAdmin && data.digitalPending.length > 0 && (
+      {canManage && data.digitalPending.length > 0 && (
         <Section title={t('inventory.digitalPendingList')} rows={data.digitalPending} today={data.today} tone="warn" />
       )}
 

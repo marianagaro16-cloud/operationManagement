@@ -4,7 +4,20 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { generateOccurrences, isScheduleConfigured } from '@/domain/recurrence/engine';
 import { FREQUENCIES } from '@/domain/recurrence/types';
 import { addDays, businessToday, type BusinessDate } from '@/lib/datetime';
+import { atLeast, can, type Permission, type Role } from '@/lib/authz';
 import type { OccurrenceWithTask, Profile, Task, Category } from '@/types/database';
+
+/**
+ * The signed-in user plus their resolved capabilities, threaded into pages in
+ * place of the old `isAdmin: boolean`.
+ */
+export interface Viewer {
+  profile: Profile;
+  role: Role;
+  caps: ReadonlySet<Permission>;
+  can: (permission: Permission) => boolean;
+  atLeast: (min: Role) => boolean;
+}
 
 /**
  * Server-side data access. Everything a page renders comes from here, so the
@@ -197,6 +210,49 @@ export async function getCategories(): Promise<Category[]> {
     .order('name');
   if (error) throw new Error(error.message);
   return (data ?? []) as Category[];
+}
+
+/**
+ * The signed-in user together with what they may do.
+ *
+ * One resolution per request (React `cache`, same as `getProfile`), so a page
+ * that asks five questions about permissions still issues one query. Pages pass
+ * the viewer down instead of the old `isAdmin: boolean` prop, which could only
+ * ever express two of the four roles.
+ *
+ * This is for RENDERING. Every capability is independently enforced by
+ * `has_permission()` in Postgres, so a viewer who forges their way past the UI
+ * gets empty lists and rejected writes.
+ */
+export const getViewer = cache(async (): Promise<Viewer | null> => {
+  const profile = await getProfile();
+  if (!profile) return null;
+
+  const supabase = createClient();
+  const { data } = await supabase.from('role_permissions').select('permission').eq('role', profile.role);
+
+  const caps = new Set<Permission>(
+    (data ?? []).map((r) => (r as { permission: Permission }).permission),
+  );
+
+  return {
+    profile,
+    role: profile.role,
+    caps,
+    can: (permission: Permission) => can(profile.role, caps, permission),
+    atLeast: (min: Role) => atLeast(profile.role, min),
+  };
+});
+
+/** How many approved admins exist — the last-admin guard needs it. */
+export async function countApprovedAdmins(): Promise<number> {
+  const supabase = createClient();
+  const { count } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('role', 'admin')
+    .eq('status', 'approved');
+  return count ?? 0;
 }
 
 export async function getUsers(): Promise<Profile[]> {

@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon';
 import { getCustomers, getDeliveryMethods, getOrdersByDelivery, getProducts } from '@/server/orders';
-import { getProfile } from '@/server/data';
+import { getViewer } from '@/server/data';
 import { monthRange } from '@/domain/orders/scheduling';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 import { OrderControl } from '@/components/orders/order-control';
@@ -20,7 +20,7 @@ export default async function OrdersPage({
 
   const { start, end } = monthRange(month);
 
-  const [orders, customers, products, deliveryMethods, profile] = await Promise.all([
+  const [orders, customers, products, deliveryMethods, viewer] = await Promise.all([
     getOrdersByDelivery({
       from: start,
       to: end,
@@ -31,7 +31,7 @@ export default async function OrdersPage({
     getCustomers(),
     getProducts(),
     getDeliveryMethods(),
-    getProfile(),
+    getViewer(),
   ]);
 
   return (
@@ -46,7 +46,7 @@ export default async function OrdersPage({
         deliveryMethodId: searchParams.method,
         status: searchParams.status,
       }}
-      isAdmin={profile?.role === 'admin'}
+      canManage={viewer?.can('orders.manage') ?? false}
     />
   );
 }

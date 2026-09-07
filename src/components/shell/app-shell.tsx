@@ -9,17 +9,27 @@ import { cn, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { LanguageSelector } from './language-selector';
 import { SignOutButton } from './sign-out-button';
+import { atLeast, can, type Permission, type Role } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 
 /**
  * Responsive shell: a bottom tab bar on phones (thumb-reachable, since the
  * operators use this on the warehouse floor) and a sidebar from `md` up.
  */
-export function AppShell({ profile, children }: { profile: Profile; children: ReactNode }) {
+export function AppShell({
+  profile,
+  caps,
+  children,
+}: {
+  profile: Profile;
+  caps: Permission[];
+  children: ReactNode;
+}) {
   const { t, formatDate } = useI18n();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const isAdmin = profile.role === 'admin';
+  const role = profile.role as Role;
+  const held = new Set(caps);
 
   const nav = [
     { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
@@ -29,13 +39,14 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
     // Counting happens on the floor, so inventory sits in the main bar rather
     // than behind the admin section — the people who do it are not admins.
     { href: '/inventory', label: t('inventory.title'), icon: Boxes },
-    // The calendar browses future dates, so it is admin-only for the same
-    // reason the dashboard hides upcoming work from regular users.
-    ...(isAdmin
-      ? [
-          { href: '/calendar', label: t('nav.calendar'), icon: CalendarDays },
-          { href: '/admin', label: t('nav.admin'), icon: Shield },
-        ]
+    // The calendar browses future dates, so it belongs to whoever plans work,
+    // for the same reason the dashboard hides upcoming work from a plain user.
+    ...(can(role, held, 'tasks.manage_occurrences')
+      ? [{ href: '/calendar', label: t('nav.calendar'), icon: CalendarDays }]
+      : []),
+    // The management area opens at power_user; its own nav filters the tabs.
+    ...(atLeast(role, 'power_user')
+      ? [{ href: '/admin', label: t('nav.admin'), icon: Shield }]
       : []),
   ];
 

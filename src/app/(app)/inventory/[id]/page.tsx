@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getProfile, getUsers } from '@/server/data';
+import { getUsers, getViewer } from '@/server/data';
 import { getInventoryDetail, getInventoryLocations } from '@/server/inventory';
 import { InventoryDetailView } from '@/components/inventory/inventory-detail';
 
@@ -8,8 +8,8 @@ import { InventoryDetailView } from '@/components/inventory/inventory-detail';
 export const dynamic = 'force-dynamic';
 
 export default async function InventoryDetailPage({ params }: { params: { id: string } }) {
-  const profile = await getProfile();
-  const isAdmin = profile?.role === 'admin';
+  const viewer = await getViewer();
+  const canManage = viewer?.can('inventory.manage_instances') ?? false;
 
   const [detail, locations] = await Promise.all([
     getInventoryDetail(params.id),
@@ -20,15 +20,16 @@ export default async function InventoryDetailPage({ params }: { params: { id: st
 
   if (!detail) notFound();
 
-  // The assign dialog is the only consumer, so a non-admin never pays for it.
-  const users = isAdmin ? await getUsers() : [];
+  // The assign dialog is the only consumer, so anyone who cannot manage
+  // instances never pays for the query.
+  const users = canManage ? await getUsers() : [];
 
   return (
     <InventoryDetailView
       detail={detail}
       locations={locations}
       users={users}
-      isAdmin={isAdmin}
+      canManage={canManage}
     />
   );
 }

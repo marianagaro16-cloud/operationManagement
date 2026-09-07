@@ -4,27 +4,44 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
+import { can, type Permission, type Role } from '@/lib/authz';
 
-export function AdminNav() {
+/**
+ * Tabs of the management area, filtered by capability.
+ *
+ * Previously an unfiltered list, because the layout had already restricted the
+ * whole subtree to admins. Now that a Manager and a Power User get in, each tab
+ * declares what it needs and the ones a viewer cannot use are simply absent —
+ * a Power User does not see an Inventory Templates tab that would reject them.
+ *
+ * `permission: null` means every role that reached this layout may see it.
+ */
+export function AdminNav({ caps, role }: { caps: Permission[]; role: Role }) {
   const { t } = useI18n();
   const pathname = usePathname();
+  const held = new Set(caps);
+  const allow = (p: Permission | null) => p === null || can(role, held, p);
 
-  const items = [
-    { href: '/admin', label: t('nav.overview') },
-    { href: '/admin/tasks', label: t('nav.tasks') },
-    { href: '/admin/customers', label: t('master.customersTitle') },
-    { href: '/admin/products', label: t('master.productsTitle') },
-    { href: '/admin/delivery-methods', label: t('master.methodsTitle') },
-    { href: '/admin/recurring', label: t('master.recurringTitle') },
-    { href: '/admin/inventory', label: t('inventory.title') },
-    { href: '/admin/inventory/locations', label: t('inventory.locations') },
-    { href: '/admin/inventory/permissions', label: t('inventory.permissions') },
-    { href: '/admin/users', label: t('nav.users') },
-    { href: '/admin/history', label: t('nav.history') },
-    { href: '/admin/reports', label: t('report.title') },
-    { href: '/admin/statistics', label: t('nav.statistics') },
-    { href: '/admin/settings', label: t('nav.settings') },
+  const all: { href: string; label: string; permission: Permission | null }[] = [
+    { href: '/admin', label: t('nav.overview'), permission: null },
+    { href: '/admin/tasks', label: t('nav.tasks'), permission: 'tasks.manage_definitions' },
+    { href: '/admin/customers', label: t('master.customersTitle'), permission: 'customers.manage' },
+    { href: '/admin/products', label: t('master.productsTitle'), permission: 'products.manage' },
+    { href: '/admin/delivery-methods', label: t('master.methodsTitle'), permission: 'orders.manage_config' },
+    { href: '/admin/recurring', label: t('master.recurringTitle'), permission: 'orders.manage_config' },
+    { href: '/admin/inventory', label: t('inventory.title'), permission: 'inventory.manage_templates' },
+    { href: '/admin/inventory/locations', label: t('inventory.locations'), permission: 'inventory.manage_templates' },
+    { href: '/admin/inventory/permissions', label: t('inventory.permissions'), permission: 'inventory.grant_temporary_edit' },
+    { href: '/admin/users', label: t('nav.users'), permission: 'users.manage' },
+    { href: '/admin/permissions', label: t('roles.matrixTitle'), permission: 'permissions.configure' },
+    { href: '/admin/history', label: t('nav.history'), permission: 'tasks.manage_occurrences' },
+    { href: '/admin/audit', label: t('audit.title'), permission: 'audit.view_operational' },
+    { href: '/admin/reports', label: t('report.title'), permission: 'reports.view' },
+    { href: '/admin/statistics', label: t('nav.statistics'), permission: 'reports.view' },
+    { href: '/admin/settings', label: t('nav.settings'), permission: 'system.configure' },
   ];
+
+  const items = all.filter((i) => allow(i.permission));
 
   return (
     // Horizontally scrollable on phones rather than wrapping into a tall block.

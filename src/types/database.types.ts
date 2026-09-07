@@ -908,7 +908,7 @@ export type Database = {
       order_status: "draft" | "confirmed" | "cancelled"
       order_type: "sale" | "sample"
       task_frequency: "daily" | "weekly" | "biweekly" | "monthly" | "semiannual"
-      user_role: "admin" | "user"
+      user_role: "admin" | "user" | "manager" | "power_user"
       user_status: "pending" | "approved" | "rejected" | "deactivated"
     }
     CompositeTypes: {
@@ -1044,7 +1044,7 @@ export const Constants = {
       order_status: ["draft", "confirmed", "cancelled"],
       order_type: ["sale", "sample"],
       task_frequency: ["daily", "weekly", "biweekly", "monthly", "semiannual"],
-      user_role: ["admin", "user"],
+      user_role: ["admin", "user", "manager", "power_user"],
       user_status: ["pending", "approved", "rejected", "deactivated"],
     },
   },

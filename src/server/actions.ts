@@ -5,7 +5,8 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { scheduleConfigSchema, FREQUENCIES } from '@/domain/recurrence/types';
 import { addDays, businessToday } from '@/lib/datetime';
-import { ensureOccurrences } from './data';
+import { ROLES, wouldOrphanAdmins, type Role } from '@/lib/authz';
+import { countApprovedAdmins, ensureOccurrences } from './data';
 
 /**
  * Server actions.
@@ -183,22 +184,41 @@ export async function setUserStatus(
   return { ok: true, data: undefined };
 }
 
-export async function setUserRole(userId: string, role: 'admin' | 'user'): Promise<ActionResult> {
+const userRoleSchema = z.enum(ROLES);
+
+export async function setUserRole(userId: string, role: Role): Promise<ActionResult> {
+  const parsed = userRoleSchema.safeParse(role);
+  if (!parsed.success) return { ok: false, error: 'invalid_role' };
+
   const supabase = createClient();
 
   // Guard against removing the last admin and locking everyone out.
-  if (role === 'user') {
-    const { count } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('role', 'admin')
-      .eq('status', 'approved');
-    if ((count ?? 0) <= 1) return { ok: false, error: 'last_admin' };
+  //
+  // This used to trigger on `role === 'user'`, which was correct while those
+  // were the only two values. With four roles, demoting the final admin to
+  // `manager` would have walked straight past it — so the question is now
+  // "is this user leaving the admin role at all", not "where are they going".
+  const { data: current } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (current) {
+    const currentRole = (current as { role: Role }).role;
+    if (wouldOrphanAdmins({
+      currentRole,
+      nextRole: parsed.data,
+      approvedAdminCount: await countApprovedAdmins(),
+    })) {
+      return { ok: false, error: 'last_admin' };
+    }
   }
 
-  const { error } = await supabase.from('profiles').update({ role }).eq('id', userId);
+  const { error } = await supabase.from('profiles').update({ role: parsed.data }).eq('id', userId);
   if (error) return fail(error);
   revalidatePath('/admin/users');
+  revalidatePath('/admin/permissions');
   return { ok: true, data: undefined };
 }
 
@@ -206,9 +226,11 @@ export async function setUserRole(userId: string, role: 'admin' | 'user'): Promi
 
 /** Manual generation from the admin settings screen. */
 export async function generateHorizon(days = 60): Promise<ActionResult<{ created: number }>> {
+  // Self-gated because what follows uses the SERVICE-ROLE client, which
+  // bypasses RLS entirely — so this check is the only one that runs.
   const supabase = createClient();
-  const { data: isAdmin } = await supabase.rpc('is_admin');
-  if (!isAdmin) return { ok: false, error: 'not_authorized' };
+  const { data: allowed } = await supabase.rpc('has_permission', { p_key: 'tasks.manage_occurrences' });
+  if (!allowed) return { ok: false, error: 'not_authorized' };
 
   const today = businessToday();
   try {

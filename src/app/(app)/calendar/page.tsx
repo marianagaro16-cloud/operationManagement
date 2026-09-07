@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { getOccurrencesInRange, ensureOccurrences, getProfile } from '@/server/data';
+import { getOccurrencesInRange, ensureOccurrences, getViewer } from '@/server/data';
 import { BUSINESS_TZ, businessToday, toBusinessDate } from '@/lib/datetime';
 import { CalendarView } from '@/components/calendar/calendar-view';
 import { CalendarHeading } from '@/components/calendar/calendar-heading';
@@ -12,10 +12,11 @@ export default async function CalendarPage({
 }: {
   searchParams: { month?: string };
 }) {
-  // Regular users work the current day; the calendar is a planning tool.
+  // Regular users work the current day; the calendar is a planning tool, so it
+  // belongs to whoever plans work rather than to admins specifically.
   // Hiding the nav link alone would leave the route reachable by URL.
-  const profile = await getProfile();
-  if (profile?.role !== 'admin') redirect('/dashboard');
+  const viewer = await getViewer();
+  if (!viewer?.can('tasks.manage_occurrences')) redirect('/dashboard');
 
   const today = businessToday();
 

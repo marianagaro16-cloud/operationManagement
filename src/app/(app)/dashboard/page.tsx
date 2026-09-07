@@ -1,4 +1,4 @@
-import { getDashboardData, getProfile } from '@/server/data';
+import { getDashboardData, getViewer } from '@/server/data';
 import { getOrderDashboardSummary } from '@/server/orders';
 import { getInventoryDashboard } from '@/server/inventory';
 import { businessToday } from '@/lib/datetime';
@@ -13,14 +13,13 @@ export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const today = businessToday();
-  const profile = await getProfile();
-  const isAdmin = profile?.role === 'admin';
-
+  const viewer = await getViewer();
+  // Whoever plans work gets the forward view; everyone else gets today.
   // A regular user's dashboard is the current day. Showing a week ahead
   // invites working on tomorrow's list, and buries what is due now.
-  // Admins keep the forward view because planning is their job.
+  const plans = viewer?.can('tasks.manage_occurrences') ?? false;
   const [data, orders, inventory] = await Promise.all([
-    getDashboardData(isAdmin ? 7 : 0),
+    getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
     // The forward view lives on the inventory screen.
@@ -39,7 +38,7 @@ export default async function DashboardPage() {
       {/* Renders nothing unless a count is due or late, so it never becomes
           empty furniture people learn to scroll past. */}
       <InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} />
-      <DashboardView data={data} showUpcoming={isAdmin} />
+      <DashboardView data={data} showUpcoming={plans} />
     </>
   );
 }

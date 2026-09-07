@@ -34,7 +34,7 @@ export function OrderControl({
   deliveryMethods,
   month,
   filters,
-  isAdmin,
+  canManage,
 }: {
   orders: Order[];
   customers: Customer[];
@@ -42,7 +42,7 @@ export function OrderControl({
   deliveryMethods: DeliveryMethod[];
   month: string;
   filters: { customerId?: string; deliveryMethodId?: string; status?: string };
-  isAdmin: boolean;
+  canManage: boolean;
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
@@ -80,7 +80,7 @@ export function OrderControl({
         title={t('orders.title')}
         subtitle={t('orders.subtitle')}
         action={
-          isAdmin ? (
+          canManage ? (
             <Button variant="primary" onClick={() => setCreating(true)}>
               <Plus className="h-3.5 w-3.5" aria-hidden />
               {t('orders.newOrder')}
@@ -183,7 +183,7 @@ export function OrderControl({
                         <OrderCard
                           key={order.id}
                           order={order}
-                          isAdmin={isAdmin}
+                          canManage={canManage}
                           onEdit={() => setEditing(order)}
                         />
                       ))}
@@ -213,11 +213,11 @@ export function OrderControl({
 
 function OrderCard({
   order,
-  isAdmin,
+  canManage,
   onEdit,
 }: {
   order: Order;
-  isAdmin: boolean;
+  canManage: boolean;
   onEdit: () => void;
 }) {
   const { t, formatDate } = useI18n();
@@ -257,7 +257,7 @@ function OrderCard({
           <span className="text-[11.5px] text-muted">
             {t('orders.preparationOn', { date: formatDate(order.preparation_date, 'short') })}
           </span>
-          {isAdmin && (
+          {canManage && (
             <Button size="icon" variant="ghost" onClick={onEdit} aria-label={t('common.edit')}>
               <Pencil className="h-3.5 w-3.5" aria-hidden />
             </Button>

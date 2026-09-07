@@ -7,8 +7,14 @@
  * the first push.
  */
 import type { Frequency, OccurrenceStatus, ScheduleConfig } from '@/domain/recurrence/types';
+import type { Role } from '@/lib/authz';
 
-export type UserRole = 'admin' | 'user';
+/**
+ * The role vocabulary lives in `@/lib/authz`, so the hierarchy, the capability
+ * list and the rank stay in one place rather than being restated per file.
+ * Re-exported here because the rest of this schema mirror refers to it.
+ */
+export type UserRole = Role;
 export type UserStatus = 'pending' | 'approved' | 'rejected' | 'deactivated';
 
 export interface Profile {

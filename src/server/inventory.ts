@@ -3,7 +3,7 @@ import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { generateInventories, isInventoryScheduleConfigured } from '@/domain/inventory/schedule';
 import { isPastEditDeadline } from '@/domain/inventory/calc';
 import { addDays, businessToday, type BusinessDate } from '@/lib/datetime';
-import { getProfile } from './data';
+import { getViewer } from './data';
 import type {
   InventoryDetail,
   InventoryEditGrant,
@@ -267,7 +267,8 @@ const DETAIL_ITEM_SELECT = `
 
 export async function getInventoryDetail(instanceId: string): Promise<InventoryDetail | null> {
   const supabase = createClient();
-  const profile = await getProfile();
+  const viewer = await getViewer();
+  const profile = viewer?.profile ?? null;
 
   const { data, error } = await supabase
     .from('inventory_instances')
@@ -337,7 +338,7 @@ export async function getInventoryDetail(instanceId: string): Promise<InventoryD
     can_edit: Boolean(canEdit),
     lock_reason: lockReason({
       canEdit: Boolean(canEdit),
-      isAdmin: profile?.role === 'admin',
+      canManage: viewer?.can('inventory.manage_instances') ?? false,
       approved: profile?.status === 'approved',
       assigned: assignees.some((a) => a.id === profile?.id),
       completed: raw.completed_at !== null,
@@ -350,7 +351,7 @@ export async function getInventoryDetail(instanceId: string): Promise<InventoryD
 /** Explains a read-only screen, so it can say why rather than just look broken. */
 function lockReason(input: {
   canEdit: boolean;
-  isAdmin: boolean;
+  canManage: boolean;
   approved: boolean;
   assigned: boolean;
   completed: boolean;
@@ -358,7 +359,7 @@ function lockReason(input: {
 }): InventoryDetail['lock_reason'] {
   if (input.canEdit) return 'none';
   if (!input.approved) return 'not_approved';
-  if (!input.assigned && !input.isAdmin) return 'not_assigned';
+  if (!input.assigned && !input.canManage) return 'not_assigned';
   if (input.completed) return 'completed';
   if (input.pastDeadline) return 'past_deadline';
   return 'not_assigned';

@@ -552,9 +552,11 @@ export async function saveInventoryLocation(
 export async function generateInventoryHorizon(
   days = 90,
 ): Promise<ActionResult<{ created: number }>> {
+  // Self-gated because what follows uses the SERVICE-ROLE client, which
+  // bypasses RLS entirely — so this check is the only one that runs.
   const supabase = createClient();
-  const { data: isAdmin } = await supabase.rpc('is_admin');
-  if (!isAdmin) return { ok: false, error: 'not_authorized' };
+  const { data: allowed } = await supabase.rpc('has_permission', { p_key: 'inventory.manage_instances' });
+  if (!allowed) return { ok: false, error: 'not_authorized' };
 
   const today = businessToday();
   try {

@@ -68,15 +68,66 @@ with a direct link to fix it.
 
 ---
 
+## Roles
+
+Four levels. The line that matters runs between Manager and Power user, and it
+is **configuration versus data**: a Manager may change the inventory *template*
+that shapes every future count; a Power user may only work on the *counts* that
+template produced.
+
+| Role | Owns |
+|---|---|
+| `admin` | System control — users, roles, permissions, configuration |
+| `manager` | Operational configuration *and* management |
+| `power_user` | Operational management only |
+| `user` | Operational execution — works on what they are assigned |
+
+Between the two extremes the capabilities are **configurable**, at
+`/admin/permissions`. A capability is a row in `permission_catalog`; a grant is a
+row in `role_permissions`. What a Manager or Power user may do is therefore data,
+not code, and an admin can move the line without a deploy.
+
+Six capabilities are permanently admin-only — creating and approving users,
+assigning roles, configuring permissions, system configuration, and the security
+audit. They are catalogued with `is_configurable = false` purely so the matrix
+can render them locked. Two independent database rules make them ungrantable: a
+CHECK constrains `role_permissions` to `manager` and `power_user`, and a trigger
+refuses any non-configurable permission. Delegating role assignment to a Manager
+is not a mistake that can be made through the UI, the API, or hand-written SQL.
+
+`is_admin()` was deliberately **not** changed. It still means "role = admin and
+approved", and remains the predicate for everything system-level. Operational
+access widened through a sibling, `has_permission(key)`, which short-circuits on
+`is_admin()`. The consequence worth knowing: adding the roles changed nobody's
+access, because until an account is actually promoted there is no `manager` or
+`power_user` row for any policy to match.
+
+Adding the enum labels ships as its own migration
+(`20260908090000_roles_enum.sql`), separate from everything that references them
+(`20260908090100_role_permissions.sql`). Postgres will not let a new enum label
+be used in the transaction that added it, and `supabase db push` runs each file
+as one transaction. **Do not merge those two files.**
+
+---
+
 ## Security
 
 RLS is the boundary; frontend role checks are cosmetic.
 
 - `profiles` — read own always (so a pending user learns they are pending);
   approved users read the team; only admins write role/status.
-- `tasks`, `categories` — approved users read; only admins write.
+- `tasks`, `categories` — approved users read; `tasks.manage_definitions` writes.
 - `task_occurrences` — approved users read. **No direct UPDATE for users.**
 - `task_comments` — approved read; insert only as yourself.
+- `role_permissions` — approved users read (the UI has to explain why an action
+  is unavailable); only admins write.
+- `security_audit_log` — admin read only. The operational logs
+  (`order_audit_log`, `inventory_audit_log`) open at `audit.view_operational`.
+
+Column-level rules cannot be expressed as RLS, so two of them are triggers:
+Product Code changes require `products.change_code`, and editing a confirmed
+order requires `orders.correct_completed`. Both skip the check when there is no
+session, because the importer runs as the service role and legitimately has none.
 
 All user-facing state changes go through `SECURITY DEFINER` functions —
 `complete_occurrence`, `skip_occurrence`, `reopen_occurrence` — which re-check
@@ -95,19 +146,21 @@ Self-registration never grants access: a trigger creates the profile as
 |---|---|---|
 | `/login`, `/register` | public | email/password auth |
 | `/dashboard` | approved | today, overdue, upcoming, extra-tasks banner |
-| `/calendar` | approved | month grid of occurrences |
-| `/admin` | admin | config health + pending approvals |
-| `/admin/tasks` | admin | definitions, frequency-adaptive schedule editor |
+| `/calendar` | tasks.manage_occurrences | month grid of occurrences |
+| `/admin` | power_user+ | config health + pending approvals |
+| `/admin/tasks` | tasks.manage_definitions | definitions, frequency-adaptive schedule editor |
 | `/admin/users` | admin | approve / reject / deactivate, role changes |
-| `/admin/history` | admin | occurrence record (rolling 180 days) |
-| `/admin/statistics` | admin | completion by day/week/month/year, user, category, frequency |
+| `/admin/permissions` | admin | the role/capability matrix |
+| `/admin/audit` | audit.view_operational | operational trail; security tab is admin-only |
+| `/admin/history` | tasks.manage_occurrences | occurrence record (rolling 180 days) |
+| `/admin/statistics` | reports.view | completion by day/week/month/year, user, category, frequency |
 | `/admin/settings` | admin | manual occurrence generation |
 | `/inventory` | approved | inventory overview: today, upcoming, review queue, filtered history |
 | `/inventory/[id]` | approved (only assigned may edit) | the counting screen |
-| `/admin/inventory` | admin | inventory templates, schedules, Inventory Digital toggle |
-| `/admin/inventory/[templateId]` | admin | items, product links, ordering, default assignees |
-| `/admin/inventory/locations` | admin | counting locations for packaging |
-| `/admin/inventory/permissions` | admin | temporary edit permissions |
+| `/admin/inventory` | inventory.manage_templates | inventory templates, schedules, Inventory Digital toggle |
+| `/admin/inventory/[templateId]` | inventory.manage_templates | items, product links, ordering, default assignees |
+| `/admin/inventory/locations` | inventory.manage_templates | counting locations for packaging |
+| `/admin/inventory/permissions` | inventory.grant_temporary_edit | temporary edit permissions |
 | `/api/cron/generate` | cron secret | nightly task occurrence + inventory materialisation |
 
 ---
@@ -191,6 +244,7 @@ npm test                # recurrence engine suite
 npm run typecheck
 npm run icons           # regenerate PWA icons
 npm run db:types        # regenerate DB types from the live schema
+npm run verify:roles    # role/permission RLS checks against the live database
 ```
 
 ---

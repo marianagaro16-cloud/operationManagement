@@ -1,4 +1,4 @@
-import { getProfile, getUsers } from '@/server/data';
+import { getUsers, getViewer } from '@/server/data';
 import {
   getInventories,
   getInventoryDashboard,
@@ -30,8 +30,11 @@ export default async function InventoryPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const profile = await getProfile();
-  const isAdmin = profile?.role === 'admin';
+  const viewer = await getViewer();
+  // Reconciliation work — entering Inventory Digital, resolving a difference —
+  // is management work, so the widgets that surface it follow the capability
+  // rather than the admin role.
+  const canManage = viewer?.can('inventory.manage_instances') ?? false;
 
   // History is paged, never loaded whole: it grows for as long as the
   // operation runs, and a phone on the warehouse floor must not fetch it all.
@@ -69,8 +72,8 @@ export default async function InventoryPage({
           upcoming: dashboard.upcoming,
           // Only an admin can act on either of these, so they are not fetched
           // into a regular user's payload at all.
-          needsReview: isAdmin ? dashboard.needsReview : [],
-          digitalPending: isAdmin ? dashboard.digitalPending : [],
+          needsReview: canManage ? dashboard.needsReview : [],
+          digitalPending: canManage ? dashboard.digitalPending : [],
           history: history.rows,
           historyTotal: history.total,
         }}
@@ -80,7 +83,7 @@ export default async function InventoryPage({
           translations: t.translations,
         }))}
         users={users}
-        isAdmin={isAdmin}
+        canManage={canManage}
       />
     </>
   );

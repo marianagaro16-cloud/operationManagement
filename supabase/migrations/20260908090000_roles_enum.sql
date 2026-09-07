@@ -1,0 +1,32 @@
+-- ============================================================
+-- Four-role hierarchy, part 1 of 2: the enum labels ONLY.
+--
+-- This migration deliberately does nothing except widen public.user_role.
+--
+-- Postgres will not allow a new enum label to be REFERENCED by any statement
+-- in the same transaction that added it ("unsafe use of new value of enum
+-- type"). Since `supabase db push` runs each migration file as one
+-- transaction, every policy, function body, seed row and default that
+-- mentions 'manager' or 'power_user' has to live in a LATER file. That file
+-- is 20260908090100_role_permissions.sql.
+--
+-- Do not merge these two migrations. It will fail on a fresh database.
+--
+-- Labels are lowercase to match the existing 'admin' and 'user'. The existing
+-- two are NOT renamed: every TypeScript literal, both type files and the body
+-- of is_admin() depend on them, and renaming buys nothing.
+--
+-- The hierarchy the labels encode:
+--
+--   admin       system control  — users, roles, permissions, configuration
+--   manager     operational CONFIGURATION + management
+--   power_user  operational management (data, not structure)
+--   user        operational execution — what they are assigned
+--
+-- Adding a label changes nobody's role. Every existing profile keeps the
+-- value it already has, and is_admin() keeps its exact current meaning, so
+-- this file is inert until somebody is actually promoted.
+-- ============================================================
+
+alter type public.user_role add value if not exists 'manager';
+alter type public.user_role add value if not exists 'power_user';

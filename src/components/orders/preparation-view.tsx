@@ -27,11 +27,11 @@ import { saveLotAllocation, deleteLotAllocation, setShortfallReason } from '@/se
 export function PreparationView({
   orders,
   date,
-  isAdmin,
+  canManage,
 }: {
   orders: Order[];
   date: string;
-  isAdmin: boolean;
+  canManage: boolean;
 }) {
   const { t, formatDate } = useI18n();
 
@@ -100,7 +100,7 @@ export function PreparationView({
               <h2 className="mb-2 text-[15px] font-semibold">{customerName}</h2>
               <div className="space-y-3">
                 {customerOrders.map((order) => (
-                  <OrderPreparationCard key={order.id} order={order} isAdmin={isAdmin} />
+                  <OrderPreparationCard key={order.id} order={order} canManage={canManage} />
                 ))}
               </div>
             </section>
@@ -111,7 +111,7 @@ export function PreparationView({
   );
 }
 
-function OrderPreparationCard({ order, isAdmin }: { order: Order; isAdmin: boolean }) {
+function OrderPreparationCard({ order, canManage }: { order: Order; canManage: boolean }) {
   const { t, formatDate } = useI18n();
   const progress = orderProgress(
     order.lines.map((l) => ({
@@ -153,14 +153,14 @@ function OrderPreparationCard({ order, isAdmin }: { order: Order; isAdmin: boole
 
       <ul className="divide-y divide-border">
         {order.lines.map((line) => (
-          <PreparationLine key={line.id} line={line} isAdmin={isAdmin} />
+          <PreparationLine key={line.id} line={line} canManage={canManage} />
         ))}
       </ul>
     </Card>
   );
 }
 
-function PreparationLine({ line, isAdmin }: { line: OrderLine; isAdmin: boolean }) {
+function PreparationLine({ line, canManage }: { line: OrderLine; canManage: boolean }) {
   const { t } = useI18n();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -191,7 +191,7 @@ function PreparationLine({ line, isAdmin }: { line: OrderLine; isAdmin: boolean 
 
     // Mirrors the database trigger so the user gets an immediate, specific
     // message; the trigger is still what enforces it.
-    const check = canAllocate(line.ordered_quantity, line.allocations, quantity, isAdmin);
+    const check = canAllocate(line.ordered_quantity, line.allocations, quantity, canManage);
     if (!check.ok) {
       setError(
         check.reason === 'over_allocation'
