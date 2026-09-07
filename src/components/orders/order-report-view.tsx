@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Download } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -163,7 +164,17 @@ export function OrderReportView({
                     <tbody className="divide-y divide-border">
                       {report.byCustomer.map((c) => (
                         <tr key={c.customerId}>
-                          <td className="max-w-[260px] truncate px-3 py-2" title={c.name}>{c.name}</td>
+                          {/* The orders behind the number. Every row of this
+                              report used to be dead text over a query that
+                              already knew how to filter. */}
+                          <td className="max-w-[260px] truncate px-3 py-2" title={c.name}>
+                            <Link
+                              href={`/orders?month=${range.start.slice(0, 7)}&customer=${c.customerId}`}
+                              className="transition-colors hover:text-accent hover:underline"
+                            >
+                              {c.name}
+                            </Link>
+                          </td>
                           <td className="px-2 py-2 text-right tabular">{c.orders}</td>
                           <td className="px-2 py-2 text-right tabular text-muted">{c.lines}</td>
                           <td className="px-3 py-2 text-right font-medium tabular">{c.ordered}</td>

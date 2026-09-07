@@ -29,6 +29,7 @@ export const es: Messages = {
     tomorrow: 'Mañana',
     of: 'de',
     byAt: '{name} · {time}',
+    readOnly: 'Solo lectura',
   },
   auth: {
     signIn: 'Iniciar sesión',
@@ -389,6 +390,11 @@ export const es: Messages = {
     linesTitle: 'Productos de este pedido',
     searchOrders: 'Buscar cliente, número de pedido o producto…',
     searchAcrossMonths: '{count} resultados en todos los meses',
+    chooseCustomer: 'Elige un cliente',
+    needOneProduct: 'Añade al menos un producto con cantidad',
+    readOnly: 'Puedes ver este pedido pero no modificarlo',
+    readOnlyBody: 'Para editar un pedido hace falta el permiso de gestión de pedidos. Pídeselo a un administrador si lo necesitas.',
+    cancelOrderConfirm: '¿Anular este pedido? Desaparece de la preparación y queda en el registro.',
   },
   prep: {
     title: 'Control de lotes',
@@ -757,6 +763,8 @@ export const es: Messages = {
     change: 'Cambio',
     empty: 'Todavía no hay nada registrado',
     system: 'Sistema',
+    before: 'Antes',
+    after: 'Después',
   },
   language: {
     label: 'Idioma',

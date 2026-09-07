@@ -31,6 +31,7 @@ export const en = {
     tomorrow: 'Tomorrow',
     of: 'of',
     byAt: '{name} · {time}',
+    readOnly: 'Read only',
   },
   auth: {
     signIn: 'Sign in',
@@ -391,6 +392,11 @@ export const en = {
     linesTitle: 'Products on this order',
     searchOrders: 'Search customer, order number or product…',
     searchAcrossMonths: '{count} matches across all months',
+    chooseCustomer: 'Choose a customer',
+    needOneProduct: 'Add at least one product with a quantity',
+    readOnly: 'You can view this order but not change it',
+    readOnlyBody: 'Editing an order needs the Manage orders permission. Ask an administrator if you need it.',
+    cancelOrderConfirm: 'Cancel this order? It disappears from preparation and stays on the record.',
   },
   prep: {
     title: 'Lot control',
@@ -769,6 +775,8 @@ export const en = {
     change: 'Change',
     empty: 'Nothing recorded yet',
     system: 'System',
+    before: 'Before',
+    after: 'After',
   },
   language: {
     label: 'Language',

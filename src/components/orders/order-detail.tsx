@@ -8,7 +8,7 @@ import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Badge, Card, SectionHeading } from '@/components/ui/primitives';
+import { Badge, Card, ReadOnlyNotice, SectionHeading } from '@/components/ui/primitives';
 import { StatusChip } from '@/components/ui/status-chip';
 import { PageHeader } from '@/components/shell/app-shell';
 import { lineProgress, toQuantity } from '@/domain/orders/progress';
@@ -89,6 +89,13 @@ export function OrderDetail({
           ) : undefined
         }
       />
+
+      {/* Says why there is no edit button, instead of just not having one.
+          Absence of a control reads as a missing feature; this reads as a
+          permission, which is what it is. */}
+      {!canManage && (
+        <ReadOnlyNotice title={t('orders.readOnly')} reason={t('orders.readOnlyBody')} />
+      )}
 
       {/* ------------------------- the facts ------------------------- */}
       <Card className={cn('mb-4 p-3.5', cancelled && 'opacity-70')}>

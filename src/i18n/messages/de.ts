@@ -29,6 +29,7 @@ export const de: Messages = {
     tomorrow: 'Morgen',
     of: 'von',
     byAt: '{name} · {time}',
+    readOnly: 'Nur lesen',
   },
   auth: {
     signIn: 'Anmelden',
@@ -389,6 +390,11 @@ export const de: Messages = {
     linesTitle: 'Produkte dieser Bestellung',
     searchOrders: 'Kunde, Bestellnummer oder Produkt suchen…',
     searchAcrossMonths: '{count} Treffer über alle Monate',
+    chooseCustomer: 'Kunde auswählen',
+    needOneProduct: 'Mindestens ein Produkt mit Menge hinzufügen',
+    readOnly: 'Du kannst diese Bestellung ansehen, aber nicht ändern',
+    readOnlyBody: 'Zum Bearbeiten einer Bestellung wird die Berechtigung für die Bestellverwaltung benötigt. Frag eine Administratorin, wenn du sie brauchst.',
+    cancelOrderConfirm: 'Diese Bestellung stornieren? Sie verschwindet aus der Vorbereitung und bleibt im Protokoll.',
   },
   prep: {
     title: 'Lotnummernkontrolle',
@@ -757,6 +763,8 @@ export const de: Messages = {
     change: 'Änderung',
     empty: 'Noch nichts aufgezeichnet',
     system: 'System',
+    before: 'Vorher',
+    after: 'Nachher',
   },
   language: {
     label: 'Sprache',

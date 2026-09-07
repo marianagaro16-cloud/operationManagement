@@ -8,7 +8,7 @@ import { filterByQuery } from '@/lib/search';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
-import { Badge, Card, Checkbox, EmptyState, ErrorState, Input, SectionHeading } from '@/components/ui/primitives';
+import { Badge, Card, Checkbox, EmptyState, ErrorState, Input, ReadOnlyNotice, SectionHeading } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { minutesUntilDeadline } from '@/domain/inventory/calc';
 import { formatCalendarWeek } from '@/domain/inventory/schedule';
@@ -276,14 +276,14 @@ function LockNotice({ reason }: { reason: InventoryDetail['lock_reason'] }) {
         ? t('inventory.lockCompleted')
         : t('inventory.lockNotAssigned');
 
+  // The shared notice; this screen's version is now the one every other
+  // screen borrows rather than the only one in the app.
   return (
-    <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-border bg-surface-2/60 px-3.5 py-3">
-      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted" aria-hidden />
-      <div>
-        <p className="text-[13px] font-medium">{t('inventory.readOnly')}</p>
-        <p className="mt-0.5 text-[12.5px] text-muted">{message}</p>
-      </div>
-    </div>
+    <ReadOnlyNotice
+      title={t('inventory.readOnly')}
+      reason={message}
+      icon={<Lock className="h-4 w-4" aria-hidden />}
+    />
   );
 }
 

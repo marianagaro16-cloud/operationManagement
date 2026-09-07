@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
-import { Dialog } from '@/components/ui/dialog';
+import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
 import { Combobox } from '@/components/ui/combobox';
 import { defaultPreparationDate, isValidSchedule } from '@/domain/orders/scheduling';
@@ -66,6 +66,8 @@ export function OrderDialog({
     })) ?? [{ product_id: '', ordered_quantity: '', note: '' }],
   );
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [cancelOpen, setCancelOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   // Historical orders must keep showing an inactive product; new lines may
@@ -80,10 +82,19 @@ export function OrderDialog({
 
   function submit() {
     setError(null);
-    if (!customerId) return setError(t('orders.customer'));
+    setFieldErrors({});
+
+    // Per-field sentences, on the field. This used to set the form-level error
+    // to a FIELD LABEL — a missing customer produced the message "Customer",
+    // and no products produced "Add product" — displayed as a red block at the
+    // foot of a long dialog with nothing highlighted. The Field primitive has
+    // supported a per-field error all along; the skip dialog already uses it.
+    const next: Record<string, string> = {};
+    if (!customerId) next.customer = t('orders.chooseCustomer');
     if (!isValidSchedule(deliveryDate, preparationDate)) {
-      return setError(t('orders.preparationAfterDelivery'));
+      next.preparation = t('orders.preparationAfterDelivery');
     }
+
     const cleaned = lines
       .filter((l) => l.product_id && toQuantity(l.ordered_quantity) > 0)
       .map((l) => ({
@@ -92,7 +103,17 @@ export function OrderDialog({
         ordered_quantity: toQuantity(l.ordered_quantity),
         note: l.note.trim() || null,
       }));
-    if (cleaned.length === 0) return setError(t('orders.addProduct'));
+    if (cleaned.length === 0) next.lines = t('orders.needOneProduct');
+
+    if (Object.keys(next).length > 0) {
+      setFieldErrors(next);
+      // Take the person to the first thing that needs fixing rather than
+      // leaving them to find it in a form that scrolls.
+      const first = next.customer ? 'o-customer' : next.preparation ? 'o-prep' : 'o-lines';
+      document.getElementById(first)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      document.getElementById(first)?.focus?.();
+      return;
+    }
 
     startTransition(async () => {
       const res = await saveOrder(
@@ -130,6 +151,20 @@ export function OrderDialog({
       className="max-w-2xl"
       footer={
         <>
+          {/* Cancelling an order was a value in a dropdown you then had to
+              Save — the one destructive action in the app with no button and
+              no confirmation, while its confirmation text sat translated and
+              unused. It is an action now, and it asks. */}
+          {order && order.status !== 'cancelled' && (
+            <Button
+              variant="ghost"
+              className="mr-auto text-late hover:bg-late/10 hover:text-late"
+              onClick={() => setCancelOpen(true)}
+              disabled={pending}
+            >
+              {t('orders.cancelOrder')}
+            </Button>
+          )}
           <Button variant="ghost" onClick={onClose} disabled={pending}>
             {t('common.cancel')}
           </Button>
@@ -140,7 +175,7 @@ export function OrderDialog({
       }
     >
       <div className="space-y-3.5">
-        <Field label={t('orders.customer')} required htmlFor="o-customer">
+        <Field label={t('orders.customer')} required htmlFor="o-customer" error={fieldErrors.customer}>
           {/* Searches company name AND trading name: "catedral" finds
               "5 Almas AG — La Catedral". */}
           <Combobox
@@ -193,6 +228,7 @@ export function OrderDialog({
             label={t('orders.preparationDate')}
             hint={t('orders.preparationHint')}
             htmlFor="o-prep"
+            error={fieldErrors.preparation}
           >
             <Input
               id="o-prep"
@@ -236,8 +272,11 @@ export function OrderDialog({
         </div>
 
         {/* Products */}
-        <div>
+        <div id="o-lines" tabIndex={-1}>
           <p className="mb-1.5 text-[13px] font-medium">{t('orders.product')}</p>
+          {fieldErrors.lines && (
+            <p className="mb-1.5 text-[12px] text-late">{fieldErrors.lines}</p>
+          )}
           <div className="space-y-2">
             {lines.map((line, i) => (
               <div key={i} className="flex items-start gap-2">
@@ -306,6 +345,47 @@ export function OrderDialog({
 
         {error && <ErrorState message={error} />}
       </div>
+
+      <ConfirmDialog
+        open={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={() => {
+          setCancelOpen(false);
+          setStatus('cancelled');
+          // Saved immediately: asking twice — confirm, then Save — is how a
+          // confirmation stops being read.
+          startTransition(async () => {
+            const res = await saveOrder(
+              {
+                customer_id: customerId,
+                delivery_date: deliveryDate,
+                delivery_time: deliveryTime || null,
+                preparation_date: preparationDate,
+                delivery_method_id: methodId || null,
+                status: 'cancelled',
+                order_type: orderType,
+                note: note.trim() || null,
+                lines: lines
+                  .filter((l) => l.product_id && toQuantity(l.ordered_quantity) > 0)
+                  .map((l) => ({
+                    id: l.id,
+                    product_id: l.product_id,
+                    ordered_quantity: toQuantity(l.ordered_quantity),
+                    note: l.note.trim() || null,
+                  })),
+              },
+              order?.id,
+            );
+            if (!res.ok) return setError(res.error);
+            onSaved();
+          });
+        }}
+        title={t('orders.cancelOrder')}
+        message={t('orders.cancelOrderConfirm')}
+        confirmLabel={t('orders.cancelOrder')}
+        cancelLabel={t('common.cancel')}
+        loading={pending}
+      />
     </Dialog>
   );
 }

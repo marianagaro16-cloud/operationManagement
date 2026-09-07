@@ -8,6 +8,7 @@ import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState, ErrorState, Field, Input, Textarea } from '@/components/ui/primitives';
+import { ConfirmDialog } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/shell/app-shell';
 import { canAllocate, lineProgress, toQuantity } from '@/domain/orders/progress';
 import { weekDays } from '@/domain/orders/scheduling';
@@ -224,6 +225,7 @@ function PreparationLine({ line, canManage }: { line: OrderLine; canManage: bool
   const [qty, setQty] = useState('');
   const [note, setNote] = useState('');
   const [reason, setReason] = useState(line.shortfall_reason ?? '');
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const progress = lineProgress(line.ordered_quantity, line.allocations, line.shortfall_reason);
@@ -323,13 +325,12 @@ function PreparationLine({ line, canManage }: { line: OrderLine; canManage: bool
               <span className="font-medium tabular">{a.lot_number}</span>
               <span className="tabular text-muted">× {toQuantity(a.quantity)}</span>
               {a.note && <span className="min-w-0 flex-1 truncate text-subtle">{a.note}</span>}
+              {/* Confirmed. This fired on the first tap of a small icon, on a
+                  touchscreen, next to a scrolling list, and erased a recorded
+                  lot with no undo — while the confirmation text for it sat
+                  translated in all three dictionaries, unused. */}
               <button
-                onClick={() =>
-                  startTransition(async () => {
-                    await deleteLotAllocation(a.id);
-                    router.refresh();
-                  })
-                }
+                onClick={() => setDeleting(a.id)}
                 disabled={pending}
                 aria-label={t('prep.deleteLot')}
                 className="ml-auto shrink-0 text-subtle transition-colors hover:text-late"
@@ -427,6 +428,25 @@ function PreparationLine({ line, canManage }: { line: OrderLine; canManage: bool
           <span className="font-medium">{t('prep.shortfallReason')}:</span> {line.shortfall_reason}
         </p>
       )}
+
+      <ConfirmDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => {
+          const id = deleting;
+          setDeleting(null);
+          if (!id) return;
+          startTransition(async () => {
+            await deleteLotAllocation(id);
+            router.refresh();
+          });
+        }}
+        title={t('prep.deleteLot')}
+        message={t('prep.deleteLotConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        loading={pending}
+      />
     </li>
   );
 }

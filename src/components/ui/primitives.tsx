@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef, type HTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
-import { AlertTriangle, Inbox, Loader2 } from 'lucide-react';
+import { AlertTriangle, Inbox, Loader2, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /* ------------------------------ surfaces ------------------------------ */
@@ -163,6 +163,35 @@ export function EmptyState({
       <p className="text-sm font-medium">{title}</p>
       {body && <p className="mt-1 max-w-sm text-[13px] text-muted">{body}</p>}
       {action && <div className="mt-4">{action}</div>}
+    </div>
+  );
+}
+
+/**
+ * Says WHY a screen is read-only, rather than just having no buttons on it.
+ *
+ * Lifted out of the inventory detail screen, which was the only place in the
+ * app that explained itself: everywhere else a control the viewer may not use
+ * is simply absent, which reads as a missing feature rather than a permission.
+ */
+export function ReadOnlyNotice({
+  title,
+  reason,
+  icon,
+}: {
+  title: string;
+  reason: string;
+  icon?: ReactNode;
+}) {
+  return (
+    <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-border bg-surface-2/60 px-3.5 py-3">
+      <span className="mt-0.5 shrink-0 text-muted">
+        {icon ?? <Lock className="h-4 w-4" aria-hidden />}
+      </span>
+      <div>
+        <p className="text-[13px] font-medium">{title}</p>
+        <p className="mt-0.5 text-[12.5px] text-muted">{reason}</p>
+      </div>
     </div>
   );
 }

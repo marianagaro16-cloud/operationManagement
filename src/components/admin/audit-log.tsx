@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Badge, Card, EmptyState } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
@@ -13,11 +14,18 @@ import type { OperationalAuditRow, SecurityAuditRow } from '@/server/permissions
  * Both module logs have been written by triggers since their modules shipped,
  * but nothing ever read them — there was no screen. This is that screen.
  *
- * Values are rendered as compact JSON rather than being prettified per action.
- * There are 13 inventory action types alone, each with its own shape; a
- * bespoke renderer for every one would be a lot of code to describe data an
- * admin reads a few times a year, and it would silently fall behind whenever a
- * new action type is added.
+ * Values are still rendered as JSON rather than prettified per action. There
+ * are 13 inventory action types alone, each with its own shape; a bespoke
+ * renderer for every one would be a lot of code to describe data an admin
+ * reads a few times a year, and it would silently fall behind whenever a new
+ * action type is added.
+ *
+ * What changed is that the JSON is no longer TRUNCATED. A screen whose stated
+ * job is "what was changed, by whom, and when" showed the detail clipped at
+ * 22rem with an ellipsis — unreadable in precisely the cases somebody opens it
+ * for. Each row expands to the full value, formatted, and the whole thing
+ * renders as cards below the tablet breakpoint instead of a sideways-scrolling
+ * rectangle in an app otherwise built out of cards.
  */
 export function AuditLog({
   operational,
@@ -37,8 +45,7 @@ export function AuditLog({
   const when = (iso: string) =>
     `${formatDate(iso.slice(0, 10), 'short')} ${iso.slice(11, 16)}`;
 
-  const value = (v: Record<string, unknown> | null) =>
-    v === null ? '—' : JSON.stringify(v);
+  const showOperational = tab === 'operational' || !canSeeSecurity;
 
   return (
     <>
@@ -62,81 +69,122 @@ export function AuditLog({
         </div>
       )}
 
-      {tab === 'operational' || !canSeeSecurity ? (
+      {showOperational ? (
         operational.length === 0 ? (
           <EmptyState title={t('audit.empty')} />
         ) : (
           <Card className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[40rem] border-collapse text-[13px]">
-                <thead>
-                  <tr className="border-b border-border text-left">
-                    <th className="px-3.5 py-2.5 font-semibold">{t('audit.when')}</th>
-                    <th className="px-3.5 py-2.5 font-semibold">{t('audit.who')}</th>
-                    <th className="px-3.5 py-2.5 font-semibold">{t('audit.action')}</th>
-                    <th className="px-3.5 py-2.5 font-semibold">{t('audit.detail')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {operational.map((r) => (
-                    <tr key={`${r.source}-${r.id}`} className="border-b border-border last:border-0">
-                      <td className="whitespace-nowrap px-3.5 py-2 tabular text-muted">{when(r.created_at)}</td>
-                      <td className="px-3.5 py-2">{who(r.actor)}</td>
-                      <td className="px-3.5 py-2">
-                        {/* Three sources now, not two: task completions,
-                            skips and definition edits were never audited. */}
-                        <Badge
-                          tone={
-                            r.source === 'inventory' ? 'accent'
-                              : r.source === 'task' ? 'done'
-                                : 'neutral'
-                          }
-                        >
-                          {r.action}
-                        </Badge>
-                      </td>
-                      <td className="max-w-[22rem] truncate px-3.5 py-2 font-mono text-[11.5px] text-muted">
-                        {value(r.detail)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ul className="divide-y divide-border">
+              {operational.map((r) => (
+                <AuditEntry
+                  key={`${r.source}-${r.id}`}
+                  when={when(r.created_at)}
+                  who={who(r.actor)}
+                  action={r.action}
+                  // Three sources now, not two: task completions, skips and
+                  // definition edits were never audited at all.
+                  tone={r.source === 'inventory' ? 'accent' : r.source === 'task' ? 'done' : 'neutral'}
+                  detail={{ [t('audit.detail')]: r.detail }}
+                />
+              ))}
+            </ul>
           </Card>
         )
       ) : security.length === 0 ? (
         <EmptyState title={t('audit.empty')} />
       ) : (
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[42rem] border-collapse text-[13px]">
-              <thead>
-                <tr className="border-b border-border text-left">
-                  <th className="px-3.5 py-2.5 font-semibold">{t('audit.when')}</th>
-                  <th className="px-3.5 py-2.5 font-semibold">{t('audit.who')}</th>
-                  <th className="px-3.5 py-2.5 font-semibold">{t('audit.target')}</th>
-                  <th className="px-3.5 py-2.5 font-semibold">{t('audit.action')}</th>
-                  <th className="px-3.5 py-2.5 font-semibold">{t('audit.change')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {security.map((r) => (
-                  <tr key={r.id} className="border-b border-border last:border-0">
-                    <td className="whitespace-nowrap px-3.5 py-2 tabular text-muted">{when(r.created_at)}</td>
-                    <td className="px-3.5 py-2">{who(r.actor)}</td>
-                    <td className="px-3.5 py-2">{r.target ? who(r.target) : '—'}</td>
-                    <td className="px-3.5 py-2"><Badge tone="warn">{r.action}</Badge></td>
-                    <td className="max-w-[20rem] truncate px-3.5 py-2 font-mono text-[11.5px] text-muted">
-                      {value(r.previous_value)} → {value(r.new_value)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="divide-y divide-border">
+            {security.map((r) => (
+              <AuditEntry
+                key={r.id}
+                when={when(r.created_at)}
+                who={who(r.actor)}
+                target={r.target ? who(r.target) : undefined}
+                action={r.action}
+                tone="warn"
+                detail={{
+                  [t('audit.before')]: r.previous_value,
+                  [t('audit.after')]: r.new_value,
+                }}
+              />
+            ))}
+          </ul>
         </Card>
       )}
     </>
+  );
+}
+
+/**
+ * One entry, expandable.
+ *
+ * Deliberately a list row rather than a table row: the facts are a handful of
+ * short labelled values, which wrap on a phone and line up on a desktop with
+ * no minimum width and no horizontal scroller.
+ */
+function AuditEntry({
+  when,
+  who,
+  target,
+  action,
+  tone,
+  detail,
+}: {
+  when: string;
+  who: string;
+  target?: string;
+  action: string;
+  tone: 'accent' | 'done' | 'neutral' | 'warn';
+  detail: Record<string, Record<string, unknown> | null>;
+}) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+
+  // Nothing recorded means nothing to expand — an empty drawer reads as a
+  // failure to load rather than as "this action carried no payload".
+  const hasDetail = Object.values(detail).some((v) => v !== null);
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => hasDetail && setOpen((v) => !v)}
+        aria-expanded={hasDetail ? open : undefined}
+        disabled={!hasDetail}
+        className={cn(
+          'flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-3.5 py-2.5 text-left text-[13px]',
+          hasDetail && 'transition-colors hover:bg-surface-2/60',
+        )}
+      >
+        <span className="w-[7.5rem] shrink-0 tabular text-muted">{when}</span>
+        <span className="min-w-0 flex-1 truncate font-medium">{who}</span>
+        {target && <span className="min-w-0 truncate text-muted">→ {target}</span>}
+        <Badge tone={tone}>{action}</Badge>
+        {hasDetail && (
+          <ChevronDown
+            className={cn('h-4 w-4 shrink-0 text-subtle transition-transform', open && 'rotate-180')}
+            aria-hidden
+          />
+        )}
+      </button>
+
+      {open && (
+        <div className="space-y-2 border-t border-border bg-surface-2/40 px-3.5 py-2.5">
+          {Object.entries(detail).map(([label, value]) =>
+            value === null ? null : (
+              <div key={label}>
+                <p className="mb-0.5 text-[11px] uppercase tracking-wide text-subtle">{label}</p>
+                {/* The whole value, wrapped rather than clipped. */}
+                <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-surface p-2 font-mono text-[11.5px] leading-relaxed text-muted">
+                  {JSON.stringify(value, null, 2)}
+                </pre>
+              </div>
+            ),
+          )}
+          {!hasDetail && <p className="text-[12px] text-subtle">{t('audit.empty')}</p>}
+        </div>
+      )}
+    </li>
   );
 }
