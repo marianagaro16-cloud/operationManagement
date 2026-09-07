@@ -230,7 +230,14 @@ function OrderCard({
   return (
     <Card className={cn(cancelled && 'opacity-60')}>
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-3.5 py-2">
-        <span className="text-[12px] font-medium tabular text-muted">#{order.reference}</span>
+        {/* The reference is the order's address, not a caption. */}
+        <Link
+          href={`/orders/${order.id}`}
+          className="text-[12px] font-medium tabular text-muted transition-colors hover:text-accent hover:underline"
+          title={t('orders.openOrder')}
+        >
+          #{order.reference}
+        </Link>
         {order.delivery_method && <Badge tone="neutral">{order.delivery_method.name}</Badge>}
         {order.order_type === 'sample' && <Badge tone="accent">{t('orders.typeSample')}</Badge>}
         {/* Provenance. A generated order used to be indistinguishable from a
@@ -256,10 +263,16 @@ function OrderCard({
               isComplete={progress.isComplete}
             />
           )}
-          {/* Delivery date leads here; preparation date is exposed alongside. */}
-          <span className="text-[11.5px] text-muted">
+          {/* Delivery date leads here; preparation date is exposed alongside —
+              and links to the day it lands on, which the route has always
+              accepted as a parameter and nothing ever pointed at. */}
+          <Link
+            href={`/preparation?date=${order.preparation_date}`}
+            className="text-[11.5px] text-muted transition-colors hover:text-accent hover:underline"
+            title={t('orders.openPreparationDay')}
+          >
             {t('orders.preparationOn', { date: formatDate(order.preparation_date, 'short') })}
-          </span>
+          </Link>
           {canManage && (
             <Button size="icon" variant="ghost" onClick={onEdit} aria-label={t('common.edit')}>
               <Pencil className="h-3.5 w-3.5" aria-hidden />

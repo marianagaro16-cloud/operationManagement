@@ -14,15 +14,39 @@ in that zone, never in the browser's.
 > **A task definition is not a task occurrence.**
 
 `tasks` holds *definitions* ("Realizar el inventario de productos Masamor").
-The recurrence engine turns a definition into *occurrences* — one per
-recurrence period ("… — week of 2026-09-07"). Users act on occurrences;
-only admins edit definitions. Editing or deactivating a definition never
-alters or removes past occurrences.
+An *occurrence* is one of those due on one date. Users act on occurrences;
+only admins and managers edit definitions. Editing or deactivating a
+definition never alters or removes past occurrences.
+
+**How an occurrence comes into existence depends on the frequency.**
 
 ```
-Task definition  ->  Recurrence engine  ->  Task occurrence  ->  Dashboard
-   (admin)            (src/domain)          (period_key)          (user)
+DAILY       Task definition -> Recurrence engine -> Occurrence -> Dashboard
+              (config)          (src/domain)        (nightly)     (user)
+
+EVERYTHING  Task definition -> a person, on the  -> Occurrence -> Dashboard
+ELSE          (no schedule)     calendar            (chosen)      (user)
 ```
+
+The daily checklist still schedules itself. Weekly, biweekly, monthly and
+semiannual work — and every inventory — is placed deliberately by an admin,
+manager or power user from `/calendar`, one day at a time or a week or month
+at once. A rule that fills the next four months with work nobody has decided
+to do is not a schedule; it is noise, and it made the calendar unreadable.
+
+The recurrence engine still contains correct, tested generators for the other
+frequencies. They have no caller, and `schedule_config` is only read for
+`daily`.
+
+Two consequences worth knowing:
+
+- **An occurrence is keyed by DATE, not by period.** `UNIQUE(task_id,
+  due_date)` replaced `UNIQUE(task_id, period_key)`, so the same weekly task
+  can sit on Monday *and* Wednesday of one week. `period_key` survives as a
+  reporting label — History renders it — exactly as it does for inventories.
+- **`source` says who created a row.** `auto` is the nightly generator, `manual`
+  is a person. The stalled-scheduler warning counts only `auto` rows, so a
+  deliberately quiet week never looks like a broken cron.
 
 ---
 
@@ -43,28 +67,31 @@ a cron route, or the seed importer.
 
 ### Recurrence model
 
-`period_key` is the mechanism enforcing *one requirement per period*, backed
-by `UNIQUE(task_id, period_key)` — the guarantee survives concurrent writers
-and repeated generation.
+An occurrence is identified by `UNIQUE(task_id, due_date)` — one requirement
+per task per day, surviving concurrent writers and repeated generation. It was
+`UNIQUE(task_id, period_key)` while a rule produced every date; once a person
+places them, the same weekly task on two days of one week is a legitimate
+request the old key refused.
 
-| Frequency | period_key | Default schedule |
+| Frequency | Materialised by | period_key (label only) |
 |---|---|---|
-| daily | `2026-09-01` | every day (weekday restriction optional) |
-| weekly | `2026-W36` (ISO week) | Tuesday; admin may change |
-| biweekly | `BW-2026-09-08` | anchor + 14n — **no default, must be configured** |
-| monthly | `2026-09` | last Thursday |
-| semiannual | `2026-H2` | 30 June + 31 December |
+| daily | the nightly generator, from `schedule_config` | `2026-09-01` |
+| weekly | a person, on the calendar | `2026-W36` (ISO week) |
+| biweekly | a person, on the calendar | `BW-2026-09-08` |
+| monthly | a person, on the calendar | `2026-09` |
+| semiannual | a person, on the calendar | `2026-H2` |
 
-**Weekly completion window:** a weekly task has one requirement per ISO week,
-not an immutable Thursday requirement. Completing it on Tuesday resolves the
-week; Thursday raises nothing further.
+**Only `daily` reads `schedule_config`** — the weekday restriction, defaulting
+to Mon–Fri because the warehouse is closed at the weekend.
 
-**Overrides:** `task_occurrences.due_date_override` moves a single occurrence
-without touching the rule that produced it.
+**Weekly completion window:** a weekly task placed on Tuesday is satisfied by
+completing it that day. `period_key` still labels it `2026-W36`, so History and
+the report groupings continue to read in weeks.
 
-**Never invented:** a task whose schedule cannot be resolved generates
-nothing and is surfaced to admins as *"Scheduling configuration required"*
-with a direct link to fix it.
+**Never invented:** a *daily* task whose schedule cannot be resolved generates
+nothing and is surfaced as *"Scheduling configuration required"* with a direct
+link to fix it. Other frequencies have no schedule to resolve and are never
+flagged.
 
 ---
 
@@ -146,7 +173,7 @@ Self-registration never grants access: a trigger creates the profile as
 |---|---|---|
 | `/login`, `/register` | public | email/password auth |
 | `/dashboard` | approved | today, overdue, upcoming, extra-tasks banner |
-| `/calendar` | tasks.manage_occurrences | month grid of occurrences |
+| `/calendar` | tasks.manage_occurrences | **the planner** — place tasks and inventories on days, or plan a week/month |
 | `/admin` | power_user+ | config health + pending approvals |
 | `/admin/tasks` | tasks.manage_definitions | definitions, frequency-adaptive schedule editor |
 | `/admin/users` | admin | approve / reject / deactivate, role changes |
@@ -245,6 +272,7 @@ npm run typecheck
 npm run icons           # regenerate PWA icons
 npm run db:types        # regenerate DB types from the live schema
 npm run verify:roles    # role/permission RLS checks against the live database
+npm run verify:tasks    # manual scheduling checks against the live database
 ```
 
 ---

@@ -96,6 +96,17 @@ export interface OccurrenceWithTask extends TaskOccurrence {
     | 'translations'
   > & { category: Pick<Category, 'slug' | 'name'> | null };
   comment_count?: number;
+  /**
+   * Display name of whoever resolved this occurrence — completed or skipped it.
+   *
+   * Not an embedded relation: `completed_by` and `skipped_by` reference
+   * `auth.users`, not `public.profiles`, so PostgREST has no foreign key to
+   * traverse. Resolved in one lookup by the query layer instead. Null while
+   * the occurrence is still open.
+   */
+  actor_name?: string | null;
+  /** When it was resolved — completed_at or skipped_at, whichever applies. */
+  resolved_at?: string | null;
 }
 
 export type { Frequency, OccurrenceStatus, ScheduleConfig };

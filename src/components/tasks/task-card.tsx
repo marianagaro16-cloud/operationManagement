@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { DateTime } from 'luxon';
 import { Check, MessageSquare, RotateCcw, SkipForward, TriangleAlert } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
+import { BUSINESS_TZ } from '@/lib/datetime';
 import { Button } from '@/components/ui/button';
 import { Badge, ErrorState } from '@/components/ui/primitives';
 import { StatusChip } from '@/components/ui/status-chip';
@@ -111,6 +113,25 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
         {showDueDate && (
           <p className="mt-1 text-[12px] tabular text-muted">
             {t('task.due', { date: formatDate(due, 'medium') })}
+          </p>
+        )}
+
+        {/* Who finished it, and when. "It's done" was answered; "who did it" —
+            the question a handover actually asks — was not, even though the
+            phrasing for it has been translated all along. */}
+        {resolved && occurrence.actor_name && (
+          <p className="mt-1 text-[12px] text-subtle">
+            {(isDone ? t('task.completedBy', { name: occurrence.actor_name })
+                     : t('task.skippedBy', { name: occurrence.actor_name }))}
+            {occurrence.resolved_at && (
+              <span className="tabular">
+                {' · '}
+                {DateTime.fromISO(occurrence.resolved_at)
+                  .setZone(BUSINESS_TZ)
+                  .setLocale(locale)
+                  .toFormat('d LLL, HH:mm')}
+              </span>
+            )}
           </p>
         )}
 

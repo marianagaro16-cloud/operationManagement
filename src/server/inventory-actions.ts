@@ -4,8 +4,6 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { inventoryScheduleSchema, INVENTORY_FREQUENCIES, INVENTORY_KINDS } from '@/domain/inventory/types';
-import { addDays, businessToday } from '@/lib/datetime';
-import { ensureInventoryInstances } from './inventory';
 import { sendToUser } from './push';
 import type { ActionResult } from './actions';
 
@@ -652,23 +650,10 @@ export async function saveInventoryLocation(
 
 /* ------------------------------- horizon ------------------------------- */
 
-/** Manual generation from the admin screen. Idempotent, like the cron run. */
-export async function generateInventoryHorizon(
-  days = 90,
-): Promise<ActionResult<{ created: number }>> {
-  // Self-gated because what follows uses the SERVICE-ROLE client, which
-  // bypasses RLS entirely — so this check is the only one that runs.
-  const supabase = createClient();
-  const { data: allowed } = await supabase.rpc('has_permission', { p_key: 'inventory.manage_instances' });
-  if (!allowed) return { ok: false, error: 'not_authorized' };
-
-  const today = businessToday();
-  try {
-    const { created } = await ensureInventoryInstances(today, addDays(today, days));
-    revalidateInventory();
-    revalidatePath('/admin/inventory');
-    return { ok: true, data: { created } };
-  } catch (e) {
-    return fail(e);
-  }
-}
+/*
+ * Removed with the generator it drove.
+ *
+ * Inventories are no longer materialised from a template schedule; they are
+ * placed from the calendar like every task except the daily checklist. There
+ * is no horizon to fill, so there is no button to fill it.
+ */

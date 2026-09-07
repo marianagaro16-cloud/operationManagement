@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { getUnconfiguredTasks, getUsers } from '@/server/data';
-import { getUnconfiguredInventoryTemplates } from '@/server/inventory';
 import { getScheduleHealth } from '@/server/scheduling';
 import { ConfigHealth } from '@/components/admin/config-health';
 import { AdminOverviewHeading } from '@/components/admin/admin-overview-heading';
@@ -8,12 +7,11 @@ import { AdminOverviewHeading } from '@/components/admin/admin-overview-heading'
 export const dynamic = 'force-dynamic';
 
 export default async function AdminOverviewPage() {
-  // Both kinds of definition, and the generator that turns them into work.
-  // Inventory templates were previously fetched by nothing, so a template
-  // that could not be scheduled never appeared here.
-  const [unconfigured, unconfiguredTemplates, health, users] = await Promise.all([
+  // Only DAILY definitions can be misconfigured now, because they are the only
+  // ones a schedule still drives. Inventory templates dropped out of this
+  // panel entirely for the same reason: there is no schedule left to resolve.
+  const [unconfigured, health, users] = await Promise.all([
     getUnconfiguredTasks(),
-    getUnconfiguredInventoryTemplates(),
     getScheduleHealth(),
     getUsers(),
   ]);
@@ -23,15 +21,7 @@ export default async function AdminOverviewPage() {
     <>
       <AdminOverviewHeading pendingCount={pending.length} />
       <div className="space-y-4">
-        <ConfigHealth
-          unconfigured={unconfigured}
-          unconfiguredTemplates={unconfiguredTemplates.map((t) => ({
-            id: t.id,
-            name: t.name,
-            frequency: t.frequency,
-          }))}
-          stalled={health.stalled}
-        />
+        <ConfigHealth unconfigured={unconfigured} stalled={health.stalled} />
         {pending.length > 0 && (
           <Link
             href="/admin/users"

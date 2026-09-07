@@ -150,24 +150,6 @@ export async function setTaskActive(taskId: string, isActive: boolean): Promise<
   return { ok: true, data: undefined };
 }
 
-/** Move a single occurrence without altering the rule that produced it. */
-export async function overrideOccurrenceDate(
-  occurrenceId: string,
-  date: string | null,
-): Promise<ActionResult> {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from('task_occurrences')
-    .update({ due_date_override: date })
-    .eq('id', occurrenceId);
-  if (error) return fail(error);
-  // The calendar lives at /calendar, not /admin/calendar — the stale path
-  // meant moving an occurrence never refreshed the screen it was moved on.
-  revalidatePath('/calendar');
-  revalidatePath('/dashboard');
-  return { ok: true, data: undefined };
-}
-
 /* ---------------------------- admin: users ----------------------------- */
 
 const userStatusSchema = z.enum(['pending', 'approved', 'rejected', 'deactivated']);
@@ -235,7 +217,7 @@ export async function setUserRole(userId: string, role: Role): Promise<ActionRes
  */
 export async function generateHorizon(
   days = 60,
-): Promise<ActionResult<{ created: number; inventories: number }>> {
+): Promise<ActionResult<{ created: number }>> {
   // Self-gated because what follows uses the SERVICE-ROLE client, which
   // bypasses RLS entirely — so this check is the only one that runs.
   const supabase = createClient();
@@ -243,14 +225,12 @@ export async function generateHorizon(
   if (!allowed) return { ok: false, error: 'not_authorized' };
 
   try {
-    const run = await ensureScheduled(days, days);
+    // Daily tasks only. Everything else is placed from the calendar, so there
+    // is no horizon to fill for it.
+    const run = await ensureScheduled(days);
     revalidatePath('/dashboard');
-    revalidatePath('/inventory');
     revalidatePath('/admin');
-    return {
-      ok: true,
-      data: { created: run.tasks.created, inventories: run.inventories.created },
-    };
+    return { ok: true, data: { created: run.tasks.created } };
   } catch (e) {
     return fail(e);
   }

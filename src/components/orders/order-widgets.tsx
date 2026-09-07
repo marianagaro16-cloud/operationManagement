@@ -16,20 +16,29 @@ import type { OrderWithProgress } from '@/types/orders';
  */
 export function OrderWidgets({
   toPrepare,
+  carriedOver,
   delivering,
   canManage,
 }: {
   toPrepare: OrderWithProgress[];
+  /** Unfinished orders from earlier preparation days. */
+  carriedOver: OrderWithProgress[];
   delivering: OrderWithProgress[];
   /** Whether this viewer can open Order Control at all. */
   canManage: boolean;
 }) {
   const { t } = useI18n();
-  if (toPrepare.length === 0 && delivering.length === 0) return null;
+  if (toPrepare.length === 0 && delivering.length === 0 && carriedOver.length === 0) return null;
 
   // Two filters over one already-computed field. This used to be two full
   // passes of orderProgress() over the same array in the same render.
-  const needsAttention = toPrepare.filter((o) => o.progress.hasUnexplainedShortfall);
+  //
+  // Carried-over work counts towards "needs attention" — it is the most
+  // attention-worthy thing on the screen — but not towards the tile, which is
+  // about today's own list.
+  const needsAttention = [...toPrepare, ...carriedOver].filter(
+    (o) => o.progress.hasUnexplainedShortfall,
+  );
   const incomplete = toPrepare.filter((o) => !o.progress.isComplete);
 
   return (

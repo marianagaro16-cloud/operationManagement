@@ -2,15 +2,13 @@
 
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
-import { AlertTriangle, Plus, RefreshCw } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
-import { isInventoryScheduleConfigured, nextInventoryDate } from '@/domain/inventory/schedule';
 import { INVENTORY_FREQUENCIES, INVENTORY_KINDS } from '@/domain/inventory/types';
 import {
-  generateInventoryHorizon,
   saveInventoryTemplate,
   setInventoryTemplateActive,
 } from '@/server/inventory-actions';
@@ -48,10 +46,8 @@ const FREQ_LABEL: Record<InventoryFrequency, MessageKey> = {
  */
 export function InventoryTemplateManager({
   templates,
-  today,
 }: {
   templates: Row[];
-  today: string;
 }) {
   const { t } = useI18n();
   const translateError = useInventoryError();
@@ -61,30 +57,11 @@ export function InventoryTemplateManager({
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const unconfigured = templates.filter(
-    (tpl) => tpl.is_active && !isInventoryScheduleConfigured(tpl.frequency, tpl.schedule_config),
-  );
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[15px] font-semibold">{t('inventory.templates')}</h2>
         <div className="flex gap-2">
-          <Button
-            size="sm"
-            loading={pending}
-            onClick={() =>
-              startTransition(async () => {
-                setError(null);
-                const res = await generateInventoryHorizon(90);
-                if (res.ok) setMessage(t('inventory.generated', { count: res.data.created }));
-                else setError(translateError(res.error));
-              })
-            }
-          >
-            <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-            {t('inventory.generate')}
-          </Button>
           <Button size="sm" variant="primary" onClick={() => setCreating(true)}>
             <Plus className="h-3.5 w-3.5" aria-hidden />
             {t('inventory.templateNew')}
@@ -95,28 +72,11 @@ export function InventoryTemplateManager({
       {message && <p className="text-[13px] text-done">{message}</p>}
       {error && <ErrorState message={error} />}
 
-      {/* An unconfigured template silently generates nothing, so it is called
-          out rather than left to be discovered by a missing inventory. */}
-      {unconfigured.length > 0 && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-warn/30 bg-warn/5 px-3.5 py-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden />
-          <p className="text-[13px]">
-            {t('inventory.scheduleRequired')}:{' '}
-            {unconfigured.map((tpl) => tpl.name).join(', ')}
-          </p>
-        </div>
-      )}
-
       {templates.length === 0 ? (
         <EmptyState title={t('inventory.templates')} />
       ) : (
         <ul className="space-y-2">
           {templates.map((tpl) => {
-            const configured = isInventoryScheduleConfigured(tpl.frequency, tpl.schedule_config);
-            const next = configured
-              ? nextInventoryDate(tpl.frequency, tpl.schedule_config, today)
-              : null;
-
             return (
               <li key={tpl.id}>
                 <Card className="p-3 sm:p-4">
@@ -127,18 +87,12 @@ export function InventoryTemplateManager({
                         {t(FREQ_LABEL[tpl.frequency])} · {t(KIND_LABEL[tpl.kind])} ·{' '}
                         {t('inventory.itemsCounted', { count: tpl.item_count })}
                       </p>
-                      {next && (
-                        <p className="mt-0.5 text-[12px] text-subtle">
-                          {t('inventory.upcoming')}: {next}
-                        </p>
-                      )}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       {tpl.digital_enabled && (
                         <Badge tone="accent">{t('inventory.inventoryDigital')}</Badge>
                       )}
                       {!tpl.is_active && <Badge tone="neutral">{t('status.inactive')}</Badge>}
-                      {!configured && <Badge tone="warn">{t('inventory.scheduleRequired')}</Badge>}
                     </div>
                   </div>
 

@@ -1,6 +1,5 @@
 import 'server-only';
-import { createAdminClient, createClient } from '@/lib/supabase/server';
-import { generateInventories, isInventoryScheduleConfigured } from '@/domain/inventory/schedule';
+import { createClient } from '@/lib/supabase/server';
 import { isPastEditDeadline } from '@/domain/inventory/calc';
 import { addDays, businessToday, type BusinessDate } from '@/lib/datetime';
 import { getViewer } from './data';
@@ -29,75 +28,18 @@ import type {
 
 /* ------------------------------ generation ----------------------------- */
 
-/**
- * Materialise every inventory whose date falls in the window.
+/*
+ * There is none any more.
  *
- * Idempotent: UNIQUE(template_id, inventory_date) plus an ignoring upsert
- * means running it twice, concurrently, or after a template edit can never
- * duplicate an inventory — and can never overwrite one that already carries
- * counted data. Runs with the service role because inventories are created by
- * the system, not by whoever happened to load a page.
+ * Inventories used to materialise from a template schedule, filling four
+ * months ahead. They are now placed deliberately from the calendar, like
+ * every task except the daily checklist — see src/server/planning-actions.ts.
+ *
+ * The pure generator in src/domain/inventory/schedule.ts is kept, tested and
+ * correct; it simply has no caller. UNIQUE(template_id, inventory_date) still
+ * guarantees one inventory per template per date, which now constrains a
+ * person rather than a rule.
  */
-export async function ensureInventoryInstances(
-  from: BusinessDate,
-  to: BusinessDate,
-): Promise<{ created: number; skippedTemplates: number }> {
-  const admin = createAdminClient();
-
-  const { data: templates, error } = await admin
-    .from('inventory_templates')
-    .select('id, frequency, schedule_config, is_active')
-    .eq('is_active', true);
-
-  if (error) throw new Error(`Failed to load inventory templates: ${error.message}`);
-
-  const rows: {
-    template_id: string;
-    inventory_date: string;
-    period_key: string;
-    // Snapshot columns are NOT NULL but are overwritten by the BEFORE INSERT
-    // trigger from the template, which is the only authority on them.
-    name_snapshot: string;
-    kind: string;
-    digital_enabled: boolean;
-    // iso_week and iso_year are deliberately absent: they are GENERATED
-    // columns, so Postgres rejects a write to them outright.
-  }[] = [];
-  let skippedTemplates = 0;
-
-  for (const t of (templates ?? []) as Pick<
-    InventoryTemplate,
-    'id' | 'frequency' | 'schedule_config' | 'is_active'
-  >[]) {
-    // An unconfigured template generates nothing — never a guessed date.
-    if (!isInventoryScheduleConfigured(t.frequency, t.schedule_config)) {
-      skippedTemplates++;
-      continue;
-    }
-    for (const plan of generateInventories(t.frequency, t.schedule_config, from, to)) {
-      rows.push({
-        template_id: t.id,
-        inventory_date: plan.inventoryDate,
-        period_key: plan.periodKey,
-        name_snapshot: '',
-        kind: 'expiry',
-        digital_enabled: false,
-      });
-    }
-  }
-
-  if (rows.length === 0) return { created: 0, skippedTemplates };
-
-  // ignoreDuplicates keeps every existing inventory — and everything counted
-  // into it — untouched.
-  const { data: inserted, error: upsertError } = await admin
-    .from('inventory_instances')
-    .upsert(rows, { onConflict: 'template_id,inventory_date', ignoreDuplicates: true })
-    .select('id');
-
-  if (upsertError) throw new Error(`Failed to write inventories: ${upsertError.message}`);
-  return { created: inserted?.length ?? 0, skippedTemplates };
-}
 
 /* ------------------------------- overview ------------------------------ */
 
@@ -435,14 +377,6 @@ export async function getInventoryLocations(includeInactive = false): Promise<In
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   return (data ?? []) as InventoryLocation[];
-}
-
-/** Templates an admin must configure before anything can be scheduled from them. */
-export async function getUnconfiguredInventoryTemplates(): Promise<InventoryTemplate[]> {
-  const templates = await getInventoryTemplates();
-  return templates.filter(
-    (t) => t.is_active && !isInventoryScheduleConfigured(t.frequency, t.schedule_config),
-  );
 }
 
 /* ---------------------------- admin: grants ---------------------------- */

@@ -37,14 +37,10 @@ export function SettingsView() {
                       setError(null);
                       setResult(null);
                       const res = await generateHorizon(60);
-                      // Reports both halves: the button now materialises
-                      // inventories as well as task occurrences, and saying so
-                      // is the only way an admin knows it did.
+                      // Daily occurrences only. Everything else is placed from
+                      // the calendar, so there is nothing else for this to fill.
                       if (res.ok) {
-                        setResult(
-                          `${t('admin.generated', { count: res.data.created })} · ` +
-                            `${t('inventory.generated', { count: res.data.inventories })}`,
-                        );
+                        setResult(t('admin.generated', { count: res.data.created }));
                       } else setError(res.error);
                     })
                   }

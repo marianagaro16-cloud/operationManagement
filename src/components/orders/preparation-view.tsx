@@ -27,10 +27,16 @@ import { saveLotAllocation, deleteLotAllocation, setShortfallReason } from '@/se
  */
 export function PreparationView({
   orders,
+  carriedOver,
+  openDays,
   date,
   canManage,
 }: {
   orders: OrderWithProgress[];
+  /** Unfinished work from earlier days. See getPreparationDay(). */
+  carriedOver: OrderWithProgress[];
+  /** Days in this week that still hold unfinished orders. */
+  openDays: string[];
   date: string;
   canManage: boolean;
 }) {
@@ -46,6 +52,7 @@ export function PreparationView({
   }
 
   const days = weekDays(date);
+  const openDaySet = new Set(openDays);
 
   return (
     <>
@@ -77,6 +84,17 @@ export function PreparationView({
                 {formatDate(d, 'weekday').split(' ')[0].slice(0, 3)}
               </span>
               <span className="text-[13px] font-semibold tabular">{d.slice(8)}</span>
+              {/* A day with unfinished work says so. Without this the strip is
+                  seven bare numbers and the only way to find open work is to
+                  open each day in turn. */}
+              <span
+                className={cn(
+                  'mt-0.5 h-1 w-1 rounded-full',
+                  openDaySet.has(d) ? 'bg-warn' : 'bg-transparent',
+                )}
+                aria-hidden
+              />
+              {openDaySet.has(d) && <span className="sr-only">{t('prep.openWork')}</span>}
             </Link>
           ))}
         </div>
@@ -89,6 +107,40 @@ export function PreparationView({
           <ChevronRight className="h-4 w-4" aria-hidden />
         </Link>
       </div>
+
+      {/* ------------------------- carried over ------------------------- */}
+      {/* Above the day's own work: something already late outranks something
+          merely due. Each card names the day it was scheduled for, so this
+          never reads as duplicated work. */}
+      {carriedOver.length > 0 && (
+        <section className="mb-6">
+          <div className="mb-2 flex items-start gap-2.5 rounded-xl border border-warn/30 bg-warn/[0.06] px-3.5 py-2.5">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <p className="text-[13.5px] font-semibold">
+                {t('prep.carriedOver')}
+                <span className="ml-1.5 tabular text-warn">{carriedOver.length}</span>
+              </p>
+              <p className="text-[12.5px] text-muted">{t('prep.carriedOverBody')}</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {carriedOver.map((order) => (
+              <div key={order.id}>
+                <h3 className="mb-1 text-[13.5px] font-medium">
+                  {order.customer.name}
+                  <span className="ml-2 text-[12px] font-normal text-warn">
+                    {t('orders.preparationOn', {
+                      date: formatDate(order.preparation_date, 'short'),
+                    })}
+                  </span>
+                </h3>
+                <OrderPreparationCard order={order} canManage={canManage} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <p className="mb-4 text-[13px] font-medium capitalize">{formatDate(date, 'weekday')}</p>
 
@@ -121,7 +173,14 @@ function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; 
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2">
         <div className="flex items-center gap-2">
-          <span className="text-[12px] font-medium tabular text-muted">#{order.reference}</span>
+          {/* The order this preparation belongs to, one tap away. */}
+          <Link
+            href={`/orders/${order.id}`}
+            className="text-[12px] font-medium tabular text-muted transition-colors hover:text-accent hover:underline"
+            title={t('orders.openOrder')}
+          >
+            #{order.reference}
+          </Link>
           {order.delivery_method && (
             <Badge tone="neutral">{order.delivery_method.name}</Badge>
           )}

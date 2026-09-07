@@ -31,7 +31,8 @@
     "inventory:extract": "tsx scripts/import-inventory.ts extract",
     "inventory:seed": "tsx scripts/import-inventory.ts seed",
     "verify:inventory": "node scripts/verify-inventory.mjs",
-    "verify:roles": "node scripts/verify-roles.mjs"
+    "verify:roles": "node scripts/verify-roles.mjs",
+    "verify:tasks": "node scripts/verify-tasks.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

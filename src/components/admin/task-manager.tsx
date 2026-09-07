@@ -361,18 +361,27 @@ function TaskDialog({
           </Field>
         </div>
 
+        {/* Only the daily checklist still runs from a rule. Everything else is
+            put on a date from the calendar, so asking for a schedule here
+            would be collecting a setting that nothing reads. */}
         <div className="rounded-lg border border-border bg-surface-2/40 p-3">
           <p className="mb-2.5 text-[13px] font-medium">{t('admin.scheduleTitle')}</p>
-          <ScheduleEditor
-            frequency={form.frequency}
-            value={form.schedule_config as ScheduleConfig | null}
-            onChange={(schedule_config) => setForm({ ...form, schedule_config })}
-          />
-          {unconfigured && (
-            <p className="mt-2 flex items-center gap-1.5 text-[12px] text-warn">
-              <AlertTriangle className="h-3 w-3" aria-hidden />
-              {t('admin.needsConfig')}
-            </p>
+          {form.frequency === 'daily' ? (
+            <>
+              <ScheduleEditor
+                frequency={form.frequency}
+                value={form.schedule_config as ScheduleConfig | null}
+                onChange={(schedule_config) => setForm({ ...form, schedule_config })}
+              />
+              {unconfigured && (
+                <p className="mt-2 flex items-center gap-1.5 text-[12px] text-warn">
+                  <AlertTriangle className="h-3 w-3" aria-hidden />
+                  {t('admin.needsConfig')}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-[12.5px] text-muted">{t('plan.manualNote')}</p>
           )}
         </div>
 

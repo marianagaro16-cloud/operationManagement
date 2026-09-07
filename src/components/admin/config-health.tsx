@@ -13,9 +13,9 @@ import type { Task } from '@/types/database';
  * the dangerous failure mode is that nobody notices. This surfaces those
  * definitions with a direct route to fixing them.
  *
- * It covers INVENTORY TEMPLATES as well as tasks. It used to show tasks only,
- * even though getUnconfiguredInventoryTemplates() had been written for exactly
- * this panel, so a template that generated nothing was invisible.
+ * Only DAILY tasks can appear here now. Every other frequency, and every
+ * inventory, is placed by hand from the calendar rather than resolved from a
+ * rule, so there is no configuration left for this panel to check on them.
  *
  * The third check is new and exists because pages no longer materialise work
  * as a side effect of rendering. With the cron the only generator, a cron that
@@ -23,26 +23,17 @@ import type { Task } from '@/types/database';
  * days. Now it says so.
  */
 
-export interface UnconfiguredTemplate {
-  id: string;
-  name: string;
-  frequency: string;
-}
-
 export function ConfigHealth({
   unconfigured,
-  unconfiguredTemplates,
   stalled,
 }: {
   unconfigured: Task[];
-  unconfiguredTemplates: UnconfiguredTemplate[];
   stalled: boolean;
 }) {
   const { t } = useI18n();
   const tasks = unconfigured.length;
-  const templates = unconfiguredTemplates.length;
 
-  if (tasks === 0 && templates === 0 && !stalled) {
+  if (tasks === 0 && !stalled) {
     return (
       <Card>
         <CardBody className="flex items-center gap-2.5 pt-4">
@@ -94,25 +85,6 @@ export function ConfigHealth({
         />
       )}
 
-      {templates > 0 && (
-        <UnconfiguredCard
-          heading={t('admin.configInventoriesHeading')}
-          summary={
-            templates === 1
-              ? t('admin.configTemplatesWarningOne')
-              : t('admin.configTemplatesWarning', { count: templates })
-          }
-          rows={unconfiguredTemplates.map((tpl) => ({
-            id: tpl.id,
-            name: tpl.name,
-            frequency: tpl.frequency,
-            href: `/admin/inventory/${tpl.id}`,
-          }))}
-          total={templates}
-          moreHref="/admin/inventory"
-          actionLabel={t('admin.configureNow')}
-        />
-      )}
     </div>
   );
 }

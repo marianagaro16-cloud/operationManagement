@@ -51,12 +51,17 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
 });
 
 /**
- * Materialise every requirement whose due date falls in the window.
+ * Materialise every DAILY requirement whose due date falls in the window.
  *
- * Idempotent: the UNIQUE(task_id, period_key) constraint plus an ignoring
- * upsert means running it twice, concurrently, or after a definition edit
- * never duplicates a requirement. Runs with the service role because
- * occurrences are created by the system, not by a user.
+ * The daily checklist is the only work that still schedules itself. Weekly,
+ * biweekly, monthly and semiannual tasks are placed deliberately from the
+ * calendar — see `src/server/planning-actions.ts` — because a recurring rule
+ * was filling months ahead with work nobody had decided to do.
+ *
+ * Idempotent: UNIQUE(task_id, due_date) plus an ignoring upsert means running
+ * it twice, concurrently, or after a definition edit never duplicates a
+ * requirement, and never disturbs one a person placed by hand. Runs with the
+ * service role because these rows are created by the system, not by a user.
  */
 export async function ensureOccurrences(
   from: BusinessDate,
@@ -64,10 +69,14 @@ export async function ensureOccurrences(
 ): Promise<{ created: number; skippedTasks: number }> {
   const admin = createAdminClient();
 
+  // DAILY ONLY. Every other frequency is placed by a person from the
+  // calendar, so generating it here would put back work nobody asked for —
+  // and would do it again every night.
   const { data: tasks, error } = await admin
     .from('tasks')
     .select('id, frequency, schedule_config, is_active')
-    .eq('is_active', true);
+    .eq('is_active', true)
+    .eq('frequency', 'daily');
 
   if (error) throw new Error(`Failed to load tasks: ${error.message}`);
 
@@ -75,6 +84,7 @@ export async function ensureOccurrences(
     task_id: string;
     period_key: string;
     due_date: string;
+    source: 'auto';
   }[] = [];
   let skippedTasks = 0;
 
@@ -85,21 +95,69 @@ export async function ensureOccurrences(
       continue;
     }
     for (const plan of generateOccurrences(task, from, to)) {
-      rows.push({ task_id: task.id, period_key: plan.periodKey, due_date: plan.dueDate });
+      rows.push({
+        task_id: task.id,
+        period_key: plan.periodKey,
+        due_date: plan.dueDate,
+        source: 'auto',
+      });
     }
   }
 
   if (rows.length === 0) return { created: 0, skippedTasks };
 
   // ignoreDuplicates keeps existing rows (and their completion state) intact.
+  // Keyed on the DATE now, not the period: a task may legitimately sit on
+  // several dates within one period, so the period can no longer identify it.
   const { data: inserted, error: upsertError } = await admin
     .from('task_occurrences')
-    .upsert(rows, { onConflict: 'task_id,period_key', ignoreDuplicates: true })
+    .upsert(rows, { onConflict: 'task_id,due_date', ignoreDuplicates: true })
     .select('id');
 
   if (upsertError) throw new Error(`Failed to write occurrences: ${upsertError.message}`);
 
   return { created: inserted?.length ?? 0, skippedTasks };
+}
+
+/**
+ * Fill in who resolved each occurrence, and when.
+ *
+ * `completed_by` and `skipped_by` reference `auth.users`, so there is no
+ * foreign key from an occurrence to `profiles` for PostgREST to embed — which
+ * is why the dashboard has always shown a green tick and no name, while
+ * `task.completedBy` sat translated into three languages and rendered nowhere.
+ *
+ * One extra query for the whole page, and only when something was actually
+ * resolved. Mutates in place: these rows are freshly deserialised and belong
+ * to the caller alone.
+ */
+async function attachActors(rows: OccurrenceWithTask[]): Promise<OccurrenceWithTask[]> {
+  const ids = new Set<string>();
+  for (const o of rows) {
+    const actor = o.completed_by ?? o.skipped_by;
+    if (actor) ids.add(actor);
+  }
+  if (ids.size === 0) return rows;
+
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, name, email')
+    .in('id', [...ids]);
+
+  const nameById = new Map(
+    (data ?? []).map((p) => {
+      const row = p as { id: string; name: string | null; email: string };
+      return [row.id, row.name ?? row.email];
+    }),
+  );
+
+  for (const o of rows) {
+    const actor = o.completed_by ?? o.skipped_by;
+    o.actor_name = actor ? nameById.get(actor) ?? null : null;
+    o.resolved_at = o.completed_at ?? o.skipped_at ?? null;
+  }
+  return rows;
 }
 
 export interface DashboardData {
@@ -137,7 +195,7 @@ export async function getDashboardData(upcomingDays = 7): Promise<DashboardData>
 
   if (error) throw new Error(error.message);
 
-  const all = (data ?? []) as unknown as OccurrenceWithTask[];
+  const all = await attachActors((data ?? []) as unknown as OccurrenceWithTask[]);
 
   // One bucketing rule, shared with the inventory dashboard, so "overdue"
   // means the same thing on both halves of the screen.
@@ -203,9 +261,16 @@ export async function getTasksForAdmin(): Promise<(Task & { category: Category |
 }
 
 /** Tasks an admin must configure before they can be scheduled. */
+/**
+ * Definitions that cannot produce what they are supposed to produce.
+ *
+ * DAILY only. Every other frequency is placed from the calendar, so it has no
+ * schedule left to resolve and can no longer be misconfigured — flagging one
+ * would be demanding a rule that nothing reads.
+ */
 export async function getUnconfiguredTasks(): Promise<Task[]> {
   const tasks = await getTasksForAdmin();
-  return tasks.filter((t) => t.is_active && !isScheduleConfigured(t));
+  return tasks.filter((t) => t.is_active && t.frequency === 'daily' && !isScheduleConfigured(t));
 }
 
 export async function getCategories(): Promise<Category[]> {
