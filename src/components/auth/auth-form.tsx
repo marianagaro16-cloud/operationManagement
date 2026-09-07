@@ -10,7 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardBody, ErrorState, Field, Input } from '@/components/ui/primitives';
 import { LanguageSelector } from '@/components/shell/language-selector';
 
-export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
+export function AuthForm({
+  mode,
+  next,
+}: {
+  mode: 'signin' | 'signup';
+  /** Where to land after signing in; already validated by the caller. */
+  next?: string | null;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -41,7 +48,7 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return setError(t('auth.invalidCredentials'));
-    router.push('/dashboard');
+    router.push(next ?? '/dashboard');
     router.refresh();
   }
 

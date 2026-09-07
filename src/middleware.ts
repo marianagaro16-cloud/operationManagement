@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/login', '/register', '/auth'];
+const PUBLIC_PATHS = ['/login', '/register'];
 
 /**
  * Refreshes the auth session on every request and performs the coarse
@@ -36,13 +36,19 @@ export async function middleware(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
 
   if (!user && !isPublic) {
+    // Path AND query: a filtered deep link like /inventory?week=37 is worth
+    // as little as the bare page if the filters are dropped on the way back.
+    const target = path + request.nextUrl.search;
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    url.searchParams.set('next', path);
+    // The clone still carries the original query; clear it so /login gets
+    // the next param and nothing else.
+    url.search = '';
+    url.searchParams.set('next', target);
     return NextResponse.redirect(url);
   }
 
-  if (user && isPublic && path !== '/auth/callback') {
+  if (user && isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     url.search = '';
