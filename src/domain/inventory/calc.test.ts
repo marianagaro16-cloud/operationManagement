@@ -9,6 +9,7 @@ import {
   itemStatus,
   minutesUntilDeadline,
   parseQuantityInput,
+  countState,
   physicalStock,
   validateQuantity,
 } from './calc';
@@ -225,5 +226,52 @@ describe('parseQuantityInput', () => {
 
   it('rejects text', () => {
     expect(parseQuantityInput('abc')).toEqual({ ok: false, error: 'not_an_integer' });
+  });
+});
+
+describe('countState', () => {
+  // The distinction the screen could not previously draw: an item nobody has
+  // looked at and an item checked and found empty both sum to zero.
+  it('treats no records as uncounted, not as empty', () => {
+    expect(countState([])).toBe('uncounted');
+  });
+
+  it('treats blank rows as uncounted — adding a row is not a count', () => {
+    expect(countState([{ quantity: null }])).toBe('uncounted');
+    expect(countState([{ quantity: null }, { quantity: null }])).toBe('uncounted');
+  });
+
+  it('treats an explicit zero as a real statement that there is none', () => {
+    expect(countState([{ quantity: 0 }])).toBe('none');
+  });
+
+  it('treats zeroes at every packaging location as none', () => {
+    expect(countState([{ quantity: 0 }, { quantity: 0 }])).toBe('none');
+  });
+
+  it('reports a real count', () => {
+    expect(countState([{ quantity: 5 }])).toBe('counted');
+    expect(countState([{ quantity: 0 }, { quantity: 3 }])).toBe('counted');
+  });
+
+  // A half-finished line: one place counted as empty, the other untouched.
+  // Something was affirmatively recorded, so it is no longer 'uncounted'.
+  it('counts a zero alongside a blank as none, not uncounted', () => {
+    expect(countState([{ quantity: 0 }, { quantity: null }])).toBe('none');
+  });
+
+  it('never disagrees with physicalStock about whether there is stock', () => {
+    const cases = [
+      [{ quantity: null }],
+      [{ quantity: 0 }],
+      [{ quantity: 7 }],
+      [{ quantity: 0 }, { quantity: 0 }],
+      [{ quantity: 2 }, { quantity: null }],
+    ];
+    for (const records of cases) {
+      const state = countState(records);
+      if (state === 'counted') expect(physicalStock(records)).toBeGreaterThan(0);
+      else expect(physicalStock(records)).toBe(0);
+    }
   });
 });

@@ -28,6 +28,7 @@ function fail(error: unknown): { ok: false; error: string } {
     'inventory_not_found',
     'inventory_item_not_found',
     'inventory_already_completed',
+    'already_counted',
     'digital_disabled_for_template',
     'resolution_note_required',
     'nothing_to_resolve',
@@ -103,6 +104,109 @@ export async function addInventoryEntry(input: EntryInput): Promise<ActionResult
   if (error) return fail(error);
   revalidateInventory(parsed.data.instance_id);
   return { ok: true, data: { id: (data as { id: string }).id } };
+}
+
+/**
+ * Record "nothing in stock" for one line, in one tap.
+ *
+ * Counting an empty shelf used to take five interactions — expand, Add entry,
+ * focus the field, type 0, blur — and on a 114-item packaging count most
+ * lines are empty. Worse, doing nothing at all produced the same Physical
+ * Stock of 0, so the screen could not tell "checked, empty" from "not looked
+ * at". This writes the affirmative zero the schema has always allowed.
+ *
+ * Deliberately additive, never destructive: it fills in blanks and refuses to
+ * touch a line that already carries a real number, so a mis-tap cannot erase
+ * a count. Undo is the ordinary one — edit the quantity, or delete the row.
+ */
+export async function markInventoryItemEmpty(
+  itemId: string,
+  instanceId: string,
+): Promise<ActionResult> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'not_authorized' };
+
+  const { data: instance, error: instErr } = await supabase
+    .from('inventory_instances')
+    .select('kind')
+    .eq('id', instanceId)
+    .maybeSingle();
+  if (instErr) return fail(instErr);
+  if (!instance) return { ok: false, error: 'inventory_not_found' };
+
+  const { data: existing, error: entriesErr } = await supabase
+    .from('inventory_entries')
+    .select('id, quantity')
+    .eq('instance_item_id', itemId);
+  if (entriesErr) return fail(entriesErr);
+
+  const rows = (existing ?? []) as { id: string; quantity: number | null }[];
+  if (rows.some((r) => (r.quantity ?? 0) > 0)) {
+    return { ok: false, error: 'already_counted' };
+  }
+
+  // Blank rows the counter left behind: fill them in rather than adding
+  // another, so the line does not end up with two rows both saying nothing.
+  const blanks = rows.filter((r) => r.quantity === null);
+  if (blanks.length > 0) {
+    const { error } = await supabase
+      .from('inventory_entries')
+      .update({ quantity: 0, updated_by: user.id })
+      .in('id', blanks.map((r) => r.id));
+    if (error) return fail(error);
+    revalidateInventory(instanceId);
+    return { ok: true, data: undefined };
+  }
+
+  // Already an explicit zero and nothing blank — nothing left to say.
+  if (rows.length > 0) {
+    revalidateInventory(instanceId);
+    return { ok: true, data: undefined };
+  }
+
+  const kind = (instance as { kind: string }).kind;
+
+  // Packaging is counted per place and the shape trigger requires a location
+  // on every row, so "nothing in stock" means a zero at EACH active location
+  // — one blanket row would silently leave the other place uncounted.
+  if (kind === 'location') {
+    const { data: locations, error: locErr } = await supabase
+      .from('inventory_locations')
+      .select('id')
+      .eq('is_active', true)
+      .order('sort_order');
+    if (locErr) return fail(locErr);
+    if (!locations || locations.length === 0) return { ok: false, error: 'location_not_found' };
+
+    const { error } = await supabase.from('inventory_entries').insert(
+      (locations as { id: string }[]).map((l, i) => ({
+        instance_item_id: itemId,
+        instance_id: instanceId,
+        quantity: 0,
+        location_id: l.id,
+        position: i,
+        created_by: user.id,
+        updated_by: user.id,
+      })),
+    );
+    if (error) return fail(error);
+  } else {
+    // expiry and lot kinds: a bare zero. No expiry date is invented for stock
+    // that does not exist, and the shape trigger allows both to be null.
+    const { error } = await supabase.from('inventory_entries').insert({
+      instance_item_id: itemId,
+      instance_id: instanceId,
+      quantity: 0,
+      position: 0,
+      created_by: user.id,
+      updated_by: user.id,
+    });
+    if (error) return fail(error);
+  }
+
+  revalidateInventory(instanceId);
+  return { ok: true, data: undefined };
 }
 
 const entryPatchSchema = entryInputSchema

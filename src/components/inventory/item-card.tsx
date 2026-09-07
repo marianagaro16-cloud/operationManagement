@@ -1,15 +1,16 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { ChevronDown, History, MessageSquare, ShieldCheck } from 'lucide-react';
+import { ChevronDown, CircleSlash, History, MessageSquare, ShieldCheck } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Field, Input, Textarea } from '@/components/ui/primitives';
-import { physicalStock } from '@/domain/inventory/calc';
+import { countState, physicalStock } from '@/domain/inventory/calc';
 import {
   addInventoryComment,
+  markInventoryItemEmpty,
   resolveInventoryItem,
   setInventoryDigital,
 } from '@/server/inventory-actions';
@@ -50,15 +51,30 @@ export function ItemCard({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [commentOpen, setCommentOpen] = useState(false);
 
+  const [markingEmpty, startMarkEmpty] = useTransition();
+  const translateError = useInventoryError();
+  const [emptyError, setEmptyError] = useState<string | null>(null);
+
   // Optimistic stock: the sum updates as soon as a quantity is committed, so
   // the counter sees their own arithmetic immediately. The server value wins
   // as soon as it arrives — this never becomes the stored figure.
   const [localQuantities, setLocalQuantities] = useState<Record<string, number | null>>({});
-  const stock = physicalStock(
-    item.entries.map((e) => ({
-      quantity: e.id in localQuantities ? localQuantities[e.id] : e.quantity,
-    })),
-  );
+  const quantities = item.entries.map((e) => ({
+    quantity: e.id in localQuantities ? localQuantities[e.id] : e.quantity,
+  }));
+  const stock = physicalStock(quantities);
+
+  // "Checked, empty" is not the same statement as "nobody has looked yet",
+  // even though both sum to zero. See countState().
+  const state = countState(quantities);
+
+  function markEmpty() {
+    setEmptyError(null);
+    startMarkEmpty(async () => {
+      const res = await markInventoryItemEmpty(item.id, instanceId);
+      if (!res.ok) setEmptyError(translateError(res.error));
+    });
+  }
   const difference =
     digitalEnabled && item.digital_quantity !== null ? stock - item.digital_quantity : null;
   const digitalPending = digitalEnabled && item.digital_quantity === null;
@@ -70,11 +86,14 @@ export function ItemCard({
         item.status === 'to_review' ? 'border-late/30' : 'border-border',
       )}
     >
+      {/* The toggle and the one-tap zero sit side by side rather than nested:
+          a button inside a button is invalid and the inner one never fires. */}
+      <div className="flex items-start gap-2 p-3">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-start gap-2 p-3 text-left"
+        className="flex min-w-0 flex-1 items-start gap-2 text-left"
       >
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-medium leading-snug">{item.item_name}</p>
@@ -83,10 +102,18 @@ export function ItemCard({
           )}
 
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px]">
-            <span className="text-muted">
-              {t('inventory.physicalStock')}{' '}
-              <strong className="tabular-nums text-fg">{stock}</strong>
-            </span>
+            {/* An uncounted line must NOT read "Physical Stock 0" — that is a
+                claim about the warehouse nobody has made yet. */}
+            {state === 'uncounted' ? (
+              <span className="text-subtle">{t('inventory.notCounted')}</span>
+            ) : (
+              <span className="text-muted">
+                {t('inventory.physicalStock')}{' '}
+                <strong className="tabular-nums text-fg">{stock}</strong>
+              </span>
+            )}
+
+            {state === 'none' && <Badge tone="neutral">{t('inventory.emptyBadge')}</Badge>}
 
             {digitalEnabled &&
               (digitalPending ? (
@@ -117,6 +144,25 @@ export function ItemCard({
           />
         </div>
       </button>
+
+      {/* One tap to say "I looked, there is none". Only while the line is
+          genuinely uncounted: once a number exists this would be ambiguous,
+          and the action refuses it server-side anyway. */}
+      {canEdit && state === 'uncounted' && (
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={markEmpty}
+          loading={markingEmpty}
+          className="mt-[2px] shrink-0 whitespace-nowrap"
+        >
+          <CircleSlash className="h-3.5 w-3.5" aria-hidden />
+          {t('inventory.markEmpty')}
+        </Button>
+      )}
+      </div>
+
+      {emptyError && <p className="px-3 pb-2 text-[12px] text-late">{emptyError}</p>}
 
       {open && (
         <div className="space-y-3 border-t border-border px-3 pb-3 pt-3">

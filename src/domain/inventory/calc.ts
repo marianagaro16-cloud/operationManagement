@@ -30,6 +30,33 @@ export function physicalStock(records: readonly QuantityRecord[]): number {
   return records.reduce((sum, r) => sum + (r.quantity ?? 0), 0);
 }
 
+export type CountState = 'uncounted' | 'none' | 'counted';
+
+/**
+ * Has this line been counted, and did the count find anything?
+ *
+ * Physical Stock alone cannot answer that. An item nobody has looked at sums
+ * to 0, and so does an item somebody checked and found empty — the screen
+ * showed "Physical Stock 0" for both, which are very different statements to
+ * make about a warehouse.
+ *
+ * The database has always drawn the distinction (`quantity int check (quantity
+ * is null or quantity >= 0)`, with the column comment "NULL = not counted,
+ * which is not the same as 0"). This reads it back out:
+ *
+ *   no records, or every record still blank  -> 'uncounted'
+ *   something was recorded, and it totals 0  -> 'none'      ("checked, empty")
+ *   anything else                            -> 'counted'
+ *
+ * A blank row that someone added and never filled in stays 'uncounted' on
+ * purpose: creating a row is not a statement about stock.
+ */
+export function countState(records: readonly QuantityRecord[]): CountState {
+  const recorded = records.filter((r) => r.quantity !== null);
+  if (recorded.length === 0) return 'uncounted';
+  return physicalStock(recorded) === 0 ? 'none' : 'counted';
+}
+
 /**
  * Difference = Physical Stock - Inventory Digital.
  *
