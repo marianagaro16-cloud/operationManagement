@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { Bell, CalendarDays, ClipboardList, LayoutDashboard, Package, Settings, Shield } from 'lucide-react';
+import { Bell, Boxes, CalendarDays, ClipboardList, LayoutDashboard, Package, Settings, Shield } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,9 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
     // Lot control is the main floor workflow, so it sits high in the bar.
     { href: '/preparation', label: t('prep.title'), icon: ClipboardList },
     { href: '/orders', label: t('orders.title'), icon: Package },
+    // Counting happens on the floor, so inventory sits in the main bar rather
+    // than behind the admin section — the people who do it are not admins.
+    { href: '/inventory', label: t('inventory.title'), icon: Boxes },
     // The calendar browses future dates, so it is admin-only for the same
     // reason the dashboard hides upcoming work from regular users.
     ...(isAdmin
@@ -36,8 +39,10 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
       : []),
   ];
 
+  // Section-aware: an inventory detail page must keep the Inventory tab lit,
+  // exactly as an admin subpage keeps Admin lit.
   const active = (href: string) =>
-    href === '/admin' ? pathname.startsWith('/admin') : pathname === href;
+    href === '/admin' || href === '/inventory' ? pathname.startsWith(href) : pathname === href;
 
   const greeting = (() => {
     const hour = Number(

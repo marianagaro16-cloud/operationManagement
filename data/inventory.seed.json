@@ -1,0 +1,1693 @@
+{
+  "source": "C:/Users/MarianaGarcíaMASAMOR/Colectivo Anonimo/Colectivo Anonimo - _Oper/Bestandskontrolle/Inventario/Bestandkontrolle_Master.xlsx",
+  "extractedAt": "2026-09-07T13:15:09.817Z",
+  "templates": [
+    {
+      "slug": "masamor-del-barrio",
+      "name": "Masamor / Del Barrio",
+      "kind": "expiry",
+      "frequency": "weekly",
+      "schedule_config": {
+        "kind": "weekly",
+        "weekday": 5
+      },
+      "digital_enabled": true,
+      "items": [
+        {
+          "name": "Bio Masa Azul- 1kg",
+          "item_group": "Tortilla Azul",
+          "sort_order": 10
+        },
+        {
+          "name": "Bio Blaue Mais Tortilla 1.5kg- 19cmØ",
+          "item_group": "Tortilla Azul",
+          "sort_order": 20
+        },
+        {
+          "name": "Bio Blaue Mais Tortilla 0.25kg - Ø14cm",
+          "item_group": "Tortilla Azul",
+          "sort_order": 30
+        },
+        {
+          "name": "Bio Blaue Mais Tortilla 0.5 kg - Ø14cm",
+          "item_group": "Tortilla Azul",
+          "sort_order": 40
+        },
+        {
+          "name": "Bio Blaue Mais Tortilla 500g - Ø12cm",
+          "item_group": "Tortilla Azul",
+          "sort_order": 50
+        },
+        {
+          "name": "Bio Blaue Mais Tortilla 500g - Ø10cm",
+          "item_group": "Tortilla Azul",
+          "sort_order": 60
+        },
+        {
+          "name": "Bio Masa- 1kg",
+          "item_group": "MASAMOR",
+          "sort_order": 70
+        },
+        {
+          "name": "Bio Masa- 3kg",
+          "item_group": "MASAMOR",
+          "sort_order": 80
+        },
+        {
+          "name": "Huaraches - 10 pzs",
+          "item_group": "MASAMOR",
+          "sort_order": 90
+        },
+        {
+          "name": "Huaraches - 1.5kg",
+          "item_group": "MASAMOR",
+          "sort_order": 100
+        },
+        {
+          "name": "Corazon - 0.5 kg",
+          "item_group": "MASAMOR",
+          "sort_order": 110
+        },
+        {
+          "name": "Corazon - 1.75 kg",
+          "item_group": "MASAMOR",
+          "sort_order": 120
+        },
+        {
+          "name": "Bio Mais Tortillas 1.5kg Vacuum - Ø19cm",
+          "item_group": "MASAMOR",
+          "sort_order": 130
+        },
+        {
+          "name": "Bio Mais Tortillas Frisch Verpackt 1.5kg - Ø19cm",
+          "item_group": "MASAMOR",
+          "sort_order": 140
+        },
+        {
+          "name": "Bio Mais Tortillas Raumtemperatur 0.25 kg - Ø14cm",
+          "item_group": "MASAMOR",
+          "sort_order": 150
+        },
+        {
+          "name": "Bio Mais Tortillas \"El Catrín\" 0.5 kg - Ø14cm",
+          "item_group": "MASAMOR",
+          "sort_order": 160
+        },
+        {
+          "name": "Bio Mais Tortillas 0.25 kg - Ø14cm",
+          "item_group": "MASAMOR",
+          "sort_order": 170
+        },
+        {
+          "name": "Bio Mais Tortillas 0.5 kg - Ø14cm",
+          "item_group": "MASAMOR",
+          "sort_order": 180
+        },
+        {
+          "name": "Bio Mais Tortillas 1kg - Ø14cm",
+          "item_group": "MASAMOR",
+          "sort_order": 190
+        },
+        {
+          "name": "Bio Mais Tortillas Frisch Verpackt 2kg - Ø14cm",
+          "item_group": "MASAMOR",
+          "sort_order": 200
+        },
+        {
+          "name": "Bio Mais Tortillas \"Pastor DK\" 1 kg - Ø12cm",
+          "item_group": "MASAMOR",
+          "sort_order": 210
+        },
+        {
+          "name": "Bio Mais Tortillas 0.5 kg - Ø12cm",
+          "item_group": "MASAMOR",
+          "sort_order": 220
+        },
+        {
+          "name": "Bio Mais Tortillas 1 kg - Ø12cm",
+          "item_group": "MASAMOR",
+          "sort_order": 230
+        },
+        {
+          "name": "Bio Mais Tortillas Frisch Verpackt 1.75kg - Ø12cm",
+          "item_group": "MASAMOR",
+          "sort_order": 240
+        },
+        {
+          "name": "Bio Mais Tortillas 0.5 kg - Ø10cm",
+          "item_group": "MASAMOR",
+          "sort_order": 250
+        },
+        {
+          "name": "Bio Mais Tortillas Frisch Verpackt 1.25kg - Ø10cm",
+          "item_group": "MASAMOR",
+          "sort_order": 260
+        },
+        {
+          "name": "Bio Mais Tortillas 1kg - Ø06cm",
+          "item_group": "MASAMOR",
+          "sort_order": 270
+        },
+        {
+          "name": "Bio Mais Tortillas für Tostadas 1.5kg - Ø19cm",
+          "item_group": "Tortilla Chip",
+          "sort_order": 280
+        },
+        {
+          "name": "Bio Mais Tortillas für Tostadas 2kg - Ø14cm",
+          "item_group": "Tortilla Chip",
+          "sort_order": 290
+        },
+        {
+          "name": "Bio Mais Tortillas für Tostadas 1.75kg - Ø12cm",
+          "item_group": "Tortilla Chip",
+          "sort_order": 300
+        },
+        {
+          "name": "Bio Mais Tortillas für Tostadas 1.25kg - Ø10cm",
+          "item_group": "Tortilla Chip",
+          "sort_order": 310
+        },
+        {
+          "name": "Bio Mais Tortillas für Tostadas 1kg - Ø6cm",
+          "item_group": "Tortilla Chip",
+          "sort_order": 320
+        },
+        {
+          "name": "Bio Blaue Mais Tortillas für Tostadas 1kg - Ø6 cm",
+          "item_group": "Tortilla Chip",
+          "sort_order": 330
+        },
+        {
+          "name": "Bio Gelber Mais Huarache \" Flautas\" Vakuumverpackt- 1.5kg",
+          "item_group": "Tortilla Chip",
+          "sort_order": 340
+        },
+        {
+          "name": "Bio Blaue Mais Huarache \" Flautas\" Vakuumverpackt- 1.5kg",
+          "item_group": "Tortilla Chip",
+          "sort_order": 350
+        },
+        {
+          "name": "Bio Mais Tortillas zum Frittieren 2kg - Ø14cm",
+          "item_group": "Tortilla Chip",
+          "sort_order": 360
+        },
+        {
+          "name": "Bio Mais Tortillas für Freir 1kg Vacio - Ø14 cm",
+          "item_group": "Tortilla Chip",
+          "sort_order": 370
+        },
+        {
+          "name": "Bio Blaue Mais Tortillas zum frittieren- Vakuum Verpackt- 1kg - Ø14cm",
+          "item_group": "Tortilla Chip",
+          "sort_order": 380
+        },
+        {
+          "name": "Bio Mais Tortillas für Totopos 5pzs",
+          "item_group": "Tortilla Chip",
+          "sort_order": 390
+        },
+        {
+          "name": "Bio Mais Tortillas für Totopos (5 Stück Schnitt) - 12kg",
+          "item_group": "Tortilla Chip",
+          "sort_order": 400
+        },
+        {
+          "name": "Bio Mais Tortillas für Totopos 8pzs",
+          "item_group": "Tortilla Chip",
+          "sort_order": 410
+        },
+        {
+          "name": "Bio Mais Tortillas für Totopos (8 Stück Schnitt) - 12kg",
+          "item_group": "Tortilla Chip",
+          "sort_order": 420
+        },
+        {
+          "name": "Bio Mais Tortillas für Totopos 5pzs Azul",
+          "item_group": "Tortilla Chip",
+          "sort_order": 430
+        },
+        {
+          "name": "Bio Mais Tortillas für Totopos 8pzs Azul",
+          "item_group": "Tortilla Chip",
+          "sort_order": 440
+        },
+        {
+          "name": "Tostadas de maíz amarillo \"Gastro\" 30 Stück- Ø19cm",
+          "item_group": "Fritura",
+          "sort_order": 450
+        },
+        {
+          "name": "Tostadas de maíz amarillo \"Gastro\" 30 Stück- Ø14cm",
+          "item_group": "Fritura",
+          "sort_order": 460
+        },
+        {
+          "name": "Tostadas de maíz amarillo \"Retail\" 10 Stück- Ø14cm",
+          "item_group": "Fritura",
+          "sort_order": 470
+        },
+        {
+          "name": "Tostadas de maíz amarillo \"Gastro\" 30 Stück- Ø12cm",
+          "item_group": "Fritura",
+          "sort_order": 480
+        },
+        {
+          "name": "Tostadas de maíz amarillo \"Gastro\" 30 Stück- Ø10cm",
+          "item_group": "Fritura",
+          "sort_order": 490
+        },
+        {
+          "name": "Tostadas de maíz amarillo \"Gastro\" 40 Stück- Ø6cm",
+          "item_group": "Fritura",
+          "sort_order": 500
+        },
+        {
+          "name": "Tostadas de maíz azul \"Gastro\" 30 Stück- Ø12cm",
+          "item_group": "Fritura",
+          "sort_order": 510
+        },
+        {
+          "name": "Tostadas de maíz azul \"Gastro\" 30 Stück- Ø10cm",
+          "item_group": "Fritura",
+          "sort_order": 520
+        },
+        {
+          "name": "Taco Shell - Ø14cm",
+          "item_group": "Fritura",
+          "sort_order": 530
+        },
+        {
+          "name": "Taco Shell - Ø12cm",
+          "item_group": "Fritura",
+          "sort_order": 540
+        },
+        {
+          "name": "Taco Shell - Ø10cm",
+          "item_group": "Fritura",
+          "sort_order": 550
+        },
+        {
+          "name": "Totopos de maíz amarillo- 40g",
+          "item_group": "Fritura",
+          "sort_order": 560
+        },
+        {
+          "name": "Totopos de maíz amarillo- 150g",
+          "item_group": "Fritura",
+          "sort_order": 570
+        },
+        {
+          "name": "Totopos de maíz amarillo \"El Catrín\" - 150g",
+          "item_group": "Fritura",
+          "sort_order": 580
+        },
+        {
+          "name": "Totopos de maíz amarillo- 180g",
+          "item_group": "Fritura",
+          "sort_order": 590
+        },
+        {
+          "name": "Totopos de maíz amarillo- 500gr",
+          "item_group": "Fritura",
+          "sort_order": 600
+        },
+        {
+          "name": "Totopos de maíz amarillo 1kg",
+          "item_group": "Fritura",
+          "sort_order": 610
+        },
+        {
+          "name": "Totopos de maíz amarillo 2.5kg",
+          "item_group": "Fritura",
+          "sort_order": 620
+        },
+        {
+          "name": "Karton- Totopos de maíz amarillo 6kg",
+          "item_group": "Fritura",
+          "sort_order": 630
+        },
+        {
+          "name": "Karton- Totopos de maíz amarillo 6kg Sin Sal",
+          "item_group": "Fritura",
+          "sort_order": 640
+        },
+        {
+          "name": "Karton- Totopos de maíz amarillo 6kg 8pzs",
+          "item_group": "Fritura",
+          "sort_order": 650
+        },
+        {
+          "name": "Totopos de maíz azul- 40g",
+          "item_group": "Fritura",
+          "sort_order": 660
+        },
+        {
+          "name": "Totopos de maíz azul- 150g",
+          "item_group": "Fritura",
+          "sort_order": 670
+        },
+        {
+          "name": "Totopos de maíz azul- 180g",
+          "item_group": "Fritura",
+          "sort_order": 680
+        },
+        {
+          "name": "Totopos de maíz azul- 500g",
+          "item_group": "Fritura",
+          "sort_order": 690
+        },
+        {
+          "name": "Totopos de maíz azul 1kg",
+          "item_group": "Fritura",
+          "sort_order": 700
+        },
+        {
+          "name": "Totopos de maíz azul 2.5kg",
+          "item_group": "Fritura",
+          "sort_order": 710
+        },
+        {
+          "name": "Karton- Totopos de maíz azul 6kg",
+          "item_group": "Fritura",
+          "sort_order": 720
+        },
+        {
+          "name": "Karton- Totopos de maíz mixto 2.5kg",
+          "item_group": "Fritura",
+          "sort_order": 730
+        },
+        {
+          "name": "Karton- Totopos de maíz mixto 6kg",
+          "item_group": "Fritura",
+          "sort_order": 740
+        },
+        {
+          "name": "Karton- Totopos de maíz mixto 6kg SIN SAL",
+          "item_group": "Fritura",
+          "sort_order": 750
+        },
+        {
+          "name": "Karton- Totopos de maíz mixto 6kg 8pzs",
+          "item_group": "Fritura",
+          "sort_order": 760
+        },
+        {
+          "name": "Tortilla TGTG (paquetes",
+          "item_group": "TooGooToGo",
+          "sort_order": 770
+        },
+        {
+          "name": "Totopo TGTG",
+          "item_group": "TooGooToGo",
+          "sort_order": 780
+        },
+        {
+          "name": "Tostada TGTG",
+          "item_group": "TooGooToGo",
+          "sort_order": 790
+        },
+        {
+          "name": "Chapulines Enchilados Granel KG",
+          "item_group": "Del Barrio",
+          "sort_order": 800
+        },
+        {
+          "name": "Chapulines Enchilados- 100g",
+          "item_group": "Del Barrio",
+          "sort_order": 810
+        },
+        {
+          "name": "Chapulines Enchilados- 15g",
+          "item_group": "Del Barrio",
+          "sort_order": 820
+        },
+        {
+          "name": "Flor de jamaica Granel KG",
+          "item_group": "Del Barrio",
+          "sort_order": 830
+        },
+        {
+          "name": "Flor de jamaica- 1kg",
+          "item_group": "Del Barrio",
+          "sort_order": 840
+        },
+        {
+          "name": "Flor de jamaica- 250g",
+          "item_group": "Del Barrio",
+          "sort_order": 850
+        },
+        {
+          "name": "Chorizo Mexicano- 1Kg",
+          "item_group": "Del Barrio",
+          "sort_order": 860
+        },
+        {
+          "name": "Chorizo Mexicano- 250g",
+          "item_group": "Del Barrio",
+          "sort_order": 870
+        },
+        {
+          "name": "Arrachera 1kg",
+          "item_group": "Del Barrio",
+          "sort_order": 880
+        },
+        {
+          "name": "Arrachera 500g",
+          "item_group": "Del Barrio",
+          "sort_order": 890
+        },
+        {
+          "name": "Queso Fresco \"del Barrio\" - 1kg",
+          "item_group": "Del Barrio",
+          "sort_order": 900
+        },
+        {
+          "name": "Queso Fresco \"del Barrio\" - 250g",
+          "item_group": "Del Barrio",
+          "sort_order": 910
+        },
+        {
+          "name": "Queso Oaxaca Gerieben- 2kg",
+          "item_group": "Del Barrio",
+          "sort_order": 920
+        },
+        {
+          "name": "Queso Oaxaca Ganz- 1Kg",
+          "item_group": "Del Barrio",
+          "sort_order": 930
+        },
+        {
+          "name": "Queso Oaxaca Ganz \"del Barrio\" - 250g",
+          "item_group": "Del Barrio",
+          "sort_order": 940
+        },
+        {
+          "name": "Queso Chihuahua \"del Barrio\" - 1kg",
+          "item_group": "Del Barrio",
+          "sort_order": 950
+        },
+        {
+          "name": "Queso Panela- 1Kg",
+          "item_group": "Del Barrio",
+          "sort_order": 960
+        },
+        {
+          "name": "Queso Panela \"del Barrio\" - 250g",
+          "item_group": "Del Barrio",
+          "sort_order": 970
+        },
+        {
+          "name": "Corn Flour \"del Barrio\" - 1kg",
+          "item_group": "Del Barrio",
+          "sort_order": 980
+        },
+        {
+          "name": "Cal \"del Barrio\" - 50g",
+          "item_group": "Del Barrio",
+          "sort_order": 990
+        },
+        {
+          "name": "Cocktail Paloma 15cl",
+          "item_group": "Del Barrio",
+          "sort_order": 1000
+        },
+        {
+          "name": "Cocktail Margarita 15cl",
+          "item_group": "Del Barrio",
+          "sort_order": 1010
+        },
+        {
+          "name": "Chile de Árbol \"Del Barrio\" - 100g",
+          "item_group": "Del Barrio",
+          "sort_order": 1020
+        },
+        {
+          "name": "Chile Ancho \"Del Barrio\" - 100g",
+          "item_group": "Del Barrio",
+          "sort_order": 1030
+        },
+        {
+          "name": "Chile Guajillo \"Del Barrio\" - 100g",
+          "item_group": "Del Barrio",
+          "sort_order": 1040
+        },
+        {
+          "name": "Chile Pasilla \"Del Barrio\" - 100g",
+          "item_group": "Del Barrio",
+          "sort_order": 1050
+        },
+        {
+          "name": "Chile Chipotle (Morita) \"Del Barrio\" - 100g",
+          "item_group": "Del Barrio",
+          "sort_order": 1060
+        },
+        {
+          "name": "Bolsa suelta- Tortillas de Harina de Trigo- Ø12cm",
+          "item_group": "Del Barrio",
+          "sort_order": 1070
+        },
+        {
+          "name": "Bolsa suelta- Tortillas de Harina de Trigo- Ø15cm",
+          "item_group": "Del Barrio",
+          "sort_order": 1080
+        },
+        {
+          "name": "Bolsa suelta- Tortillas de Harina de Trigo- Ø25cm",
+          "item_group": "Del Barrio",
+          "sort_order": 1090
+        },
+        {
+          "name": "Bolsa suelta- Tortillas de Harina de Trigo- Ø30cm",
+          "item_group": "Del Barrio",
+          "sort_order": 1100
+        },
+        {
+          "name": "Karton- Tortillas de Harina de Trigo- Ø12cm",
+          "item_group": "Del Barrio",
+          "sort_order": 1110
+        },
+        {
+          "name": "Karton- Tortillas de Harina de Trigo- Ø15cm",
+          "item_group": "Del Barrio",
+          "sort_order": 1120
+        },
+        {
+          "name": "Karton- Tortillas de Harina de Trigo- Ø25cm",
+          "item_group": "Del Barrio",
+          "sort_order": 1130
+        },
+        {
+          "name": "Karton- Tortillas de Harina de Trigo- Ø30cm",
+          "item_group": "Del Barrio",
+          "sort_order": 1140
+        }
+      ]
+    },
+    {
+      "slug": "colectivo-comestibles",
+      "name": "Colectivo Comestibles",
+      "kind": "expiry",
+      "frequency": "monthly",
+      "schedule_config": {
+        "kind": "monthly",
+        "rules": [
+          {
+            "type": "nthWeekday",
+            "nth": 2,
+            "weekday": 4
+          },
+          {
+            "type": "nthWeekday",
+            "nth": -1,
+            "weekday": 4
+          }
+        ]
+      },
+      "digital_enabled": true,
+      "items": [
+        {
+          "name": "Geröstete Chile Poblano in Streifen \"del Barrio\" - 0.5kg",
+          "item_group": "Del Barrio",
+          "sort_order": 10
+        },
+        {
+          "name": "Geröstete Chile Poblano \"del Barrio\" - 1kg",
+          "item_group": "Del Barrio",
+          "sort_order": 20
+        },
+        {
+          "name": "Geröstete Chile Poblano \"del Barrio\" - 2.27kg",
+          "item_group": "Del Barrio",
+          "sort_order": 30
+        },
+        {
+          "name": "Geröstete Chile Poblano \"del Barrio\" - 10 Stk",
+          "item_group": "Del Barrio",
+          "sort_order": 40
+        },
+        {
+          "name": "Geröstete Chile Poblano \"del Barrio\" - 40 Stk",
+          "item_group": "Del Barrio",
+          "sort_order": 50
+        },
+        {
+          "name": "Geröstete Chile Jalapeño \"del Barrio\" - 1kg",
+          "item_group": "Del Barrio",
+          "sort_order": 60
+        },
+        {
+          "name": "Geröstete Tomatillo \"del Barrio\" - 1kg",
+          "item_group": "Del Barrio",
+          "sort_order": 70
+        },
+        {
+          "name": "Geröstete Nopales in Streifen \"del Barrio\" - 1Kg",
+          "item_group": "Del Barrio",
+          "sort_order": 80
+        },
+        {
+          "name": "Geröstete Chile Serrano \"del Barrio\" - 250g",
+          "item_group": "Del Barrio",
+          "sort_order": 90
+        },
+        {
+          "name": "Geröstete Chile Serrano \"del Barrio\" - 1Kg",
+          "item_group": "Del Barrio",
+          "sort_order": 100
+        },
+        {
+          "name": "La Güera del Barrio- Organic Mexican Lager - 33cl",
+          "item_group": "Del Barrio",
+          "sort_order": 110
+        },
+        {
+          "name": "Tomatillo Carey - 380g",
+          "item_group": "El Mini Super",
+          "sort_order": 120
+        },
+        {
+          "name": "Tomatillo Carey - 822g",
+          "item_group": "El Mini Super",
+          "sort_order": 130
+        },
+        {
+          "name": "Tomatillo La Costeña - 794g",
+          "item_group": "El Mini Super",
+          "sort_order": 140
+        },
+        {
+          "name": "Tomatillo Molido Xatze 2.8kg",
+          "item_group": "El Mini Super",
+          "sort_order": 150
+        },
+        {
+          "name": "Tomatillo Molido Carey 2.9kg",
+          "item_group": "El Mini Super",
+          "sort_order": 160
+        },
+        {
+          "name": "Chocolate Abuelita 6 Tafeln à 90g",
+          "item_group": "El Mini Super",
+          "sort_order": 170
+        },
+        {
+          "name": "Chile de Arbol Xatzé - 1kg",
+          "item_group": "El Mini Super",
+          "sort_order": 180
+        },
+        {
+          "name": "Chile Ancho Xatzé - 1kg",
+          "item_group": "El Mini Super",
+          "sort_order": 190
+        },
+        {
+          "name": "Chile Guajillo Xatzé - 1kg",
+          "item_group": "El Mini Super",
+          "sort_order": 200
+        },
+        {
+          "name": "Chile Pasilla Xatzé- 1kg",
+          "item_group": "El Mini Super",
+          "sort_order": 210
+        },
+        {
+          "name": "Chile Chipotle (Morita) Xatzé - 1kg",
+          "item_group": "El Mini Super",
+          "sort_order": 220
+        },
+        {
+          "name": "Chipotle Molido Terana 80g",
+          "item_group": "El Mini Super",
+          "sort_order": 230
+        },
+        {
+          "name": "Chipotle Molido Xatze 550g",
+          "item_group": "El Mini Super",
+          "sort_order": 240
+        },
+        {
+          "name": "Guajillo Molido Xatze 550g",
+          "item_group": "El Mini Super",
+          "sort_order": 250
+        },
+        {
+          "name": "Chipotle Hojuelas Xatze 380g",
+          "item_group": "El Mini Super",
+          "sort_order": 260
+        },
+        {
+          "name": "Arbol Hojuelas Terana 50g",
+          "item_group": "El Mini Super",
+          "sort_order": 270
+        },
+        {
+          "name": "Ancho Hojuelas Xatze 380g",
+          "item_group": "El Mini Super",
+          "sort_order": 280
+        },
+        {
+          "name": "Guajillo Hojuelas Xatze 380g",
+          "item_group": "El Mini Super",
+          "sort_order": 290
+        },
+        {
+          "name": "Chipotle en Adobo Herdez 210g",
+          "item_group": "El Mini Super",
+          "sort_order": 300
+        },
+        {
+          "name": "Chipotle en Adobo La Costeña 198g",
+          "item_group": "El Mini Super",
+          "sort_order": 310
+        },
+        {
+          "name": "Chipotle en Adobo Carey 340g",
+          "item_group": "El Mini Super",
+          "sort_order": 320
+        },
+        {
+          "name": "Chipotle Molido Clemente Jacques 220g",
+          "item_group": "El Mini Super",
+          "sort_order": 330
+        },
+        {
+          "name": "Maíz Pozolero Carey - 860g",
+          "item_group": "El Mini Super",
+          "sort_order": 340
+        },
+        {
+          "name": "Maíz Pozolero \"La Costeña\" - 820g",
+          "item_group": "El Mini Super",
+          "sort_order": 350
+        },
+        {
+          "name": "Maiz Blanco Mexicano - Herdez - 220gr",
+          "item_group": "El Mini Super",
+          "sort_order": 360
+        },
+        {
+          "name": "Frijoles Peruanos Refritos Isadora - 430g",
+          "item_group": "El Mini Super",
+          "sort_order": 370
+        },
+        {
+          "name": "Frijoles Claros Enteros Isadora - 454g",
+          "item_group": "El Mini Super",
+          "sort_order": 380
+        },
+        {
+          "name": "Frijoles Bayos Refritos Isadora - 454g",
+          "item_group": "El Mini Super",
+          "sort_order": 390
+        },
+        {
+          "name": "Frijoles Negros Refritos Isadora - 454g",
+          "item_group": "El Mini Super",
+          "sort_order": 400
+        },
+        {
+          "name": "Frijoles Negros Enteros Isadora - 454g",
+          "item_group": "El Mini Super",
+          "sort_order": 410
+        },
+        {
+          "name": "Frijolitos Amarillos \"Garibaldi\" - 420g",
+          "item_group": "El Mini Super",
+          "sort_order": 420
+        },
+        {
+          "name": "Frijolitos Negros \"Garibaldi\" - 420g",
+          "item_group": "El Mini Super",
+          "sort_order": 430
+        },
+        {
+          "name": "Pinto Beans - Valle Verde",
+          "item_group": "El Mini Super",
+          "sort_order": 440
+        },
+        {
+          "name": "Peruano Beans - Valle Verde",
+          "item_group": "El Mini Super",
+          "sort_order": 450
+        },
+        {
+          "name": "Salsa Valentina - 370ml",
+          "item_group": "El Mini Super",
+          "sort_order": 460
+        },
+        {
+          "name": "Salsa Verde Enchiladas La Costeña 420g",
+          "item_group": "El Mini Super",
+          "sort_order": 470
+        },
+        {
+          "name": "Salsa Roja Enchiladas La Costeña 420g",
+          "item_group": "El Mini Super",
+          "sort_order": 480
+        },
+        {
+          "name": "Salsa Chipotle Herdez 210gr",
+          "item_group": "El Mini Super",
+          "sort_order": 490
+        },
+        {
+          "name": "Salsa Guacamole - Herdez - 240gr",
+          "item_group": "El Mini Super",
+          "sort_order": 500
+        },
+        {
+          "name": "Salsa Taquera Herdez - Herdez - 240gr",
+          "item_group": "El Mini Super",
+          "sort_order": 510
+        },
+        {
+          "name": "Salsa Chipotle - Herdez - 210gr",
+          "item_group": "El Mini Super",
+          "sort_order": 520
+        },
+        {
+          "name": "Salsa Chipotle - Herdez - 453gr",
+          "item_group": "El Mini Super",
+          "sort_order": 530
+        },
+        {
+          "name": "Salsa Verde con chile habanero - Herdez - 240gr",
+          "item_group": "El Mini Super",
+          "sort_order": 540
+        },
+        {
+          "name": "Salsa Habanera Tamulada - La Meridana - 150ml",
+          "item_group": "El Mini Super",
+          "sort_order": 550
+        },
+        {
+          "name": "Salsa Habanera Mango - La Meridana - 150ml",
+          "item_group": "El Mini Super",
+          "sort_order": 560
+        },
+        {
+          "name": "Salsa Habanera Verde - La Meridana - 150ml",
+          "item_group": "El Mini Super",
+          "sort_order": 570
+        },
+        {
+          "name": "Salsa Verde (Vidrio) 240g",
+          "item_group": "El Mini Super",
+          "sort_order": 580
+        },
+        {
+          "name": "Salsa Verde (Lata) - Herdez 210gr",
+          "item_group": "El Mini Super",
+          "sort_order": 590
+        },
+        {
+          "name": "Salsa Casera con chile habanero - Herdez 453gr",
+          "item_group": "El Mini Super",
+          "sort_order": 600
+        },
+        {
+          "name": "Tajin Clásico Seasoning 142g",
+          "item_group": "El Mini Super",
+          "sort_order": 610
+        },
+        {
+          "name": "Tajin Clásico Seasoning 400g",
+          "item_group": "El Mini Super",
+          "sort_order": 620
+        },
+        {
+          "name": "Panela - Goya 454g",
+          "item_group": "El Mini Super",
+          "sort_order": 630
+        },
+        {
+          "name": "Taco al pastor - Sazón Natural - 142g",
+          "item_group": "El Mini Super",
+          "sort_order": 640
+        },
+        {
+          "name": "Birria mix - Sazón Natural - 113g",
+          "item_group": "El Mini Super",
+          "sort_order": 650
+        },
+        {
+          "name": "Achiote Lol-Tun 100g",
+          "item_group": "El Mini Super",
+          "sort_order": 660
+        },
+        {
+          "name": "Achiote Condi Yucateco 1kg",
+          "item_group": "El Mini Super",
+          "sort_order": 670
+        },
+        {
+          "name": "Cajeta Quemada 660g",
+          "item_group": "El Mini Super",
+          "sort_order": 680
+        },
+        {
+          "name": "Jalapeño - La Costeña - 199g",
+          "item_group": "El Mini Super",
+          "sort_order": 690
+        },
+        {
+          "name": "Rodajas de serranos toreados - La Costeña - 220g",
+          "item_group": "El Mini Super",
+          "sort_order": 700
+        },
+        {
+          "name": "Epazote \"Terana\" - 400 g",
+          "item_group": "El Mini Super",
+          "sort_order": 710
+        },
+        {
+          "name": "Epazote \"Terana\" - 26 g",
+          "item_group": "El Mini Super",
+          "sort_order": 720
+        },
+        {
+          "name": "Oregano Mexicano \"Terana\" - 21g",
+          "item_group": "El Mini Super",
+          "sort_order": 730
+        },
+        {
+          "name": "Oregano Mexicano Terana - 400g",
+          "item_group": "El Mini Super",
+          "sort_order": 740
+        },
+        {
+          "name": "Cilantro Seco \"Terana\" - 12g",
+          "item_group": "El Mini Super",
+          "sort_order": 750
+        },
+        {
+          "name": "Tostitos Verdes",
+          "item_group": "El Mini Super",
+          "sort_order": 760
+        },
+        {
+          "name": "Tostitos Flamin Hot",
+          "item_group": "El Mini Super",
+          "sort_order": 770
+        },
+        {
+          "name": "Fritos Flamin Hot",
+          "item_group": "El Mini Super",
+          "sort_order": 780
+        },
+        {
+          "name": "Fritos Limon & Sal",
+          "item_group": "El Mini Super",
+          "sort_order": 790
+        },
+        {
+          "name": "Snack Chips Jalapeño - 42g",
+          "item_group": "El Mini Super",
+          "sort_order": 800
+        },
+        {
+          "name": "Ruffles Jalapeño",
+          "item_group": "El Mini Super",
+          "sort_order": 810
+        },
+        {
+          "name": "Ruffles Flamin Hot",
+          "item_group": "El Mini Super",
+          "sort_order": 820
+        },
+        {
+          "name": "Nopalia chilpotle 80g",
+          "item_group": "El Mini Super",
+          "sort_order": 830
+        },
+        {
+          "name": "Snack Runners - 58g",
+          "item_group": "El Mini Super",
+          "sort_order": 840
+        },
+        {
+          "name": "Doritos Rojos",
+          "item_group": "El Mini Super",
+          "sort_order": 850
+        },
+        {
+          "name": "Pulparindo",
+          "item_group": "El Mini Super",
+          "sort_order": 860
+        },
+        {
+          "name": "Mazapan",
+          "item_group": "El Mini Super",
+          "sort_order": 870
+        },
+        {
+          "name": "Nopales en escabeche \"La Costeña\" - 440g",
+          "item_group": "El Mini Super",
+          "sort_order": 880
+        },
+        {
+          "name": "Mole Poblano - Doña Maria - 233g",
+          "item_group": "El Mini Super",
+          "sort_order": 890
+        },
+        {
+          "name": "Mole Rojo - La Costeña - 235g",
+          "item_group": "El Mini Super",
+          "sort_order": 900
+        },
+        {
+          "name": "Clamato - 987ml",
+          "item_group": "El Mini Super",
+          "sort_order": 910
+        },
+        {
+          "name": "Flor de Calabaza",
+          "item_group": "El Mini Super",
+          "sort_order": 920
+        },
+        {
+          "name": "Cuitlacoche",
+          "item_group": "El Mini Super",
+          "sort_order": 930
+        },
+        {
+          "name": "Jarritos Mexican Cola 370ml",
+          "item_group": "El Mini Super",
+          "sort_order": 940
+        },
+        {
+          "name": "Jarritos Lime 370ml",
+          "item_group": "El Mini Super",
+          "sort_order": 950
+        },
+        {
+          "name": "Jarritos Watermelon 370ml",
+          "item_group": "El Mini Super",
+          "sort_order": 960
+        },
+        {
+          "name": "Jarritos Guava 370ml",
+          "item_group": "El Mini Super",
+          "sort_order": 970
+        },
+        {
+          "name": "Jarritos Tamarind 370ml",
+          "item_group": "El Mini Super",
+          "sort_order": 980
+        },
+        {
+          "name": "Jarritos Mango 370ml",
+          "item_group": "El Mini Super",
+          "sort_order": 990
+        },
+        {
+          "name": "Jarritos Mandarin 370ml",
+          "item_group": "El Mini Super",
+          "sort_order": 1000
+        },
+        {
+          "name": "Maisblätter",
+          "item_group": "El Mini Super",
+          "sort_order": 1010
+        },
+        {
+          "name": "Maisblätter Papagayo",
+          "item_group": "El Mini Super",
+          "sort_order": 1020
+        },
+        {
+          "name": "Tortillero Masamor",
+          "item_group": "El Mini Super",
+          "sort_order": 1030
+        },
+        {
+          "name": "Cerveza Rompeolas - Insurgentes",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1040
+        },
+        {
+          "name": "Cerveza Tinieblas - Insurgentes",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1050
+        },
+        {
+          "name": "Cerveza Lupulosa - Insurgentes",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1060
+        },
+        {
+          "name": "Cerveza Juan Cordero - Insurgentes",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1070
+        },
+        {
+          "name": "Alma Finca, 70cl, 40%",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1080
+        },
+        {
+          "name": "Tequila Blanco - Arsenal - 1L",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1090
+        },
+        {
+          "name": "Tequila Reposado - Arsenal - 1L",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1100
+        },
+        {
+          "name": "Tequila Blanco - 7 Leguas - 700ml",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1110
+        },
+        {
+          "name": "Tequila Reposado - 7 Leguas - 700ml",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1120
+        },
+        {
+          "name": "Tequila Añejo - 7 Leguas - 700ml",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1130
+        },
+        {
+          "name": "Mezcal Espadín - Bruxo - 700ml",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1140
+        },
+        {
+          "name": "Bruxo N1 - 700ml",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1150
+        },
+        {
+          "name": "Tequila Blanco - Rey - 750ml",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1160
+        },
+        {
+          "name": "Tequila Reposado - Rey - 750ml",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1170
+        },
+        {
+          "name": "Mezcal ZOND5 – Agave Spirit by BEÚ Spirits - 70cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1180
+        },
+        {
+          "name": "Blood Moon Spirit by BEÚ Spirits - 70cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1190
+        },
+        {
+          "name": "Moon Ceremony Spirit by BEÚ Spirits - 70cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1200
+        },
+        {
+          "name": "Mezcal New Moon BEÚ",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1210
+        },
+        {
+          "name": "Almave AMBAR Non Alcoholic Blue Agave Spirit, 70cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1220
+        },
+        {
+          "name": "Almave BLANCO Non Alcoholic Blue Agave Spirit, 70cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1230
+        },
+        {
+          "name": "Almave HUMO Non Alcoholic Blue Agave Spirit, 70cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1240
+        },
+        {
+          "name": "BESO De Agave, Organico, 750 ml",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1250
+        },
+        {
+          "name": "Tequila Gran Malo - Spicy Tamarind Liqueur 75cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1260
+        },
+        {
+          "name": "Tequila Blanco - Buen Vato - 70 cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1270
+        },
+        {
+          "name": "Tequila Blanco - Buen Vato - 5 Liters",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1280
+        },
+        {
+          "name": "Tequila Reposado - La Gritona - 5 cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1290
+        },
+        {
+          "name": "Tequila Reposado - La Gritona - 70 cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1300
+        },
+        {
+          "name": "Gi Citrico - Las Californias -70 cl,",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1310
+        },
+        {
+          "name": "Gin Nativo - Las Californias - 70 cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1320
+        },
+        {
+          "name": "Axiote Licor \"Maleza\" - 70cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1330
+        },
+        {
+          "name": "Cacahuate Likör \"Maleza\" - 70cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1340
+        },
+        {
+          "name": "Cempasúchil Likör \"Maleza\" - 70cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1350
+        },
+        {
+          "name": "Pepita Likör \"Maleza\" - 70cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1360
+        },
+        {
+          "name": "Azul 2022- Bichi Wines - 75cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1370
+        },
+        {
+          "name": "Gorda Yori 2022- Bichi Wines -75cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1380
+        },
+        {
+          "name": "Gordo Guapo 2022- Bichi Wines - 75cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1390
+        },
+        {
+          "name": "Pet Mex 2020- Bichi Wines - 75cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1400
+        },
+        {
+          "name": "Santa 2022- Bichi Wines - 75cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1410
+        },
+        {
+          "name": "Pepe Nat Cachito 2023- Bichi Wines - 75cl",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1420
+        },
+        {
+          "name": "Barbera - Sentimenti 750ml",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1430
+        },
+        {
+          "name": "Syrah 2022- Sentimenti 750ml",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1440
+        },
+        {
+          "name": "Tempranillo Zinfandel 2023 Sentimenti 750ml",
+          "item_group": "Colectivo Comestibles",
+          "sort_order": 1450
+        }
+      ]
+    },
+    {
+      "slug": "materia-prima",
+      "name": "Materia Prima",
+      "kind": "lot",
+      "frequency": "monthly",
+      "schedule_config": {
+        "kind": "monthly",
+        "rules": [
+          {
+            "type": "nthWeekday",
+            "nth": -1,
+            "weekday": 4
+          }
+        ]
+      },
+      "digital_enabled": false,
+      "items": [
+        {
+          "name": "Bio Mais blau (22.68 kg)",
+          "item_group": "Materia Prima",
+          "sort_order": 10
+        },
+        {
+          "name": "Bio Mais weiss (22.68 kg)",
+          "item_group": "Materia Prima",
+          "sort_order": 20
+        },
+        {
+          "name": "Bio Mais gelb (22.68 kg)",
+          "item_group": "Materia Prima",
+          "sort_order": 30
+        },
+        {
+          "name": "Bio Mais Mehl (22.7 kg)",
+          "item_group": "Materia Prima",
+          "sort_order": 40
+        },
+        {
+          "name": "Kalk (25 kg)",
+          "item_group": "Materia Prima",
+          "sort_order": 50
+        },
+        {
+          "name": "Salz (25 kg)",
+          "item_group": "Materia Prima",
+          "sort_order": 60
+        },
+        {
+          "name": "Sonnenblumenöl (25 kg)",
+          "item_group": "Materia Prima",
+          "sort_order": 70
+        }
+      ]
+    },
+    {
+      "slug": "empaques-mensual",
+      "name": "Empaques (mensual)",
+      "kind": "location",
+      "frequency": "monthly",
+      "schedule_config": {
+        "kind": "monthly",
+        "rules": [
+          {
+            "type": "nthWeekday",
+            "nth": -1,
+            "weekday": 4
+          }
+        ]
+      },
+      "digital_enabled": false,
+      "items": [
+        {
+          "name": "Bio Mais-Tortillas 1kg",
+          "item_group": "Empaques",
+          "sort_order": 10
+        },
+        {
+          "name": "Bio Mais-Tortillas 500g",
+          "item_group": "Empaques",
+          "sort_order": 20
+        },
+        {
+          "name": "Bio Mais-Tortillas 250g",
+          "item_group": "Empaques",
+          "sort_order": 30
+        },
+        {
+          "name": "Sobres Absorbentes",
+          "item_group": "Empaques",
+          "sort_order": 40
+        },
+        {
+          "name": "Totopos 180g",
+          "item_group": "Empaques",
+          "sort_order": 50
+        },
+        {
+          "name": "Totopos 150g",
+          "item_group": "Empaques",
+          "sort_order": 60
+        },
+        {
+          "name": "Totopos 40g",
+          "item_group": "Empaques",
+          "sort_order": 70
+        },
+        {
+          "name": "IFCO",
+          "item_group": "Empaques",
+          "sort_order": 80
+        },
+        {
+          "name": "Karton queso Oaxaca 250g",
+          "item_group": "Empaques",
+          "sort_order": 90
+        },
+        {
+          "name": "Karton queso Fresco 250g",
+          "item_group": "Empaques",
+          "sort_order": 100
+        },
+        {
+          "name": "Karton queso Panela 250g",
+          "item_group": "Empaques",
+          "sort_order": 110
+        },
+        {
+          "name": "Beutel Vakuum 250g",
+          "item_group": "Empaques",
+          "sort_order": 120
+        },
+        {
+          "name": "Beutel Vakuum 500g",
+          "item_group": "Empaques",
+          "sort_order": 130
+        },
+        {
+          "name": "Beutel Vakuum 1Kg",
+          "item_group": "Empaques",
+          "sort_order": 140
+        },
+        {
+          "name": "Beutel Tortilla Gastro",
+          "item_group": "Empaques",
+          "sort_order": 150
+        },
+        {
+          "name": "Beutel Totopo 500g Retail",
+          "item_group": "Empaques",
+          "sort_order": 160
+        },
+        {
+          "name": "Beutel Totopo 150g \"El Catrín\"",
+          "item_group": "Empaques",
+          "sort_order": 170
+        },
+        {
+          "name": "Beutel Chiles Secos",
+          "item_group": "Empaques",
+          "sort_order": 180
+        },
+        {
+          "name": "Beutel Chapulines Retail",
+          "item_group": "Empaques",
+          "sort_order": 190
+        },
+        {
+          "name": "Beutel Harina 1kg",
+          "item_group": "Empaques",
+          "sort_order": 200
+        },
+        {
+          "name": "Beutel Totopo Gastro 6kg",
+          "item_group": "Empaques",
+          "sort_order": 210
+        },
+        {
+          "name": "Beutel Tostada Retail",
+          "item_group": "Empaques",
+          "sort_order": 220
+        },
+        {
+          "name": "Beutel Tostada Gastro 14cm",
+          "item_group": "Empaques",
+          "sort_order": 230
+        },
+        {
+          "name": "Karton Masamor",
+          "item_group": "Empaques",
+          "sort_order": 240
+        },
+        {
+          "name": "Karton Emmi",
+          "item_group": "Empaques",
+          "sort_order": 250
+        },
+        {
+          "name": "Karton Totopos",
+          "item_group": "Empaques",
+          "sort_order": 260
+        }
+      ]
+    },
+    {
+      "slug": "empaques-semestral",
+      "name": "Empaques (semestral)",
+      "kind": "location",
+      "frequency": "semiannual",
+      "schedule_config": {
+        "kind": "semiannual",
+        "dates": [
+          {
+            "month": 6,
+            "day": 30
+          },
+          {
+            "month": 12,
+            "day": 31
+          }
+        ]
+      },
+      "digital_enabled": false,
+      "items": [
+        {
+          "name": "Bio Mais-Tortillas 1kg",
+          "item_group": "Empaques",
+          "sort_order": 10
+        },
+        {
+          "name": "Bio Mais-Tortillas 500g",
+          "item_group": "Empaques",
+          "sort_order": 20
+        },
+        {
+          "name": "Bio Mais-Tortillas 250g",
+          "item_group": "Empaques",
+          "sort_order": 30
+        },
+        {
+          "name": "Sobres Absorbentes",
+          "item_group": "Empaques",
+          "sort_order": 40
+        },
+        {
+          "name": "Totopos 180g",
+          "item_group": "Empaques",
+          "sort_order": 50
+        },
+        {
+          "name": "Totopos 150g",
+          "item_group": "Empaques",
+          "sort_order": 60
+        },
+        {
+          "name": "Totopos 40g",
+          "item_group": "Empaques",
+          "sort_order": 70
+        },
+        {
+          "name": "IFCO",
+          "item_group": "Empaques",
+          "sort_order": 80
+        },
+        {
+          "name": "Karton queso Oaxaca 250g",
+          "item_group": "Empaques",
+          "sort_order": 90
+        },
+        {
+          "name": "Karton queso Fresco 250g",
+          "item_group": "Empaques",
+          "sort_order": 100
+        },
+        {
+          "name": "Karton queso Panela 250g",
+          "item_group": "Empaques",
+          "sort_order": 110
+        },
+        {
+          "name": "Beutel Vakuum 250g",
+          "item_group": "Empaques",
+          "sort_order": 120
+        },
+        {
+          "name": "Beutel Vakuum 500g",
+          "item_group": "Empaques",
+          "sort_order": 130
+        },
+        {
+          "name": "Beutel Vakuum 1Kg",
+          "item_group": "Empaques",
+          "sort_order": 140
+        },
+        {
+          "name": "Beutel Tortilla Gastro",
+          "item_group": "Empaques",
+          "sort_order": 150
+        },
+        {
+          "name": "Beutel Totopo 500g Retail",
+          "item_group": "Empaques",
+          "sort_order": 160
+        },
+        {
+          "name": "Beutel Totopo 150g \"El Catrín\"",
+          "item_group": "Empaques",
+          "sort_order": 170
+        },
+        {
+          "name": "Beutel Chiles Secos",
+          "item_group": "Empaques",
+          "sort_order": 180
+        },
+        {
+          "name": "Beutel Chapulines Retail",
+          "item_group": "Empaques",
+          "sort_order": 190
+        },
+        {
+          "name": "Beutel Harina 1kg",
+          "item_group": "Empaques",
+          "sort_order": 200
+        },
+        {
+          "name": "Beutel Totopo Gastro 6kg",
+          "item_group": "Empaques",
+          "sort_order": 210
+        },
+        {
+          "name": "Beutel Tostada Retail",
+          "item_group": "Empaques",
+          "sort_order": 220
+        },
+        {
+          "name": "Beutel Tostada Gastro 14cm",
+          "item_group": "Empaques",
+          "sort_order": 230
+        },
+        {
+          "name": "Karton Masamor",
+          "item_group": "Empaques",
+          "sort_order": 240
+        },
+        {
+          "name": "Karton Emmi",
+          "item_group": "Empaques",
+          "sort_order": 250
+        },
+        {
+          "name": "Karton Totopos",
+          "item_group": "Empaques",
+          "sort_order": 260
+        }
+      ]
+    }
+  ]
+}

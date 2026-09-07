@@ -109,6 +109,41 @@ export async function sendToUser(userId: string, payload: PushPayload): Promise<
 }
 
 /**
+ * Send to several users' devices in one pass.
+ *
+ * One query and one delivery batch rather than a sendToUser per person: an
+ * inventory can have several assignees, and looping would issue a round trip
+ * for each of them.
+ */
+export async function sendToUsers(userIds: string[], payload: PushPayload): Promise<number> {
+  if (userIds.length === 0) return 0;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from('push_subscriptions')
+    .select('id, endpoint, p256dh, auth, failure_count')
+    .in('user_id', userIds);
+  return deliver((data ?? []) as SubscriptionRow[], payload);
+}
+
+/**
+ * Send to every approved ADMIN's devices.
+ *
+ * Reconciliation work — entering Inventory Digital, resolving a difference —
+ * is something only an admin can do, so alerting everyone would be noise for
+ * the people on the floor.
+ */
+export async function sendToAdmins(payload: PushPayload): Promise<number> {
+  const admin = createAdminClient();
+  const { data: admins } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('status', 'approved')
+    .eq('role', 'admin');
+
+  return sendToUsers((admins ?? []).map((p) => (p as { id: string }).id), payload);
+}
+
+/**
  * Send to every approved user's devices.
  *
  * Order preparation is shared team work — there is no per-order assignee — so

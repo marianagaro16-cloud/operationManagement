@@ -102,7 +102,13 @@ Self-registration never grants access: a trigger creates the profile as
 | `/admin/history` | admin | occurrence record (rolling 180 days) |
 | `/admin/statistics` | admin | completion by day/week/month/year, user, category, frequency |
 | `/admin/settings` | admin | manual occurrence generation |
-| `/api/cron/generate` | cron secret | nightly occurrence materialisation |
+| `/inventory` | approved | inventory overview: today, upcoming, review queue, filtered history |
+| `/inventory/[id]` | approved (only assigned may edit) | the counting screen |
+| `/admin/inventory` | admin | inventory templates, schedules, Inventory Digital toggle |
+| `/admin/inventory/[templateId]` | admin | items, product links, ordering, default assignees |
+| `/admin/inventory/locations` | admin | counting locations for packaging |
+| `/admin/inventory/permissions` | admin | temporary edit permissions |
+| `/api/cron/generate` | cron secret | nightly task occurrence + inventory materialisation |
 
 ---
 
@@ -487,3 +493,201 @@ The 15-minute notification schedule therefore lives in
 into `vercel.json` after upgrading to Pro — and note that Hobby is licensed for
 non-commercial use, which is the more relevant limit for a production
 operations tool.
+
+---
+
+# Inventory module — Bestandkontrolle
+
+Replaces `Bestandkontrolle_Master.xlsx`. The workbook is the **initial source
+of configuration only**; from the first migration onward the application is
+the source of truth and the file is not needed to run an inventory.
+
+## What the workbook actually contained
+
+All ten sheets were **blank templates**. Verified before any code was written:
+not one literal quantity, expiry date, KW or counter name anywhere in the
+file, and every `Stock` / `Differenz` formula carried a null cached result.
+The five `Masamor-Del Barrio KW` sheets are byte-identical copies of one
+another, as are the two `Colectivo Comestibles KW` sheets.
+
+**No historical inventories were imported, because there is no history in the
+source to import.** The importer refuses to run against a sheet containing
+literal values, so filling one in later cannot silently produce fabricated
+counts — that becomes a decision for a person.
+
+## The central distinction
+
+An **inventory template** is the recurring *kind* of count. An **inventory
+instance** is one actual count on one date.
+
+```
+inventory_templates
+  └─ inventory_template_items          what gets counted, and in what order
+       ↓  (materialised, with names frozen)
+inventory_instances                    ONE count, ONE date
+  └─ inventory_instance_items          one counted line
+       └─ inventory_entries            quantity / expiry / lot / location
+```
+
+`UNIQUE(template_id, inventory_date)` is the core invariant: KW 37, KW 38 and
+KW 39 are three permanent, separate records. No generation run, template edit
+or item deactivation can overwrite or remove one.
+
+## The five inventory types
+
+| Template | Cadence | Entry type | Inventory Digital | Items |
+|---|---|---|---|---|
+| Masamor / Del Barrio | weekly, Friday | quantity + expiry | **on** | 114 |
+| Colectivo Comestibles | 2nd **and** last Thursday | quantity + expiry | **on** | 145 |
+| Materia Prima | last Thursday | quantity + lot + expiry | off | 7 |
+| Empaques (mensual) | last Thursday | quantity per location | off | 26 |
+| Empaques (semestral) | 30 Jun / 31 Dec | quantity per location | off | 26 |
+
+Colectivo is the case a single monthly rule cannot express, which is why the
+inventory schedule carries a **list** of monthly rules rather than one. The
+semiannual dates move to the preceding Friday at a weekend, reusing
+`shiftWeekendToPrecedingFriday` from the task recurrence engine — there is one
+implementation of that rule in the codebase, not two.
+
+Every one of these is a row an admin can change. Nothing about the cadence,
+the entry type or the Inventory Digital switch is hard-coded.
+
+## Inventory Digital
+
+The workbook column `Bexio` is called **Inventory Digital** everywhere in the
+schema and the UI. **There is no Bexio integration and none is implied** — an
+admin types the value in by hand.
+
+* `NULL` renders as **Inventory Digital: Pending**, never as `0`.
+* `Difference = Physical Stock − Inventory Digital`, and is `NULL` whenever
+  there is nothing to compare against. A pending item never shows a
+  difference, because showing `0` there is the one genuinely misleading thing
+  this screen could do.
+* When a template has Inventory Digital off, no value is asked for, no
+  difference is calculated, and no pending state exists.
+
+## Physical Stock is derived, never typed
+
+`physical_stock` is maintained by trigger as the sum of the entries;
+`difference` is a **generated column** over it. No role has a policy that
+permits writing either, and the trigger overwrites anything that gets in. A
+client cannot state a total.
+
+Unlimited entries per item. Duplicate expiry dates are kept as separate
+records and never merged: `10 → 15.09` and `5 → 15.09` are two things somebody
+counted in two places.
+
+Quantities are **integers**. Decimals are rejected rather than rounded — a
+`0.5` in a count of boxes means the counter meant something the system cannot
+represent. Zero is allowed and is a real count; `NULL` means *not counted*,
+which is a different statement.
+
+## Status model
+
+Four statuses: **In progress**, **Completed**, **To review**, **Resolved**.
+"Inventory Digital: Pending" is deliberately *not* a fifth — it is an
+orthogonal condition that coexists with a status.
+
+```
+difference = 0   → Completed
+difference ≠ 0   → To review
+admin resolves   → Resolved   (the difference may remain non-zero)
+```
+
+A resolution **requires a reason** and freezes the numbers it was given for.
+Changing Inventory Digital afterwards reopens the item and marks the old
+resolution *superseded* — it is never deleted. Every value ever entered is
+kept in `inventory_digital_history` with both differences, who and when.
+
+## Who may edit, and when
+
+Enforced by `public.inventory_can_edit(instance_id)`, the single function both
+RLS and the server actions consult:
+
+| | may edit |
+|---|---|
+| admin | always |
+| holder of an active temporary grant | yes — overrides assignment *and* deadline |
+| assigned user, inventory open, before 18:00 on the inventory date | yes |
+| anyone else | no |
+
+The **18:00 deadline** is computed in `Europe/Zurich`, so it is 18:00 local on
+both sides of a daylight-saving change. Unassigned users can read but not
+write. None of this depends on hiding buttons.
+
+**Temporary permissions** may not span more than one day and expire by
+ceasing to match the predicate — there is no cleanup job that can fail to run.
+A grant requested "from now" is clamped to the *database* clock: a browser
+running a second fast previously produced a grant that was briefly inert.
+
+## Audit trail
+
+`inventory_audit_log` records inventory creation, assignment, every entry
+insert/update/delete with before and after values, Inventory Digital changes,
+status changes, resolutions, completion and permission grants — each with an
+actor and a timestamp. Admin-readable only. Comments have no DELETE policy at
+all: they are part of the record of a count.
+
+## History survives everything
+
+Instances freeze the template name, entry type and Inventory Digital setting;
+items freeze their name, group and ordering; location entries freeze the
+location name. Renaming a template, deactivating an item or renaming a
+location therefore cannot rewrite what an old count says it counted. A
+deactivated item disappears from *newly generated* inventories and stays fully
+visible in every one that already counted it.
+
+## Product master integration
+
+`inventory_template_items.product_id` is **optional**, and that is the point:
+raw materials, packaging and internal materials are legitimately not
+commercial products, and forcing them into the catalogue would corrupt it.
+
+The importer links **exact normalised name matches only** — 57 of 318 items.
+The other 261 are imported as independent inventory items with `product_id`
+NULL, for an admin to link by hand. Fuzzy matching was deliberately not used:
+it would write wrong links into an audit record. No product row is ever
+created or edited by the inventory importer.
+
+## Orders integration
+
+Deliberately none yet. No automatic stock deduction and no order calculation.
+The schema carries `product_id` on both template and instance items so that
+can be added later without rebuilding anything.
+
+## Seed / import
+
+```bash
+npm run inventory:extract   # xlsx -> data/inventory.seed.json  (committed)
+npm run inventory:seed      # json -> Supabase                  (idempotent)
+```
+
+Re-running never resets an admin's later edits to a schedule or to the
+Inventory Digital switch, and never overwrites a product link set by hand. An
+item that leaves the workbook is deactivated, never deleted.
+
+## Scheduling and notifications
+
+Inventories are materialised by the **existing** `/api/cron/generate` job
+alongside task occurrences — one scheduler, not two — and on demand when the
+inventory or dashboard screen loads. Generation is idempotent.
+
+Alerts ride the **existing** web-push infrastructure through
+`/api/cron/notify`: assigned today, deadline approaching, completed, Inventory
+Digital pending, differences to review. Each `(inventory, kind)` is claimed
+before sending, so an alert fires once. An unassigned inventory notifies
+nobody. No email.
+
+## Verification
+
+```bash
+npm run verify:inventory
+```
+
+89 checks against the live database, run as **real signed-in users through the
+anon key**, so what is exercised is the path a browser takes: RLS actually
+stopping an unassigned user, the 18:00 deadline, temporary permissions
+starting and then stopping, derived stock resisting a client write, the
+difference/status/resolution/history rules, and that the five imported
+templates carry no fabricated instances. It creates three throwaway accounts
+and a throwaway template, and removes them again.

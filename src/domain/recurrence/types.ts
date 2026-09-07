@@ -8,7 +8,7 @@ import type { BusinessDate, Weekday } from '@/lib/datetime';
 export const FREQUENCIES = ['daily', 'weekly', 'biweekly', 'monthly', 'semiannual'] as const;
 export type Frequency = (typeof FREQUENCIES)[number];
 
-const weekdaySchema = z.union([
+export const weekdaySchema = z.union([
   z.literal(1), z.literal(2), z.literal(3), z.literal(4),
   z.literal(5), z.literal(6), z.literal(7),
 ]);
@@ -28,7 +28,7 @@ export const monthlyRuleSchema = z.discriminatedUnion('type', [
 ]);
 export type MonthlyRule = z.infer<typeof monthlyRuleSchema>;
 
-const monthDaySchema = z.object({
+export const monthDaySchema = z.object({
   month: z.number().int().min(1).max(12),
   day: z.number().int().min(1).max(31),
 });

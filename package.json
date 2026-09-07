@@ -27,7 +27,10 @@
     "master:extract": "tsx scripts/import-master.ts extract",
     "master:seed": "tsx scripts/import-master.ts seed",
     "verify:master": "node scripts/verify-master.mjs",
-    "tasks:translate": "tsx scripts/seed-task-translations.ts"
+    "tasks:translate": "tsx scripts/seed-task-translations.ts",
+    "inventory:extract": "tsx scripts/import-inventory.ts extract",
+    "inventory:seed": "tsx scripts/import-inventory.ts seed",
+    "verify:inventory": "node scripts/verify-inventory.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",
