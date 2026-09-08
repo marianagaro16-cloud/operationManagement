@@ -123,6 +123,11 @@ export function OrderDetail({
           )}
           {order.delivery_method && <Badge tone="neutral">{order.delivery_method.name}</Badge>}
           {order.order_type === 'sample' && <Badge tone="accent">{t('orders.typeSample')}</Badge>}
+          {/* A replacement is not a sale. Saying so on the row is what stops
+              a month of apologies reading as a month of trade. */}
+          {order.order_type === 'replacement' && (
+            <Badge tone="warn">{t('orders.typeReplacement')}</Badge>
+          )}
           {/* Provenance: a standing order proposed this, a person did not. */}
           {order.generated_from_template_id && (
             <Badge tone="neutral">{t('orders.fromTemplate')}</Badge>

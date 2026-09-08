@@ -4,7 +4,15 @@
  */
 
 export type OrderStatus = 'draft' | 'confirmed' | 'cancelled';
-export type OrderType = 'sale' | 'sample';
+/**
+ * The commercial nature of a delivery, not its provenance.
+ *
+ * 'sale' is billed, 'sample' is free for evaluation, 'replacement' is free to
+ * make good. Independent of `replaces_incident_id`, which records WHICH
+ * incident prompted the delivery — a redelivery the customer still pays for
+ * is a sale with an incident attached.
+ */
+export type OrderType = 'sale' | 'sample' | 'replacement';
 
 export interface Customer {
   id: string;

@@ -87,7 +87,8 @@ export function OrderReportView({
           </div>
 
           {/* Anything the headline hides */}
-          {(report.cancelled > 0 || report.draft > 0 || report.samples > 0 || report.shortLines > 0) && (
+          {(report.cancelled > 0 || report.draft > 0 || report.samples > 0
+            || report.replacements > 0 || report.shortLines > 0) && (
             <div className="flex flex-wrap gap-1.5">
               {report.cancelled > 0 && (
                 <Badge tone="late">{t('report.cancelled')}: {report.cancelled}</Badge>
@@ -97,6 +98,12 @@ export function OrderReportView({
               )}
               {report.samples > 0 && (
                 <Badge tone="accent">{t('orders.typeSample')}: {report.samples}</Badge>
+              )}
+              {/* Counted apart from sales. A month's orders and a month's
+                  TRADE are different numbers once some of those orders were
+                  sent to apologise. */}
+              {report.replacements > 0 && (
+                <Badge tone="warn">{t('orders.typeReplacement')}: {report.replacements}</Badge>
               )}
               {report.shortLines > 0 && (
                 <Badge tone="warn">

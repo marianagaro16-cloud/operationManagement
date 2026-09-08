@@ -186,6 +186,11 @@ function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; 
             <Badge tone="neutral">{order.delivery_method.name}</Badge>
           )}
           {order.order_type === 'sample' && <Badge tone="accent">{t('orders.typeSample')}</Badge>}
+          {/* A replacement is not a sale. Saying so on the row is what stops
+              a month of apologies reading as a month of trade. */}
+          {order.order_type === 'replacement' && (
+            <Badge tone="warn">{t('orders.typeReplacement')}</Badge>
+          )}
           {order.status !== 'confirmed' && <StatusChip domain="order" status={order.status} />}
         </div>
         <div className="flex items-center gap-2">

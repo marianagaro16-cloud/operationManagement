@@ -415,6 +415,7 @@ export const en = {
     statusCancelled: 'Cancelled',
     typeSale: 'Sale',
     typeSample: 'Sample',
+    typeReplacement: 'Replacement',
     noOrders: 'No orders for this period',
     noOrdersBody: 'Adjust the filters or create a new order.',
     month: 'Month',

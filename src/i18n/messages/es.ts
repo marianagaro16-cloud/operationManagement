@@ -412,6 +412,7 @@ export const es: Messages = {
     statusCancelled: 'Cancelado',
     typeSale: 'Venta',
     typeSample: 'Muestra',
+    typeReplacement: 'Reposición',
     noOrders: 'No hay pedidos en este periodo',
     noOrdersBody: 'Ajusta los filtros o crea un pedido nuevo.',
     month: 'Mes',

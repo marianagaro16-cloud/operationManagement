@@ -697,6 +697,9 @@ function ReplacementSection({
   const initial = {
     customer_id: incident.customer_id ?? undefined,
     note: t('incident.replacementOrderNote', { number: incident.incident_number }),
+    // Free, to make good. Filing it as a sale would overstate the month's
+    // trade by every box we sent to apologise.
+    order_type: 'replacement' as const,
     lines: incident.items.map((item) => ({
       product_id: item.product_id,
       ordered_quantity:

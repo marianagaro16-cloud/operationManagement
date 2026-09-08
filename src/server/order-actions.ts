@@ -44,7 +44,7 @@ const orderInputSchema = z.object({
   preparation_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   delivery_method_id: z.string().uuid().nullable(),
   status: z.enum(['draft', 'confirmed', 'cancelled']),
-  order_type: z.enum(['sale', 'sample']),
+  order_type: z.enum(['sale', 'sample', 'replacement']),
   note: z.string().trim().nullable(),
   /**
    * How the order arrived. Omitted means what it has always meant — entered
@@ -382,7 +382,7 @@ export async function saveTemplate(
     delivery_weekday: number;
     preparation_lead_days: number;
     delivery_method_id: string | null;
-    order_type: 'sale' | 'sample';
+    order_type: 'sale' | 'sample' | 'replacement';
     note: string | null;
     is_active: boolean;
     lines: { product_id: string; default_quantity: number }[];

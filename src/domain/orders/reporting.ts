@@ -176,6 +176,8 @@ export interface OrderReport {
   cancelled: number;
   draft: number;
   samples: number;
+  /** Free deliveries sent to make good. Counted apart from sales. */
+  replacements: number;
   customersServed: number;
   lines: number;
 
@@ -356,6 +358,7 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
     cancelled: orders.length - counted.length,
     draft: counted.filter((o) => o.status === 'draft').length,
     samples: counted.filter((o) => o.order_type === 'sample').length,
+    replacements: counted.filter((o) => o.order_type === 'replacement').length,
     customersServed: customers.size,
     lines,
     totalOrdered: round3(totalOrdered),

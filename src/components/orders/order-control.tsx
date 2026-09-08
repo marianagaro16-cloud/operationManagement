@@ -366,6 +366,11 @@ function OrderCard({
         </Link>
         {order.delivery_method && <Badge tone="neutral">{order.delivery_method.name}</Badge>}
         {order.order_type === 'sample' && <Badge tone="accent">{t('orders.typeSample')}</Badge>}
+        {/* A replacement is not a sale. Saying so on the row is what stops a
+            month of apologies reading as a month of trade. */}
+        {order.order_type === 'replacement' && (
+          <Badge tone="warn">{t('orders.typeReplacement')}</Badge>
+        )}
         {/* Provenance. A generated order used to be indistinguishable from a
             hand-typed one, so a draft gave the reviewer nothing to review. */}
         {order.generated_from_template_id && (

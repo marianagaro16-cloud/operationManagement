@@ -12,7 +12,7 @@ import { defaultPreparationDate, isValidSchedule } from '@/domain/orders/schedul
 import { toQuantity } from '@/domain/orders/progress';
 import type { PreviewLine } from '@/domain/orders/import/pipeline';
 import { businessToday } from '@/lib/datetime';
-import { productLabel, type Customer, type DeliveryMethod, type Order, type Product } from '@/types/orders';
+import { productLabel, type Customer, type DeliveryMethod, type Order, type OrderType, type Product } from '@/types/orders';
 import { saveOrder } from '@/server/order-actions';
 import { ImportPanel, type ImportMethod } from './import-panel';
 import { OrderLineEditor, emptyLine, type DraftLine } from './order-line-editor';
@@ -54,7 +54,12 @@ export function OrderDialog({
    *
    * Ignored when editing: an existing order IS its own starting values.
    */
-  initial?: { customer_id?: string; note?: string; lines?: { product_id: string; ordered_quantity: string }[] };
+  initial?: {
+    customer_id?: string;
+    note?: string;
+    order_type?: OrderType;
+    lines?: { product_id: string; ordered_quantity: string }[];
+  };
   onClose: () => void;
   /**
    * Receives the id of the order that was saved.
@@ -80,7 +85,9 @@ export function OrderDialog({
   );
   const [methodId, setMethodId] = useState(order?.delivery_method_id ?? '');
   const [status, setStatus] = useState<Order['status']>(order?.status ?? 'confirmed');
-  const [orderType, setOrderType] = useState<Order['order_type']>(order?.order_type ?? 'sale');
+  const [orderType, setOrderType] = useState<Order['order_type']>(
+    order?.order_type ?? initial?.order_type ?? 'sale',
+  );
   const [note, setNote] = useState(order?.note ?? initial?.note ?? '');
   const [lines, setLines] = useState<DraftLine[]>(
     order?.lines.map((l) => ({
@@ -349,6 +356,7 @@ export function OrderDialog({
             >
               <option value="sale">{t('orders.typeSale')}</option>
               <option value="sample">{t('orders.typeSample')}</option>
+              <option value="replacement">{t('orders.typeReplacement')}</option>
             </Select>
           </Field>
         </div>

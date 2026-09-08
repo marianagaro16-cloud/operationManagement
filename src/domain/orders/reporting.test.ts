@@ -138,6 +138,31 @@ describe('headline numbers', () => {
     expect(r.samples).toBe(1);
     expect(r.totalOrdered).toBe(6);
   });
+
+  it('counts replacements apart from sales', () => {
+    // A month's ORDERS and a month's TRADE are different numbers once some of
+    // those orders were sent to apologise. Folding replacements into sales
+    // overstates the second by exactly the cost of the first.
+    const r = computeOrderReport(
+      [
+        order({ lines: [line('p1', '0001', 'T', 10)] }),
+        order({ order_type: 'replacement', lines: [line('p1', '0001', 'T', 2)] }),
+        order({ order_type: 'sample', lines: [line('p1', '0001', 'T', 1)] }),
+      ],
+      SEP,
+    );
+    expect(r.orders).toBe(3);
+    expect(r.replacements).toBe(1);
+    expect(r.samples).toBe(1);
+    // Every order still contributes its quantity: the split is about what the
+    // delivery WAS, not about whether it happened.
+    expect(r.totalOrdered).toBe(13);
+  });
+
+  it('reports no replacements when there are none', () => {
+    const r = computeOrderReport([order({ lines: [line('p1', '0001', 'T', 1)] })], SEP);
+    expect(r.replacements).toBe(0);
+  });
 });
 
 describe('quantities per product — the main question', () => {

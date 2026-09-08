@@ -3005,7 +3005,7 @@ export type Database = {
       inventory_status: "in_progress" | "completed" | "to_review" | "resolved"
       occurrence_status: "pending" | "completed" | "skipped" | "blocked"
       order_status: "draft" | "confirmed" | "cancelled"
-      order_type: "sale" | "sample"
+      order_type: "sale" | "sample" | "replacement"
       schedule_source: "auto" | "manual"
       task_frequency:
         | "daily"
@@ -3181,7 +3181,7 @@ export const Constants = {
       inventory_status: ["in_progress", "completed", "to_review", "resolved"],
       occurrence_status: ["pending", "completed", "skipped", "blocked"],
       order_status: ["draft", "confirmed", "cancelled"],
-      order_type: ["sale", "sample"],
+      order_type: ["sale", "sample", "replacement"],
       schedule_source: ["auto", "manual"],
       task_frequency: [
         "daily",
