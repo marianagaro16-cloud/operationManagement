@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Camera, ChevronLeft, ExternalLink, FileText, Plus, Trash2,
+  Camera, ChevronLeft, ExternalLink, FileText, Link2, PackagePlus, Plus, Trash2,
 } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,8 @@ import {
   addEvidence, addReplacement, createCorrectiveAction, deleteEvidence,
   deleteReplacement, updateIncident,
 } from '@/server/incident-actions';
-import { productLabel } from '@/types/orders';
+import { OrderDialog } from '@/components/orders/order-dialog';
+import { productLabel, type Customer, type DeliveryMethod, type Product } from '@/types/orders';
 import type { Incident } from '@/types/incidents';
 import type { Profile } from '@/types/database';
 import { categoryKey, typeKey } from './incident-list';
@@ -46,12 +47,19 @@ import { errorKey } from './incident-dialog';
 export function IncidentDetail({
   incident,
   users,
+  customers,
+  products,
+  deliveryMethods,
   canManage,
   canClose,
 }: {
   incident: Incident;
   /** For assigning a corrective action. Approved users only. */
   users: Profile[];
+  /** For raising a replacement ORDER, which is an ordinary order. */
+  customers: Customer[];
+  products: Product[];
+  deliveryMethods: DeliveryMethod[];
   canManage: boolean;
   canClose: boolean;
 }) {
@@ -202,6 +210,9 @@ export function IncidentDetail({
         {/* ---------- replacement ---------- */}
         <ReplacementSection
           incident={incident}
+          customers={customers}
+          products={products}
+          deliveryMethods={deliveryMethods}
           canManage={canManage}
           pending={pending}
           onRun={run}
@@ -639,25 +650,59 @@ function EvidenceSection({
  * Replacements.
  *
  * An incident is not a replacement: recording one here changes nothing about
- * the incident's status, and the hint says so. Naming a real order is the
- * preferred shape, because that order is then picked, lot-numbered and traced
- * like any other delivery.
+ * the incident's status, and the hint says so.
+ *
+ * The preferred shape is a REAL ORDER, so "Create replacement order" opens the
+ * ordinary order editor with the customer and the affected products already
+ * filled in from the incident. What comes out is a normal order — picked in
+ * Lotnummerkontrol, carrying lot numbers, reaching the Lot Nummer Tracker and
+ * counted in the order reports — that additionally knows which incident it was
+ * raised for.
+ *
+ * Two lesser shapes exist because not every replacement is a new delivery: an
+ * order raised elsewhere can be linked by its number, and a compensation that
+ * never became an order at all is recorded as a note rather than by inventing
+ * one.
  */
 function ReplacementSection({
   incident,
+  customers,
+  products,
+  deliveryMethods,
   canManage,
   pending,
   onRun,
 }: {
   incident: Incident;
+  customers: Customer[];
+  products: Product[];
+  deliveryMethods: DeliveryMethod[];
   canManage: boolean;
   pending: boolean;
   onRun: (fn: () => Promise<{ ok: boolean; error?: string }>) => void;
 }) {
   const { t, formatDate } = useI18n();
-  const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [linking, setLinking] = useState(false);
   const [orderRef, setOrderRef] = useState('');
   const [note, setNote] = useState('');
+
+  /**
+   * What the replacement should contain, taken from the incident.
+   *
+   * The affected products with their affected quantities — which is the whole
+   * point of having recorded them. A line whose quantity was never recorded
+   * arrives with an empty box for somebody to fill, rather than a guess.
+   */
+  const initial = {
+    customer_id: incident.customer_id ?? undefined,
+    note: t('incident.replacementOrderNote', { number: incident.incident_number }),
+    lines: incident.items.map((item) => ({
+      product_id: item.product_id,
+      ordered_quantity:
+        item.affected_quantity === null ? '' : String(toQuantity(item.affected_quantity)),
+    })),
+  };
 
   return (
     <Section title={t('incident.replacements')}>
@@ -671,7 +716,10 @@ function ReplacementSection({
             <li key={r.id} className="flex items-center gap-2 py-2 first:pt-0">
               <div className="min-w-0 flex-1">
                 {r.order ? (
-                  <Link href={`/orders/${r.order.id}`} className="text-[13px] text-accent hover:underline">
+                  <Link
+                    href={`/orders/${r.order.id}`}
+                    className="text-[13px] text-accent hover:underline"
+                  >
                     #{r.order.reference} · {formatDate(r.order.delivery_date, 'short')}
                   </Link>
                 ) : (
@@ -696,33 +744,79 @@ function ReplacementSection({
       )}
 
       {canManage && (
-        <Button size="sm" variant="secondary" className="mt-2" onClick={() => setOpen(true)}>
-          <Plus className="h-3.5 w-3.5" aria-hidden />
-          {t('incident.addReplacement')}
-        </Button>
+        <>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {/* The primary path. An order cannot exist without a customer, and
+                §7 allows an incident that does not know one yet. */}
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => setCreating(true)}
+              disabled={!incident.customer_id}
+            >
+              <PackagePlus className="h-3.5 w-3.5" aria-hidden />
+              {t('incident.createReplacementOrder')}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setLinking(true)}>
+              <Link2 className="h-3.5 w-3.5" aria-hidden />
+              {t('incident.linkReplacement')}
+            </Button>
+          </div>
+          {!incident.customer_id && (
+            <p className="mt-1.5 text-[11.5px] text-subtle">
+              {t('incident.replacementNeedsCustomer')}
+            </p>
+          )}
+        </>
       )}
 
-      {open && (
+      {/* The ordinary order editor. Nothing in it is special-cased for
+          incidents — it is the same dialog Order Control opens, which is
+          exactly what makes the result an ordinary order. */}
+      {creating && (
+        <OrderDialog
+          order={null}
+          customers={customers}
+          products={products}
+          deliveryMethods={deliveryMethods}
+          initial={initial}
+          onClose={() => setCreating(false)}
+          onSaved={(orderId) => {
+            setCreating(false);
+            // Linking it back also stamps replaces_incident_id on the order.
+            onRun(() => addReplacement(incident.id, { order_id: orderId }));
+          }}
+        />
+      )}
+
+      {linking && (
         <Dialog
           open
-          onClose={() => setOpen(false)}
-          title={t('incident.addReplacement')}
+          onClose={() => setLinking(false)}
+          title={t('incident.linkReplacement')}
           footer={
             <>
-              <Button variant="ghost" onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
+              <Button variant="ghost" onClick={() => setLinking(false)}>
+                {t('common.cancel')}
+              </Button>
               <Button
                 variant="primary"
                 loading={pending}
-                onClick={() => {
+                disabled={!orderRef.trim() && !note.trim()}
+                onClick={() =>
                   onRun(async () => {
                     const res = await addReplacement(incident.id, {
-                      order_id: null,
-                      note: [orderRef && `#${orderRef}`, note].filter(Boolean).join(' — ') || null,
+                      order_reference: orderRef.trim() ? Number(orderRef.trim()) : null,
+                      note: note.trim() || null,
                     });
-                    if (res.ok) { setOpen(false); setOrderRef(''); setNote(''); }
+                    if (res.ok) {
+                      setLinking(false);
+                      setOrderRef('');
+                      setNote('');
+                    }
                     return res;
-                  });
-                }}
+                  })
+                }
               >
                 {t('common.save')}
               </Button>
@@ -738,7 +832,7 @@ function ReplacementSection({
               <Input
                 id="r-order"
                 value={orderRef}
-                onChange={(e) => setOrderRef(e.target.value)}
+                onChange={(e) => setOrderRef(e.target.value.replace(/\D/g, ''))}
                 inputMode="numeric"
                 placeholder="1042"
               />

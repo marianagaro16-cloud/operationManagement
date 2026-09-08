@@ -331,6 +331,12 @@ export async function setIncidentItems(
 
 const replacementSchema = z.object({
   order_id: z.string().uuid().nullable().optional(),
+  /**
+   * An existing order named by the number a person can read off a delivery
+   * note. Resolved to an id here rather than in the browser, so the client
+   * never has to be handed the order book to find one.
+   */
+  order_reference: z.number().int().positive().nullable().optional(),
   product_id: z.string().uuid().nullable().optional(),
   quantity: z.number().positive().nullable().optional(),
   note: z.string().trim().max(1000).nullable().optional(),
@@ -357,12 +363,40 @@ export async function addReplacement(
   if (!parsed.success) return fail('invalid_replacement');
   const data = parsed.data;
 
-  if (!data.order_id && !data.note?.trim()) return fail('replacement_empty');
-
   const supabase = createClient();
+
+  // ---- resolve an order named by its reference ----
+  let orderId = data.order_id ?? null;
+  if (!orderId && data.order_reference) {
+    const { data: found } = await supabase
+      .from('orders')
+      .select('id, customer_id')
+      .eq('reference', data.order_reference)
+      .maybeSingle();
+    if (!found) return fail('order_not_found');
+
+    /*
+     * The replacement must be for the customer who had the problem.
+     *
+     * A mistyped reference is otherwise silent and severe: it would attach
+     * somebody else's delivery to this incident, flag THAT order as a
+     * replacement, and put it in the monthly report under the wrong name.
+     */
+    const { data: incident } = await supabase
+      .from('incidents').select('customer_id').eq('id', incidentId).maybeSingle();
+    const orderCustomer = (found as { customer_id: string }).customer_id;
+    const incidentCustomer = (incident as { customer_id: string | null } | null)?.customer_id;
+    if (incidentCustomer && orderCustomer !== incidentCustomer) {
+      return fail('replacement_customer_mismatch');
+    }
+    orderId = (found as { id: string }).id;
+  }
+
+  if (!orderId && !data.note?.trim()) return fail('replacement_empty');
+
   const { error } = await supabase.from('incident_replacements').insert({
     incident_id: incidentId,
-    order_id: data.order_id ?? null,
+    order_id: orderId,
     product_id: data.product_id ?? null,
     quantity: data.quantity ?? null,
     note: data.note?.trim() || null,
@@ -370,14 +404,14 @@ export async function addReplacement(
   });
   if (error) return mapError(error);
 
-  if (data.order_id) {
+  if (orderId) {
     // Best effort: the replacement is recorded either way, and the pointer is
     // a convenience for the order book rather than the record itself.
     await supabase
       .from('orders')
       .update({ replaces_incident_id: incidentId })
-      .eq('id', data.order_id);
-    revalidatePath(`/orders/${data.order_id}`);
+      .eq('id', orderId);
+    revalidatePath(`/orders/${orderId}`);
   }
 
   revalidateIncidents(incidentId);

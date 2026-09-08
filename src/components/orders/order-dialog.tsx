@@ -38,6 +38,7 @@ export function OrderDialog({
   customers,
   products,
   deliveryMethods,
+  initial,
   onClose,
   onSaved,
 }: {
@@ -45,13 +46,28 @@ export function OrderDialog({
   customers: Customer[];
   products: Product[];
   deliveryMethods: DeliveryMethod[];
+  /**
+   * Starting values for a NEW order — used when something else already knows
+   * what the order should contain. A replacement raised from an incident
+   * arrives with the customer and the affected products already filled in,
+   * so nobody retypes what the incident already recorded.
+   *
+   * Ignored when editing: an existing order IS its own starting values.
+   */
+  initial?: { customer_id?: string; note?: string; lines?: { product_id: string; ordered_quantity: string }[] };
   onClose: () => void;
-  onSaved: () => void;
+  /**
+   * Receives the id of the order that was saved.
+   *
+   * Callers that only refresh a list ignore it; the incident module uses it to
+   * link the replacement order it just raised back to the incident.
+   */
+  onSaved: (id: string) => void;
 }) {
   const { t } = useI18n();
   const today = businessToday();
 
-  const [customerId, setCustomerId] = useState(order?.customer_id ?? '');
+  const [customerId, setCustomerId] = useState(order?.customer_id ?? initial?.customer_id ?? '');
   const [deliveryDate, setDeliveryDate] = useState(order?.delivery_date ?? today);
   // Postgres returns TIME as "HH:MM:SS"; <input type="time"> wants "HH:MM".
   const [deliveryTime, setDeliveryTime] = useState(order?.delivery_time?.slice(0, 5) ?? '');
@@ -65,7 +81,7 @@ export function OrderDialog({
   const [methodId, setMethodId] = useState(order?.delivery_method_id ?? '');
   const [status, setStatus] = useState<Order['status']>(order?.status ?? 'confirmed');
   const [orderType, setOrderType] = useState<Order['order_type']>(order?.order_type ?? 'sale');
-  const [note, setNote] = useState(order?.note ?? '');
+  const [note, setNote] = useState(order?.note ?? initial?.note ?? '');
   const [lines, setLines] = useState<DraftLine[]>(
     order?.lines.map((l) => ({
       id: l.id,
@@ -73,7 +89,11 @@ export function OrderDialog({
       ordered_quantity: String(toQuantity(l.ordered_quantity)),
       note: l.note ?? '',
       source_text: l.source_text,
-    })) ?? [emptyLine()],
+    })) ??
+      // A new order, possibly with lines somebody else already knows about.
+      (initial?.lines?.length
+        ? initial.lines.map((l) => ({ ...l, note: '' }))
+        : [emptyLine()]),
   );
 
   /**
@@ -197,7 +217,7 @@ export function OrderDialog({
         };
         return setError(map[res.error] ?? res.error);
       }
-      onSaved();
+      onSaved(res.data.id);
     });
   }
 
@@ -424,7 +444,7 @@ export function OrderDialog({
               order?.id,
             );
             if (!res.ok) return setError(res.error);
-            onSaved();
+            onSaved(res.data.id);
           });
         }}
         title={t('orders.cancelOrder')}

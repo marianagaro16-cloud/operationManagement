@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { getUsers, getViewer } from '@/server/data';
 import { getIncident } from '@/server/incidents';
+import { getCustomers, getDeliveryMethods, getProducts } from '@/server/orders';
 import { IncidentDetail } from '@/components/incidents/incident-detail';
 
 export const dynamic = 'force-dynamic';
@@ -20,17 +21,31 @@ export default async function IncidentPage({ params }: { params: { id: string } 
   const incident = await getIncident(params.id);
   if (!incident) notFound();
 
-  // Only for the corrective-action assignee picker, and only for somebody who
-  // can raise one. A read-only viewer is not handed the staff list.
-  const users = viewer.can('incidents.manage')
-    ? (await getUsers()).filter((u) => u.status === 'approved')
-    : [];
+  const canManage = viewer.can('incidents.manage');
+
+  /*
+   * Only for somebody who can act. A read-only viewer is handed neither the
+   * staff list (for assigning a corrective action) nor the master data that
+   * raising a replacement ORDER needs — the order editor this page opens is
+   * the ordinary one, and it wants the ordinary pickers.
+   */
+  const [users, customers, products, deliveryMethods] = canManage
+    ? await Promise.all([
+        getUsers().then((all) => all.filter((u) => u.status === 'approved')),
+        getCustomers(),
+        getProducts(),
+        getDeliveryMethods(),
+      ])
+    : [[], [], [], []];
 
   return (
     <IncidentDetail
       incident={incident}
       users={users}
-      canManage={viewer.can('incidents.manage')}
+      customers={customers}
+      products={products}
+      deliveryMethods={deliveryMethods}
+      canManage={canManage}
       canClose={viewer.can('incidents.close')}
     />
   );

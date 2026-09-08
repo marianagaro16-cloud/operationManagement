@@ -353,6 +353,42 @@ async function main() {
     .select('id').eq('preparation_date', '2026-12-11').neq('status', 'cancelled');
   check('...and appears in Lotnummerkontrol', (prepDay ?? []).some((o) => o.id === replacementOrder.id));
 
+  // ---- linking by the number a person reads off a delivery note ----
+  //
+  // The action resolves a reference to an id server-side and refuses one that
+  // belongs to a different customer. A mistyped digit would otherwise attach
+  // somebody else's delivery to this incident, flag THAT order as a
+  // replacement, and file it in the monthly report under the wrong name.
+  const { data: otherCust } = await admin
+    .from('customers').insert({ company_name: `${TAG} Other Cust` }).select('id').single();
+  created.customers.push(otherCust.id);
+  const { data: otherOrder } = await admin.from('orders').insert({
+    customer_id: otherCust.id, delivery_date: '2026-12-20', preparation_date: '2026-12-19',
+    status: 'confirmed', order_type: 'sale',
+  }).select('id, reference').single();
+  created.orders.push(otherOrder.id);
+
+  const { data: byRef } = await M.client.from('orders')
+    .select('id, customer_id').eq('reference', replacementOrder.reference).maybeSingle();
+  check('an order is findable by the reference a person can read',
+    byRef?.id === replacementOrder.id);
+  check('...and its customer is checkable against the incident',
+    byRef?.customer_id === cust.id);
+
+  const { data: wrongCust } = await M.client.from('orders')
+    .select('customer_id').eq('reference', otherOrder.reference).maybeSingle();
+  check('a reference for ANOTHER customer is detectable before it is linked',
+    wrongCust?.customer_id !== cust.id,
+    'the action refuses this pairing');
+
+  // ---- a replacement order is an ORDINARY order ----
+  const { data: flagged } = await admin.from('orders')
+    .select('id, replaces_incident_id, customer_id, status')
+    .eq('id', replacementOrder.id).single();
+  check('the replacement order carries its incident', flagged.replaces_incident_id === incident.id);
+  check('...and is otherwise a normal confirmed order for the same customer',
+    flagged.status === 'confirmed' && flagged.customer_id === cust.id);
+
   console.log('\n=== 11. A corrective action is a REAL task ===');
   const task = await P.client.from('tasks').insert({
     title: ACTION_TITLE, frequency: 'one_off',
