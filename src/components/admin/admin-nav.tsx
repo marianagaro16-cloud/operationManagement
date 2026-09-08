@@ -59,8 +59,11 @@ export function AdminNav({ caps, role }: { caps: Permission[]; role: Role }) {
     { href: '/admin/inventory/locations', label: t('inventory.locations'), permission: 'inventory.manage_templates', group: 'setup' },
     { href: '/admin/inventory/permissions', label: t('inventory.permissions'), permission: 'inventory.grant_temporary_edit', group: 'setup' },
 
+    { href: '/admin/incident-types', label: t('incident.typesTitle'), permission: 'incidents.manage_config', group: 'setup' },
+
     // ---- looking backwards ----
     { href: '/admin/reports', label: t('report.title'), permission: 'reports.view', group: 'review' },
+    { href: '/admin/incident-reports', label: t('ireport.title'), permission: 'incidents.view_all', group: 'review' },
     { href: '/admin/statistics', label: t('nav.statistics'), permission: 'reports.view', group: 'review' },
     { href: '/admin/history', label: t('nav.history'), permission: 'tasks.manage_occurrences', group: 'review' },
     { href: '/admin/audit', label: t('audit.title'), permission: 'audit.view_operational', group: 'review' },

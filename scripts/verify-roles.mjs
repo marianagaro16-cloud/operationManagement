@@ -79,8 +79,24 @@ async function main() {
 
   const { data: mgr } = await admin.from('role_permissions').select('permission').eq('role', 'manager');
   const { data: pu } = await admin.from('role_permissions').select('permission').eq('role', 'power_user');
-  check('manager holds every configurable capability', (mgr ?? []).length === 15, `${mgr?.length}`);
-  check('power user holds fewer than manager', (pu ?? []).length === 11, `${pu?.length}`);
+
+  /*
+   * Derived from the catalogue rather than hardcoded.
+   *
+   * These two used to assert `=== 15` and `=== 11`, which is not what the
+   * labels claim and which broke the moment the incidents module added four
+   * capabilities — a true statement failing for an irrelevant reason. What is
+   * actually being asserted is "a manager holds ALL of them" and "a power
+   * user holds strictly fewer", and both survive the next module.
+   */
+  const configurable = (cat ?? []).filter((c) => c.is_configurable).map((c) => c.key);
+  const mgrHeld = new Set((mgr ?? []).map((r) => r.permission));
+  check('manager holds every configurable capability',
+    configurable.every((key) => mgrHeld.has(key)),
+    `${mgr?.length} of ${configurable.length}`);
+  check('power user holds fewer than manager',
+    (pu ?? []).length < (mgr ?? []).length,
+    `${pu?.length} vs ${mgr?.length}`);
 
   const mgrKeys = new Set((mgr ?? []).map((r) => r.permission));
   const puKeys = new Set((pu ?? []).map((r) => r.permission));

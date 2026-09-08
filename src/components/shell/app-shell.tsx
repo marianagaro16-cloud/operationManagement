@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { Bell, Boxes, CalendarDays, ClipboardList, LayoutDashboard, Package, ScanSearch, Settings, Shield } from 'lucide-react';
+import { AlertTriangle, Bell, Boxes, CalendarDays, ClipboardList, LayoutDashboard, Package, ScanSearch, Settings, Shield } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -65,7 +65,7 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents'];
   const active = (href: string) =>
     SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
 

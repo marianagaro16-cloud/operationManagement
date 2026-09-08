@@ -23,7 +23,7 @@ import { Badge, type Tone } from '@/components/ui/primitives';
  * language instead of four, and a tone change is one line.
  */
 
-export type StatusDomain = 'task' | 'order' | 'line' | 'inventory';
+export type StatusDomain = 'task' | 'order' | 'line' | 'inventory' | 'incident' | 'severity';
 
 interface Presentation {
   key: MessageKey;
@@ -62,6 +62,24 @@ export const STATUS_PRESENTATION: Record<string, Presentation> = {
   // reserved for "somebody declined to do this" said the opposite, and it was
   // the one place two unrelated meanings shared a colour on purpose.
   'inventory.resolved':    { key: 'inventory.statusResolved',   tone: 'done' },
+
+  /* --- incidents --- */
+  'incident.open':            { key: 'incident.status.open',           tone: 'neutral' },
+  'incident.investigating':   { key: 'incident.status.investigating',  tone: 'accent' },
+  'incident.action_required': { key: 'incident.status.actionRequired', tone: 'warn' },
+  'incident.resolved':        { key: 'incident.status.resolved',       tone: 'done' },
+  // Quiet on purpose. A closed incident is finished work, and a loud chip on
+  // a list of them would compete with the ones that still need somebody.
+  'incident.closed':          { key: 'incident.status.closed',         tone: 'neutral' },
+
+  /* --- incident severity ---
+     A separate domain rather than a fifth status: severity is how bad it is,
+     status is how far along it is, and an incident always has both. The
+     escalation walks the existing palette instead of introducing colours. */
+  'severity.low':      { key: 'incident.severity.low',      tone: 'neutral' },
+  'severity.medium':   { key: 'incident.severity.medium',   tone: 'accent' },
+  'severity.high':     { key: 'incident.severity.high',     tone: 'warn' },
+  'severity.critical': { key: 'incident.severity.critical', tone: 'late' },
 };
 
 /** Look up a presentation, or null when the pair is not a known status. */

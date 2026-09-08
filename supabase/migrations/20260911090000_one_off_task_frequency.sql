@@ -1,0 +1,32 @@
+-- ============================================================
+-- Incidents, part 1 of 2: the 'one_off' task frequency label ONLY.
+--
+-- This migration deliberately does nothing except widen
+-- public.task_frequency, for exactly the reason 20260908090000 widened
+-- public.user_role in a file of its own:
+--
+--   Postgres will not allow a new enum label to be REFERENCED by any
+--   statement in the same transaction that added it ("unsafe use of new value
+--   of enum type"). `supabase db push` runs each migration file as one
+--   transaction, so every index predicate, check and seed row that mentions
+--   'one_off' has to live in a LATER file. That file is
+--   20260911090100_incidents_module.sql.
+--
+-- Do not merge these two migrations. It will fail on a fresh database.
+--
+-- WHY the label exists at all:
+--
+-- A corrective action — "review the packaging procedure for cheese
+-- shipments" — is a real task with a real owner and a real due date, and §17
+-- of the specification is explicit that it must not become a second task
+-- system. But every existing frequency is a RECURRENCE, and a corrective
+-- action happens once. Without a one-off label the only ways to express it
+-- were to lie about the cadence or to build the parallel system.
+--
+-- Nothing changes for any existing task. The recurrence engine never sees
+-- this label: one-off tasks are placed by the incident that created them,
+-- exactly as the calendar places a weekly task, and the nightly generator
+-- still materialises daily tasks and nothing else.
+-- ============================================================
+
+alter type public.task_frequency add value if not exists 'one_off';

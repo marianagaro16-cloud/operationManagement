@@ -56,6 +56,13 @@ export const PERMISSIONS = [
   'reports.export',
   'audit.view_operational',
 
+  // incidents — create/investigate/resolve is shared with the Power User;
+  // closing and configuring the vocabulary are the Manager's.
+  'incidents.manage',
+  'incidents.close',
+  'incidents.view_all',
+  'incidents.manage_config',
+
   // ADMIN-ONLY — listed so the matrix can render them locked, never grantable
   'users.manage',
   'users.approve',

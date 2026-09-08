@@ -33,7 +33,8 @@
     "verify:inventory": "node scripts/verify-inventory.mjs",
     "verify:roles": "node scripts/verify-roles.mjs",
     "verify:tasks": "node scripts/verify-tasks.mjs",
-    "verify:import": "node scripts/verify-import.mjs"
+    "verify:import": "node scripts/verify-import.mjs",
+    "verify:incidents": "node scripts/verify-incidents.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

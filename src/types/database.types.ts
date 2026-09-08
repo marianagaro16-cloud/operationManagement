@@ -126,6 +126,545 @@ export type Database = {
         }
         Relationships: []
       }
+      incident_affected_items: {
+        Row: {
+          affected_quantity: number | null
+          created_at: string
+          id: string
+          incident_id: string
+          lot_allocation_id: string | null
+          note: string | null
+          order_line_id: string | null
+          position: number
+          product_id: string
+        }
+        Insert: {
+          affected_quantity?: number | null
+          created_at?: string
+          id?: string
+          incident_id: string
+          lot_allocation_id?: string | null
+          note?: string | null
+          order_line_id?: string | null
+          position?: number
+          product_id: string
+        }
+        Update: {
+          affected_quantity?: number | null
+          created_at?: string
+          id?: string
+          incident_id?: string
+          lot_allocation_id?: string | null
+          note?: string | null
+          order_line_id?: string | null
+          position?: number
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_affected_items_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_affected_items_lot_allocation_id_fkey"
+            columns: ["lot_allocation_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_affected_items_lot_allocation_id_fkey"
+            columns: ["lot_allocation_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_affected_items_order_line_id_fkey"
+            columns: ["order_line_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["order_line_id"]
+          },
+          {
+            foreignKeyName: "incident_affected_items_order_line_id_fkey"
+            columns: ["order_line_id"]
+            isOneToOne: false
+            referencedRelation: "order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_affected_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "incident_affected_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          incident_id: string | null
+          new_value: Json | null
+          previous_value: Json | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          incident_id?: string | null
+          new_value?: Json | null
+          previous_value?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          incident_id?: string | null
+          new_value?: Json | null
+          previous_value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_audit_log_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      incident_evidence: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          incident_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          incident_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          incident_id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_evidence_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_evidence_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_replacements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          incident_id: string
+          note: string | null
+          order_id: string | null
+          product_id: string | null
+          quantity: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          incident_id: string
+          note?: string | null
+          order_id?: string | null
+          product_id?: string | null
+          quantity?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          incident_id?: string
+          note?: string | null
+          order_id?: string | null
+          product_id?: string | null
+          quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_replacements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_replacements_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_replacements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "incident_replacements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_replacements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "incident_replacements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_report_snapshots: {
+        Row: {
+          generated_at: string
+          generated_by: string | null
+          id: string
+          incident_ids: string[]
+          note: string | null
+          payload: Json
+          period_month: string
+          version: number
+        }
+        Insert: {
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          incident_ids?: string[]
+          note?: string | null
+          payload: Json
+          period_month: string
+          version: number
+        }
+        Update: {
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          incident_ids?: string[]
+          note?: string | null
+          payload?: Json
+          period_month?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_report_snapshots_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_secondary_causes: {
+        Row: {
+          cause: Database["public"]["Enums"]["incident_cause"]
+          incident_id: string
+        }
+        Insert: {
+          cause: Database["public"]["Enums"]["incident_cause"]
+          incident_id: string
+        }
+        Update: {
+          cause?: Database["public"]["Enums"]["incident_cause"]
+          incident_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_secondary_causes_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_types: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_types_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "incident_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incidents: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          delivery_method_id: string | null
+          description: string
+          detected_at: string
+          id: string
+          incident_number: string
+          incident_type_id: string
+          investigation_notes: string | null
+          order_id: string | null
+          primary_cause: Database["public"]["Enums"]["incident_cause"] | null
+          reference: number
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          responsibility: Database["public"]["Enums"]["incident_responsibility"]
+          severity: Database["public"]["Enums"]["incident_severity"]
+          status: Database["public"]["Enums"]["incident_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          delivery_method_id?: string | null
+          description: string
+          detected_at?: string
+          id?: string
+          incident_number: string
+          incident_type_id: string
+          investigation_notes?: string | null
+          order_id?: string | null
+          primary_cause?: Database["public"]["Enums"]["incident_cause"] | null
+          reference?: never
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          responsibility?: Database["public"]["Enums"]["incident_responsibility"]
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          status?: Database["public"]["Enums"]["incident_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          delivery_method_id?: string | null
+          description?: string
+          detected_at?: string
+          id?: string
+          incident_number?: string
+          incident_type_id?: string
+          investigation_notes?: string | null
+          order_id?: string | null
+          primary_cause?: Database["public"]["Enums"]["incident_cause"] | null
+          reference?: never
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          responsibility?: Database["public"]["Enums"]["incident_responsibility"]
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          status?: Database["public"]["Enums"]["incident_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "incidents_delivery_method_id_fkey"
+            columns: ["delivery_method_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_incident_type_id_fkey"
+            columns: ["incident_type_id"]
+            isOneToOne: false
+            referencedRelation: "incident_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "incidents_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_assignments: {
         Row: {
           assigned_at: string
@@ -1253,6 +1792,7 @@ export type Database = {
           order_type: Database["public"]["Enums"]["order_type"]
           preparation_date: string
           reference: number
+          replaces_incident_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           updated_at: string
           updated_by: string | null
@@ -1273,6 +1813,7 @@ export type Database = {
           order_type?: Database["public"]["Enums"]["order_type"]
           preparation_date: string
           reference?: never
+          replaces_incident_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
           updated_by?: string | null
@@ -1293,6 +1834,7 @@ export type Database = {
           order_type?: Database["public"]["Enums"]["order_type"]
           preparation_date?: string
           reference?: never
+          replaces_incident_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
           updated_by?: string | null
@@ -1331,6 +1873,13 @@ export type Database = {
             columns: ["generated_from_template_id"]
             isOneToOne: false
             referencedRelation: "recurring_order_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_replaces_incident_id_fkey"
+            columns: ["replaces_incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
             referencedColumns: ["id"]
           },
           {
@@ -1851,6 +2400,7 @@ export type Database = {
       }
       task_occurrences: {
         Row: {
+          assignee_id: string | null
           blocked_at: string | null
           blocked_by: string | null
           blocked_reason: string | null
@@ -1871,6 +2421,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assignee_id?: string | null
           blocked_at?: string | null
           blocked_by?: string | null
           blocked_reason?: string | null
@@ -1891,6 +2442,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assignee_id?: string | null
           blocked_at?: string | null
           blocked_by?: string | null
           blocked_reason?: string | null
@@ -1912,6 +2464,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "task_occurrences_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "task_occurrences_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
@@ -1928,6 +2487,7 @@ export type Database = {
           description: string | null
           frequency: Database["public"]["Enums"]["task_frequency"]
           id: string
+          incident_id: string | null
           is_active: boolean
           is_skippable: boolean
           schedule_config: Json | null
@@ -1942,6 +2502,7 @@ export type Database = {
           description?: string | null
           frequency: Database["public"]["Enums"]["task_frequency"]
           id?: string
+          incident_id?: string | null
           is_active?: boolean
           is_skippable?: boolean
           schedule_config?: Json | null
@@ -1956,6 +2517,7 @@ export type Database = {
           description?: string | null
           frequency?: Database["public"]["Enums"]["task_frequency"]
           id?: string
+          incident_id?: string | null
           is_active?: boolean
           is_skippable?: boolean
           schedule_config?: Json | null
@@ -1969,6 +2531,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
             referencedColumns: ["id"]
           },
         ]
@@ -2035,6 +2604,7 @@ export type Database = {
       block_occurrence: {
         Args: { p_occurrence_id: string; p_reason: string }
         Returns: {
+          assignee_id: string | null
           blocked_at: string | null
           blocked_by: string | null
           blocked_reason: string | null
@@ -2061,6 +2631,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      can_view_incident: { Args: { p_order_id: string }; Returns: boolean }
       claim_push_subscription: {
         Args: {
           p_auth: string
@@ -2073,6 +2644,7 @@ export type Database = {
       complete_occurrence: {
         Args: { p_occurrence_id: string }
         Returns: {
+          assignee_id: string | null
           blocked_at: string | null
           blocked_by: string | null
           blocked_reason: string | null
@@ -2117,6 +2689,7 @@ export type Database = {
           order_type: Database["public"]["Enums"]["order_type"]
           preparation_date: string
           reference: number
+          replaces_incident_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           updated_at: string
           updated_by: string | null
@@ -2302,6 +2875,10 @@ export type Database = {
         Args: { r: Database["public"]["Enums"]["user_role"] }
         Returns: boolean
       }
+      next_incident_report_version: {
+        Args: { p_month: string }
+        Returns: number
+      }
       preparation_date_for: {
         Args: { p_delivery_date: string; p_lead_days: number }
         Returns: string
@@ -2309,6 +2886,7 @@ export type Database = {
       reopen_occurrence: {
         Args: { p_occurrence_id: string }
         Returns: {
+          assignee_id: string | null
           blocked_at: string | null
           blocked_by: string | null
           blocked_reason: string | null
@@ -2366,6 +2944,7 @@ export type Database = {
       skip_occurrence: {
         Args: { p_occurrence_id: string; p_reason: string }
         Returns: {
+          assignee_id: string | null
           blocked_at: string | null
           blocked_by: string | null
           blocked_reason: string | null
@@ -2394,6 +2973,32 @@ export type Database = {
       }
     }
     Enums: {
+      incident_cause:
+        | "order_entry"
+        | "picking"
+        | "preparation"
+        | "packing"
+        | "dispatch"
+        | "transport"
+        | "delivery"
+        | "supplier"
+        | "customer"
+        | "unknown"
+        | "other"
+      incident_responsibility:
+        | "internal"
+        | "transporter"
+        | "supplier"
+        | "customer"
+        | "shared"
+        | "unknown"
+      incident_severity: "low" | "medium" | "high" | "critical"
+      incident_status:
+        | "open"
+        | "investigating"
+        | "action_required"
+        | "resolved"
+        | "closed"
       inventory_frequency: "weekly" | "biweekly" | "monthly" | "semiannual"
       inventory_grant_scope: "instance" | "all"
       inventory_kind: "expiry" | "lot" | "location"
@@ -2402,7 +3007,13 @@ export type Database = {
       order_status: "draft" | "confirmed" | "cancelled"
       order_type: "sale" | "sample"
       schedule_source: "auto" | "manual"
-      task_frequency: "daily" | "weekly" | "biweekly" | "monthly" | "semiannual"
+      task_frequency:
+        | "daily"
+        | "weekly"
+        | "biweekly"
+        | "monthly"
+        | "semiannual"
+        | "one_off"
       user_role: "admin" | "user" | "manager" | "power_user"
       user_status: "pending" | "approved" | "rejected" | "deactivated"
     }
@@ -2535,6 +3146,35 @@ export const Constants = {
   },
   public: {
     Enums: {
+      incident_cause: [
+        "order_entry",
+        "picking",
+        "preparation",
+        "packing",
+        "dispatch",
+        "transport",
+        "delivery",
+        "supplier",
+        "customer",
+        "unknown",
+        "other",
+      ],
+      incident_responsibility: [
+        "internal",
+        "transporter",
+        "supplier",
+        "customer",
+        "shared",
+        "unknown",
+      ],
+      incident_severity: ["low", "medium", "high", "critical"],
+      incident_status: [
+        "open",
+        "investigating",
+        "action_required",
+        "resolved",
+        "closed",
+      ],
       inventory_frequency: ["weekly", "biweekly", "monthly", "semiannual"],
       inventory_grant_scope: ["instance", "all"],
       inventory_kind: ["expiry", "lot", "location"],
@@ -2543,7 +3183,14 @@ export const Constants = {
       order_status: ["draft", "confirmed", "cancelled"],
       order_type: ["sale", "sample"],
       schedule_source: ["auto", "manual"],
-      task_frequency: ["daily", "weekly", "biweekly", "monthly", "semiannual"],
+      task_frequency: [
+        "daily",
+        "weekly",
+        "biweekly",
+        "monthly",
+        "semiannual",
+        "one_off",
+      ],
       user_role: ["admin", "user", "manager", "power_user"],
       user_status: ["pending", "approved", "rejected", "deactivated"],
     },

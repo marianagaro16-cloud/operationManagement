@@ -71,7 +71,7 @@ export async function getSecurityAudit(limit = 100): Promise<SecurityAuditRow[]>
   return (data ?? []) as unknown as SecurityAuditRow[];
 }
 
-export type AuditSource = 'inventory' | 'order' | 'task';
+export type AuditSource = 'inventory' | 'order' | 'task' | 'incident';
 
 export interface OperationalAuditRow {
   id: string;
