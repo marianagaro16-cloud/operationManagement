@@ -81,9 +81,14 @@ export function AuditLog({
                   when={when(r.created_at)}
                   who={who(r.actor)}
                   action={r.action}
-                  // Three sources now, not two: task completions, skips and
-                  // definition edits were never audited at all.
-                  tone={r.source === 'inventory' ? 'accent' : r.source === 'task' ? 'done' : 'neutral'}
+                  // Four sources now. Incidents joined the same unified view
+                  // rather than being given an audit screen of their own.
+                  tone={
+                    r.source === 'inventory' ? 'accent'
+                      : r.source === 'task' ? 'done'
+                        : r.source === 'incident' ? 'warn'
+                          : 'neutral'
+                  }
                   detail={{ [t('audit.detail')]: r.detail }}
                 />
               ))}

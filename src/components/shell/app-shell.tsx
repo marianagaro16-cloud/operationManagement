@@ -46,6 +46,13 @@ export function AppShell({
           // it answers a question about ORDERS — where a lot was used — and
           // its one call to action is to open the order and fix it there.
           { href: '/lot-tracker', label: t('lot.title'), icon: ScanSearch },
+          // Incidents belong with the order book: every one of them is about a
+          // delivery, and the report they feed is read next to the order
+          // reports. Behind the same capability for the same reason — a person
+          // on the floor works lot control, and the complaint log is not their
+          // screen. They still reach an incident on an order they prepared,
+          // from that order's own page, which is where they would look.
+          { href: '/incidents', label: t('incident.navLabel'), icon: AlertTriangle },
         ]
       : []),
     // Counting happens on the floor, so inventory sits in the main bar rather
