@@ -66,7 +66,6 @@ describe('admin-only capabilities', () => {
     expect(isConfigurable('users.manage')).toBe(false);
     expect(isConfigurable('roles.assign')).toBe(false);
     expect(isConfigurable('permissions.configure')).toBe(false);
-    expect(isConfigurable('audit.view_security')).toBe(false);
   });
 
   it('leaves the operational capabilities configurable', () => {

@@ -54,7 +54,6 @@ export const PERMISSIONS = [
   'tasks.manage_occurrences',
   'reports.view',
   'reports.export',
-  'audit.view_operational',
 
   // incidents — create/investigate/resolve is shared with the Power User;
   // closing and configuring the vocabulary are the Manager's.
@@ -69,7 +68,6 @@ export const PERMISSIONS = [
   'roles.assign',
   'permissions.configure',
   'system.configure',
-  'audit.view_security',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -87,7 +85,6 @@ export const ADMIN_ONLY: ReadonlySet<Permission> = new Set<Permission>([
   'roles.assign',
   'permissions.configure',
   'system.configure',
-  'audit.view_security',
 ]);
 
 export function isConfigurable(permission: Permission): boolean {

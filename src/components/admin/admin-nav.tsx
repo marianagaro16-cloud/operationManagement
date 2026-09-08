@@ -66,7 +66,6 @@ export function AdminNav({ caps, role }: { caps: Permission[]; role: Role }) {
     { href: '/admin/incident-reports', label: t('ireport.title'), permission: 'incidents.view_all', group: 'review' },
     { href: '/admin/statistics', label: t('nav.statistics'), permission: 'reports.view', group: 'review' },
     { href: '/admin/history', label: t('nav.history'), permission: 'tasks.manage_occurrences', group: 'review' },
-    { href: '/admin/audit', label: t('audit.title'), permission: 'audit.view_operational', group: 'review' },
 
     // ---- accounts and configuration ----
     { href: '/admin/users', label: t('nav.users'), permission: 'users.manage', group: 'system' },

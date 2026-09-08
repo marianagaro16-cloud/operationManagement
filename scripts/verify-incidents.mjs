@@ -474,10 +474,13 @@ async function main() {
   check('the investigation is audited', actions.includes('incident_investigation_changed'),
     actions.join(', '));
 
-  const { data: unified } = await M.client.from('operational_audit')
-    .select('source, action').eq('source', 'incident').limit(50);
-  check('incident events reach /admin/audit through the SHARED view',
-    (unified ?? []).length > 0, `${unified?.length} rows`);
+  // The unified view was dropped with the audit screen. The log is now read
+  // directly, under incidents.view_all, which is what feeds the History
+  // section on the incident page.
+  const { data: readable } = await M.client.from('incident_audit_log')
+    .select('action').eq('incident_id', incident.id).limit(50);
+  check('a manager can read the incident log that feeds History',
+    (readable ?? []).length > 0, `${readable?.length} rows`);
 
   const userAudit = await U.client.from('incident_audit_log').select('id');
   check('a plain USER cannot read the audit log', (userAudit.data ?? []).length === 0);

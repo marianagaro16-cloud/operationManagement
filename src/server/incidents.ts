@@ -441,7 +441,7 @@ export async function getIncidentHistory(incidentId: string) {
     .eq('incident_id', incidentId)
     .order('created_at', { ascending: false });
 
-  // A viewer without audit.view_operational sees no history rather than an
+  // A viewer who may not read the log sees no history rather than an
   // error — the page renders without the section.
   if (error) return [];
   return (data ?? []) as unknown as Incident['history'];

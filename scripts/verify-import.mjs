@@ -236,10 +236,11 @@ async function main() {
   check('a hand-entered order still logs a NULL detail, exactly as before',
     manualAudit?.[0]?.detail === null, JSON.stringify(manualAudit?.[0]?.detail));
 
-  const { data: opAudit } = await M.client.from('operational_audit')
-    .select('id, source, action').eq('source', 'order').limit(200);
-  check('the events reach /admin/audit through the existing view',
-    (opAudit ?? []).some((r) => r.action === 'order_created'));
+  const { data: opAudit } = await M.client.from('order_audit_log')
+    .select('id, action').limit(200);
+  check('the events are readable from the order log itself',
+    (opAudit ?? []).some((r) => r.action === 'order_created'),
+    'read under orders.manage since the audit screen was removed');
 }
 
 async function cleanup() {

@@ -72,10 +72,24 @@ async function main() {
   created.users.push(A.id, M.id, P.id, U.id);
 
   console.log('\n=== 1. The enum and the defaults exist ===');
-  const { data: cat } = await admin.from('permission_catalog').select('key, is_configurable');
+  const { data: cat } = await admin.from('permission_catalog').select('key, module, is_configurable');
   check('permission catalogue seeded', (cat ?? []).length >= 21, `${cat?.length} rows`);
-  check('six capabilities are admin-only',
-    (cat ?? []).filter((c) => !c.is_configurable).length === 6);
+  /*
+   * Derived rather than hardcoded, for the same reason the manager counts
+   * below are: audit.view_security left with the audit screen, and a true
+   * statement should not fail because the catalogue changed size.
+   *
+   * What is actually asserted is that the ADMIN-ONLY set and the SYSTEM
+   * module are the same set — every system capability is ungrantable, and
+   * nothing outside that module is. That holds however the catalogue grows.
+   */
+  const adminOnly = (cat ?? []).filter((c) => !c.is_configurable).map((c) => c.key);
+  const systemKeys = (cat ?? []).filter((c) => c.module === 'system').map((c) => c.key);
+  check('the admin-only capabilities are exactly the system ones',
+    adminOnly.length > 0
+      && adminOnly.length === systemKeys.length
+      && adminOnly.every((k) => systemKeys.includes(k)),
+    `${adminOnly.length} keys`);
 
   const { data: mgr } = await admin.from('role_permissions').select('permission').eq('role', 'manager');
   const { data: pu } = await admin.from('role_permissions').select('permission').eq('role', 'power_user');
