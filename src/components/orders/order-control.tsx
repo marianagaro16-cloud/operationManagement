@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,8 @@ import { lineProgress, toQuantity } from '@/domain/orders/progress';
 import { isBeforeGoLive } from '@/domain/orders/config';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { productLabel, type Customer, type DeliveryMethod, type OrderWithProgress, type Product } from '@/types/orders';
+import { IncidentDialog, orderContextFrom } from '@/components/incidents/incident-dialog';
+import type { IncidentCategory, IncidentType } from '@/types/incidents';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
 
@@ -36,6 +38,9 @@ export function OrderControl({
   month,
   filters,
   canManage,
+  incidentCategories,
+  incidentTypes,
+  canReportIncident,
 }: {
   orders: OrderWithProgress[];
   customers: Customer[];
@@ -50,11 +55,17 @@ export function OrderControl({
     query?: string;
   };
   canManage: boolean;
+  /** The incident vocabulary, for reporting one straight from a row. */
+  incidentCategories: IncidentCategory[];
+  incidentTypes: IncidentType[];
+  canReportIncident: boolean;
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
   const [editing, setEditing] = useState<OrderWithProgress | null>(null);
   const [creating, setCreating] = useState(false);
+  // One dialog for the whole list, exactly as the editor is — not one per card.
+  const [reporting, setReporting] = useState<OrderWithProgress | null>(null);
   const [draftQuery, setDraftQuery] = useState(filters.query ?? '');
 
   const anchor = DateTime.fromISO(`${month}-01`, { zone: BUSINESS_TZ });
@@ -279,6 +290,9 @@ export function OrderControl({
                           order={order}
                           canManage={canManage}
                           onEdit={() => setEditing(order)}
+                          onReportIncident={
+                            canReportIncident ? () => setReporting(order) : undefined
+                          }
                         />
                       ))}
                     </div>
@@ -301,6 +315,22 @@ export function OrderControl({
           onSaved={() => { setCreating(false); setEditing(null); router.refresh(); }}
         />
       )}
+
+      {/* The same dialog the order page raises, fed from the row that was
+          clicked — so the customer, the dates and the order's own products are
+          already filled in and nothing is retyped. */}
+      {reporting && (
+        <IncidentDialog
+          key={reporting.id}
+          customers={customers}
+          products={products}
+          categories={incidentCategories}
+          types={incidentTypes}
+          order={orderContextFrom(reporting)}
+          onClose={() => setReporting(null)}
+          onSaved={(id) => { setReporting(null); router.push(`/incidents/${id}`); }}
+        />
+      )}
     </>
   );
 }
@@ -309,10 +339,13 @@ function OrderCard({
   order,
   canManage,
   onEdit,
+  onReportIncident,
 }: {
   order: OrderWithProgress;
   canManage: boolean;
   onEdit: () => void;
+  /** Absent when the viewer may not report one, which removes the button. */
+  onReportIncident?: () => void;
 }) {
   const { t, formatDate } = useI18n();
   // Computed once by the query layer; see OrderWithProgress.
@@ -366,6 +399,21 @@ function OrderCard({
           >
             {t('orders.preparationOn', { date: formatDate(order.preparation_date, 'short') })}
           </Link>
+          {/* Reporting an incident starts here as often as it starts on the
+              order's own page — this list is what somebody has open when a
+              customer rings about a delivery. Hidden on a cancelled order:
+              nothing can have gone wrong with a delivery that was not made. */}
+          {onReportIncident && !cancelled && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={onReportIncident}
+              aria-label={t('incident.reportForOrder')}
+              title={t('incident.reportForOrder')}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+            </Button>
+          )}
           {canManage && (
             <Button size="icon" variant="ghost" onClick={onEdit} aria-label={t('common.edit')}>
               <Pencil className="h-3.5 w-3.5" aria-hidden />

@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
 import { getCustomers, getDeliveryMethods, getOrdersByDelivery, getProducts } from '@/server/orders';
+import { getIncidentCategories, getIncidentTypes } from '@/server/incidents';
 import { getViewer } from '@/server/data';
 import { monthRange } from '@/domain/orders/scheduling';
 import { ORDERS_GO_LIVE } from '@/domain/orders/config';
@@ -46,18 +47,25 @@ export default async function OrdersPage({
     ? { start: ORDERS_GO_LIVE, end: addDays(businessToday(), SEARCH_HORIZON_DAYS) }
     : monthRange(month);
 
-  const [found, customers, products, deliveryMethods] = await Promise.all([
-    getOrdersByDelivery({
-      from: start,
-      to: end,
-      customerId: searchParams.customer,
-      deliveryMethodId: searchParams.method,
-      status: searchParams.status,
-    }),
-    getCustomers(),
-    getProducts(),
-    getDeliveryMethods(),
-  ]);
+  const canReportIncident = viewer.can('incidents.manage');
+
+  const [found, customers, products, deliveryMethods, incidentCategories, incidentTypes] =
+    await Promise.all([
+      getOrdersByDelivery({
+        from: start,
+        to: end,
+        customerId: searchParams.customer,
+        deliveryMethodId: searchParams.method,
+        status: searchParams.status,
+      }),
+      getCustomers(),
+      getProducts(),
+      getDeliveryMethods(),
+      // Only for somebody who can actually raise one; a viewer who cannot is
+      // never made to pay for the vocabulary.
+      canReportIncident ? getIncidentCategories() : Promise.resolve([]),
+      canReportIncident ? getIncidentTypes() : Promise.resolve([]),
+    ]);
 
   // Matched on the customer, the reference and the products on the order —
   // the three things somebody actually remembers about one.
@@ -85,6 +93,9 @@ export default async function OrdersPage({
         query,
       }}
       canManage
+      incidentCategories={incidentCategories}
+      incidentTypes={incidentTypes}
+      canReportIncident={canReportIncident}
     />
   );
 }

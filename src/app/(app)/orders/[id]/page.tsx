@@ -5,7 +5,7 @@ import { getViewer } from '@/server/data';
 import { OrderDetail } from '@/components/orders/order-detail';
 import { IncidentLinks } from '@/components/incidents/incident-links';
 import { ReportIncidentButton } from '@/components/incidents/report-incident-button';
-import type { OrderContext } from '@/components/incidents/incident-dialog';
+import { orderContextFrom } from '@/components/incidents/incident-dialog';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,23 +47,12 @@ export default async function OrderDetailPage({ params }: { params: { id: string
    * it — §6. The lot allocations travel too, which is what lets an affected
    * product resolve to the lot it was prepared from without anybody retyping
    * a lot number into a second place.
+   *
+   * Built by the shared helper rather than by hand, because Order Control
+   * raises the same dialog from its rows and two hand-built objects would
+   * drift the day one of them stopped carrying the allocations.
    */
-  const orderContext: OrderContext = {
-    id: order.id,
-    reference: order.reference,
-    customer_id: order.customer_id,
-    customer_name: order.customer.name,
-    order_date: order.order_date,
-    preparation_date: order.preparation_date,
-    delivery_date: order.delivery_date,
-    delivery_method_name: order.delivery_method?.name ?? null,
-    lines: order.lines.map((l) => ({
-      id: l.id,
-      product_id: l.product_id,
-      product: l.product,
-      allocations: (l.allocations ?? []).map((a) => ({ id: a.id, lot_number: a.lot_number })),
-    })),
-  };
+  const orderContext = orderContextFrom(order);
 
   return (
     <>
