@@ -26,6 +26,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
+import { readFile } from 'node:fs/promises';
 config({ path: '.env', quiet: true });
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -445,7 +446,47 @@ async function main() {
   const userAudit = await U.client.from('incident_audit_log').select('id');
   check('a plain USER cannot read the audit log', (userAudit.data ?? []).length === 0);
 
-  console.log('\n=== 14. Existing modules still work ===');
+  console.log('\n=== 14. Every PostgREST select in the module actually runs ===');
+  /*
+   * The gap that let a broken module reach production.
+   *
+   * The domain tests are pure and never touch PostgREST; the checks above use
+   * simple single-table selects. Nothing exercised the EMBEDDED selects the
+   * pages actually issue — so `order:orders ( ... )` became ambiguous the
+   * moment this module added orders.replaces_incident_id as a second
+   * relationship between the two tables, and every screen that embedded an
+   * order threw at render with a digest and no message.
+   *
+   * The strings are READ OUT OF THE SOURCE rather than copied here. A copy
+   * would pass while the shipped query was broken, which is the same class of
+   * failure one level down.
+   */
+  const source = await readFile(new URL('../src/server/incidents.ts', import.meta.url), 'utf8');
+
+  const selects = [];
+  // Named constants, whose table the file does not state next to them.
+  const NAMED_TABLES = { LIST_SELECT: 'incidents', DETAIL_SELECT: 'incidents' };
+  for (const [, name, body] of source.matchAll(/const (\w+_SELECT) = `([^`]+)`/g)) {
+    selects.push({ label: name, table: NAMED_TABLES[name], select: body });
+  }
+  // Inline `.from('x').select(`...`)` pairs.
+  for (const [, table, body] of source.matchAll(/\.from\('(\w+)'\)\s*\.select\(`([^`]+)`/g)) {
+    selects.push({ label: `${table} inline`, table, select: body });
+  }
+
+  check('every named select has a known table',
+    selects.every((s) => Boolean(s.table)),
+    selects.filter((s) => !s.table).map((s) => s.label).join(', ') || 'all mapped');
+  check('the extractor found the selects it should',
+    selects.length >= 7, `${selects.length} found`);
+
+  for (const s of selects) {
+    if (!s.table) continue;
+    const res = await M.client.from(s.table).select(s.select).limit(1);
+    check(`${s.label} runs`, !res.error, res.error?.message ?? '');
+  }
+
+  console.log('\n=== 15. Existing modules still work ===');
   const { data: orders } = await M.client.from('orders').select('id').limit(5);
   check('orders still readable', (orders ?? []).length > 0);
   const { data: lots } = await U.client.from('lot_allocations').select('id').limit(5);

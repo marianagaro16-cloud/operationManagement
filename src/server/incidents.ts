@@ -62,7 +62,7 @@ const LIST_SELECT = `
   id, incident_number, detected_at, status, severity, primary_cause, responsibility,
   customer_id, order_id, delivery_method_id, incident_type_id,
   customer:customers ( id, name ),
-  order:orders ( id, reference ),
+  order:orders!incidents_order_id_fkey ( id, reference ),
   type:incident_types!inner ( id, slug, name, category_id ),
   items:incident_affected_items ( id ),
   replacements:incident_replacements ( id )
@@ -233,7 +233,7 @@ export async function getIncidentsForExport(
     id, incident_number, detected_at, status, severity, primary_cause, responsibility, description,
     resolved_at, closed_at,
     customer:customers ( name ),
-    order:orders ( reference ),
+    order:orders!incidents_order_id_fkey ( reference ),
     delivery_method:delivery_methods ( name ),
     type:incident_types!inner ( slug, category_id, category:incident_categories ( slug ) ),
     causes:incident_secondary_causes ( cause ),
@@ -314,7 +314,7 @@ export async function getIncidentsForExport(
 const DETAIL_SELECT = `
   *,
   customer:customers ( * ),
-  order:orders ( id, reference, order_date, preparation_date, delivery_date, delivery_method_id ),
+  order:orders!incidents_order_id_fkey ( id, reference, order_date, preparation_date, delivery_date, delivery_method_id ),
   delivery_method:delivery_methods ( id, slug, name, sort_order, is_active ),
   type:incident_types ( *, category:incident_categories ( id, slug, name, sort_order, is_active ) ),
   items:incident_affected_items (
