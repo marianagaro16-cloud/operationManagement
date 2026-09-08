@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ClipboardList, Pencil, Users } from 'lucide-react';
@@ -47,12 +47,22 @@ export function OrderDetail({
   products,
   deliveryMethods,
   canManage,
+  headerAction,
 }: {
   order: OrderWithProgress;
   customers: Customer[];
   products: Product[];
   deliveryMethods: DeliveryMethod[];
   canManage: boolean;
+  /**
+   * An extra action beside Edit — currently "Report incident".
+   *
+   * Passed in rather than built here so this component keeps knowing nothing
+   * about incidents: the order page owns that integration, and an order
+   * detail that imported the incident module would couple two modules that
+   * only need to meet at one button.
+   */
+  headerAction?: ReactNode;
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
@@ -81,11 +91,17 @@ export function OrderDetail({
         title={`#${order.reference}`}
         subtitle={order.customer.name}
         action={
-          canManage ? (
-            <Button variant="secondary" onClick={() => setEditing(true)}>
-              <Pencil className="h-3.5 w-3.5" aria-hidden />
-              {t('common.edit')}
-            </Button>
+          canManage || headerAction ? (
+            // Wraps so the two buttons stack rather than overflow on a phone.
+            <div className="flex flex-wrap gap-1.5">
+              {headerAction}
+              {canManage && (
+                <Button variant="secondary" onClick={() => setEditing(true)}>
+                  <Pencil className="h-3.5 w-3.5" aria-hidden />
+                  {t('common.edit')}
+                </Button>
+              )}
+            </div>
           ) : undefined
         }
       />

@@ -36,7 +36,7 @@ export default async function LotDetailPage({ params }: { params: { lot: string 
       <LotDetailView lotNumber={lotNumber} detail={detail} history={history} />
       {incidents.length > 0 && (
         <div className="mt-4">
-          <IncidentLinks incidents={incidents} variant="lot" canManage={false} />
+          <IncidentLinks incidents={incidents} variant="lot" />
         </div>
       )}
     </>

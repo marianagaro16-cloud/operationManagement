@@ -4,6 +4,7 @@ import { getIncidentCategories, getIncidentsForOrder, getIncidentTypes } from '@
 import { getViewer } from '@/server/data';
 import { OrderDetail } from '@/components/orders/order-detail';
 import { IncidentLinks } from '@/components/incidents/incident-links';
+import { ReportIncidentButton } from '@/components/incidents/report-incident-button';
 import type { OrderContext } from '@/components/incidents/incident-dialog';
 
 export const dynamic = 'force-dynamic';
@@ -72,18 +73,24 @@ export default async function OrderDetailPage({ params }: { params: { id: string
         products={products}
         deliveryMethods={deliveryMethods}
         canManage={canManage}
+        // Beside Edit, because reporting an incident is a thing you do TO
+        // this order and that is where a person looks for it.
+        headerAction={
+          canReportIncident ? (
+            <ReportIncidentButton
+              order={orderContext}
+              customers={customers}
+              products={products}
+              categories={categories}
+              types={types}
+            />
+          ) : undefined
+        }
       />
+      {/* The record, below the order it belongs to. Renders nothing at all on
+          an order that has never had an incident. */}
       <div className="mt-4">
-        <IncidentLinks
-          incidents={incidents}
-          variant="order"
-          order={orderContext}
-          customers={customers}
-          products={products}
-          categories={categories}
-          types={types}
-          canManage={canReportIncident}
-        />
+        <IncidentLinks incidents={incidents} variant="order" />
       </div>
     </>
   );
