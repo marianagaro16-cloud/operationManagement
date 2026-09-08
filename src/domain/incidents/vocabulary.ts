@@ -115,3 +115,46 @@ export function isResponsibility(value: string): value is IncidentResponsibility
 export function vocabularyKey(value: string): string {
   return value.replace(/_(\w)/g, (_, c: string) => c.toUpperCase());
 }
+
+/**
+ * A slug made readable, as the last resort before showing a dot path.
+ *
+ * 'cold_storage' -> 'Cold storage'. Never a substitute for a translation or
+ * for the row's own name; it exists so that a value nobody has named and
+ * nobody has translated still reads as words.
+ */
+export function humaniseSlug(slug: string): string {
+  const words = slug.replace(/[_-]+/g, ' ').trim();
+  if (!words) return slug;
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/**
+ * What to actually show for a configurable vocabulary value.
+ *
+ * Incident categories and types are rows an admin may ADD, so their slugs
+ * cannot all be in the dictionaries — and `t()` returns the key itself when a
+ * translation is missing, which would put `incident.category.coldStorage` on
+ * screen in the filter, the create form, the detail badge and the monthly
+ * report.
+ *
+ * The admin screen already promises the row's `name` is "shown only where no
+ * translation exists yet". This is the code that keeps that promise:
+ *
+ *   1. the translation, when the dictionaries have one
+ *   2. the row's own name, which is what the admin typed
+ *   3. the slug, made readable
+ *
+ * Takes the ALREADY-TRANSLATED string rather than a translator, so it stays
+ * pure and testable and the domain layer keeps knowing nothing about i18n.
+ */
+export function resolveVocabularyLabel(
+  translated: string,
+  key: string,
+  fallbackName?: string | null,
+): string {
+  // `t()` echoes the key back when it cannot resolve it.
+  if (translated !== key) return translated;
+  if (fallbackName?.trim()) return fallbackName.trim();
+  return humaniseSlug(key.split('.').pop() ?? key);
+}

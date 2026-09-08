@@ -584,18 +584,13 @@ export const en = {
     title: 'Incidents',
     subtitle: 'What went wrong, why, and what we did about it',
     navLabel: 'Incidents',
-    number: 'Incident',
     new: 'Report incident',
-    edit: 'Edit incident',
     none: 'No incidents',
     noneBody: 'Nothing has been reported for these filters.',
-    notFound: 'This incident no longer exists',
     readOnly: 'You can view this incident but not change it',
     readOnlyBody: 'Editing an incident needs the Manage incidents permission. Ask an administrator if you need it.',
 
     detected: 'Detected',
-    detectedHint: 'When it happened or was noticed — not when this was typed in.',
-    reportedBy: 'Reported by',
 
     customer: 'Customer',
     order: 'Order',
@@ -630,22 +625,17 @@ export const en = {
     addProduct: 'Add product',
     removeProduct: 'Remove product',
     noProducts: 'No products recorded',
-    orderLine: 'Order line',
     lot: 'Lot',
-    itemNote: 'Note',
 
     evidence: 'Evidence',
     addEvidence: 'Add photo',
     evidenceHint: 'Photos of the damage. On a phone this opens the camera.',
     noEvidence: 'No evidence attached',
-    uploadedBy: 'Added by {name}',
     removeEvidence: 'Remove',
     removeEvidenceConfirm: 'Remove this evidence? The file is deleted permanently.',
-    openEvidence: 'Open',
 
     replacements: 'Replacement',
     replacementsHint: 'What we sent afterwards. Recording it does not resolve the incident.',
-    addReplacement: 'Record replacement',
     createReplacementOrder: 'Create replacement order',
     linkReplacement: 'Link an existing order',
     replacementNeedsCustomer: 'A replacement order needs a customer. Link this incident to an order, or set the customer first.',
@@ -656,7 +646,6 @@ export const en = {
     replacementNote: 'Or describe what was given',
     replacementNotePlaceholder: 'e.g. 5 units handed over at the door, no order raised',
     removeReplacement: 'Remove replacement',
-    replacementQuantity: 'Quantity',
 
     correctiveActions: 'Corrective actions',
     correctiveActionsHint: 'A corrective action is a real task. It appears on the calendar and on the assignee\'s dashboard.',
@@ -668,10 +657,7 @@ export const en = {
     actionAssignee: 'Responsible',
     actionDue: 'Due date',
     actionUnassigned: 'Unassigned',
-    actionOverdue: 'Overdue',
-    actionDone: 'Completed',
     actionOpen: 'Open',
-    actionSkipped: 'Skipped',
 
     resolution: 'Resolution',
     resolutionNotes: 'Resolution notes',
@@ -715,10 +701,8 @@ export const en = {
     exportCsv: 'Export CSV',
 
     onOrder: 'Incidents',
-    onOrderCount: '{count} incidents on this order',
     reportForOrder: 'Report incident',
     onLot: 'Incidents involving this lot',
-    openIncident: 'Open incident',
     backToList: 'Back to incidents',
 
     status: {
@@ -800,6 +784,7 @@ export const en = {
     errResolutionRequired: 'Write what was corrected before marking it resolved',
     errSecondaryIsPrimary: 'A contributing cause cannot also be the primary cause',
     errReplacementEmpty: 'Name a replacement order, or describe what was given',
+    errReplacementCustomer: 'That order belongs to a different customer. Check the order number.',
     errEvidenceTooLarge: 'That file is too large. Photos must be under 10 MB.',
     errEvidenceType: 'Only photos and PDFs can be attached',
 
@@ -831,7 +816,6 @@ export const en = {
     noSnapshots: 'No saved reports yet',
     noSnapshotsBody: 'Save a month to keep its numbers permanently, so they can be read again later unchanged.',
     openReport: 'Open',
-    month: 'Month',
     exportCsv: 'Export CSV',
     backToReports: 'Back to incident reports',
 
@@ -850,7 +834,6 @@ export const en = {
     noPatterns: 'No repeating pattern reached the threshold in this period.',
     correctiveActions: 'Corrective actions',
     noData: 'Nothing recorded in this period',
-    drillDown: 'Show these incidents',
 
     total: 'Incidents',
     ordersAffected: 'Orders affected',

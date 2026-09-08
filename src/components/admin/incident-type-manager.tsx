@@ -11,7 +11,7 @@ import { Badge, Card, Checkbox, ErrorState, Field, Input, Select } from '@/compo
 import { PageHeader } from '@/components/shell/app-shell';
 import { saveIncidentCategory, saveIncidentType } from '@/server/incident-actions';
 import type { IncidentCategory, IncidentType } from '@/types/incidents';
-import { categoryKey, typeKey } from '@/components/incidents/incident-list';
+import { categoryLabel, typeLabel } from '@/components/incidents/incident-list';
 
 /**
  * The incident vocabulary.
@@ -69,7 +69,7 @@ export function IncidentTypeManager({
           <section key={category.id}>
             <div className="mb-1.5 flex items-center gap-2 px-0.5">
               <h2 className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">
-                {t(categoryKey(category.slug))}
+                {categoryLabel(t, category.slug, category.name)}
               </h2>
               <span className="text-[11px] text-subtle">{category.slug}</span>
               {!category.is_active && <Badge tone="neutral">{t('status.inactive')}</Badge>}
@@ -92,7 +92,7 @@ export function IncidentTypeManager({
                       <span
                         className={cn('min-w-0 flex-1 truncate text-[13px]', !ty.is_active && 'text-muted line-through')}
                       >
-                        {t(typeKey(ty.slug))}
+                        {typeLabel(t, ty.slug, ty.name)}
                       </span>
                       <span className="shrink-0 text-[11px] text-subtle">{ty.slug}</span>
                       <Button
@@ -196,7 +196,7 @@ function VocabularyDialog({
           <Field label={t('incident.categoryLabel')} required htmlFor="v-cat">
             <Select id="v-cat" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>{t(categoryKey(c.slug))}</option>
+                <option key={c.id} value={c.id}>{categoryLabel(t, c.slug, c.name)}</option>
               ))}
             </Select>
           </Field>

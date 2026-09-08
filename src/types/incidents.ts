@@ -160,6 +160,12 @@ export interface Incident {
   resolved_by: string | null;
   closed_at: string | null;
   closed_by: string | null;
+  /**
+   * Who resolved it and who closed it — two different acts, potentially by
+   * two different people, so both are shown rather than only the later one.
+   */
+  resolver?: { name: string | null; email: string } | null;
+  closer?: { name: string | null; email: string } | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;

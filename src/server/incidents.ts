@@ -317,6 +317,8 @@ const DETAIL_SELECT = `
   order:orders!incidents_order_id_fkey ( id, reference, order_date, preparation_date, delivery_date, delivery_method_id ),
   delivery_method:delivery_methods ( id, slug, name, sort_order, is_active ),
   type:incident_types ( *, category:incident_categories ( id, slug, name, sort_order, is_active ) ),
+  resolver:profiles!incidents_resolved_by_fkey ( name, email ),
+  closer:profiles!incidents_closed_by_fkey ( name, email ),
   items:incident_affected_items (
     id, incident_id, product_id, order_line_id, lot_allocation_id,
     affected_quantity, note, position,

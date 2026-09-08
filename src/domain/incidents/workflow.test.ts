@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { availableTransitions, canTransition, stampsFor } from './workflow';
-import { INCIDENT_STATUSES, type IncidentStatus } from './vocabulary';
+import {
+  humaniseSlug,
+  INCIDENT_STATUSES,
+  resolveVocabularyLabel,
+  type IncidentStatus,
+} from './vocabulary';
 
 /**
  * The incident lifecycle.
@@ -166,5 +171,49 @@ describe('lifecycle stamps', () => {
     // A resolved_at left behind would make the report count the incident as
     // resolved in one place and open in another.
     expect(stampsFor('investigating', 'u3', NOW, closed)).toEqual(EMPTY);
+  });
+});
+
+/**
+ * Labels for a vocabulary an admin can extend.
+ *
+ * The admin screen promises the row's name is "shown only where no
+ * translation exists yet". Until this existed, nothing kept that promise:
+ * `t()` echoes a missing key back, so a category somebody added would have
+ * put `incident.category.coldStorage` on the filter, the create form, the
+ * detail badge and the monthly report.
+ */
+describe('vocabulary labels', () => {
+  const KEY = 'incident.category.coldStorage';
+
+  it('prefers the translation when there is one', () => {
+    expect(resolveVocabularyLabel('Cold chain', KEY, 'Cold storage')).toBe('Cold chain');
+  });
+
+  it('falls back to the name the admin typed', () => {
+    // t() echoing the key back is what "no translation" looks like.
+    expect(resolveVocabularyLabel(KEY, KEY, 'Cold storage')).toBe('Cold storage');
+  });
+
+  it('falls back to a readable slug when there is no name either', () => {
+    expect(resolveVocabularyLabel(KEY, KEY, null)).toBe('ColdStorage');
+    expect(resolveVocabularyLabel('incident.type.cold_chain', 'incident.type.cold_chain'))
+      .toBe('Cold chain');
+  });
+
+  it('never shows a dot path', () => {
+    for (const fallback of [null, undefined, '', '   ']) {
+      expect(resolveVocabularyLabel(KEY, KEY, fallback)).not.toContain('.');
+    }
+  });
+
+  it('ignores a blank name rather than rendering whitespace', () => {
+    expect(resolveVocabularyLabel(KEY, KEY, '   ')).toBe('ColdStorage');
+  });
+
+  it('humanises a slug into words', () => {
+    expect(humaniseSlug('packaging_damaged')).toBe('Packaging damaged');
+    expect(humaniseSlug('other')).toBe('Other');
+    expect(humaniseSlug('')).toBe('');
   });
 });

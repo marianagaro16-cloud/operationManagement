@@ -17,7 +17,7 @@ import { compareBuckets, type Bucket, type IncidentReportPayload } from '@/domai
 import type { Pattern } from '@/domain/incidents/patterns';
 import { generateReportSnapshot } from '@/server/incident-actions';
 import type { IncidentReportSnapshot } from '@/types/incidents';
-import { categoryKey, typeKey } from './incident-list';
+import { categoryLabel, typeLabel } from './incident-list';
 
 /**
  * The monthly incident report.
@@ -68,6 +68,18 @@ export function IncidentReportView({
 
   return (
     <>
+      {/* A saved report is reached from the history list and had no way
+          back to it — the nav tab was the only route out. */}
+      {!isLive && (
+        <Link
+          href="/admin/incident-reports"
+          className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+          {t('ireport.backToReports')}
+        </Link>
+      )}
+
       <PageHeader
         title={t('ireport.title')}
         subtitle={t('ireport.subtitle')}
@@ -146,9 +158,9 @@ export function IncidentReportView({
 
         {/* ---------- where are we failing ---------- */}
         <Section title={t('ireport.whereFailing')}>
-          <BucketList buckets={payload.byCategory} translate={(k) => t(categoryKey(k))} month={month} param="categoryId" resolve={false} />
+          <BucketList buckets={payload.byCategory} translate={(k) => categoryLabel(t, k)} month={month} param="categoryId" resolve={false} />
           <div className="mt-3 border-t border-border pt-3">
-            <BucketList buckets={payload.byType} translate={(k) => t(typeKey(k))} month={month} param="typeId" resolve={false} />
+            <BucketList buckets={payload.byType} translate={(k) => typeLabel(t, k)} month={month} param="typeId" resolve={false} />
           </div>
         </Section>
 
@@ -229,6 +241,12 @@ export function IncidentReportView({
         </Section>
 
         {/* ---------- comparison ---------- */}
+        {!previous && (
+          <Section title={t('ireport.comparePrevious')} note={t('ireport.compareHint')}>
+            <p className="text-[13px] text-muted">{t('ireport.noComparison')}</p>
+          </Section>
+        )}
+
         {previous && (
           <Section
             title={t('ireport.compare', {
@@ -239,7 +257,7 @@ export function IncidentReportView({
             <ComparisonTable
               previous={previous.payload.byCategory ?? []}
               current={payload.byCategory}
-              translate={(k) => t(categoryKey(k))}
+              translate={(k) => categoryLabel(t, k)}
             />
           </Section>
         )}
@@ -450,9 +468,9 @@ function PatternSentence({ pattern }: { pattern: Pattern }) {
       : pattern.dimension === 'responsibility'
         ? t(`incident.responsibility.${vocabularyKey(pattern.key)}` as MessageKey)
         : pattern.dimension === 'category'
-          ? t(categoryKey(pattern.key))
+          ? categoryLabel(t, pattern.key)
           : pattern.dimension === 'incident_type'
-            ? t(typeKey(pattern.key))
+            ? typeLabel(t, pattern.key)
             : pattern.key);
 
   if (pattern.kind === 'finding') {

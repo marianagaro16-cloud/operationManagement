@@ -563,18 +563,13 @@ export const de: Messages = {
     title: 'Vorfälle',
     subtitle: 'Was schiefging, warum, und was wir dagegen getan haben',
     navLabel: 'Vorfälle',
-    number: 'Vorfall',
     new: 'Vorfall melden',
-    edit: 'Vorfall bearbeiten',
     none: 'Keine Vorfälle',
     noneBody: 'Zu diesen Filtern wurde nichts gemeldet.',
-    notFound: 'Diesen Vorfall gibt es nicht mehr',
     readOnly: 'Sie können diesen Vorfall ansehen, aber nicht ändern',
     readOnlyBody: 'Das Bearbeiten eines Vorfalls benötigt die Berechtigung Vorfälle verwalten. Fragen Sie eine Administratorin, wenn Sie sie brauchen.',
 
     detected: 'Festgestellt',
-    detectedHint: 'Wann es passiert oder bemerkt wurde — nicht wann es hier erfasst wurde.',
-    reportedBy: 'Gemeldet von',
 
     customer: 'Kunde',
     order: 'Bestellung',
@@ -609,22 +604,17 @@ export const de: Messages = {
     addProduct: 'Produkt hinzufügen',
     removeProduct: 'Produkt entfernen',
     noProducts: 'Keine Produkte erfasst',
-    orderLine: 'Bestellzeile',
     lot: 'Los',
-    itemNote: 'Notiz',
 
     evidence: 'Nachweis',
     addEvidence: 'Foto hinzufügen',
     evidenceHint: 'Fotos des Schadens. Auf dem Handy öffnet sich die Kamera.',
     noEvidence: 'Kein Nachweis angehängt',
-    uploadedBy: 'Hinzugefügt von {name}',
     removeEvidence: 'Entfernen',
     removeEvidenceConfirm: 'Diesen Nachweis entfernen? Die Datei wird endgültig gelöscht.',
-    openEvidence: 'Öffnen',
 
     replacements: 'Ersatzlieferung',
     replacementsHint: 'Was wir danach geschickt haben. Das Erfassen löst den Vorfall nicht.',
-    addReplacement: 'Ersatz erfassen',
     createReplacementOrder: 'Ersatzbestellung erstellen',
     linkReplacement: 'Bestehende Bestellung verknüpfen',
     replacementNeedsCustomer: 'Eine Ersatzbestellung braucht einen Kunden. Verknüpfen Sie diesen Vorfall mit einer Bestellung oder tragen Sie zuerst den Kunden ein.',
@@ -635,7 +625,6 @@ export const de: Messages = {
     replacementNote: 'Oder beschreiben Sie, was übergeben wurde',
     replacementNotePlaceholder: 'z. B. 5 Einheiten an der Tür übergeben, keine Bestellung erstellt',
     removeReplacement: 'Ersatz entfernen',
-    replacementQuantity: 'Menge',
 
     correctiveActions: 'Korrekturmassnahmen',
     correctiveActionsHint: 'Eine Korrekturmassnahme ist eine echte Aufgabe. Sie erscheint im Kalender und im Dashboard der zuständigen Person.',
@@ -647,10 +636,7 @@ export const de: Messages = {
     actionAssignee: 'Zuständig',
     actionDue: 'Fällig am',
     actionUnassigned: 'Nicht zugewiesen',
-    actionOverdue: 'Überfällig',
-    actionDone: 'Erledigt',
     actionOpen: 'Offen',
-    actionSkipped: 'Übersprungen',
 
     resolution: 'Lösung',
     resolutionNotes: 'Notizen zur Lösung',
@@ -694,10 +680,8 @@ export const de: Messages = {
     exportCsv: 'CSV exportieren',
 
     onOrder: 'Vorfälle',
-    onOrderCount: '{count} Vorfälle zu dieser Bestellung',
     reportForOrder: 'Vorfall melden',
     onLot: 'Vorfälle mit diesem Los',
-    openIncident: 'Vorfall öffnen',
     backToList: 'Zurück zu den Vorfällen',
 
     status: {
@@ -779,6 +763,7 @@ export const de: Messages = {
     errResolutionRequired: 'Schreiben Sie auf, was korrigiert wurde, bevor Sie ihn als gelöst markieren',
     errSecondaryIsPrimary: 'Eine mitwirkende Ursache kann nicht zugleich die Hauptursache sein',
     errReplacementEmpty: 'Nennen Sie eine Ersatzbestellung oder beschreiben Sie, was übergeben wurde',
+    errReplacementCustomer: 'Diese Bestellung gehört einem anderen Kunden. Prüfen Sie die Bestellnummer.',
     errEvidenceTooLarge: 'Diese Datei ist zu gross. Fotos müssen unter 10 MB liegen.',
     errEvidenceType: 'Es können nur Fotos und PDFs angehängt werden',
 
@@ -809,7 +794,6 @@ export const de: Messages = {
     noSnapshots: 'Noch keine gespeicherten Berichte',
     noSnapshotsBody: 'Speichern Sie einen Monat, um seine Zahlen dauerhaft zu behalten und sie später unverändert wieder zu lesen.',
     openReport: 'Öffnen',
-    month: 'Monat',
     exportCsv: 'CSV exportieren',
     backToReports: 'Zurück zu den Vorfallberichten',
 
@@ -828,7 +812,6 @@ export const de: Messages = {
     noPatterns: 'In diesem Zeitraum hat kein wiederkehrendes Muster die Schwelle erreicht.',
     correctiveActions: 'Korrekturmassnahmen',
     noData: 'In diesem Zeitraum nichts erfasst',
-    drillDown: 'Diese Vorfälle anzeigen',
 
     total: 'Vorfälle',
     ordersAffected: 'Betroffene Bestellungen',

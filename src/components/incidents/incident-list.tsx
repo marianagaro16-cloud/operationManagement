@@ -16,6 +16,7 @@ import {
   INCIDENT_RESPONSIBILITIES,
   INCIDENT_SEVERITIES,
   INCIDENT_STATUSES,
+  resolveVocabularyLabel,
   vocabularyKey,
 } from '@/domain/incidents/vocabulary';
 import type { Customer, DeliveryMethod, Product } from '@/types/orders';
@@ -200,7 +201,7 @@ export function IncidentList({
               <Select value={filters.categoryId ?? ''} onChange={(e) => setFilter('categoryId', e.target.value)}>
                 <option value="">{t('incident.allCategories')}</option>
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{t(categoryKey(c.slug))}</option>
+                  <option key={c.id} value={c.id}>{categoryLabel(t, c.slug, c.name)}</option>
                 ))}
               </Select>
             </LabeledField>
@@ -209,7 +210,7 @@ export function IncidentList({
               <Select value={filters.typeId ?? ''} onChange={(e) => setFilter('typeId', e.target.value)}>
                 <option value="">{t('incident.allTypes')}</option>
                 {visibleTypes.map((ty) => (
-                  <option key={ty.id} value={ty.id}>{t(typeKey(ty.slug))}</option>
+                  <option key={ty.id} value={ty.id}>{typeLabel(t, ty.slug, ty.name)}</option>
                 ))}
               </Select>
             </LabeledField>
@@ -308,7 +309,9 @@ export function IncidentList({
                     )}
                   </div>
 
-                  <p className="truncate text-[13.5px] font-medium">{t(typeKey(row.type.slug))}</p>
+                  <p className="truncate text-[13.5px] font-medium">
+                    {typeLabel(t, row.type.slug, row.type.name)}
+                  </p>
 
                   <p className="flex flex-wrap items-center gap-x-2 text-[12px] text-muted">
                     <span className="truncate">{row.customer?.name ?? '—'}</span>
@@ -395,4 +398,22 @@ export function categoryKey(slug: string): MessageKey {
 
 export function typeKey(slug: string): MessageKey {
   return `incident.type.${vocabularyKey(slug)}` as MessageKey;
+}
+
+type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
+
+/**
+ * A category's label: translation, else the admin's own name, else the slug
+ * made readable. See `resolveVocabularyLabel` for why the fallback matters —
+ * a category an admin adds has no translation, and without this the screen
+ * would show `incident.category.coldStorage`.
+ */
+export function categoryLabel(t: Translate, slug: string, name?: string | null): string {
+  const key = categoryKey(slug);
+  return resolveVocabularyLabel(t(key), key, name);
+}
+
+export function typeLabel(t: Translate, slug: string, name?: string | null): string {
+  const key = typeKey(slug);
+  return resolveVocabularyLabel(t(key), key, name);
 }

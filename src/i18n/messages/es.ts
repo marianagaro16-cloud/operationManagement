@@ -563,18 +563,13 @@ export const es: Messages = {
     title: 'Incidencias',
     subtitle: 'Qué salió mal, por qué, y qué hicimos al respecto',
     navLabel: 'Incidencias',
-    number: 'Incidencia',
     new: 'Registrar incidencia',
-    edit: 'Editar incidencia',
     none: 'Sin incidencias',
     noneBody: 'No se ha registrado nada con estos filtros.',
-    notFound: 'Esta incidencia ya no existe',
     readOnly: 'Puedes ver esta incidencia pero no modificarla',
     readOnlyBody: 'Editar una incidencia requiere el permiso Gestionar incidencias. Pídeselo a un administrador si lo necesitas.',
 
     detected: 'Detectada',
-    detectedHint: 'Cuándo ocurrió o se detectó, no cuándo se escribió aquí.',
-    reportedBy: 'Registrada por',
 
     customer: 'Cliente',
     order: 'Pedido',
@@ -609,22 +604,17 @@ export const es: Messages = {
     addProduct: 'Añadir producto',
     removeProduct: 'Quitar producto',
     noProducts: 'Sin productos registrados',
-    orderLine: 'Línea de pedido',
     lot: 'Lote',
-    itemNote: 'Nota',
 
     evidence: 'Evidencia',
     addEvidence: 'Añadir foto',
     evidenceHint: 'Fotos del daño. En el móvil se abre la cámara.',
     noEvidence: 'Sin evidencia adjunta',
-    uploadedBy: 'Añadida por {name}',
     removeEvidence: 'Quitar',
     removeEvidenceConfirm: '¿Quitar esta evidencia? El archivo se elimina definitivamente.',
-    openEvidence: 'Abrir',
 
     replacements: 'Reposición',
     replacementsHint: 'Lo que enviamos después. Registrarlo no resuelve la incidencia.',
-    addReplacement: 'Registrar reposición',
     createReplacementOrder: 'Crear pedido de reposición',
     linkReplacement: 'Vincular un pedido existente',
     replacementNeedsCustomer: 'Un pedido de reposición necesita un cliente. Vincula esta incidencia a un pedido, o indica antes el cliente.',
@@ -635,7 +625,6 @@ export const es: Messages = {
     replacementNote: 'O describe lo que se entregó',
     replacementNotePlaceholder: 'p. ej. 5 unidades entregadas en la puerta, sin crear pedido',
     removeReplacement: 'Quitar reposición',
-    replacementQuantity: 'Cantidad',
 
     correctiveActions: 'Acciones correctivas',
     correctiveActionsHint: 'Una acción correctiva es una tarea real. Aparece en el calendario y en el panel de la persona responsable.',
@@ -647,10 +636,7 @@ export const es: Messages = {
     actionAssignee: 'Responsable',
     actionDue: 'Fecha límite',
     actionUnassigned: 'Sin asignar',
-    actionOverdue: 'Vencida',
-    actionDone: 'Completada',
     actionOpen: 'Abierta',
-    actionSkipped: 'Omitida',
 
     resolution: 'Resolución',
     resolutionNotes: 'Notas de resolución',
@@ -694,10 +680,8 @@ export const es: Messages = {
     exportCsv: 'Exportar CSV',
 
     onOrder: 'Incidencias',
-    onOrderCount: '{count} incidencias en este pedido',
     reportForOrder: 'Registrar incidencia',
     onLot: 'Incidencias que involucran este lote',
-    openIncident: 'Abrir incidencia',
     backToList: 'Volver a incidencias',
 
     status: {
@@ -779,6 +763,7 @@ export const es: Messages = {
     errResolutionRequired: 'Escribe qué se corrigió antes de marcarla como resuelta',
     errSecondaryIsPrimary: 'Una causa secundaria no puede ser también la causa principal',
     errReplacementEmpty: 'Indica un pedido de reposición o describe lo que se entregó',
+    errReplacementCustomer: 'Ese pedido pertenece a otro cliente. Revisa el número de pedido.',
     errEvidenceTooLarge: 'El archivo es demasiado grande. Las fotos deben ocupar menos de 10 MB.',
     errEvidenceType: 'Solo se pueden adjuntar fotos y PDF',
 
@@ -809,7 +794,6 @@ export const es: Messages = {
     noSnapshots: 'Todavía no hay informes guardados',
     noSnapshotsBody: 'Guarda un mes para conservar sus cifras de forma permanente y poder volver a leerlas sin cambios.',
     openReport: 'Abrir',
-    month: 'Mes',
     exportCsv: 'Exportar CSV',
     backToReports: 'Volver a informes de incidencias',
 
@@ -828,7 +812,6 @@ export const es: Messages = {
     noPatterns: 'Ningún patrón repetido alcanzó el umbral en este periodo.',
     correctiveActions: 'Acciones correctivas',
     noData: 'Nada registrado en este periodo',
-    drillDown: 'Ver estas incidencias',
 
     total: 'Incidencias',
     ordersAffected: 'Pedidos afectados',

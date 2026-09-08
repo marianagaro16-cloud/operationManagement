@@ -6,7 +6,7 @@ import { useI18n } from '@/i18n';
 import { Card, CardBody, CardHeader } from '@/components/ui/primitives';
 import { StatusChip } from '@/components/ui/status-chip';
 import type { IncidentListItem } from '@/types/incidents';
-import { typeKey } from './incident-list';
+import { typeLabel } from './incident-list';
 
 /**
  * The incidents attached to something else — an order, a lot.
@@ -58,7 +58,7 @@ export function IncidentLinks({
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-subtle" aria-hidden />
                 <span className="tabular text-[12.5px] font-medium">{i.incident_number}</span>
                 <span className="min-w-0 flex-1 truncate text-[13px]">
-                  {t(typeKey(i.type.slug))}
+                  {typeLabel(t, i.type.slug, i.type.name)}
                 </span>
                 <StatusChip domain="severity" status={i.severity} />
                 <StatusChip domain="incident" status={i.status} />

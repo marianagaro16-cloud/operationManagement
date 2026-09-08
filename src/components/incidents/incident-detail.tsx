@@ -29,7 +29,7 @@ import { OrderDialog } from '@/components/orders/order-dialog';
 import { productLabel, type Customer, type DeliveryMethod, type Product } from '@/types/orders';
 import type { Incident } from '@/types/incidents';
 import type { Profile } from '@/types/database';
-import { categoryKey, typeKey } from './incident-list';
+import { categoryLabel, typeLabel } from './incident-list';
 import { errorKey } from './incident-dialog';
 
 /**
@@ -80,7 +80,7 @@ export function IncidentDetail({
     <>
       <PageHeader
         title={incident.incident_number}
-        subtitle={t(typeKey(incident.type.slug))}
+        subtitle={typeLabel(t, incident.type.slug, incident.type.name)}
         action={
           <Link href="/incidents">
             <Button variant="ghost" size="sm">
@@ -155,8 +155,14 @@ export function IncidentDetail({
         {/* ---------- what happened ---------- */}
         <Section title={t('incident.whatHappened')}>
           <div className="flex flex-wrap gap-2">
-            <Badge tone="neutral">{t(categoryKey(incident.type.category?.slug ?? 'other'))}</Badge>
-            <Badge tone="accent">{t(typeKey(incident.type.slug))}</Badge>
+            <Badge tone="neutral">
+              {categoryLabel(
+                t,
+                incident.type.category?.slug ?? 'other',
+                incident.type.category?.name,
+              )}
+            </Badge>
+            <Badge tone="accent">{typeLabel(t, incident.type.slug, incident.type.name)}</Badge>
           </div>
           <p className="mt-2.5 whitespace-pre-wrap text-[13px]">{incident.description}</p>
         </Section>
@@ -233,10 +239,29 @@ export function IncidentDetail({
             {incident.resolution_notes && (
               <p className="whitespace-pre-wrap text-[13px]">{incident.resolution_notes}</p>
             )}
-            <p className="mt-2 text-[12px] text-muted">
-              {incident.resolved_at && formatDate(incident.resolved_at.slice(0, 10))}
-              {incident.closed_at && ` · ${formatDate(incident.closed_at.slice(0, 10))}`}
-            </p>
+            {/* Who, not just when. Resolving and closing are separate acts by
+                potentially different people, and a date with no name answers
+                half the question the section exists for. */}
+            <div className="mt-2 space-y-0.5 text-[12px] text-muted">
+              {incident.resolved_at && (
+                <p>
+                  {t('incident.resolvedBy', {
+                    name: incident.resolver?.name ?? incident.resolver?.email ?? '—',
+                  })}
+                  {' · '}
+                  {formatDate(incident.resolved_at.slice(0, 10))}
+                </p>
+              )}
+              {incident.closed_at && (
+                <p>
+                  {t('incident.closedBy', {
+                    name: incident.closer?.name ?? incident.closer?.email ?? '—',
+                  })}
+                  {' · '}
+                  {formatDate(incident.closed_at.slice(0, 10))}
+                </p>
+              )}
+            </div>
           </Section>
         )}
 

@@ -11,7 +11,7 @@ import { INCIDENT_SEVERITIES, vocabularyKey } from '@/domain/incidents/vocabular
 import { createIncident } from '@/server/incident-actions';
 import { productLabel, type Customer, type Product } from '@/types/orders';
 import type { IncidentCategory, IncidentType } from '@/types/incidents';
-import { categoryKey, typeKey } from './incident-list';
+import { categoryLabel, typeLabel } from './incident-list';
 
 /**
  * Reporting an incident.
@@ -235,7 +235,7 @@ export function IncidentDialog({
             >
               <option value="">—</option>
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>{t(categoryKey(c.slug))}</option>
+                <option key={c.id} value={c.id}>{categoryLabel(t, c.slug, c.name)}</option>
               ))}
             </Select>
           </Field>
@@ -249,7 +249,7 @@ export function IncidentDialog({
             >
               <option value="">—</option>
               {visibleTypes.map((ty) => (
-                <option key={ty.id} value={ty.id}>{t(typeKey(ty.slug))}</option>
+                <option key={ty.id} value={ty.id}>{typeLabel(t, ty.slug, ty.name)}</option>
               ))}
             </Select>
           </Field>
@@ -357,6 +357,8 @@ export function errorKey(code: string): MessageKey {
     resolution_notes_required: 'incident.errResolutionRequired',
     secondary_cause_is_primary: 'incident.errSecondaryIsPrimary',
     replacement_empty: 'incident.errReplacementEmpty',
+    // Retrying will not help: the number names somebody else's delivery.
+    replacement_customer_mismatch: 'incident.errReplacementCustomer',
     evidence_too_large: 'incident.errEvidenceTooLarge',
     evidence_type_not_allowed: 'incident.errEvidenceType',
   };
