@@ -46,6 +46,15 @@ export interface Product {
   presentation: string;
   category: string | null;
   notes: string | null;
+  /**
+   * Order units (packages of the presentation) per shipping box.
+   *
+   * NULL is meaningful and is the default: it says no reliable conversion
+   * exists, and the importer must ask for the quantity in units rather than
+   * turning "3 boxes" into a number nobody stated. numeric(12,3), so it can
+   * arrive from Postgres as a string.
+   */
+  units_per_box: number | string | null;
   needs_review: boolean;
   is_active: boolean;
 }
@@ -88,6 +97,11 @@ export interface OrderLine {
    */
   generated_quantity: number | string | null;
   note: string | null;
+  /**
+   * The customer's own text this line was imported from. Null on hand-entered
+   * lines. Traceability only — never used for matching or fulfilment.
+   */
+  source_text: string | null;
   shortfall_reason: string | null;
   position: number;
   product: Product;
@@ -109,6 +123,8 @@ export interface Order {
   note: string | null;
   /** The recurring template this order was generated from, if any. */
   generated_from_template_id: string | null;
+  /** How the order arrived. Null = entered by hand, which is most of them. */
+  import_source: 'excel' | 'email' | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;

@@ -1,28 +1,37 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { useRef, useState, useTransition } from 'react';
+import { FileSpreadsheet, Keyboard, Mail } from 'lucide-react';
 import { useI18n } from '@/i18n';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
 import { Combobox } from '@/components/ui/combobox';
 import { defaultPreparationDate, isValidSchedule } from '@/domain/orders/scheduling';
 import { toQuantity } from '@/domain/orders/progress';
+import type { PreviewLine } from '@/domain/orders/import/pipeline';
 import { businessToday } from '@/lib/datetime';
 import { productLabel, type Customer, type DeliveryMethod, type Order, type Product } from '@/types/orders';
 import { saveOrder } from '@/server/order-actions';
-
-interface DraftLine {
-  id?: string;
-  product_id: string;
-  ordered_quantity: string;
-  note: string;
-}
+import { ImportPanel, type ImportMethod } from './import-panel';
+import { OrderLineEditor, emptyLine, type DraftLine } from './order-line-editor';
 
 /**
- * Admin order editor. The order is entered ONCE here and feeds both Order
- * Control and Lotnummerkontrol — there is no second form for preparation.
+ * Order editor. The order is entered ONCE here and feeds both Order Control
+ * and Lotnummerkontrol — there is no second form for preparation.
+ *
+ * Three ways to fill the product lines, one way to create the order.
+ *
+ *   A. Manual entry              — the keyboard-first line editor
+ *   B. Import Order Request      — a customer's Excel file
+ *   C. Paste Email / Order Text  — deterministic extraction from a message
+ *
+ * B and C both end by APPENDING draft lines to this form. They never create an
+ * order themselves. That is deliberate and is what makes an imported order
+ * indistinguishable from a hand-entered one everywhere downstream: the
+ * customer, the dates, the delivery method, the validation, the audit trail
+ * and the save are the ones that were already here.
  */
 export function OrderDialog({
   order,
@@ -63,8 +72,28 @@ export function OrderDialog({
       product_id: l.product_id,
       ordered_quantity: String(toQuantity(l.ordered_quantity)),
       note: l.note ?? '',
-    })) ?? [{ product_id: '', ordered_quantity: '', note: '' }],
+      source_text: l.source_text,
+    })) ?? [emptyLine()],
   );
+
+  /**
+   * Which method is open. Editing an existing order starts on manual — an
+   * import fills an order in, it does not re-fill one that already exists.
+   */
+  const [importMethod, setImportMethod] = useState<ImportMethod | null>(null);
+  /** Null until something was imported; then the order carries its origin. */
+  const [importSource, setImportSource] = useState<ImportMethod | null>(null);
+
+  /**
+   * The idempotency key for THIS dialog.
+   *
+   * Minted once per import and sent with the save, so a double tap or a
+   * retried request on a flaky warehouse connection collides with the unique
+   * index in Postgres instead of becoming a second real delivery. Held in a
+   * ref because regenerating it on a re-render would defeat the point.
+   */
+  const importKey = useRef<string | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -78,6 +107,33 @@ export function OrderDialog({
   function changeDeliveryDate(value: string) {
     setDeliveryDate(value);
     if (!prepTouched) setPreparationDate(defaultPreparationDate(value));
+  }
+
+  /**
+   * Accepted preview lines become ordinary draft lines.
+   *
+   * They are APPENDED, never substituted: a user who typed two products by
+   * hand and then imported a file gets both. The one empty starter line is
+   * dropped, because it is scaffolding rather than something they entered.
+   */
+  function acceptImported(imported: PreviewLine[], source: ImportMethod) {
+    const existing = lines.filter((l) => l.product_id || l.ordered_quantity.trim());
+    const added: DraftLine[] = imported
+      .filter((l) => l.productId && l.quantity !== null)
+      .map((l) => ({
+        product_id: l.productId as string,
+        ordered_quantity: String(l.quantity),
+        // The customer's own comment goes into the EXISTING order line note.
+        // No second note system is created for imports.
+        note: l.note ?? '',
+        source_text: l.sourceText || null,
+      }));
+
+    setLines([...existing, ...added]);
+    setImportSource(source);
+    if (!importKey.current) importKey.current = newImportKey();
+    setImportMethod(null);
+    setFieldErrors({});
   }
 
   function submit() {
@@ -102,6 +158,7 @@ export function OrderDialog({
         product_id: l.product_id,
         ordered_quantity: toQuantity(l.ordered_quantity),
         note: l.note.trim() || null,
+        source_text: l.source_text ?? null,
       }));
     if (cleaned.length === 0) next.lines = t('orders.needOneProduct');
 
@@ -126,6 +183,8 @@ export function OrderDialog({
           status,
           order_type: orderType,
           note: note.trim() || null,
+          import_source: importSource,
+          import_key: importSource ? importKey.current : null,
           lines: cleaned,
         },
         order?.id,
@@ -168,8 +227,11 @@ export function OrderDialog({
           <Button variant="ghost" onClick={onClose} disabled={pending}>
             {t('common.cancel')}
           </Button>
+          {/* `loading` disables the button, so the double click that would
+              have produced a second order cannot reach the action at all.
+              The import key is the guard for everything that gets past it. */}
           <Button variant="primary" onClick={submit} loading={pending}>
-            {t('common.save')}
+            {order ? t('common.save') : t('orders.createOrder')}
           </Button>
         </>
       }
@@ -273,70 +335,52 @@ export function OrderDialog({
 
         {/* Products */}
         <div id="o-lines" tabIndex={-1}>
-          <p className="mb-1.5 text-[13px] font-medium">{t('orders.product')}</p>
+          <p className="mb-1.5 text-[13px] font-medium">{t('import.howToAdd')}</p>
+
+          <div className="mb-2.5 flex flex-wrap gap-1.5">
+            <MethodButton
+              active={importMethod === null}
+              onClick={() => setImportMethod(null)}
+              icon={<Keyboard className="h-3.5 w-3.5" aria-hidden />}
+              label={t('import.methodManual')}
+            />
+            <MethodButton
+              active={importMethod === 'excel'}
+              onClick={() => setImportMethod('excel')}
+              icon={<FileSpreadsheet className="h-3.5 w-3.5" aria-hidden />}
+              label={t('import.methodExcel')}
+            />
+            <MethodButton
+              active={importMethod === 'email'}
+              onClick={() => setImportMethod('email')}
+              icon={<Mail className="h-3.5 w-3.5" aria-hidden />}
+              label={t('import.methodEmail')}
+            />
+          </div>
+
           {fieldErrors.lines && (
             <p className="mb-1.5 text-[12px] text-late">{fieldErrors.lines}</p>
           )}
-          <div className="space-y-2">
-            {lines.map((line, i) => (
-              <div key={i} className="flex items-start gap-2">
-                {/* Each line has its own selector; choosing on one never
-                    touches another. Searches code AND name, so "0073",
-                    "tortilla" and "1kg" all find their products. */}
-                <Combobox
-                  className="min-w-0 flex-1"
-                  items={selectableProducts}
-                  value={line.product_id || null}
-                  onChange={(id) =>
-                    setLines(lines.map((l, j) => (j === i ? { ...l, product_id: id ?? '' } : l)))
-                  }
-                  getKey={(p) => p.id}
-                  getLabel={(p) => (p.code ? `${p.code} · ${productLabel(p)}` : productLabel(p))}
-                  getSearchText={(p) => `${p.code ?? ''} ${p.name ?? ''} ${p.family}`}
-                  placeholder={t('orders.searchProduct')}
-                  emptyMessage={t('orders.noProductsFound')}
-                  renderOption={(p) => (
-                    <span className="flex items-baseline gap-2">
-                      <span className="w-12 shrink-0 tabular text-[11.5px] text-subtle">
-                        {p.code ?? '—'}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate">{productLabel(p)}</span>
-                    </span>
-                  )}
-                />
-                <Input
-                  value={line.ordered_quantity}
-                  onChange={(e) =>
-                    setLines(lines.map((l, j) => (j === i ? { ...l, ordered_quantity: e.target.value } : l)))
-                  }
-                  type="number"
-                  min="0"
-                  step="any"
-                  inputMode="decimal"
-                  className="w-20 shrink-0"
-                  aria-label={t('orders.quantity')}
-                />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setLines(lines.filter((_, j) => j !== i))}
-                  aria-label={t('orders.removeLine')}
-                  disabled={lines.length === 1}
-                >
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                </Button>
-              </div>
-            ))}
-          </div>
-          <Button
-            size="sm"
-            variant="secondary"
-            className="mt-2"
-            onClick={() => setLines([...lines, { product_id: '', ordered_quantity: '', note: '' }])}
-          >
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            {t('orders.addProduct')}
-          </Button>
+
+          {importMethod ? (
+            <ImportPanel
+              method={importMethod}
+              customerId={customerId}
+              products={selectableProducts}
+              onImported={acceptImported}
+              onCancel={() => setImportMethod(null)}
+            />
+          ) : (
+            <>
+              <p className="mb-2 text-[11.5px] text-subtle">{t('import.keyboardHint')}</p>
+              <OrderLineEditor
+                lines={lines}
+                onChange={setLines}
+                products={selectableProducts}
+                disabled={pending}
+              />
+            </>
+          )}
         </div>
 
         <Field label={t('orders.orderNote')} hint={t('orders.orderNoteHint')} htmlFor="o-note">
@@ -365,6 +409,8 @@ export function OrderDialog({
                 status: 'cancelled',
                 order_type: orderType,
                 note: note.trim() || null,
+                import_source: importSource,
+                import_key: importSource ? importKey.current : null,
                 lines: lines
                   .filter((l) => l.product_id && toQuantity(l.ordered_quantity) > 0)
                   .map((l) => ({
@@ -372,6 +418,7 @@ export function OrderDialog({
                     product_id: l.product_id,
                     ordered_quantity: toQuantity(l.ordered_quantity),
                     note: l.note.trim() || null,
+                    source_text: l.source_text ?? null,
                   })),
               },
               order?.id,
@@ -388,4 +435,47 @@ export function OrderDialog({
       />
     </Dialog>
   );
+}
+
+function MethodButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[13px] font-medium',
+        'transition-colors touch-target',
+        active
+          ? 'border-accent bg-accent/10 text-accent'
+          : 'border-border bg-surface text-muted hover:text-fg',
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+/**
+ * A key for one import session.
+ *
+ * crypto.randomUUID is not available on every browser this PWA runs on — an
+ * older iPad in the warehouse among them — and an import that threw here
+ * would be an import that could not happen at all, so there is a fallback.
+ */
+function newImportKey(): string {
+  const c = globalThis.crypto;
+  if (c && 'randomUUID' in c) return c.randomUUID();
+  return `imp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }

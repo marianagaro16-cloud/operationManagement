@@ -1058,6 +1058,7 @@ export type Database = {
           position: number
           product_id: string
           shortfall_reason: string | null
+          source_text: string | null
           updated_at: string
         }
         Insert: {
@@ -1070,6 +1071,7 @@ export type Database = {
           position?: number
           product_id: string
           shortfall_reason?: string | null
+          source_text?: string | null
           updated_at?: string
         }
         Update: {
@@ -1082,6 +1084,7 @@ export type Database = {
           position?: number
           product_id?: string
           shortfall_reason?: string | null
+          source_text?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1154,6 +1157,85 @@ export type Database = {
           },
         ]
       }
+      order_request_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          default_unit: string
+          first_data_row: number
+          header_row: number | null
+          header_signature: string[]
+          id: string
+          is_active: boolean
+          name: string
+          notes_column: string | null
+          product_column: string
+          quantity_column: string
+          sheet_name: string | null
+          unit_column: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          default_unit?: string
+          first_data_row?: number
+          header_row?: number | null
+          header_signature?: string[]
+          id?: string
+          is_active?: boolean
+          name: string
+          notes_column?: string | null
+          product_column: string
+          quantity_column: string
+          sheet_name?: string | null
+          unit_column?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          default_unit?: string
+          first_data_row?: number
+          header_row?: number | null
+          header_signature?: string[]
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes_column?: string | null
+          product_column?: string
+          quantity_column?: string
+          sheet_name?: string | null
+          unit_column?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_request_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_request_templates_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_request_templates_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string
@@ -1164,6 +1246,8 @@ export type Database = {
           delivery_time: string | null
           generated_from_template_id: string | null
           id: string
+          import_key: string | null
+          import_source: string | null
           note: string | null
           order_date: string
           order_type: Database["public"]["Enums"]["order_type"]
@@ -1182,6 +1266,8 @@ export type Database = {
           delivery_time?: string | null
           generated_from_template_id?: string | null
           id?: string
+          import_key?: string | null
+          import_source?: string | null
           note?: string | null
           order_date?: string
           order_type?: Database["public"]["Enums"]["order_type"]
@@ -1200,6 +1286,8 @@ export type Database = {
           delivery_time?: string | null
           generated_from_template_id?: string | null
           id?: string
+          import_key?: string | null
+          import_source?: string | null
           note?: string | null
           order_date?: string
           order_type?: Database["public"]["Enums"]["order_type"]
@@ -1275,6 +1363,72 @@ export type Database = {
         }
         Relationships: []
       }
+      product_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          id: string
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_aliases_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_aliases_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_aliases_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "product_aliases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_aliases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -1287,6 +1441,7 @@ export type Database = {
           needs_review: boolean
           notes: string | null
           presentation: string
+          units_per_box: number | null
           updated_at: string
         }
         Insert: {
@@ -1300,6 +1455,7 @@ export type Database = {
           needs_review?: boolean
           notes?: string | null
           presentation: string
+          units_per_box?: number | null
           updated_at?: string
         }
         Update: {
@@ -1313,6 +1469,7 @@ export type Database = {
           needs_review?: boolean
           notes?: string | null
           presentation?: string
+          units_per_box?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -1953,6 +2110,8 @@ export type Database = {
           delivery_time: string | null
           generated_from_template_id: string | null
           id: string
+          import_key: string | null
+          import_source: string | null
           note: string | null
           order_date: string
           order_type: Database["public"]["Enums"]["order_type"]
@@ -2192,6 +2351,7 @@ export type Database = {
           position: number
           product_id: string
           shortfall_reason: string | null
+          source_text: string | null
           updated_at: string
         }
         SetofOptions: {

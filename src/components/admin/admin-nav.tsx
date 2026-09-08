@@ -54,6 +54,7 @@ export function AdminNav({ caps, role }: { caps: Permission[]; role: Role }) {
     { href: '/admin/products', label: t('master.productsTitle'), permission: 'products.manage', group: 'setup' },
     { href: '/admin/delivery-methods', label: t('master.methodsTitle'), permission: 'orders.manage_config', group: 'setup' },
     { href: '/admin/recurring', label: t('master.recurringTitle'), permission: 'orders.manage_config', group: 'setup' },
+    { href: '/admin/order-templates', label: t('import.tplTitle'), permission: 'orders.manage_config', group: 'setup' },
     { href: '/admin/inventory', label: t('inventory.title'), permission: 'inventory.manage_templates', group: 'setup' },
     { href: '/admin/inventory/locations', label: t('inventory.locations'), permission: 'inventory.manage_templates', group: 'setup' },
     { href: '/admin/inventory/permissions', label: t('inventory.permissions'), permission: 'inventory.grant_temporary_edit', group: 'setup' },

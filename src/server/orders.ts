@@ -23,13 +23,13 @@ import type {
 
 const ORDER_SELECT = `
   id, reference, customer_id, order_date, delivery_date, delivery_time, preparation_date,
-  delivery_method_id, status, order_type, note, generated_from_template_id, created_by, updated_by,
+  delivery_method_id, status, order_type, note, generated_from_template_id, import_source, created_by, updated_by,
   created_at, updated_at,
   customer:customers!inner ( id, name, is_active ),
   delivery_method:delivery_methods ( id, slug, name, sort_order, is_active ),
   lines:order_lines (
-    id, order_id, product_id, ordered_quantity, generated_quantity, note, shortfall_reason, position,
-    product:products ( id, code, name, family, presentation, category, notes, needs_review, is_active ),
+    id, order_id, product_id, ordered_quantity, generated_quantity, note, source_text, shortfall_reason, position,
+    product:products ( id, code, name, family, presentation, category, notes, units_per_box, needs_review, is_active ),
     allocations:lot_allocations (
       id, order_line_id, lot_number, quantity, note, created_by, created_at, updated_at,
       author:profiles!lot_allocations_created_by_fkey ( name, email )
@@ -222,7 +222,7 @@ export async function getRecurringTemplates(): Promise<RecurringTemplate[]> {
       *, customer:customers!inner ( id, company_name, company_name_addition, name, is_active, created_at, updated_at ),
       lines:recurring_order_template_lines (
         id, product_id, default_quantity,
-        product:products ( id, code, name, family, presentation, category, notes, needs_review, is_active )
+        product:products ( id, code, name, family, presentation, category, notes, units_per_box, needs_review, is_active )
       )
     `)
     .order('delivery_weekday')

@@ -225,6 +225,15 @@ function DetailLine({ line }: { line: OrderLine }) {
           {line.product.code && (
             <span className="text-[11px] tabular text-subtle">{line.product.code}</span>
           )}
+          {/* What the customer wrote, on an imported line.
+              The preview showed this before the order existed; keeping it
+              means a line matched to the wrong product can be traced back to
+              the text it came from rather than to nothing. */}
+          {line.source_text && (
+            <p className="mt-0.5 truncate text-[11px] text-subtle" title={line.source_text}>
+              {t('import.fromText', { text: line.source_text })}
+            </p>
+          )}
         </div>
         <StatusChip domain="line" status={p.status} />
       </div>

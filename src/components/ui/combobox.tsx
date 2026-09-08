@@ -1,6 +1,15 @@
 'use client';
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type Ref,
+} from 'react';
 import { Check, ChevronDown, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -38,6 +47,22 @@ export interface ComboboxProps<T> {
   className?: string;
   /** Allow clearing back to "nothing selected". */
   clearable?: boolean;
+  /**
+   * Fired after a selection is committed from the list, so the caller can
+   * move focus onward.
+   *
+   * This is what makes keyboard-first order entry possible: choose a product,
+   * land in the quantity, type, Enter, next line. Distinct from `onChange`,
+   * which also fires when the value is cleared or set programmatically and
+   * would jump focus at the wrong moment.
+   */
+  onCommitted?: (key: string) => void;
+  /** Imperative focus, for a caller driving the flow between fields. */
+  handleRef?: Ref<ComboboxHandle>;
+}
+
+export interface ComboboxHandle {
+  focus: () => void;
 }
 
 export function Combobox<T>({
@@ -54,6 +79,8 @@ export function Combobox<T>({
   disabled,
   className,
   clearable = true,
+  onCommitted,
+  handleRef,
 }: ComboboxProps<T>) {
   const { t } = useI18n();
   const generatedId = useId();
@@ -105,11 +132,17 @@ export function Combobox<T>({
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [open]);
 
+  useImperativeHandle(handleRef, () => ({ focus: () => inputRef.current?.focus() }), []);
+
   function commit(item: T) {
-    onChange(getKey(item));
+    const key = getKey(item);
+    onChange(key);
     setOpen(false);
     setQuery('');
-    inputRef.current?.blur();
+    // Blur only when nobody is taking the focus onward. Blurring first and
+    // letting the caller refocus makes the mobile keyboard close and reopen.
+    if (onCommitted) onCommitted(key);
+    else inputRef.current?.blur();
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

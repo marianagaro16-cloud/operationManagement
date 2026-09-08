@@ -46,6 +46,18 @@ const orderInputSchema = z.object({
   status: z.enum(['draft', 'confirmed', 'cancelled']),
   order_type: z.enum(['sale', 'sample']),
   note: z.string().trim().nullable(),
+  /**
+   * How the order arrived. Omitted means what it has always meant — entered
+   * by hand — so a caller that predates the importer still saves.
+   */
+  import_source: z.enum(['excel', 'email']).nullable().optional(),
+  /**
+   * One key per import session, minted by the client.
+   *
+   * The unique index on orders.import_key is what actually prevents a double
+   * submission from becoming two real orders; this carries the value to it.
+   */
+  import_key: z.string().trim().min(8).max(100).nullable().optional(),
   lines: z
     .array(
       z.object({
@@ -53,6 +65,8 @@ const orderInputSchema = z.object({
         product_id: z.string().uuid(),
         ordered_quantity: z.number().positive(),
         note: z.string().trim().nullable().optional(),
+        /** Verbatim customer text this line came from. Traceability only. */
+        source_text: z.string().trim().max(500).nullable().optional(),
       }),
     )
     .min(1),
@@ -110,13 +124,50 @@ export async function saveOrder(
   } else {
     // Only block inactive products when they are newly introduced.
     if (products?.some((p) => !p.is_active)) return { ok: false, error: 'product_inactive' };
+
+    // An import that is submitted twice — a double tap, a retried request on a
+    // flaky warehouse connection — must not become two deliveries. The second
+    // insert collides with the partial unique index on import_key, and the
+    // order that already exists is returned as the successful result, because
+    // from the user's side it IS the successful result.
     const { data: created, error } = await supabase
       .from('orders')
-      .insert({ ...header, created_by: user.id })
+      .insert({
+        ...header,
+        import_source: data.import_source ?? null,
+        import_key: data.import_key ?? null,
+        created_by: user.id,
+      })
       .select('id')
       .single();
-    if (error) return fail(error);
-    id = (created as { id: string }).id;
+
+    if (error) {
+      if (data.import_key && error.message.includes('orders_import_key_key')) {
+        const { data: existing } = await supabase
+          .from('orders')
+          .select('id, lines:order_lines ( id )')
+          .eq('import_key', data.import_key)
+          .maybeSingle();
+        if (!existing) return fail(error);
+
+        const found = existing as { id: string; lines: { id: string }[] | null };
+        // The order already has its products, so the earlier submission got
+        // all the way through and this one is the duplicate it was meant to
+        // stop. Return what exists; touching it again could only undo work.
+        if ((found.lines ?? []).length > 0) return { ok: true, data: { id: found.id } };
+
+        // The header landed and the lines did not — the earlier attempt died
+        // between the two writes, which are not one transaction. Adopting the
+        // id and carrying on FINISHES that order instead of reporting success
+        // on an empty one. Safe because an order with no lines has no
+        // preparation history to lose.
+        id = found.id;
+      } else {
+        return fail(error);
+      }
+    } else {
+      id = (created as { id: string }).id;
+    }
   }
 
   // Reconcile lines. Removing a line cascades its allocations, so lines that
@@ -140,7 +191,10 @@ export async function saveOrder(
     };
     const { error } = line.id
       ? await supabase.from('order_lines').update(row).eq('id', line.id)
-      : await supabase.from('order_lines').insert(row);
+      // source_text is written once, on the line's creation. An edit must not
+      // clear it — the text the customer sent does not change because somebody
+      // corrected the quantity — and must not overwrite it either.
+      : await supabase.from('order_lines').insert({ ...row, source_text: line.source_text ?? null });
     if (error) return fail(error);
   }
 
@@ -264,6 +318,12 @@ const productSchema = z.object({
   presentation: z.string().trim().min(1),
   category: z.string().trim().nullable(),
   notes: z.string().trim().nullable(),
+  /**
+   * Order units per shipping box. NULL means the conversion is unknown, and
+   * the importer must then ask rather than assume — so an empty field here is
+   * a meaningful answer, not a missing one.
+   */
+  units_per_box: z.number().positive().nullable().optional(),
   is_active: z.boolean(),
   needs_review: z.boolean(),
 });
@@ -275,9 +335,12 @@ export async function saveProduct(
   const parsed = productSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'invalid_product' };
   const supabase = createClient();
+  // An omitted units_per_box means "not stated"; an explicit null means "no
+  // reliable conversion exists". Both store NULL, which is the honest value.
+  const row = { ...parsed.data, units_per_box: parsed.data.units_per_box ?? null };
   const { error } = id
-    ? await supabase.from('products').update(parsed.data).eq('id', id)
-    : await supabase.from('products').insert(parsed.data);
+    ? await supabase.from('products').update(row).eq('id', id)
+    : await supabase.from('products').insert(row);
   if (error) return fail(error);
   revalidatePath('/admin/products');
   return { ok: true, data: undefined };
