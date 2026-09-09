@@ -20,6 +20,7 @@ import { IncidentDialog, orderContextFrom } from '@/components/incidents/inciden
 import type { IncidentCategory, IncidentType } from '@/types/incidents';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
+import { NoteBlock } from './order-widgets';
 
 /**
  * Order Control — replaces the monthly "Control de pedidos" workbook.
@@ -449,9 +450,7 @@ function OrderCard({
       </div>
 
       {order.note && (
-        <p className="border-b border-border bg-surface-2/50 px-3.5 py-1.5 text-[12.5px] text-muted">
-          {order.note}
-        </p>
+        <NoteBlock className="border-b border-border px-3.5 py-1.5">{order.note}</NoteBlock>
       )}
 
       <ul className="divide-y divide-border">

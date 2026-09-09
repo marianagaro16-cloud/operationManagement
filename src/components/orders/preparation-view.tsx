@@ -15,6 +15,7 @@ import { groupLinesByBrand } from '@/domain/orders/picking';
 import { weekDays } from '@/domain/orders/scheduling';
 import { addDays } from '@/lib/datetime';
 import { UrgencyBadge } from './urgency-badge';
+import { NoteBlock } from './order-widgets';
 import { productLabel, type OrderLine, type OrderWithProgress } from '@/types/orders';
 import { StatusChip, statusPresentation } from '@/components/ui/status-chip';
 import { saveLotAllocation, deleteLotAllocation, setShortfallReason } from '@/server/order-actions';
@@ -208,9 +209,7 @@ function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; 
 
       {/* Order-level note is shown once, never repeated per product. */}
       {order.note && (
-        <p className="border-b border-border bg-surface-2/50 px-3.5 py-2 text-[12.5px] text-muted">
-          {order.note}
-        </p>
+        <NoteBlock className="border-b border-border px-3.5 py-2">{order.note}</NoteBlock>
       )}
 
       {/* Grouped by brand, because our own brands are stocked together and
@@ -342,7 +341,11 @@ function PreparationLine({ line, canManage }: { line: OrderLine; canManage: bool
             >
               <span className="font-medium tabular">{a.lot_number}</span>
               <span className="tabular text-muted">× {toQuantity(a.quantity)}</span>
-              {a.note && <span className="min-w-0 flex-1 truncate text-subtle">{a.note}</span>}
+              {a.note && (
+                <span className="min-w-0 flex-1 truncate rounded bg-note/[0.08] px-1.5 py-0.5 text-note">
+                  {a.note}
+                </span>
+              )}
               {/* Confirmed. This fired on the first tap of a small icon, on a
                   touchscreen, next to a scrolling list, and erased a recorded
                   lot with no undo — while the confirmation text for it sat

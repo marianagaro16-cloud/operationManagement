@@ -25,6 +25,8 @@
   --late: 185 28 28;
   --skipped: 120 113 108;
   --warn: 180 83 9;
+  /* Something a person wrote and somebody else must read. Not a status. */
+  --note: 109 71 168;
 
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
@@ -45,6 +47,7 @@
   --late: 248 113 113;
   --skipped: 148 143 138;
   --warn: 234 154 51;
+  --note: 183 148 244;
 }
 
 @layer base {

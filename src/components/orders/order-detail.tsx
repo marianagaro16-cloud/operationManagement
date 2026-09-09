@@ -23,6 +23,7 @@ import {
 } from '@/types/orders';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
+import { NoteBlock } from './order-widgets';
 
 /**
  * One order, at its own address.
@@ -181,9 +182,7 @@ export function OrderDetail({
         </dl>
 
         {order.note && (
-          <p className="mt-3 rounded-lg bg-surface-2/60 px-3 py-2 text-[12.5px] text-muted">
-            {order.note}
-          </p>
+          <NoteBlock className="mt-3 rounded-lg px-3 py-2">{order.note}</NoteBlock>
         )}
       </Card>
 
@@ -290,7 +289,13 @@ function DetailLine({ line }: { line: OrderLine }) {
             >
               <span className="font-medium tabular">{a.lot_number}</span>
               <span className="tabular text-muted">× {toQuantity(a.quantity)}</span>
-              {a.note && <span className="min-w-0 flex-1 truncate text-subtle">{a.note}</span>}
+              {/* A preparation note gets the same colour as an order note:
+                  one thing on screen means "somebody wrote this". */}
+              {a.note && (
+                <span className="min-w-0 flex-1 truncate rounded bg-note/[0.08] px-1.5 py-0.5 text-note">
+                  {a.note}
+                </span>
+              )}
               {/* Who recorded this lot. Already in the payload; never shown. */}
               <span className="ml-auto shrink-0 text-[11.5px] text-subtle">
                 {t('common.byAt', {

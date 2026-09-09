@@ -24,6 +24,7 @@ const config: Config = {
         late: 'rgb(var(--late) / <alpha-value>)',
         skipped: 'rgb(var(--skipped) / <alpha-value>)',
         warn: 'rgb(var(--warn) / <alpha-value>)',
+        note: 'rgb(var(--note) / <alpha-value>)',
       },
       borderRadius: {
         lg: '10px',
