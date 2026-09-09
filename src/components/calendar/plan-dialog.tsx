@@ -169,18 +169,22 @@ export function PlanDialog({
 
       <section className="mb-4">
         <p className="mb-1.5 text-[12px] font-medium text-muted">{t('plan.tasks')}</p>
-        <ul className="max-h-52 space-y-1 overflow-y-auto pr-1">
+        {/* Taller, and measured against the VIEWPORT rather than a fixed
+            13rem: wrapped rows are two or three lines, and a fixed height
+            that fitted four single lines fits barely one and a half now.
+            A phone gets a shorter list than a laptop, which is the point. */}
+        <ul className="max-h-[45vh] space-y-1 overflow-y-auto pr-1">
           {tasks.map((task) => (
             <li key={task.id}>
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-surface-2">
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-1.5 hover:bg-surface-2">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 shrink-0 rounded border-border accent-accent"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-accent"
                   checked={taskIds.has(task.id)}
                   onChange={() => toggle(taskIds, task.id, setTaskIds)}
                 />
-                <span className="min-w-0 flex-1 truncate text-[13px]">{task.title}</span>
-                <Badge tone="neutral">{t(`frequency.${task.frequency}` as 'frequency.daily')}</Badge>
+                <span className="min-w-0 flex-1 break-words text-[13px]">{task.title}</span>
+                <Badge tone="neutral" className="mt-0.5 shrink-0">{t(`frequency.${task.frequency}` as 'frequency.daily')}</Badge>
               </label>
             </li>
           ))}
@@ -193,14 +197,14 @@ export function PlanDialog({
           <ul className="space-y-1">
             {templates.map((tpl) => (
               <li key={tpl.id}>
-                <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-surface-2">
+                <label className="flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-1.5 hover:bg-surface-2">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 shrink-0 rounded border-border accent-accent"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-accent"
                     checked={templateIds.has(tpl.id)}
                     onChange={() => toggle(templateIds, tpl.id, setTemplateIds)}
                   />
-                  <span className="min-w-0 flex-1 truncate text-[13px]">{tpl.name}</span>
+                  <span className="min-w-0 flex-1 break-words text-[13px]">{tpl.name}</span>
                 </label>
               </li>
             ))}

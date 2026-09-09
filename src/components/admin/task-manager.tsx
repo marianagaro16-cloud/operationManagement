@@ -128,15 +128,16 @@ export function TaskManager({ tasks, categories }: { tasks: TaskRow[]; categorie
                         className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-2.5"
                       >
                         {/* Title block: takes the row on phones, shares it from sm up.
-                            min-w-0 lets long titles truncate instead of forcing the
-                            row wider than the card. */}
+                            min-w-0 keeps a long title inside the card; it WRAPS
+                            rather than truncating, because titles run to 98
+                            characters and an ellipsis with a hover tooltip is no
+                            answer on the phone this is read on. */}
                         <div className="min-w-0 flex-1 basis-full sm:basis-0">
                           <p
                             className={cn(
-                              'truncate text-[13.5px]',
+                              'break-words text-[13.5px]',
                               !task.is_active && 'text-muted line-through',
                             )}
-                            title={task.title}
                           >
                             {task.title}
                           </p>

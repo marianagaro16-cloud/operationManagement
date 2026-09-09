@@ -254,12 +254,12 @@ export function CalendarView({
               {selectedTasks.map((o) => (
                 <li
                   key={o.id}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2"
+                  className="flex items-start justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2"
                 >
-                  <span className="min-w-0 flex-1 truncate text-[13px]">
+                  <span className="min-w-0 flex-1 break-words text-[13px]">
                     {localizedTitle(o.task, locale)}
                   </span>
-                  <Badge tone="neutral">
+                  <Badge tone="neutral" className="mt-0.5 shrink-0">
                     {t(`frequency.${o.task.frequency}` as 'frequency.daily')}
                   </Badge>
                   <StatusChip domain="task" status={o.status} />
@@ -283,11 +283,11 @@ export function CalendarView({
               {selectedInventories.map((i) => (
                 <li
                   key={i.id}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-warn/30 bg-surface px-3 py-2"
+                  className="flex items-start justify-between gap-2 rounded-lg border border-warn/30 bg-surface px-3 py-2"
                 >
                   <Link
                     href={`/inventory/${i.id}`}
-                    className="min-w-0 flex-1 truncate text-[13px] hover:underline"
+                    className="min-w-0 flex-1 break-words text-[13px] hover:underline"
                   >
                     {i.name}
                   </Link>
