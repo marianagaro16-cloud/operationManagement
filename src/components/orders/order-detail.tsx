@@ -30,7 +30,7 @@ import { UrgencyBadge } from './urgency-badge';
  * Order Control edits an order in a dialog stacked over the month list, which
  * is right for a quick correction and wrong for everything else: a dialog has
  * no URL, so an order could not be linked to, returned to, or opened from a
- * notification. Lot control could show you the reference and never take you
+ * notification. Preparation could show you the reference and never take you
  * to it.
  *
  * This page is the thing those links point at. It does not replace the dialog

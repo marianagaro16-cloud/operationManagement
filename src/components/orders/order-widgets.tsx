@@ -54,7 +54,7 @@ export function OrderWidgets({
         />
         {/* The deliveries tile opens the order book, so it is only offered to
             someone who can actually get there — otherwise it is a tile that
-            bounces the person straight back to this page. Lot control, which
+            bounces the person straight back to this page. Preparation, which
             IS their work, keeps its tile and takes the full width. */}
         {canManage && (
           <Tile

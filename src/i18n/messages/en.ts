@@ -276,7 +276,7 @@ export const en = {
   },
   lot: {
     /** One name in the nav and on the page — see app-shell. */
-    title: 'Lot Nummer Tracker',
+    title: 'Lot tracker',
     subtitle: 'Where a lot was used — search the lot numbers entered during preparation',
     lotNumber: 'Lot number',
     lotPlaceholder: 'Part of a lot number is enough',
@@ -392,7 +392,7 @@ export const en = {
     searchProduct: 'Search code or product…',
     noCustomersFound: 'No customers found',
     noProductsFound: 'No products found',
-    title: 'Order control',
+    title: 'Orders',
     subtitle: 'Confirmed customer orders by delivery date',
     newOrder: 'New order',
     editOrder: 'Edit order',
@@ -440,7 +440,7 @@ export const en = {
     customerInactive: 'This customer is inactive and cannot be used on a new order',
     productInactive: 'An inactive product cannot be added to a new order',
     openOrder: 'Open order',
-    backToOrders: 'Back to Order control',
+    backToOrders: 'Back to Orders',
     customerOrders: 'All orders for this customer',
     openPreparationDay: 'Open the preparation day',
     orderNotFound: 'This order no longer exists',
@@ -868,7 +868,7 @@ export const en = {
     noComparison: 'No earlier saved report to compare with.',
   },
   prep: {
-    title: 'Lot control',
+    title: 'Preparation',
     subtitle: 'Orders to prepare on the selected date',
     noWork: 'Nothing to prepare on this date',
     noWorkBody: 'No orders have this preparation date.',
@@ -934,7 +934,7 @@ export const en = {
     alertTitle: '{count} orders need attention',
     alertTitleOne: '1 order needs attention',
     alertBody: 'These deliveries are close and are not finished yet.',
-    viewOrders: 'Open lot control',
+    viewOrders: 'Open Preparation',
     stillOpen: '{count} products open',
   },
   master: {

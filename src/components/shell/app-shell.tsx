@@ -48,7 +48,7 @@ export function AppShell({
    */
   const nav = [
     { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, primary: true },
-    // Lot control is the main floor workflow, so it sits high in the bar.
+    // Preparation is the main floor workflow, so it sits high in the bar.
     { href: '/preparation', label: t('prep.title'), icon: ClipboardList, primary: true },
     // Order Control is the ORDER BOOK — customers, dates, quantities, the
     // definitions themselves. A person on the floor works lot control and
