@@ -29,6 +29,15 @@ export interface LotFilters {
   product?: string;
   productCode?: string;
   customer?: string;
+  /**
+   * A brand id, or the literal 'none' for products nobody has classified.
+   *
+   * 'none' is a real answer here rather than an absence of one: "what have we
+   * shipped that is still unclassified" is a question somebody preparing a
+   * recall genuinely asks, and leaving it out would make those rows
+   * unreachable from this screen.
+   */
+  brandId?: string;
   /** The human-facing order number (#1042), not the uuid. */
   reference?: string;
   /** Inclusive, against the order's preparation date. */
@@ -164,6 +173,8 @@ function applyFilters(query: any, filters: LotFilters): any {
     const term = contains(filters.customer);
     q = q.or(`customer_name.ilike.${term},customer_addition.ilike.${term}`);
   }
+  if (filters.brandId === 'none') q = q.is('brand_id', null);
+  else if (filters.brandId) q = q.eq('brand_id', filters.brandId);
   if (filters.reference?.trim()) {
     const digits = filters.reference.replace(/\D/g, '');
     if (digits) q = q.eq('order_reference', Number(digits));

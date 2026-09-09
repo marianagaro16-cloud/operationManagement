@@ -11,12 +11,15 @@ import { Badge, Card, EmptyState, Field, Input, Select } from '@/components/ui/p
 import { PageHeader } from '@/components/shell/app-shell';
 import { lotAllocationsToCsv } from '@/domain/orders/lot-export';
 import type { LotAllocationRow, LotSearchResult, LotSort } from '@/server/lot-tracker';
+import type { Brand } from '@/types/orders';
 
 export interface LotFilterForm {
   lot: string;
   product: string;
   code: string;
   customer: string;
+  /** A brand id, or 'none' for the unclassified. */
+  brand: string;
   ref: string;
   prepFrom: string;
   prepTo: string;
@@ -42,12 +45,14 @@ const SORTS: LotSort[] = ['recent', 'preparation', 'delivery', 'lot', 'customer'
 export function LotTrackerView({
   result,
   users,
+  brands,
   filters,
   page,
   pageSize,
 }: {
   result: LotSearchResult;
   users: { id: string; label: string }[];
+  brands: Brand[];
   filters: LotFilterForm;
   page: number;
   pageSize: number;
@@ -67,8 +72,9 @@ export function LotTrackerView({
   const active = useMemo(
     () =>
       Boolean(
-        form.lot || form.product || form.code || form.customer || form.ref ||
-        form.prepFrom || form.prepTo || form.delFrom || form.delTo || form.user,
+        form.lot || form.product || form.code || form.customer || form.brand ||
+        form.ref || form.prepFrom || form.prepTo || form.delFrom || form.delTo ||
+        form.user,
       ),
     [form],
   );
@@ -80,6 +86,7 @@ export function LotTrackerView({
     set('product', next.product);
     set('code', next.code);
     set('customer', next.customer);
+    set('brand', next.brand);
     set('ref', next.ref);
     set('prepFrom', next.prepFrom);
     set('prepTo', next.prepTo);
@@ -101,7 +108,7 @@ export function LotTrackerView({
 
   function clear() {
     const empty: LotFilterForm = {
-      lot: '', product: '', code: '', customer: '', ref: '',
+      lot: '', product: '', code: '', customer: '', brand: '', ref: '',
       prepFrom: '', prepTo: '', delFrom: '', delTo: '', user: '', sort: 'recent',
     };
     setForm(empty);
@@ -155,6 +162,19 @@ export function LotTrackerView({
           </Field>
           <Field label={t('lot.customer')} htmlFor="customer">
             <Input id="customer" value={form.customer} onChange={(e) => edit({ customer: e.target.value })} />
+          </Field>
+          {/* Beside the product fields, because that is what a brand
+              narrows. 'none' is offered as a real choice: "what have we
+              shipped that nobody has classified" is a question a recall
+              asks, and without it those rows are unreachable here. */}
+          <Field label={t('master.brand')} htmlFor="brand">
+            <Select id="brand" value={form.brand} onChange={(e) => edit({ brand: e.target.value })}>
+              <option value="">{t('master.allBrands')}</option>
+              {brands.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+              <option value="none">{t('master.noBrand')}</option>
+            </Select>
           </Field>
           <Field label={t('lot.order')} htmlFor="ref">
             <Input id="ref" value={form.ref} onChange={(e) => edit({ ref: e.target.value })} inputMode="numeric" />
@@ -256,8 +276,10 @@ export function LotTrackerView({
                       </td>
                       <td className="px-3 py-2">
                         <span className="block truncate">{r.product_name}</span>
-                        {r.product_code && (
-                          <span className="text-[11.5px] text-subtle">{r.product_code}</span>
+                        {(r.product_code || r.brand_name) && (
+                          <span className="text-[11.5px] text-subtle">
+                            {[r.product_code, r.brand_name].filter(Boolean).join(' · ')}
+                          </span>
                         )}
                       </td>
                       <td className="px-3 py-2">
@@ -297,6 +319,9 @@ export function LotTrackerView({
                     <span className="shrink-0 text-[15px] font-semibold tabular-nums">{r.quantity}</span>
                   </div>
                   <p className="mt-1 truncate text-[13px]">{r.product_name}</p>
+                  {r.brand_name && (
+                    <p className="text-[11.5px] text-subtle">{r.brand_name}</p>
+                  )}
                   <p className="text-[12.5px] text-muted">
                     <CustomerCell row={r} inactiveLabel={t('status.inactive')} />
                   </p>

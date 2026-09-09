@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getUsers, getViewer } from '@/server/data';
 import { searchLotAllocations, type LotSort } from '@/server/lot-tracker';
+import { getBrands } from '@/server/orders';
 import { LotTrackerView } from '@/components/orders/lot-tracker-view';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,7 @@ interface SearchParams {
   product?: string;
   code?: string;
   customer?: string;
+  brand?: string;
   ref?: string;
   prepFrom?: string;
   prepTo?: string;
@@ -54,6 +56,7 @@ export default async function LotTrackerPage({
     product: searchParams.product,
     productCode: searchParams.code,
     customer: searchParams.customer,
+    brandId: brandFilter(searchParams.brand),
     reference: searchParams.ref,
     preparedFrom: searchParams.prepFrom,
     preparedTo: searchParams.prepTo,
@@ -65,20 +68,23 @@ export default async function LotTrackerPage({
     offset: (page - 1) * PAGE_SIZE,
   };
 
-  const [result, users] = await Promise.all([
+  const [result, users, brands] = await Promise.all([
     searchLotAllocations(filters),
     getUsers(),
+    getBrands(),
   ]);
 
   return (
     <LotTrackerView
       result={result}
       users={users.map((u) => ({ id: u.id, label: u.name ?? u.email }))}
+      brands={brands}
       filters={{
         lot: searchParams.lot ?? '',
         product: searchParams.product ?? '',
         code: searchParams.code ?? '',
         customer: searchParams.customer ?? '',
+        brand: brandFilter(searchParams.brand) ?? '',
         ref: searchParams.ref ?? '',
         prepFrom: searchParams.prepFrom ?? '',
         prepTo: searchParams.prepTo ?? '',
@@ -91,4 +97,18 @@ export default async function LotTrackerPage({
       pageSize={PAGE_SIZE}
     />
   );
+}
+
+/**
+ * A brand filter that is safe to hand to Postgres.
+ *
+ * Either the literal 'none' — meaning products nobody has classified, which
+ * is a real thing to search for — or a well-formed uuid. Anything else is
+ * dropped rather than passed through: the column is a uuid, so a stray string
+ * from a hand-edited URL would be a parse error and a 500 instead of an empty
+ * result. A valid id that matches no brand simply finds nothing.
+ */
+function brandFilter(value: string | undefined): string | undefined {
+  if (value === 'none') return value;
+  return value && /^[0-9a-f-]{36}$/i.test(value) ? value : undefined;
 }

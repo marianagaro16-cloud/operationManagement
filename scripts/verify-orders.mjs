@@ -229,6 +229,42 @@ async function main() {
   const { count: viewCount } = await admin.from('lot_allocation_search').select('id', { count: 'exact', head: true });
   const { count: allocCount } = await admin.from('lot_allocations').select('id', { count: 'exact', head: true });
   check('the brand join drops no allocations', viewCount === allocCount, `view ${viewCount} / table ${allocCount}`);
+
+  /*
+   * The Tracker's brand filter must PARTITION the set.
+   *
+   * Every allocation belongs to exactly one brand or to none, so the per-brand
+   * counts plus the unclassified count have to equal the whole. If they fall
+   * short, rows are unreachable from the screen — which for a recall means
+   * shipments nobody can find.
+   */
+  const { data: allBrands } = await admin.from('brands').select('id, name');
+  let branded = 0;
+  for (const b of allBrands ?? []) {
+    const { count } = await admin.from('lot_allocation_search')
+      .select('id', { count: 'exact', head: true }).eq('brand_id', b.id);
+    branded += count ?? 0;
+  }
+  const { count: unclassified } = await admin.from('lot_allocation_search')
+    .select('id', { count: 'exact', head: true }).is('brand_id', null);
+  check('the brand filters partition every allocation',
+    branded + (unclassified ?? 0) === viewCount,
+    `${branded} branded + ${unclassified} unclassified = ${viewCount}`);
+
+  /*
+   * brand_id is a uuid column, so a stray string from a hand-edited URL is a
+   * PARSE ERROR and a 500, not an empty result. The page guards the parameter;
+   * this asserts the danger the guard exists for is real, so nobody deletes it
+   * as redundant, and that a well-formed unknown id is handled the other way.
+   */
+  const ghost = await admin.from('lot_allocation_search').select('id')
+    .eq('brand_id', '00000000-0000-0000-0000-000000000000').limit(1);
+  check('an unknown but valid brand id finds nothing rather than failing',
+    !ghost.error && (ghost.data ?? []).length === 0, ghost.error?.message ?? '');
+  const malformed = await admin.from('lot_allocation_search').select('id')
+    .eq('brand_id', 'not-a-uuid').limit(1);
+  check('a malformed brand id DOES fail, which is why the page guards it',
+    Boolean(malformed.error), malformed.error?.message ?? 'no error — the guard is now pointless');
 }
 
 main()
