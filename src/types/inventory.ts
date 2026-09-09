@@ -37,6 +37,12 @@ export interface InventoryTemplate {
   frequency: InventoryFrequency;
   schedule_config: InventorySchedule | null;
   digital_enabled: boolean;
+  /**
+   * The brand whose active products make up this inventory, or null for a
+   * template counting something no brand sells — raw material, packaging.
+   * What decides whether "refresh from products" means anything here.
+   */
+  brand_id: string | null;
   is_active: boolean;
   created_by: string | null;
   created_at: string;

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { inventoryScheduleSchema, INVENTORY_FREQUENCIES, INVENTORY_KINDS } from '@/domain/inventory/types';
+import { planTemplateRefresh } from '@/domain/inventory/refresh';
 import { sendToUser } from './push';
 import type { ActionResult } from './actions';
 
@@ -38,6 +39,7 @@ function fail(error: unknown): { ok: false; error: string } {
     'location_not_found',
     'unexpected_field_for_kind',
     'inventory_template_not_found',
+    'template_has_no_brand',
   ];
   for (const code of codes) if (message.includes(code)) return { ok: false, error: code };
   // Constraint names are not messages a warehouse operator can act on.
@@ -618,6 +620,106 @@ export async function reorderTemplateItems(
   }
   revalidatePath(`/admin/inventory/${templateId}`);
   return { ok: true, data: undefined };
+}
+
+/** What a refresh actually did, for the message afterwards. */
+export interface RefreshSummary {
+  added: number;
+  restored: number;
+  retired: number;
+  reordered: number;
+  untouched: number;
+}
+
+/**
+ * Pull a brand inventory back into line with the product list.
+ *
+ * The items are a snapshot, deliberately — see domain/inventory/refresh. This
+ * is the deliberate pull, and it is the ONLY place the snapshot moves.
+ *
+ * Not authorised here. `inventory_template_items` is writable under
+ * inventory.manage_templates and RLS enforces that on every statement below,
+ * exactly as the hand-editing actions in this file rely on it.
+ */
+export async function refreshTemplateFromProducts(
+  templateId: string,
+): Promise<ActionResult<RefreshSummary>> {
+  const supabase = createClient();
+
+  const { data: template, error: templateError } = await supabase
+    .from('inventory_templates')
+    .select('id, brand_id')
+    .eq('id', templateId)
+    .single();
+  if (templateError) return fail(templateError);
+  // Materia Prima and Empaques count things no brand sells. There is nothing
+  // to refresh from, and the button is hidden for them — this is the second
+  // answer, for a caller that did not read the first.
+  if (!template.brand_id) return { ok: false, error: 'template_has_no_brand' };
+
+  const [{ data: products, error: productError }, { data: items, error: itemError }] =
+    await Promise.all([
+      supabase
+        .from('products')
+        .select('id, code, name, family')
+        .eq('brand_id', template.brand_id)
+        .eq('is_active', true),
+      supabase
+        .from('inventory_template_items')
+        .select('id, name, product_id, item_group, sort_order, is_active')
+        .eq('template_id', templateId),
+    ]);
+  if (productError) return fail(productError);
+  if (itemError) return fail(itemError);
+
+  const plan = planTemplateRefresh(products ?? [], items ?? []);
+
+  if (plan.insert.length > 0) {
+    const { error } = await supabase
+      .from('inventory_template_items')
+      .insert(plan.insert.map((i) => ({ ...i, template_id: templateId })));
+    if (error) return fail(error);
+  }
+
+  // Two statements rather than a loop each: these lists reach three digits on
+  // a brand like Complementarios, and a request per row would be a request
+  // per row.
+  if (plan.reactivate.length > 0) {
+    const { error } = await supabase
+      .from('inventory_template_items')
+      .update({ is_active: true })
+      .in('id', plan.reactivate);
+    if (error) return fail(error);
+  }
+  if (plan.deactivate.length > 0) {
+    const { error } = await supabase
+      .from('inventory_template_items')
+      .update({ is_active: false })
+      .in('id', plan.deactivate);
+    if (error) return fail(error);
+  }
+
+  // Position and group differ per row, so this one genuinely is per row.
+  for (const row of plan.reposition) {
+    const { error } = await supabase
+      .from('inventory_template_items')
+      .update({ item_group: row.item_group, sort_order: row.sort_order })
+      .eq('id', row.id);
+    if (error) return fail(error);
+  }
+
+  revalidatePath(`/admin/inventory/${templateId}`);
+  revalidatePath('/admin/inventory');
+  return {
+    ok: true,
+    data: {
+      added: plan.insert.length,
+      restored: plan.reactivate.length,
+      retired: plan.deactivate.length,
+      reordered: plan.reposition.length,
+      untouched: plan.untouched,
+    },
+  };
 }
 
 /* ---------------------------- admin: locations ------------------------- */

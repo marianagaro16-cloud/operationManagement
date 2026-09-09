@@ -64,7 +64,7 @@ async function userClient(email) {
   return client;
 }
 
-const created = { users: [], templateId: null };
+const created = { users: [], templateId: null, brandId: null, productIds: [], refreshTemplateId: null };
 
 async function makeUser(role) {
   const email = `${TAG}-${role}@example.invalid`;
@@ -754,6 +754,133 @@ async function main() {
   check('every count ever recorded is still readable', (keptEntries ?? 0) >= 20,
     `${keptEntries} entries`);
 
+  /* --------------------------------------- refresh from products */
+  section('Refresh from products');
+
+  /*
+   * The button's authorisation is RLS, not the server action — the action is
+   * a transport, exactly like every other one in inventory-actions. So the
+   * statements it issues are run here through REAL user sessions, because
+   * "the action checked the capability" is not a claim this codebase makes
+   * and would not be true if it did.
+   */
+  const rBrand = (await db.from('brands')
+    .insert({ name: `ZZ Refresh ${STAMP}`, sort_order: 999 }).select('id').single()).data;
+  created.brandId = rBrand?.id ?? null;
+
+  const rProducts = (await db.from('products').insert([
+    { code: `ZR${STAMP}A`, name: `ZZ Refresh Uno ${STAMP}`, family: 'ZZ Familia', presentation: '1kg', brand_id: rBrand.id, is_active: true },
+    { code: `ZR${STAMP}B`, name: `ZZ Refresh Dos ${STAMP}`, family: 'ZZ Familia', presentation: '2kg', brand_id: rBrand.id, is_active: true },
+  ]).select('id, name')).data ?? [];
+  created.productIds = rProducts.map((p) => p.id);
+
+  const rTemplate = (await db.from('inventory_templates').insert({
+    slug: `${TAG}-refresh`,
+    name: `ZZ Refresh ${STAMP}`,
+    kind: 'expiry',
+    frequency: 'weekly',
+    schedule_config: { kind: 'weekly', weekday: 5 },
+    digital_enabled: true,
+    brand_id: rBrand.id,
+  }).select('id, brand_id').single()).data;
+  created.refreshTemplateId = rTemplate?.id ?? null;
+
+  check('a template can name the brand it counts', rTemplate?.brand_id === rBrand.id);
+
+  // A hand-added item, which a refresh must never touch.
+  const handAdded = (await db.from('inventory_template_items').insert({
+    template_id: rTemplate.id, name: `ZZ By hand ${STAMP}`, sort_order: 5,
+  }).select('id').single()).data;
+
+  /* --- the statements the action issues, run as an ADMIN --- */
+  const { error: insertErr } = await adminC.from('inventory_template_items').insert(
+    rProducts.map((p, i) => ({
+      template_id: rTemplate.id, name: p.name, item_group: 'ZZ Familia',
+      product_id: p.id, sort_order: (i + 1) * 10,
+    })),
+  );
+  check('an admin may add the missing products', !insertErr, insertErr?.message ?? '');
+
+  /*
+   * A REAL row, and the effect is read back.
+   *
+   * This check first narrowed itself to nothing with two conflicting id
+   * filters, so it updated zero rows and passed without exercising the
+   * policy at all — the exact shape of a test that guards nothing.
+   */
+  const victim = rProducts[1].id;
+  const { error: deactivateErr } = await adminC.from('inventory_template_items')
+    .update({ is_active: false }).eq('template_id', rTemplate.id).eq('product_id', victim);
+  const { data: afterOff } = await db.from('inventory_template_items')
+    .select('is_active').eq('template_id', rTemplate.id).eq('product_id', victim).single();
+  check('an admin may switch an item off, and it actually goes off',
+    !deactivateErr && afterOff?.is_active === false,
+    deactivateErr?.message ?? `is_active=${afterOff?.is_active}`);
+
+  const { error: reactivateErr } = await adminC.from('inventory_template_items')
+    .update({ is_active: true }).eq('template_id', rTemplate.id).eq('product_id', victim);
+  const { data: afterOn } = await db.from('inventory_template_items')
+    .select('is_active').eq('template_id', rTemplate.id).eq('product_id', victim).single();
+  check('and may switch it back on when the product returns',
+    !reactivateErr && afterOn?.is_active === true,
+    reactivateErr?.message ?? `is_active=${afterOn?.is_active}`);
+
+  /* --- and are refused for somebody without the capability --- */
+  const { error: outsiderInsert } = await assignedC.from('inventory_template_items').insert({
+    template_id: rTemplate.id, name: `ZZ Forbidden ${STAMP}`, sort_order: 900,
+  });
+  check('a user without inventory.manage_templates cannot refresh', Boolean(outsiderInsert),
+    outsiderInsert?.code ?? 'NO ERROR — the button would be usable by anyone');
+
+  /* --- the outcome the planner promises --- */
+  const { data: afterItems } = await db.from('inventory_template_items')
+    .select('id, name, product_id, is_active').eq('template_id', rTemplate.id);
+
+  check('every product of the brand is now an item',
+    rProducts.every((p) => afterItems.some((i) => i.product_id === p.id)),
+    `${afterItems.length} items`);
+
+  // What the planner does with this row is asserted in refresh.test.ts,
+  // which calls it directly. All this says is that the row exists and is
+  // distinguishable — an item with no product_id — which is the fact the
+  // planner's "leave it alone" rule keys off.
+  check('a hand-added item is distinguishable by having no product',
+    afterItems.some((i) => i.id === handAdded.id && i.is_active && !i.product_id));
+
+  /*
+   * The rule that makes the button safe to press: an item already counted is
+   * switched OFF, never removed. Proved by asking the database to delete one
+   * and being refused.
+   */
+  const counted = afterItems.find((i) => i.product_id);
+  const rInstance = (await db.from('inventory_instances').insert({
+    template_id: rTemplate.id, inventory_date: today, period_key: `refresh-${STAMP}`,
+    name_snapshot: 'ZZ Refresh', kind: 'expiry', digital_enabled: true,
+  }).select('id').single()).data;
+  await db.from('inventory_instance_items').insert({
+    instance_id: rInstance.id, template_item_id: counted.id,
+    item_name: counted.name, item_sort_order: 10,
+  });
+  const { error: deleteRefused } = await db.from('inventory_template_items')
+    .delete().eq('id', counted.id);
+  check('an item that has been counted cannot be deleted, only switched off',
+    Boolean(deleteRefused), deleteRefused?.code ?? 'NO ERROR — history is deletable');
+
+  // A template counting no brand has nothing to refresh from, and the UI
+  // reads that off the column rather than off a list of names.
+  const { data: noBrand } = await db.from('inventory_templates')
+    .select('slug, brand_id').in('slug', ['materia-prima', 'empaques']);
+  check('raw material and packaging name no brand',
+    (noBrand ?? []).length === 2 && (noBrand ?? []).every((t) => t.brand_id === null),
+    (noBrand ?? []).map((t) => `${t.slug}=${t.brand_id}`).join(' '));
+
+  const { data: branded } = await db.from('inventory_templates')
+    .select('slug, brand_id')
+    .in('slug', ['masamor', 'del-barrio', 'colectivo-comestibles', 'complementarios']);
+  check('all four brand inventories name their brand',
+    (branded ?? []).length === 4 && (branded ?? []).every((t) => t.brand_id),
+    (branded ?? []).filter((t) => !t.brand_id).map((t) => t.slug).join(' ') || 'all set');
+
   /* --------------------------------- existing modules are unaffected */
   section('Existing modules');
 
@@ -786,6 +913,12 @@ async function cleanup() {
     await db.from('inventory_template_items').delete().eq('template_id', t.id);
     await db.from('inventory_templates').delete().eq('id', t.id);
   }
+
+  for (const id of created.productIds ?? []) {
+    await db.from('inventory_template_items').delete().eq('product_id', id);
+    await db.from('products').delete().eq('id', id);
+  }
+  if (created.brandId) await db.from('brands').delete().eq('id', created.brandId);
 
   for (const id of created.users) {
     await db.from('inventory_edit_grants').delete().eq('user_id', id);

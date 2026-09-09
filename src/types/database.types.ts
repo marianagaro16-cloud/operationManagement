@@ -1445,6 +1445,7 @@ export type Database = {
       }
       inventory_templates: {
         Row: {
+          brand_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -1460,6 +1461,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          brand_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1475,6 +1477,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          brand_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1490,6 +1493,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_templates_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inventory_templates_created_by_fkey"
             columns: ["created_by"]

@@ -88,6 +88,8 @@ export function useInventoryError() {
     switch (code) {
       case 'not_authorized':
         return t('inventory.errNotAuthorized');
+      case 'template_has_no_brand':
+        return t('inventory.errNoBrand');
       case 'not_an_integer':
         return t('inventory.errNotInteger');
       case 'negative_quantity':

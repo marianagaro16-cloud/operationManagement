@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { ArrowDown, ArrowUp, Link2, Plus, Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, Link2, Plus, RefreshCw, Search } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Dialog } from '@/components/ui/dialog';
+import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import {
+  refreshTemplateFromProducts,
   reorderTemplateItems,
   saveInventoryTemplateItem,
   setTemplateAssignees,
@@ -50,6 +51,31 @@ export function InventoryItemsManager({
   const [showInactive, setShowInactive] = useState(false);
   const [editing, setEditing] = useState<ItemRow | null>(null);
   const [creating, setCreating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshed, setRefreshed] = useState<string | null>(null);
+
+  /*
+   * Only a template that names a brand has a product list to refresh FROM.
+   * Read off the column rather than off a list of template names kept in step
+   * by hand — Materia Prima and Empaques count things no brand sells.
+   */
+  const canRefresh = Boolean(template.brand_id);
+
+  function refresh() {
+    setError(null);
+    setRefreshed(null);
+    startTransition(async () => {
+      const res = await refreshTemplateFromProducts(template.id);
+      setRefreshing(false);
+      if (!res.ok) { setError(translateError(res.error)); return; }
+      const { added, restored, retired, reordered } = res.data;
+      setRefreshed(
+        added + restored + retired + reordered === 0
+          ? t('inventory.refreshNothing')
+          : t('inventory.refreshDone', { added, restored, retired }),
+      );
+    });
+  }
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -93,13 +119,37 @@ export function InventoryItemsManager({
             <Link2 className="inline h-3 w-3" aria-hidden /> {linked}
           </p>
         </div>
-        <Button size="sm" variant="primary" onClick={() => setCreating(true)}>
-          <Plus className="h-3.5 w-3.5" aria-hidden />
-          {t('inventory.itemNew')}
-        </Button>
+        <div className="flex items-center gap-2">
+          {canRefresh && (
+            <Button size="sm" variant="secondary" disabled={pending} onClick={() => setRefreshing(true)}>
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+              {t('inventory.refresh')}
+            </Button>
+          )}
+          <Button size="sm" variant="primary" onClick={() => setCreating(true)}>
+            <Plus className="h-3.5 w-3.5" aria-hidden />
+            {t('inventory.itemNew')}
+          </Button>
+        </div>
       </div>
 
       {error && <ErrorState message={error} />}
+      {refreshed && (
+        <p className="rounded-lg border border-done/30 bg-done/[0.08] px-3 py-2 text-[12.5px] text-done">
+          {refreshed}
+        </p>
+      )}
+
+      <ConfirmDialog
+        open={refreshing}
+        onClose={() => setRefreshing(false)}
+        onConfirm={refresh}
+        title={t('inventory.refresh')}
+        message={t('inventory.refreshConfirm')}
+        confirmLabel={t('inventory.refresh')}
+        cancelLabel={t('common.cancel')}
+        loading={pending}
+      />
 
       <div className="space-y-2">
         <div className="relative">
