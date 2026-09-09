@@ -677,10 +677,22 @@ async function cleanup() {
   }
 }
 
+/*
+ * An abort is not "one failure".
+ *
+ * These scripts stop at the first thrown error, so a FATAL means every
+ * check below it never ran. Reporting that as FAIL=1 makes a dead run look
+ * like one small problem — verify-push read "PASS=12 FAIL=1" for weeks while
+ * two thirds of it never executed. The summary now says plainly that the
+ * rest did not run.
+ */
+let aborted = null;
+
 main()
-  .catch((e) => { fail++; console.error('\nFATAL:', e.message); })
+  .catch((e) => { aborted = e.message; fail++; console.error('\nFATAL:', e.message); })
   .finally(async () => {
     await cleanup();
     console.log(`\n${pass} passed, ${fail} failed`);
+    if (aborted) console.log(`  ABORTED after ${pass} checks — the rest never ran: ${aborted}`);
     process.exit(fail === 0 ? 0 : 1);
   });

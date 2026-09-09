@@ -128,7 +128,19 @@ async function main() {
   check('duplicate endpoint is rejected (upsert territory)', !!dupErr, dupErr?.code);
 
   console.log('\n=== 4. Notification dedupe ===');
-  const { data: cust } = await admin.from('customers').insert({ name: `ZZ Push Customer ${Date.now()}` }).select().single();
+  /*
+   * company_name, NOT name.
+   *
+   * customers.name became a GENERATED column in the master-data reshape —
+   * company_name plus its addition — so writing to it is rejected outright.
+   * This script kept writing to it, threw on the null result, and everything
+   * from here down has not run since. Same failure the inventory script had
+   * on iso_week, in a different table.
+   */
+  const { data: cust, error: custError } = await admin.from('customers')
+    .insert({ company_name: `ZZ Push Customer ${Date.now()}` })
+    .select().single();
+  if (custError) throw new Error(`customer fixture: ${custError.message}`);
   created.customers.push(cust.id);
   const stamp = Date.now();
   const { data: prod } = await admin.from('products')
@@ -164,13 +176,25 @@ async function main() {
   check('deleting an order clears its notification log', logsLeft === 0);
 }
 
+/*
+ * An abort is not "one failure".
+ *
+ * These scripts stop at the first thrown error, so a FATAL means every
+ * check below it never ran. Reporting that as FAIL=1 makes a dead run look
+ * like one small problem — verify-push read "PASS=12 FAIL=1" for weeks while
+ * two thirds of it never executed. The summary now says plainly that the
+ * rest did not run.
+ */
+let aborted = null;
+
 main()
-  .catch((e) => { console.error('\nFATAL: ' + e.message); fail++; })
+  .catch((e) => { aborted = e.message; console.error('\nFATAL: ' + e.message); fail++; })
   .finally(async () => {
     for (const id of created.orders) await admin.from('orders').delete().eq('id', id);
     for (const id of created.products) await admin.from('products').delete().eq('id', id);
     for (const id of created.customers) await admin.from('customers').delete().eq('id', id);
     for (const id of created.users) await admin.auth.admin.deleteUser(id);
     console.log(`\ncleanup done.  PASS=${pass}  FAIL=${fail}`);
+    if (aborted) console.log(`  ABORTED after ${pass} checks — the rest never ran: ${aborted}`);
     process.exit(fail === 0 ? 0 : 1);
   });
