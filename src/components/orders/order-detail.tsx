@@ -23,7 +23,7 @@ import {
 } from '@/types/orders';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
-import { NoteBlock } from './order-widgets';
+import { NoteBlock, NoteChip } from '@/components/ui/note';
 
 /**
  * One order, at its own address.
@@ -292,9 +292,7 @@ function DetailLine({ line }: { line: OrderLine }) {
               {/* A preparation note gets the same colour as an order note:
                   one thing on screen means "somebody wrote this". */}
               {a.note && (
-                <span className="min-w-0 flex-1 truncate rounded bg-note/[0.08] px-1.5 py-0.5 text-note">
-                  {a.note}
-                </span>
+                <NoteChip className="min-w-0 flex-1 truncate">{a.note}</NoteChip>
               )}
               {/* Who recorded this lot. Already in the payload; never shown. */}
               <span className="ml-auto shrink-0 text-[11.5px] text-subtle">

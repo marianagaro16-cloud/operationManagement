@@ -20,7 +20,7 @@ import { IncidentDialog, orderContextFrom } from '@/components/incidents/inciden
 import type { IncidentCategory, IncidentType } from '@/types/incidents';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
-import { NoteBlock } from './order-widgets';
+import { NoteBlock } from '@/components/ui/note';
 
 /**
  * Order Control — replaces the monthly "Control de pedidos" workbook.

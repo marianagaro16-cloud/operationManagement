@@ -15,7 +15,7 @@ import { groupLinesByBrand } from '@/domain/orders/picking';
 import { weekDays } from '@/domain/orders/scheduling';
 import { addDays } from '@/lib/datetime';
 import { UrgencyBadge } from './urgency-badge';
-import { NoteBlock } from './order-widgets';
+import { NoteBlock, NoteChip } from '@/components/ui/note';
 import { productLabel, type OrderLine, type OrderWithProgress } from '@/types/orders';
 import { StatusChip, statusPresentation } from '@/components/ui/status-chip';
 import { saveLotAllocation, deleteLotAllocation, setShortfallReason } from '@/server/order-actions';
@@ -342,9 +342,7 @@ function PreparationLine({ line, canManage }: { line: OrderLine; canManage: bool
               <span className="font-medium tabular">{a.lot_number}</span>
               <span className="tabular text-muted">× {toQuantity(a.quantity)}</span>
               {a.note && (
-                <span className="min-w-0 flex-1 truncate rounded bg-note/[0.08] px-1.5 py-0.5 text-note">
-                  {a.note}
-                </span>
+                <NoteChip className="min-w-0 flex-1 truncate">{a.note}</NoteChip>
               )}
               {/* Confirmed. This fired on the first tap of a small icon, on a
                   touchscreen, next to a scrolling list, and erased a recorded

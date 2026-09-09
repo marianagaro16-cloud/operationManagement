@@ -29,6 +29,7 @@ import { OrderDialog } from '@/components/orders/order-dialog';
 import { productLabel, type Customer, type DeliveryMethod, type Product } from '@/types/orders';
 import type { Incident } from '@/types/incidents';
 import type { Profile } from '@/types/database';
+import { NoteChip } from '@/components/ui/note';
 import { categoryLabel, typeLabel } from './incident-list';
 import { errorKey } from './incident-dialog';
 
@@ -751,9 +752,14 @@ function ReplacementSection({
                     #{r.order.reference} · {formatDate(r.order.delivery_date, 'short')}
                   </Link>
                 ) : (
-                  <p className="text-[13px]">{r.note}</p>
+                  /* No order was linked, so what somebody typed IS the record
+                     of the replacement. Coloured, not chipped: it is the
+                     row's content rather than an aside beside it. */
+                  <p className="text-[13px] text-note">{r.note}</p>
                 )}
-                {r.order && r.note && <p className="text-[12px] text-muted">{r.note}</p>}
+                {r.order && r.note && (
+                  <NoteChip className="mt-0.5 inline-block text-[12px]">{r.note}</NoteChip>
+                )}
               </div>
               {canManage && (
                 <Button

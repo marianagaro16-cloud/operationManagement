@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { AlertTriangle, ArrowRight, ClipboardList, Package, StickyNote } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ClipboardList, Package } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Card } from '@/components/ui/primitives';
 import { cn } from '@/lib/utils';
@@ -14,43 +14,6 @@ import type { OrderWithProgress } from '@/types/orders';
  * dashboard, so orders contribute two summary tiles and one warning rather
  * than a second full list competing for attention.
  */
-/**
- * A note somebody wrote, made findable at a glance.
- *
- * Notes used to render as grey text on a grey block — the same treatment as
- * every other secondary line on the card — so "deliver before 10" was
- * invisible next to the delivery method. They now carry their own colour and
- * a marker down the left edge.
- *
- * Deliberately NOT amber. On these very screens amber means short, late or
- * needs attention, and dressing an instruction as a problem is a worse error
- * than leaving it grey.
- *
- * One component for all three places an order note appears — the order list,
- * the order page and the preparation card — so they cannot drift apart. The
- * caller passes only the chrome that differs: padding, and whether it sits
- * flush against a card edge or floats inside one.
- */
-export function NoteBlock({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <p
-      className={cn(
-        'flex items-start gap-1.5 border-l-2 border-note bg-note/[0.07] text-[12.5px] text-note',
-        className,
-      )}
-    >
-      <StickyNote className="mt-[2px] h-3.5 w-3.5 shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1">{children}</span>
-    </p>
-  );
-}
-
 export function OrderWidgets({
   toPrepare,
   carriedOver,
