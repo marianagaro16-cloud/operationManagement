@@ -233,16 +233,25 @@ export function AppShell({
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           {nav.map(({ href, label, icon: Icon }) => (
-            <li key={href} className="flex-1">
+            // min-w-0 is load-bearing. A flex item defaults to min-width:auto,
+            // so a tab could not shrink below its longest WORD — and the bar
+            // measured 438px in English, 457 in Spanish and 580 in German
+            // inside a 375px screen. Since the nav is fixed with no overflow,
+            // the excess was not scrollable: it was cut off, which left
+            // Verwaltung and Kalender untappable on a German phone.
+            <li key={href} className="min-w-0 flex-1">
               <Link
                 href={href}
+                // The label is also the accessible name, so it is truncated
+                // visually and kept whole for a screen reader via title.
+                title={label}
                 className={cn(
-                  'flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors',
+                  'flex flex-col items-center gap-0.5 px-0.5 py-2.5 text-[11px] font-medium transition-colors',
                   active(href) ? 'text-accent' : 'text-muted',
                 )}
               >
-                <Icon className="h-[18px] w-[18px]" aria-hidden />
-                {label}
+                <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                <span className="w-full truncate text-center">{label}</span>
               </Link>
             </li>
           ))}
