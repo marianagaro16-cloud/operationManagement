@@ -99,6 +99,9 @@ function applyFilters<T extends { eq: (c: string, v: unknown) => T; gte: (c: str
   // The product filter needs the affected items joined as !inner — see the
   // caller, which swaps the select string when it is set.
   if (filters.productId) q = q.eq('items.product_id', filters.productId);
+  // Same shape one level deeper: the brand lives on the product, so both the
+  // items and the product embed have to be inner-joined by the caller.
+  if (filters.brandId) q = q.eq('items.product.brand_id', filters.brandId);
 
   if (filters.q?.trim()) {
     // Escaped for the PostgREST `or` grammar, where a comma separates terms
@@ -127,12 +130,17 @@ export async function getIncidents(
   const supabase = createClient();
   const offset = (page - 1) * pageSize;
 
-  const select = filters.productId
+  const select = filters.brandId
     ? LIST_SELECT.replace(
         'items:incident_affected_items ( id )',
-        'items:incident_affected_items!inner ( id, product_id )',
+        'items:incident_affected_items!inner ( id, product_id, product:products!inner ( brand_id ) )',
       )
-    : LIST_SELECT;
+    : filters.productId
+      ? LIST_SELECT.replace(
+          'items:incident_affected_items ( id )',
+          'items:incident_affected_items!inner ( id, product_id )',
+        )
+      : LIST_SELECT;
 
   const base = supabase.from('incidents').select(select, { count: 'exact' });
   const { data, error, count } = await applyFilters(base, filters)
@@ -237,9 +245,9 @@ export async function getIncidentsForExport(
     delivery_method:delivery_methods ( name ),
     type:incident_types!inner ( slug, category_id, category:incident_categories ( slug ) ),
     causes:incident_secondary_causes ( cause ),
-    items:incident_affected_items${filters.productId ? '!inner' : ''} (
+    items:incident_affected_items${filters.productId || filters.brandId ? '!inner' : ''} (
       product_id, affected_quantity,
-      product:products ( code, name, family )
+      product:products${filters.brandId ? '!inner' : ''} ( code, name, family, brand_id )
     ),
     replacements:incident_replacements ( id )
   `;
@@ -528,7 +536,7 @@ export async function getReportIncidents(
       delivery_method:delivery_methods ( id, name ),
       type:incident_types!inner ( slug, category:incident_categories!inner ( slug ) ),
       causes:incident_secondary_causes ( cause ),
-      items:incident_affected_items ( product:products ( id, code, name, family, presentation ) ),
+      items:incident_affected_items ( product:products ( id, code, name, family, presentation, brand_id, brand:brands ( name ) ) ),
       replacements:incident_replacements ( id )
     `)
     .gte('detected_at', `${from}T00:00:00`)
@@ -552,7 +560,16 @@ export async function getReportIncidents(
     delivery_method: { id: string; name: string } | null;
     type: { slug: string; category: { slug: string } };
     causes: { cause: IncidentCause }[];
-    items: { product: { id: string; code: string | null; name: string | null; family: string } | null }[];
+    items: {
+      product: {
+        id: string;
+        code: string | null;
+        name: string | null;
+        family: string;
+        brand_id: string | null;
+        brand: { name: string } | null;
+      } | null;
+    }[];
     replacements: { id: string }[];
   }[]).map((r) => ({
     id: r.id,
@@ -573,7 +590,13 @@ export async function getReportIncidents(
     products: (r.items ?? [])
       .map((i) => i.product)
       .filter((p): p is NonNullable<typeof p> => p !== null)
-      .map((p) => ({ id: p.id, name: p.name?.trim() || p.family, code: p.code })),
+      .map((p) => ({
+        id: p.id,
+        name: p.name?.trim() || p.family,
+        code: p.code,
+        brandId: p.brand_id,
+        brandName: p.brand?.name ?? null,
+      })),
     replacement_count: (r.replacements ?? []).length,
   }));
 }

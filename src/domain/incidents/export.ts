@@ -139,6 +139,9 @@ export function reportToCsv(
   section('responsibility', payload.byResponsibility);
   section('customer', payload.byCustomer);
   section('product', payload.byProduct);
+  // Defaulted, not assumed: a snapshot frozen before brands existed has no
+  // byBrand and must still export.
+  section('brand', payload.byBrand ?? []);
   section('delivery_method', payload.byDeliveryMethod);
 
   const a = payload.correctiveActions;

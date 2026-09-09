@@ -13,6 +13,15 @@ import type { ReportIncident } from './report';
 
 const WINDOW = { from: '2026-07-01', to: '2026-09-30' };
 
+/** A product on an incident. Unbranded unless a test says otherwise. */
+const P = (
+  id: string,
+  name: string,
+  code: string | null = null,
+  brandId: string | null = null,
+  brandName: string | null = null,
+) => ({ id, name, code, brandId, brandName });
+
 function inc(over: Partial<ReportIncident> = {}): ReportIncident {
   return {
     id: Math.random().toString(36).slice(2),
@@ -30,7 +39,7 @@ function inc(over: Partial<ReportIncident> = {}): ReportIncident {
     delivery_method_name: 'DHL',
     category_slug: 'packaging',
     type_slug: 'packaging_damaged',
-    products: [{ id: 'p1', name: 'Queso Oaxaca', code: '0200' }],
+    products: [P('p1', 'Queso Oaxaca', '0200')],
     replacement_count: 0,
     ...over,
   };
@@ -128,9 +137,9 @@ describe('counting per incident, not per row', () => {
   it('one incident naming a product three times counts once', () => {
     const incidents = many(3, {
       products: [
-        { id: 'p1', name: 'Oaxaca', code: null },
-        { id: 'p1', name: 'Oaxaca', code: null },
-        { id: 'p1', name: 'Oaxaca', code: null },
+        P('p1', 'Oaxaca'),
+        P('p1', 'Oaxaca'),
+        P('p1', 'Oaxaca'),
       ],
     });
     expect(find(incidents, 'product')[0].count).toBe(3);
@@ -139,8 +148,8 @@ describe('counting per incident, not per row', () => {
   it('an incident with several products contributes to each', () => {
     const incidents = many(4, {
       products: [
-        { id: 'p1', name: 'Oaxaca', code: null },
-        { id: 'p2', name: 'Panela', code: null },
+        P('p1', 'Oaxaca'),
+        P('p2', 'Panela'),
       ],
     });
     const products = find(incidents, 'product');

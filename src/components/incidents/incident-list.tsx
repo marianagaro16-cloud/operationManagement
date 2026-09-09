@@ -19,7 +19,7 @@ import {
   resolveVocabularyLabel,
   vocabularyKey,
 } from '@/domain/incidents/vocabulary';
-import type { Customer, DeliveryMethod, Product } from '@/types/orders';
+import type { Brand, Customer, DeliveryMethod, Product } from '@/types/orders';
 import type {
   IncidentCategory,
   IncidentFilters,
@@ -46,6 +46,7 @@ export function IncidentList({
   filters,
   customers,
   products,
+  brands,
   categories,
   types,
   deliveryMethods,
@@ -55,6 +56,7 @@ export function IncidentList({
   filters: IncidentFilters;
   customers: Customer[];
   products: Product[];
+  brands: Brand[];
   categories: IncidentCategory[];
   types: IncidentType[];
   deliveryMethods: DeliveryMethod[];
@@ -195,6 +197,15 @@ export function IncidentList({
                 placeholder={t('incident.allProducts')}
                 emptyMessage={t('orders.noProductsFound')}
               />
+            </LabeledField>
+
+            <LabeledField label={t('master.brand')}>
+              <Select value={filters.brandId ?? ''} onChange={(e) => setFilter('brandId', e.target.value)}>
+                <option value="">{t('incident.allBrands')}</option>
+                {brands.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </Select>
             </LabeledField>
 
             <LabeledField label={t('incident.categoryLabel')}>

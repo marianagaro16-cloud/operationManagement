@@ -102,7 +102,7 @@ describe('the monthly report as a spreadsheet', () => {
     delivery_method_name: 'DHL',
     category_slug: 'packaging',
     type_slug: 'packaging_damaged',
-    products: [{ id: 'p1', name: 'Queso Oaxaca', code: '0200' }],
+    products: [{ id: 'p1', name: 'Queso Oaxaca', code: '0200', brandId: 'b1', brandName: 'Masamor' }],
     replacement_count: 0,
     ...over,
   });

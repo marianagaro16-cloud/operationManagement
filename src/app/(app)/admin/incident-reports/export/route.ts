@@ -69,6 +69,9 @@ export async function GET(request: NextRequest) {
       secondary_cause: dict.incident.cause as unknown as Record<string, string>,
       responsibility: dict.incident.responsibility as unknown as Record<string, string>,
       incident_type: dict.incident.type as unknown as Record<string, string>,
+      // Brands are proper nouns and carry their own label; only the
+      // unclassified bucket needs translating.
+      brand: { __none__: dict.master.noBrand },
     };
     // Summary keys are already camelCase; vocabulary keys are snake_case.
     return table[section]?.[camel] ?? table[section]?.[key] ?? key;

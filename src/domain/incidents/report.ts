@@ -47,8 +47,20 @@ export interface ReportIncident {
   category_slug: string;
   type_slug: string;
 
-  /** Distinct products on the incident, already de-duplicated by the query. */
-  products: { id: string; name: string; code: string | null }[];
+  /**
+   * Distinct products on the incident, already de-duplicated by the query.
+   *
+   * The brand rides along on the product rather than on the incident, because
+   * one incident can touch products of several brands and the report has to
+   * be able to say so.
+   */
+  products: {
+    id: string;
+    name: string;
+    code: string | null;
+    brandId: string | null;
+    brandName: string | null;
+  }[];
   replacement_count: number;
 }
 
@@ -120,6 +132,15 @@ export interface IncidentReportPayload {
   /** WHO and WHAT was involved. Association, not causation. */
   byCustomer: Bucket[];
   byProduct: Bucket[];
+  /**
+   * Incidents per brand. OPTIONAL, because snapshots frozen before brands
+   * existed do not carry it and must still render — the payload is versioned
+   * data, and every reader here defaults it rather than assuming.
+   *
+   * Unclassified products are counted under the key '__none__' with a null
+   * label, which the caller translates, exactly like a vocabulary bucket.
+   */
+  byBrand?: Bucket[];
   byDeliveryMethod: Bucket[];
 
   correctiveActions: ActionSummary;
@@ -208,6 +229,26 @@ export function buildReport(params: {
     return sortBuckets([...counts.values()]);
   })();
 
+  // An incident counts ONCE per brand it touched, however many of that
+  // brand's products were on it — the question is "how many incidents
+  // involved Del Barrio", not "how many product rows". An incident spanning
+  // two brands therefore counts in both, so these do not sum to the total.
+  const byBrand = (() => {
+    const counts = new Map<string, Bucket>();
+    for (const incident of incidents) {
+      const brands = new Map<string, string | null>();
+      for (const product of dedupeById(incident.products)) {
+        brands.set(product.brandId ?? '__none__', product.brandName);
+      }
+      for (const [key, name] of brands) {
+        const existing = counts.get(key);
+        if (existing) existing.count++;
+        else counts.set(key, { key, label: name, count: 1 });
+      }
+    }
+    return sortBuckets([...counts.values()]);
+  })();
+
   // A secondary cause is counted once per incident that recorded it. An
   // incident listing two contributing causes contributes to both buckets,
   // which is why these do not sum to the incident total — and why they are
@@ -247,6 +288,7 @@ export function buildReport(params: {
       i.customer_id ? { key: i.customer_id, label: i.customer_name } : null,
     ),
     byProduct,
+    byBrand,
     byDeliveryMethod: tally(incidents, (i) =>
       i.delivery_method_id
         ? { key: i.delivery_method_id, label: i.delivery_method_name }

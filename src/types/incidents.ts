@@ -198,6 +198,8 @@ export interface IncidentFilters {
   to?: string;
   customerId?: string;
   productId?: string;
+  /** Every incident touching a product of this brand. */
+  brandId?: string;
   orderId?: string;
   categoryId?: string;
   typeId?: string;

@@ -207,6 +207,18 @@ export function IncidentReportView({
           <BucketList buckets={payload.byProduct} month={month} param="productId" resolve />
         </Section>
 
+        <Section title={t('ireport.brandAnalysis')} note={t('ireport.involvementHint')}>
+          {/* Defaulted: a snapshot frozen before brands existed has no
+              byBrand, and an old report must still open. */}
+          <BucketList
+            buckets={payload.byBrand ?? []}
+            translate={() => t('master.noBrand')}
+            month={month}
+            param="brandId"
+            resolve
+          />
+        </Section>
+
         <Section title={t('ireport.deliveryAnalysis')} note={t('ireport.involvementHint')}>
           <BucketList buckets={payload.byDeliveryMethod} month={month} param="deliveryMethodId" resolve />
         </Section>
@@ -414,8 +426,11 @@ function BucketList({
     <ul className="space-y-1">
       {buckets.map((b) => {
         const label = b.label ?? (translate ? translate(b.key) : b.key);
+        // '__none__' is the sentinel for "no value recorded", not an id the
+        // list can filter on, so that row is shown but not made a link — a
+        // link that silently returned everything would be worse than none.
         const href =
-          param && resolve
+          param && resolve && !b.key.startsWith('__')
             ? `/incidents?from=${range.from}&to=${range.to}&${param}=${encodeURIComponent(b.key)}`
             : null;
 

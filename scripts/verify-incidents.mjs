@@ -519,10 +519,74 @@ async function main() {
   check('the extractor found the selects it should',
     selects.length >= 7, `${selects.length} found`);
 
+  /*
+   * The selects that are BUILT AT RUNTIME, which the scrape above cannot see.
+   *
+   * getIncidents swaps the items embed for an inner join when a product or a
+   * brand filter is set, and getIncidentsForExport interpolates '!inner' into
+   * its template. Those variants are the ones a real filtered screen issues,
+   * and none of them existed as a literal string anywhere until they ran — so
+   * the extractor found the unfiltered shape and proved nothing about the
+   * filtered one. Every ${...} is expanded BOTH ways here.
+   */
+  // Character classes rather than escapes, so nothing here depends on how a
+  // shell or an editor treats a backslash on the way into this file.
+  const BT = String.fromCharCode(96);
+  const INTERP = new RegExp('[$][{][^}]+[}]', 'g');
+  for (const [, body] of source.matchAll(new RegExp('const select = ' + BT + '([^' + BT + ']+)' + BT, 'g'))) {
+    selects.push({ label: 'export select (unfiltered)', table: 'incidents', select: body.replace(INTERP, '') });
+    selects.push({ label: 'export select (inner joins)', table: 'incidents', select: body.replace(INTERP, '!inner') });
+  }
+  const listSelect = selects.find((s) => s.label === 'LIST_SELECT')?.select ?? '';
+  for (const [label, replacement] of [
+    ['list select filtered by product', 'items:incident_affected_items!inner ( id, product_id )'],
+    ['list select filtered by brand', 'items:incident_affected_items!inner ( id, product_id, product:products!inner ( brand_id ) )'],
+  ]) {
+    selects.push({
+      label,
+      table: 'incidents',
+      select: listSelect.replace('items:incident_affected_items ( id )', replacement),
+    });
+  }
+
   for (const s of selects) {
     if (!s.table) continue;
     const res = await M.client.from(s.table).select(s.select).limit(1);
     check(`${s.label} runs`, !res.error, res.error?.message ?? '');
+  }
+
+  /*
+   * ...and the filter those inner joins exist to serve actually SELECTS.
+   *
+   * Parsing is not filtering. A join written one level too shallow parses
+   * perfectly and returns every incident, which on screen looks like a filter
+   * that found a lot rather than one that did nothing.
+   */
+  const { data: brandRows } = await admin.from('brands').select('id, name').order('sort_order');
+  const [brandOne, brandTwo] = brandRows ?? [];
+  check('there are at least two brands to tell apart', Boolean(brandOne && brandTwo),
+    (brandRows ?? []).map((b) => b.name).join(' | '));
+
+  if (brandOne && brandTwo) {
+    await admin.from('products').update({ brand_id: brandOne.id }).eq('id', prodA.id);
+    await admin.from('products').update({ brand_id: brandTwo.id }).eq('id', prodB.id);
+
+    const brandSelect = selects.find((s) => s.label === 'list select filtered by brand').select;
+    const hit = await M.client.from('incidents').select(brandSelect)
+      .eq('items.product.brand_id', brandOne.id).eq('id', incident.id);
+    check('an incident is found through the brand of a product on it',
+      !hit.error && (hit.data ?? []).length === 1, hit.error?.message ?? `${(hit.data ?? []).length} rows`);
+
+    // prodC has no brand at all, so a third brand must match nothing here.
+    const third = (brandRows ?? []).find((b) => b.id !== brandOne.id && b.id !== brandTwo.id);
+    if (third) {
+      const miss = await M.client.from('incidents').select(brandSelect)
+        .eq('items.product.brand_id', third.id).eq('id', incident.id);
+      check('and NOT found through a brand none of its products carry',
+        !miss.error && (miss.data ?? []).length === 0, miss.error?.message ?? `${(miss.data ?? []).length} rows`);
+    }
+
+    await admin.from('products').update({ brand_id: null }).in('id', [prodA.id, prodB.id]);
   }
 
   console.log('\n=== 15. Existing modules still work ===');

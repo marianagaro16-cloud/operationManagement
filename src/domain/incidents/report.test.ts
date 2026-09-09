@@ -14,7 +14,14 @@ import { buildReport, compareBuckets, summariseActions, type ReportAction, type 
  * delivery-method section can be read as fault.
  */
 
-const P = (id: string, name: string, code: string | null = null) => ({ id, name, code });
+/** A product on an incident. Unbranded unless a test says otherwise. */
+const P = (
+  id: string,
+  name: string,
+  code: string | null = null,
+  brandId: string | null = null,
+  brandName: string | null = null,
+) => ({ id, name, code, brandId, brandName });
 
 function inc(over: Partial<ReportIncident> = {}): ReportIncident {
   return {
@@ -160,6 +167,57 @@ describe('who and what was involved', () => {
       inc({ id: 'b', customer_id: 'x', customer_name: 'Some Other AG' }),
     ]);
     expect(r.byCustomer).toEqual([{ key: 'x', label: 'Some Other AG', count: 2 }]);
+  });
+});
+
+describe('incidents per brand', () => {
+  it('counts an incident once per brand, however many of its products were on it', () => {
+    const r = build([
+      inc({
+        id: 'a',
+        products: [
+          P('p1', 'Oaxaca', '0200', 'b1', 'Masamor'),
+          P('p2', 'Panela', '0201', 'b1', 'Masamor'),
+        ],
+      }),
+    ]);
+    expect(r.byBrand).toEqual([{ key: 'b1', label: 'Masamor', count: 1 }]);
+  });
+
+  it('counts an incident spanning two brands in both', () => {
+    const r = build([
+      inc({
+        id: 'a',
+        products: [
+          P('p1', 'Oaxaca', '0200', 'b1', 'Masamor'),
+          P('p3', 'Salsa', '0300', 'b2', 'Del Barrio'),
+        ],
+      }),
+    ]);
+    expect(r.byBrand).toHaveLength(2);
+    expect(r.byBrand?.every((b) => b.count === 1)).toBe(true);
+  });
+
+  it('ranks by count, most involved brand first', () => {
+    const masamor = P('p1', 'Oaxaca', '0200', 'b1', 'Masamor');
+    const barrio = P('p3', 'Salsa', '0300', 'b2', 'Del Barrio');
+    const r = build([
+      inc({ id: 'a', products: [barrio] }),
+      inc({ id: 'b', products: [barrio] }),
+      inc({ id: 'c', products: [masamor] }),
+    ]);
+    expect(r.byBrand?.map((b) => b.label)).toEqual(['Del Barrio', 'Masamor']);
+  });
+
+  // Null label, like a vocabulary bucket: the caller owns the wording, and
+  // the key is a sentinel rather than an id anything can be filtered by.
+  it('gathers unclassified products under one unlabelled bucket', () => {
+    const r = build([inc({ id: 'a', products: [P('p1', 'Oaxaca', '0200')] })]);
+    expect(r.byBrand).toEqual([{ key: '__none__', label: null, count: 1 }]);
+  });
+
+  it('is empty when no incident named a product', () => {
+    expect(build([inc({ products: [] })]).byBrand).toEqual([]);
   });
 });
 

@@ -6,7 +6,7 @@ import {
   getIncidentTypes,
   INCIDENT_PAGE_SIZE,
 } from '@/server/incidents';
-import { getCustomers, getDeliveryMethods, getProducts } from '@/server/orders';
+import { getBrands, getCustomers, getDeliveryMethods, getProducts } from '@/server/orders';
 import {
   isCause,
   isResponsibility,
@@ -44,6 +44,7 @@ export default async function IncidentsPage({
     to: isDate(searchParams.to) ? searchParams.to : undefined,
     customerId: isUuid(searchParams.customerId) ? searchParams.customerId : undefined,
     productId: isUuid(searchParams.productId) ? searchParams.productId : undefined,
+    brandId: isUuid(searchParams.brandId) ? searchParams.brandId : undefined,
     orderId: isUuid(searchParams.orderId) ? searchParams.orderId : undefined,
     categoryId: isUuid(searchParams.categoryId) ? searchParams.categoryId : undefined,
     typeId: isUuid(searchParams.typeId) ? searchParams.typeId : undefined,
@@ -66,13 +67,14 @@ export default async function IncidentsPage({
 
   const page = Math.max(1, Number(searchParams.page) || 1);
 
-  const [rows, customers, products, categories, types, deliveryMethods] = await Promise.all([
+  const [rows, customers, products, categories, types, deliveryMethods, brands] = await Promise.all([
     getIncidents(filters, page, INCIDENT_PAGE_SIZE),
     getCustomers(true),
     getProducts(true),
     getIncidentCategories(),
     getIncidentTypes(),
     getDeliveryMethods(true),
+    getBrands(),
   ]);
 
   return (
@@ -84,6 +86,7 @@ export default async function IncidentsPage({
       categories={categories}
       types={types}
       deliveryMethods={deliveryMethods}
+      brands={brands}
       canManage={viewer.can('incidents.manage')}
     />
   );
