@@ -46,20 +46,26 @@ async function main() {
   const { count: custTotal } = await admin.from('customers').select('id', { count: 'exact', head: true });
   const { count: prodActive } = await admin.from('products').select('id', { count: 'exact', head: true }).eq('is_active', true);
   const { count: prodTotal } = await admin.from('products').select('id', { count: 'exact', head: true });
-  // Floors, not exact counts. These started as the numbers the import
-  // produced and then failed every time somebody added a real customer — a
-  // check that goes red during normal use teaches people to ignore the script.
-  // What matters is that the import landed and nothing has wiped it.
-  // Asserted on the TOTAL, not on the active count.
-  //
-  // Deactivating a product is ordinary housekeeping and it moves the active
-  // number down every time — first this check demanded an exact 261, then a
-  // floor of 261, and both went red the moment somebody retired four
-  // products. Nothing here is ever deleted, so the total is the number that
-  // may not fall: if it does, something wiped rows rather than retired them,
-  // and that is the only failure worth waking anyone for.
-  check('the customer import is still there', custTotal >= 216, `${custActive} active / ${custTotal} total`);
-  check('the product import is still there', prodTotal >= 261, `${prodActive} active / ${prodTotal} total`);
+  /*
+   * A WIPE DETECTOR, not a headcount. The floors are deliberately far below
+   * the real numbers.
+   *
+   * This check has now rotted three times. It began as an exact 261 products
+   * and went red when four were retired. It became a floor of 261 active and
+   * went red for the same reason. It became a floor on the TOTAL, reasoned on
+   * "nothing here is ever deleted" — and then the inactive products were
+   * deliberately deleted, which was a perfectly ordinary thing to do.
+   *
+   * Every version failed because it measured a number the operation is
+   * entitled to change. What nobody is entitled to do is empty these tables,
+   * so that is what is asserted, with room for years of ordinary editing.
+   * A check that goes red during normal use teaches people to ignore the
+   * script, which costs more than the check was ever worth.
+   */
+  check('the customer master has not been wiped', custActive >= 100,
+    `${custActive} active / ${custTotal} total`);
+  check('the product master has not been wiped', prodActive >= 100,
+    `${prodActive} active / ${prodTotal} total`);
 
   const { data: brands } = await admin.from('brands').select('name, is_active').order('sort_order');
   const brandNames = (brands ?? []).map((b) => b.name);
@@ -67,7 +73,15 @@ async function main() {
   for (const name of ['Masamor', 'Del Barrio', 'Colectivo Comestibles', 'Complementarios']) {
     check(`brand seeded — ${name}`, brandNames.includes(name), brandNames.join(' | '));
   }
-  check('inactive products preserved, not deleted', prodTotal > prodActive, `${prodTotal - prodActive} inactive`);
+  /*
+   * REMOVED: "inactive products preserved, not deleted".
+   *
+   * It asserted that inactive products exist, which proved the IMPORTER
+   * deactivated rows rather than dropping them. That is a property of a
+   * one-time script, not of the database — and the operation has since
+   * deleted its discontinued products deliberately, which is theirs to do.
+   * Re-adding it would only assert that nobody is allowed to tidy up.
+   */
 
   console.log('\n=== 2. Customer fields kept separate ===');
   const { data: withAdd } = await admin
