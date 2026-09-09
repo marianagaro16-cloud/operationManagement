@@ -65,6 +65,24 @@ const line = (
     allocations: allocated.map((quantity, i) => ({ id: `a${i}`, quantity })),
   }) as unknown as NonNullable<Order['lines']>[number];
 
+/**
+ * The same line with a brand hung off its product, which is where the report
+ * reads it from — the aggregation never sees the brands table itself.
+ */
+const branded = (
+  l: NonNullable<Order['lines']>[number],
+  brandId: string | null,
+  name: string | null,
+) =>
+  ({
+    ...l,
+    product: {
+      ...(l as unknown as { product: Record<string, unknown> }).product,
+      brand_id: brandId,
+      brand: brandId ? { id: brandId, name, sort_order: 10, is_active: true } : null,
+    },
+  }) as unknown as NonNullable<Order['lines']>[number];
+
 const SEP = periodRange('month', '2026-09-15');
 
 describe('period ranges', () => {
@@ -291,6 +309,78 @@ describe('breakdowns', () => {
   });
 });
 
+describe('quantities per brand', () => {
+  it('ranks brands by units ordered and counts distinct products', () => {
+    const r = computeOrderReport(
+      [
+        order({
+          lines: [
+            branded(line('p1', '0001', 'A', 5), 'b1', 'Masamor'),
+            branded(line('p2', '0002', 'B', 3), 'b1', 'Masamor'),
+            branded(line('p3', '0003', 'C', 40), 'b2', 'Del Barrio'),
+          ],
+        }),
+      ],
+      SEP,
+    );
+    expect(r.byBrand.map((b) => b.name)).toEqual(['Del Barrio', 'Masamor']);
+    expect(r.byBrand[0].ordered).toBe(40);
+    expect(r.byBrand[0].products).toBe(1);
+    expect(r.byBrand[1].ordered).toBe(8);
+    expect(r.byBrand[1].products).toBe(2);
+    expect(r.byBrand[1].lines).toBe(2);
+  });
+
+  it('counts a product once however many orders and lines carry it', () => {
+    const r = computeOrderReport(
+      [
+        order({ lines: [branded(line('p1', '0001', 'A', 5), 'b1', 'Masamor')] }),
+        order({ lines: [branded(line('p1', '0001', 'A', 7), 'b1', 'Masamor')] }),
+      ],
+      SEP,
+    );
+    expect(r.byBrand).toHaveLength(1);
+    expect(r.byBrand[0].products).toBe(1);
+    expect(r.byBrand[0].lines).toBe(2);
+    expect(r.byBrand[0].ordered).toBe(12);
+  });
+
+  it('accumulates prepared quantities alongside ordered ones', () => {
+    const r = computeOrderReport(
+      [order({ lines: [branded(line('p1', '0001', 'A', 10, [4, 2]), 'b1', 'Masamor')] })],
+      SEP,
+    );
+    expect(r.byBrand[0].prepared).toBe(6);
+  });
+
+  // A breakdown that quietly drops volume is worse than one that shows a gap:
+  // the brand rows have to add up to the period total, and how much is
+  // unclassified is itself worth seeing.
+  it('keeps unclassified products in one row so the totals still reconcile', () => {
+    const r = computeOrderReport(
+      [
+        order({
+          lines: [
+            branded(line('p1', '0001', 'A', 5), 'b1', 'Masamor'),
+            line('p2', '0002', 'B', 3),
+            line('p3', '0003', 'C', 2),
+          ],
+        }),
+      ],
+      SEP,
+    );
+    const none = r.byBrand.find((b) => b.brandId === null)!;
+    expect(none.name).toBeNull();
+    expect(none.ordered).toBe(5);
+    expect(none.products).toBe(2);
+    expect(r.byBrand.reduce((sum, b) => sum + b.ordered, 0)).toBe(r.totalOrdered);
+  });
+
+  it('is empty for a period with no orders', () => {
+    expect(computeOrderReport([], SEP).byBrand).toEqual([]);
+  });
+});
+
 describe('empty period', () => {
   it('produces a valid, zeroed report', () => {
     const r = computeOrderReport([], periodRange('day', '2026-09-03'));
@@ -305,13 +395,22 @@ describe('empty period', () => {
 describe('CSV export', () => {
   it('emits a header and one row per product', () => {
     const r = computeOrderReport(
-      [order({ lines: [line('p1', '0001', 'Tortillas 1kg', 10, [8])] })],
+      [order({ lines: [branded(line('p1', '0001', 'Tortillas 1kg', 10, [8]), 'b1', 'Masamor')] })],
       SEP,
     );
     const csv = productReportToCsv(r);
     const rows = csv.split('\n');
-    expect(rows[0]).toBe('code;product;ordered;prepared;missing;lines;customers');
-    expect(rows[1]).toBe('0001;Tortillas 1kg;10;8;2;1;1');
+    expect(rows[0]).toBe('code;product;brand;ordered;prepared;missing;lines;customers');
+    expect(rows[1]).toBe('0001;Tortillas 1kg;Masamor;10;8;2;1;1');
+  });
+
+  it('leaves the brand column empty rather than absent for an unclassified product', () => {
+    const r = computeOrderReport(
+      [order({ lines: [line('p1', '0001', 'Tortillas 1kg', 10, [8])] })],
+      SEP,
+    );
+    const rows = productReportToCsv(r).split(String.fromCharCode(10));
+    expect(rows[1]).toBe('0001;Tortillas 1kg;;10;8;2;1;1');
   });
 
   it('quotes a product name containing the separator', () => {

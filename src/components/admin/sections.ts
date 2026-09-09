@@ -51,6 +51,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     screens: [
       { href: '/admin/customers', label: 'master.customersTitle', permission: 'customers.manage' },
       { href: '/admin/products', label: 'master.productsTitle', permission: 'products.manage' },
+      { href: '/admin/brands', label: 'master.brandsTitle', permission: 'products.manage' },
       { href: '/admin/delivery-methods', label: 'master.methodsTitle', permission: 'orders.manage_config' },
       { href: '/admin/incident-types', label: 'incident.typesTitle', permission: 'incidents.manage_config' },
     ],

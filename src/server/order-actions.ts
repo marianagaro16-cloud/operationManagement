@@ -352,6 +352,30 @@ export async function saveProduct(
   return { ok: true, data: undefined };
 }
 
+/**
+ * A brand.
+ *
+ * Never deleted — the products table references it with ON DELETE RESTRICT,
+ * so retiring one is a matter of clearing is_active while every product that
+ * names it goes on naming it.
+ */
+export async function saveBrand(
+  name: string,
+  isActive: boolean,
+  id?: string,
+): Promise<ActionResult> {
+  if (!name.trim()) return { ok: false, error: 'name_required' };
+  const supabase = createClient();
+  const row = { name: name.trim(), is_active: isActive };
+  const { error } = id
+    ? await supabase.from('brands').update(row).eq('id', id)
+    : await supabase.from('brands').insert(row);
+  if (error) return fail(error);
+  revalidatePath('/admin/brands');
+  revalidatePath('/admin/products');
+  return { ok: true, data: undefined };
+}
+
 export async function saveDeliveryMethod(
   name: string,
   slug: string,

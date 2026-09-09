@@ -358,6 +358,7 @@ export const es: Messages = {
     shortLines: 'Líneas incompletas',
     unexplained: 'sin motivo',
     byProduct: 'Cantidades por producto',
+    byBrand: 'Por marca',
     byCustomer: 'Por cliente',
     byDay: 'Por día',
     byMonth: 'Por mes',

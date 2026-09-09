@@ -153,6 +153,44 @@ export function OrderReportView({
             )}
           </section>
 
+          {/* Brands — the question the brand field exists to answer.
+              Products nobody has classified share one row rather than being
+              dropped, so these numbers still reconcile with the period total,
+              and how much is unclassified is itself the finding. */}
+          {report.byBrand.length > 0 && (
+            <section>
+              <h2 className="mb-2 text-[13px] font-semibold">{t('report.byBrand')}</h2>
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[420px] text-[13px]">
+                    <thead>
+                      <tr className="border-b border-border text-[11.5px] uppercase text-subtle">
+                        <th className="px-3 py-2 text-left font-medium">{t('master.brand')}</th>
+                        <th className="px-2 py-2 text-right font-medium">{t('master.productsTitle')}</th>
+                        <th className="px-2 py-2 text-right font-medium">{t('report.lines')}</th>
+                        <th className="px-3 py-2 text-right font-medium">{t('report.unitsOrdered')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {report.byBrand.map((b) => (
+                        <tr key={b.brandId ?? 'unclassified'}>
+                          <td className="max-w-[260px] truncate px-3 py-2">
+                            {b.name ?? (
+                              <span className="italic text-subtle">{t('master.noBrand')}</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2 text-right tabular">{b.products}</td>
+                          <td className="px-2 py-2 text-right tabular">{b.lines}</td>
+                          <td className="px-3 py-2 text-right tabular font-medium">{b.ordered}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </section>
+          )}
+
           {/* Customers */}
           {report.byCustomer.length > 0 && (
             <section>

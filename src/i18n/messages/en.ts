@@ -361,6 +361,7 @@ export const en = {
     shortLines: 'Short lines',
     unexplained: 'without a reason',
     byProduct: 'Quantities by product',
+    byBrand: 'By brand',
     byCustomer: 'By customer',
     byDay: 'By day',
     byMonth: 'By month',

@@ -122,10 +122,23 @@ export function shiftCustomRange(range: PeriodRange, delta: number): PeriodRange
   );
 }
 
+export interface BrandLine {
+  /** The brand id, or null for products nobody has classified yet. */
+  brandId: string | null;
+  name: string | null;
+  ordered: number;
+  prepared: number;
+  /** How many distinct products of this brand were ordered. */
+  products: number;
+  lines: number;
+}
+
 export interface ProductLine {
   productId: string;
   code: string | null;
   name: string;
+  /** The brand this product sells under, or null if nobody classified it. */
+  brand: string | null;
   /** Units customers asked for. */
   ordered: number;
   /** Units actually allocated to lots. */
@@ -192,6 +205,15 @@ export interface OrderReport {
   fulfilmentRate: number;
 
   byProduct: ProductLine[];
+  /**
+   * Units and orders per brand.
+   *
+   * The question the brand field exists to answer: how did Del Barrio do this
+   * month. Products with no brand recorded are counted under a single
+   * unclassified row rather than dropped, so the totals still reconcile — a
+   * breakdown that quietly loses volume is worse than one that shows a gap.
+   */
+  byBrand: BrandLine[];
   byCustomer: CustomerLine[];
   byDeliveryMethod: CountLine[];
   /** Empty for ranges longer than DAY_BREAKDOWN_LIMIT; use byMonth instead. */
@@ -213,6 +235,7 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
   const counted = orders.filter((o) => o.status !== 'cancelled');
 
   const products = new Map<string, ProductLine & { customerIds: Set<string> }>();
+  const brands = new Map<string, BrandLine & { productIds: Set<string> }>();
   const customers = new Map<string, CustomerLine>();
   const methods = new Map<string, CountLine>();
   const days = new Map<BusinessDate, DayLine>();
@@ -284,6 +307,7 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
         // presentation, so the report named a product differently from every
         // screen that showed it.
         name: line.product ? productLabel(line.product) : '—',
+        brand: line.product?.brand?.name ?? null,
         ordered: 0,
         prepared: 0,
         missing: 0,
@@ -296,6 +320,24 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
       p.lines++;
       p.customerIds.add(order.customer_id);
       products.set(line.product_id, p);
+
+      // Unclassified products share one bucket rather than being dropped, so
+      // the brand rows still add up to the period's total.
+      const brandKey = line.product?.brand_id ?? '__none__';
+      const b = brands.get(brandKey) ?? {
+        brandId: line.product?.brand_id ?? null,
+        name: line.product?.brand?.name ?? null,
+        ordered: 0,
+        prepared: 0,
+        products: 0,
+        lines: 0,
+        productIds: new Set<string>(),
+      };
+      b.ordered += ordered;
+      b.prepared += prepared;
+      b.lines++;
+      b.productIds.add(line.product_id);
+      brands.set(brandKey, b);
     }
 
     days.set(order.delivery_date, day);
@@ -368,6 +410,11 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
     fulfilmentRate:
       totalOrdered === 0 ? 0 : Math.round((totalPrepared / totalOrdered) * 100),
     byProduct,
+    byBrand: [...brands.values()]
+      .map(({ productIds, ...b }) => ({ ...b, products: productIds.size }))
+      // Most volume first; the unclassified row sorts with the rest rather
+      // than being pinned, because how much is unclassified IS the finding.
+      .sort((a, b) => b.ordered - a.ordered || (a.name ?? '').localeCompare(b.name ?? '')),
     byCustomer,
     byDeliveryMethod,
     byDay,
@@ -398,13 +445,17 @@ export function periodLabel(range: PeriodRange, locale: string): string {
 
 /** Rows for a CSV export, so the numbers can leave the app. */
 export function productReportToCsv(report: OrderReport): string {
-  const header = ['code', 'product', 'ordered', 'prepared', 'missing', 'lines', 'customers'];
+  // Brand sits next to the name because this file is opened in Excel and
+  // pivoted: a column there is worth more than another table on the screen.
+  const header = ['code', 'product', 'brand', 'ordered', 'prepared', 'missing', 'lines', 'customers'];
   const escape = (v: string | number) => {
     const s = String(v);
     return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const rows = report.byProduct.map((p) =>
-    [p.code ?? '', p.name, p.ordered, p.prepared, p.missing, p.lines, p.customers].map(escape).join(';'),
+    [p.code ?? '', p.name, p.brand ?? '', p.ordered, p.prepared, p.missing, p.lines, p.customers]
+      .map(escape)
+      .join(';'),
   );
   return [header.join(';'), ...rows].join('\n');
 }

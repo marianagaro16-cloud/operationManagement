@@ -358,6 +358,7 @@ export const de: Messages = {
     shortLines: 'Unvollständige Positionen',
     unexplained: 'ohne Grund',
     byProduct: 'Mengen nach Produkt',
+    byBrand: 'Nach Marke',
     byCustomer: 'Nach Kunde',
     byDay: 'Nach Tag',
     byMonth: 'Pro Monat',

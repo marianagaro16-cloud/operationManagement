@@ -46,8 +46,19 @@ async function main() {
   const { count: custTotal } = await admin.from('customers').select('id', { count: 'exact', head: true });
   const { count: prodActive } = await admin.from('products').select('id', { count: 'exact', head: true }).eq('is_active', true);
   const { count: prodTotal } = await admin.from('products').select('id', { count: 'exact', head: true });
-  check('216 active customers', custActive === 216, `${custActive} active / ${custTotal} total`);
-  check('261 active products', prodActive === 261, `${prodActive} active / ${prodTotal} total`);
+  // Floors, not exact counts. These started as the numbers the import
+  // produced and then failed every time somebody added a real customer — a
+  // check that goes red during normal use teaches people to ignore the script.
+  // What matters is that the import landed and nothing has wiped it.
+  check('the customer import is still there', custActive >= 216, `${custActive} active / ${custTotal} total`);
+  check('the product import is still there', prodActive >= 261, `${prodActive} active / ${prodTotal} total`);
+
+  const { data: brands } = await admin.from('brands').select('name, is_active').order('sort_order');
+  const brandNames = (brands ?? []).map((b) => b.name);
+  // Seeded by migration, so a fresh database has to come up with all four.
+  for (const name of ['Masamor', 'Del Barrio', 'Colectivo Comestibles', 'Complementarios']) {
+    check(`brand seeded — ${name}`, brandNames.includes(name), brandNames.join(' | '));
+  }
   check('inactive products preserved, not deleted', prodTotal > prodActive, `${prodTotal - prodActive} inactive`);
 
   console.log('\n=== 2. Customer fields kept separate ===');

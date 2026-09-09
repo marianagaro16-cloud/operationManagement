@@ -8,10 +8,18 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, ErrorState, Field, Input } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { saveDeliveryMethod } from '@/server/order-actions';
-import type { DeliveryMethod } from '@/types/orders';
+import type { ActionResult } from '@/server/actions';
 
 type Row = { id: string; name: string; is_active: boolean; slug?: string };
+
+/**
+ * How this screen saves. Supplied by the caller so one component serves both
+ * delivery methods (which carry a slug) and brands (which do not).
+ */
+export type SaveRow = (
+  input: { name: string; slug: string; is_active: boolean },
+  id?: string,
+) => Promise<ActionResult>;
 
 /**
  * Delivery-method editor.
@@ -25,18 +33,27 @@ export function MasterDataManager({
   title,
   subtitle,
   addLabel,
+  save,
+  withSlug = true,
 }: {
-  rows: DeliveryMethod[];
+  rows: Row[];
   title: string;
   subtitle: string;
   addLabel: string;
+  save: SaveRow;
+  /**
+   * Delivery methods carry a machine key; brands do not. A brand name is a
+   * proper noun that nothing looks up by code, so asking for a slug would be
+   * asking for a value with no reader.
+   */
+  withSlug?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const [editing, setEditing] = useState<Row | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const list = rows as unknown as Row[];
+  const list = rows;
 
   return (
     <>
@@ -74,6 +91,8 @@ export function MasterDataManager({
         <RowDialog
           key={editing?.id ?? 'new'}
           row={editing}
+          save={save}
+          withSlug={withSlug}
           onClose={() => { setCreating(false); setEditing(null); }}
           onSaved={() => { setCreating(false); setEditing(null); router.refresh(); }}
         />
@@ -84,10 +103,14 @@ export function MasterDataManager({
 
 function RowDialog({
   row,
+  save,
+  withSlug,
   onClose,
   onSaved,
 }: {
   row: Row | null;
+  save: SaveRow;
+  withSlug: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -101,10 +124,16 @@ function RowDialog({
   function submit() {
     setError(null);
     startTransition(async () => {
-      const res = await saveDeliveryMethod(
-        name,
-        slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
-        active,
+      const res = await save(
+        {
+          name,
+          // Derived from the name when nobody typed one, and empty for a kind
+          // of row that has no slug at all.
+          slug: withSlug
+            ? slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+            : '',
+          is_active: active,
+        },
         row?.id,
       );
       if (!res.ok) return setError(res.error);
@@ -131,9 +160,11 @@ function RowDialog({
           <Input id="m-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         </Field>
 
-        <Field label={t('master.slug')} htmlFor="m-slug">
-          <Input id="m-slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
-        </Field>
+        {withSlug && (
+          <Field label={t('master.slug')} htmlFor="m-slug">
+            <Input id="m-slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
+          </Field>
+        )}
 
         <Checkbox
           label={t('status.active')}
