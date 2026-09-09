@@ -749,10 +749,6 @@ async function main() {
     bySlug['colectivo-comestibles']?.schedule_config?.rules?.length === 2 &&
     bySlug['complementarios']?.schedule_config?.rules?.length === 2);
 
-  const { count: keptEntries } = await db
-    .from('inventory_entries').select('id', { count: 'exact', head: true });
-  check('every count ever recorded is still readable', (keptEntries ?? 0) >= 20,
-    `${keptEntries} entries`);
 
   /* --------------------------------------- refresh from products */
   section('Refresh from products');
@@ -866,6 +862,31 @@ async function main() {
   check('an item that has been counted cannot be deleted, only switched off',
     Boolean(deleteRefused), deleteRefused?.code ?? 'NO ERROR — history is deletable');
 
+  /*
+   * The invariant, not a headcount.
+   *
+   * This used to assert "at least 20 entries exist", which proved the
+   * restructure had not destroyed the history it found. That was true of one
+   * moment and nothing else: the testing data was later cleared on purpose
+   * and the check went red for doing exactly what was asked.
+   *
+   * What must hold forever is that DEACTIVATING a template does not take its
+   * counts with it — that is the whole reason the combined brand list was
+   * archived rather than deleted. So it is proved on a template this script
+   * owns, and stays green whether the database holds a thousand counts or
+   * none.
+   */
+  await db.from('inventory_templates').update({ is_active: false }).eq('id', rTemplate.id);
+  const { data: archivedInstance, error: archivedError } = await db
+    .from('inventory_instances')
+    .select('id, name_snapshot, items:inventory_instance_items ( id )')
+    .eq('id', rInstance.id)
+    .single();
+  check('a count stays readable after its template is archived',
+    !archivedError && archivedInstance?.items?.length > 0,
+    archivedError?.message ?? `${archivedInstance?.items?.length ?? 0} rows still attached`);
+  await db.from('inventory_templates').update({ is_active: true }).eq('id', rTemplate.id);
+
   // A template counting no brand has nothing to refresh from, and the UI
   // reads that off the column rather than off a list of names.
   const { data: noBrand } = await db.from('inventory_templates')
@@ -930,14 +951,32 @@ async function cleanup() {
   console.log(`  removed; leftover verification templates: ${leftover?.length ?? 0}`);
 }
 
+/*
+ * An abort must READ as a failure.
+ *
+ * It already set exit code 1, but the summary still printed "failed: 0",
+ * so anything reading the last line — a person, or a loop over the verify
+ * scripts — saw a clean run. That is exactly how the iso_week breakage went
+ * unnoticed: this script aborted before its first assertion for weeks and
+ * never said so where anyone was looking.
+ */
+let aborted = null;
+
 main()
   .then(cleanup, async (e) => {
-    console.error('\nAborted:', e.message);
+    aborted = e.message;
+    console.error('', e.message);
     await cleanup();
     process.exitCode = 1;
   })
   .then(() => {
-    console.log(`\n  passed: ${passed}    failed: ${failed}`);
+    if (aborted) {
+      // The checks that never ran are not passes.
+      console.log(`  ABORTED after ${passed} checks — the rest never ran: ${aborted}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(`  passed: ${passed}    failed: ${failed}`);
     for (const f of failures) console.log(`   ! ${f}`);
     if (failed > 0) process.exitCode = 1;
   });
