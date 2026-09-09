@@ -133,13 +133,27 @@ async function main() {
   if (tItemError) throw new Error(`template items: ${tItemError.message}`);
 
   const today = isoDate(0);
+  /*
+   * Fixtures an ASSIGNED USER writes to are dated TOMORROW, not today.
+   *
+   * inventory_edit_deadline is the inventory's own date at 18:00 Zurich, so a
+   * fixture dated today stops accepting writes from a non-admin at 18:00 and
+   * this script turns red on the clock rather than on the code — it passed at
+   * 17:19 and aborted at 18:17 with nothing changed in between. A test whose
+   * result depends on the hour is worse than no test, because it teaches
+   * people that red means "run it tomorrow".
+   *
+   * The closed case is still asserted, on purpose, further down: that section
+   * dates its instance YESTERDAY so the deadline has definitely passed.
+   */
+  const workday = isoDate(1);
   const yesterday = isoDate(-1);
 
   const { data: inst, error: instError } = await db
     .from('inventory_instances')
     .insert({
       template_id: tpl.id,
-      inventory_date: today,
+      inventory_date: workday,
       period_key: 'verify',
       name_snapshot: '',
       kind: 'expiry',
@@ -533,7 +547,7 @@ async function main() {
   const { data: lotInst } = await db
     .from('inventory_instances')
     .insert({
-      template_id: lotTpl.id, inventory_date: today, period_key: 'verify-lot',
+      template_id: lotTpl.id, inventory_date: workday, period_key: 'verify-lot',
       name_snapshot: '', kind: 'expiry', digital_enabled: false,
     })
     .select('id').single();
@@ -576,7 +590,7 @@ async function main() {
   const { data: locInst } = await db
     .from('inventory_instances')
     .insert({
-      template_id: locTpl.id, inventory_date: today, period_key: 'verify-loc',
+      template_id: locTpl.id, inventory_date: workday, period_key: 'verify-loc',
       name_snapshot: '', kind: 'expiry', digital_enabled: false,
     })
     .select('id').single();
@@ -641,7 +655,7 @@ async function main() {
     allForTemplate.length === 3, `got ${allForTemplate.length}`);
 
   const { error: duplicateDate } = await db.from('inventory_instances').insert({
-    template_id: tpl.id, inventory_date: today, period_key: 'verify-dupe',
+    template_id: tpl.id, inventory_date: workday, period_key: 'verify-dupe',
     name_snapshot: '', kind: 'expiry', digital_enabled: false,
   });
   check('a second inventory for the same template and date is refused', Boolean(duplicateDate));
