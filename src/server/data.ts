@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { generateOccurrences, isScheduleConfigured } from '@/domain/recurrence/engine';
+import { generateOccurrences, isScheduleConfigured, type TaskDefinitionLike } from '@/domain/recurrence/engine';
 import { FREQUENCIES } from '@/domain/recurrence/types';
 import { addDays, businessToday, type BusinessDate } from '@/lib/datetime';
 import { atLeast, can, type Permission, type Role } from '@/lib/authz';
@@ -74,7 +74,9 @@ export async function ensureOccurrences(
   // and would do it again every night.
   const { data: tasks, error } = await admin
     .from('tasks')
-    .select('id, frequency, schedule_config, is_active')
+    // starts_on and created_at decide how far back a task may reach; without
+  // them every task would look like it had always existed.
+  .select('id, frequency, schedule_config, is_active, starts_on, created_at')
     .eq('is_active', true)
     .eq('frequency', 'daily');
 
@@ -88,7 +90,10 @@ export async function ensureOccurrences(
   }[] = [];
   let skippedTasks = 0;
 
-  for (const task of (tasks ?? []) as Task[]) {
+  // TaskDefinitionLike, not Task: this loop needs the scheduling fields and
+  // nothing else, and the select fetches exactly those. Casting to the full
+  // row would be claiming columns that were never read.
+  for (const task of (tasks ?? []) as TaskDefinitionLike[]) {
     // An unconfigured task generates nothing — never a guessed date.
     if (!isScheduleConfigured(task)) {
       skippedTasks++;

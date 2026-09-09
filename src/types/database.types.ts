@@ -2539,6 +2539,7 @@ export type Database = {
           is_active: boolean
           is_skippable: boolean
           schedule_config: Json | null
+          starts_on: string | null
           title: string
           translations: Json
           updated_at: string
@@ -2554,6 +2555,7 @@ export type Database = {
           is_active?: boolean
           is_skippable?: boolean
           schedule_config?: Json | null
+          starts_on?: string | null
           title: string
           translations?: Json
           updated_at?: string
@@ -2569,6 +2571,7 @@ export type Database = {
           is_active?: boolean
           is_skippable?: boolean
           schedule_config?: Json | null
+          starts_on?: string | null
           title?: string
           translations?: Json
           updated_at?: string

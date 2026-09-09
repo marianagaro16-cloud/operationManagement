@@ -98,10 +98,20 @@ async function main() {
   check('inventory_instances has a source column', !invProbeErr, invProbeErr?.message?.slice(0, 70));
 
   console.log('\n=== 2. The auto-generated future was cleared ===');
+  /*
+   * source = 'auto', which is the whole point of the check.
+   *
+   * It claims no NON-DAILY occurrence comes from the generator, but it was
+   * matching every non-daily pending row regardless of origin — so it went red
+   * the first time somebody placed a weekly task from the calendar, which is
+   * the feature working exactly as designed. The generator's output is
+   * identifiable, so identify it.
+   */
   const { data: futureAuto } = await admin
     .from('task_occurrences')
-    .select('id, task:tasks!inner(frequency)')
+    .select('id, source, task:tasks!inner(frequency)')
     .eq('status', 'pending')
+    .eq('source', 'auto')
     .gt('effective_due_date', today);
   const leftoverNonDaily = (futureAuto ?? []).filter(
     (o) => o.task && o.task.frequency !== 'daily',

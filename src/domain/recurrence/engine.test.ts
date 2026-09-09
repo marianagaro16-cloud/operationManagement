@@ -27,6 +27,86 @@ function task(partial: Partial<TaskDefinitionLike> & Pick<TaskDefinitionLike, 'f
 const dates = (o: { dueDate: string }[]) => o.map((x) => x.dueDate);
 const keys = (o: { periodKey: string }[]) => o.map((x) => x.periodKey);
 
+describe('a task never reaches back before it started', () => {
+  /*
+   * The checklist is materialised on demand, so opening the Calendar on a
+   * past month used to invent requirements for days when the task did not
+   * exist — and every one of those reads as OVERDUE, because nobody ticked a
+   * box on a system nobody was using. Deleting them did not hold: they came
+   * back the next time somebody browsed that month.
+   */
+  const daily = { frequency: 'daily' as const, schedule_config: { kind: 'daily' } };
+
+  it('starts at starts_on when the window opens earlier', () => {
+    const out = generateOccurrences(
+      task({ ...daily, starts_on: '2026-09-04' }),
+      '2026-09-01',
+      '2026-09-06',
+    );
+    expect(dates(out)).toEqual(['2026-09-04', '2026-09-05', '2026-09-06']);
+  });
+
+  it('leaves a window that already starts later alone', () => {
+    const out = generateOccurrences(
+      task({ ...daily, starts_on: '2026-09-01' }),
+      '2026-09-04',
+      '2026-09-06',
+    );
+    expect(dates(out)).toEqual(['2026-09-04', '2026-09-05', '2026-09-06']);
+  });
+
+  it('produces nothing when the whole window predates the start', () => {
+    const out = generateOccurrences(
+      task({ ...daily, starts_on: '2026-10-01' }),
+      '2026-09-01',
+      '2026-09-30',
+    );
+    expect(out).toEqual([]);
+  });
+
+  // A task cannot have been due before somebody defined it.
+  it('falls back to the creation date when no start is set', () => {
+    const out = generateOccurrences(
+      task({ ...daily, created_at: '2026-09-05T14:22:00.000Z' }),
+      '2026-09-01',
+      '2026-09-07',
+    );
+    expect(dates(out)).toEqual(['2026-09-05', '2026-09-06', '2026-09-07']);
+  });
+
+  it('prefers an explicit start over the creation date', () => {
+    const out = generateOccurrences(
+      task({ ...daily, starts_on: '2026-09-03', created_at: '2026-09-05T00:00:00.000Z' }),
+      '2026-09-01',
+      '2026-09-04',
+    );
+    expect(dates(out)).toEqual(['2026-09-03', '2026-09-04']);
+  });
+
+  it('has no floor at all when a definition carries neither', () => {
+    const out = generateOccurrences(task(daily), '2026-09-01', '2026-09-03');
+    expect(dates(out)).toEqual(['2026-09-01', '2026-09-02', '2026-09-03']);
+  });
+
+  /*
+   * Clamped BEFORE the rule runs, not filtered after.
+   *
+   * A weekly rule anchors on the first period of its window, so filtering
+   * afterwards would leave it anchored on a week the task did not exist for
+   * and shift every later date.
+   */
+  it('anchors a weekly rule on the first real period, not a filtered one', () => {
+    const weekly = { frequency: 'weekly' as const, schedule_config: { kind: 'weekly', weekday: 5 } };
+    const out = generateOccurrences(
+      task({ ...weekly, starts_on: '2026-09-09' }),
+      '2026-09-01',
+      '2026-09-30',
+    );
+    expect(dates(out).every((d) => d >= '2026-09-09')).toBe(true);
+    expect(dates(out)[0]).toBe('2026-09-11');
+  });
+});
+
 describe('daily', () => {
   it('produces one requirement on every day of the range', () => {
     const out = generateOccurrences(

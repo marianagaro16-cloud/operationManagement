@@ -36,6 +36,30 @@ export interface TaskDefinitionLike {
   frequency: Frequency;
   schedule_config: unknown;
   is_active: boolean;
+  /**
+   * First date this task may produce a requirement.
+   *
+   * Null means "since it existed" — created_at below. The checklist is
+   * materialised on demand, so without a floor, browsing to a past month
+   * invents requirements for days when the task did not exist and nobody
+   * could have done it. Every one of those reads as overdue.
+   */
+  starts_on?: string | null;
+  created_at?: string | null;
+}
+
+/**
+ * The first date a task can require anything.
+ *
+ * An explicit starts_on wins; otherwise the day the task was created, because
+ * a task cannot have been due before somebody defined it. A definition
+ * carrying neither has no floor, which is what the pure callers in the tests
+ * rely on.
+ */
+export function effectiveStart(task: TaskDefinitionLike): BusinessDate | null {
+  if (task.starts_on) return task.starts_on.slice(0, 10) as BusinessDate;
+  if (task.created_at) return task.created_at.slice(0, 10) as BusinessDate;
+  return null;
 }
 
 /**
@@ -149,7 +173,12 @@ export function generateOccurrences(
   if (!resolved.ok) return [];
 
   const config = resolved.config;
-  const start = parseBusinessDate(rangeStart);
+  // The window never begins before the task does. Clamped here rather than
+  // filtered afterwards, so a weekly or monthly rule anchors on the first
+  // real period instead of on a period the task did not exist for.
+  const floor = effectiveStart(task);
+  const from = floor && floor > rangeStart ? floor : rangeStart;
+  const start = parseBusinessDate(from);
   const end = parseBusinessDate(rangeEnd);
   if (end < start) return [];
 
