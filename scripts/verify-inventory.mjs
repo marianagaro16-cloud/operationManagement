@@ -690,24 +690,36 @@ async function main() {
     bySlug['materia-prima']?.digital_enabled === false &&
     bySlug['materia-prima']?.is_active === true);
 
-  check('Empaques is ONE list now: monthly, by location',
+  // Counted, not name-checked against a second template that used to exist:
+  // the semi-annual list was deactivated and has since been deleted, and
+  // what must stay true is that packaging is counted from ONE list.
+  const empaquesLists = live.filter((t) => t.name.startsWith('Empaques'));
+  check('Empaques is ONE list, monthly, by location',
+    empaquesLists.length === 1 &&
     bySlug['empaques']?.kind === 'location' &&
     bySlug['empaques']?.frequency === 'monthly' &&
-    bySlug['empaques']?.items.length === 26 &&
-    bySlug['empaques-semestral']?.is_active === false,
-    `mensual=${bySlug['empaques']?.items.length} semestral active=${bySlug['empaques-semestral']?.is_active}`);
+    bySlug['empaques']?.items.length === 26,
+    `${empaquesLists.length} Empaques list(s), ${bySlug['empaques']?.items.length} items`);
 
   /*
-   * The combined list must SURVIVE, deactivated.
+   * REPLACED: "the old combined brand list is archived, not deleted".
    *
-   * It holds two counting sessions, and inventory_instance_items references
-   * its items ON DELETE RESTRICT precisely so tidying the list cannot erase
-   * the history counted from it. A green run here is what says the cleanup
-   * did not take the past with it.
+   * That asserted a transitional state. The combined list was deactivated
+   * rather than dropped because it held counting history the schema refuses
+   * to erase — then the testing data was cleared on purpose, the history
+   * went with it, and the empty template was deleted. Nothing was lost that
+   * the check existed to protect, and re-adding it would assert that a
+   * cleanup is forbidden.
+   *
+   * What must hold FOREVER is what the split was for: no two live
+   * inventories claim the same brand. That is what going back to a combined
+   * or duplicated list would look like, and it stays assertable whatever
+   * anyone deletes.
    */
-  check('the old combined brand list is archived, not deleted',
-    bySlug['masamor-del-barrio'] !== undefined &&
-    bySlug['masamor-del-barrio']?.is_active === false);
+  const claimed = live.filter((t) => t.brand_id).map((t) => t.brand_id);
+  check('no two live inventories count the same brand',
+    new Set(claimed).size === claimed.length,
+    `${claimed.length} branded inventories, ${new Set(claimed).size} distinct brands`);
 
   /*
    * DERIVED, never hardcoded.
