@@ -11,6 +11,7 @@ import { Badge, Card, EmptyState, ErrorState, Field, Input, Textarea } from '@/c
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/shell/app-shell';
 import { canAllocate, lineProgress, toQuantity } from '@/domain/orders/progress';
+import { groupLinesByBrand } from '@/domain/orders/picking';
 import { weekDays } from '@/domain/orders/scheduling';
 import { addDays } from '@/lib/datetime';
 import { UrgencyBadge } from './urgency-badge';
@@ -212,11 +213,23 @@ function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; 
         </p>
       )}
 
-      <ul className="divide-y divide-border">
-        {order.lines.map((line) => (
-          <PreparationLine key={line.id} line={line} canManage={canManage} />
-        ))}
-      </ul>
+      {/* Grouped by brand, because our own brands are stocked together and
+          the line order is otherwise whatever sequence somebody typed. The
+          heading shows even when an order is all one brand: a picker reads
+          one layout rather than two, and knowing the shelf before starting
+          is worth a single line. Quantities and positions are untouched. */}
+      {groupLinesByBrand(order.lines).map((group) => (
+        <div key={group.brandId ?? '__none__'}>
+          <p className="border-b border-border bg-surface-2/40 px-3.5 py-1 text-[11px] font-medium uppercase tracking-wide text-subtle">
+            {group.name ?? t('master.noBrand')}
+          </p>
+          <ul className="divide-y divide-border">
+            {group.lines.map((line) => (
+              <PreparationLine key={line.id} line={line} canManage={canManage} />
+            ))}
+          </ul>
+        </div>
+      ))}
     </Card>
   );
 }

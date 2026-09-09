@@ -15,7 +15,7 @@ import { PageHeader } from '@/components/shell/app-shell';
 import { lineProgress, toQuantity } from '@/domain/orders/progress';
 import { isBeforeGoLive } from '@/domain/orders/config';
 import { BUSINESS_TZ } from '@/lib/datetime';
-import { productLabel, type Customer, type DeliveryMethod, type OrderWithProgress, type Product } from '@/types/orders';
+import { productLabel, type Brand, type Customer, type DeliveryMethod, type OrderWithProgress, type Product } from '@/types/orders';
 import { IncidentDialog, orderContextFrom } from '@/components/incidents/incident-dialog';
 import type { IncidentCategory, IncidentType } from '@/types/incidents';
 import { OrderDialog } from './order-dialog';
@@ -35,6 +35,7 @@ export function OrderControl({
   customers,
   products,
   deliveryMethods,
+  brands,
   month,
   filters,
   canManage,
@@ -46,11 +47,14 @@ export function OrderControl({
   customers: Customer[];
   products: Product[];
   deliveryMethods: DeliveryMethod[];
+  brands: Brand[];
   month: string;
   filters: {
     customerId?: string;
     deliveryMethodId?: string;
     status?: string;
+    /** Orders carrying at least one line of this brand. */
+    brandId?: string;
     /** Free text. When set, the search spans every month, not just this one. */
     query?: string;
   };
@@ -88,6 +92,7 @@ export function OrderControl({
     if (filters.customerId) params.set('customer', filters.customerId);
     if (filters.deliveryMethodId) params.set('method', filters.deliveryMethodId);
     if (filters.status) params.set('status', filters.status);
+    if (filters.brandId) params.set('brand', filters.brandId);
     if (filters.query) params.set('q', filters.query);
     if (value) params.set(key, value);
     else params.delete(key);
@@ -113,6 +118,10 @@ export function OrderControl({
       label:
         deliveryMethods.find((m) => m.id === filters.deliveryMethodId)?.name ??
         t('orders.deliveryMethod'),
+    },
+    filters.brandId && {
+      key: 'brand',
+      label: brands.find((b) => b.id === filters.brandId)?.name ?? t('master.brand'),
     },
     filters.status && {
       key: 'status',
@@ -198,7 +207,7 @@ export function OrderControl({
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {/* Searchable: 216 customers is far too many to scroll. An empty
               field means "all", which is why clearing it removes the filter. */}
           <Combobox
@@ -229,6 +238,18 @@ export function OrderControl({
             <option value="">{t('orders.allMethods')}</option>
             {deliveryMethods.map((m) => (
               <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </Select>
+          {/* Our own brands, so a plain select — there are four of them and
+              they are not going to become two hundred. */}
+          <Select
+            value={filters.brandId ?? ''}
+            onChange={(e) => setFilter('brand', e.target.value)}
+            aria-label={t('master.brand')}
+          >
+            <option value="">{t('master.allBrands')}</option>
+            {brands.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </Select>
           <Select

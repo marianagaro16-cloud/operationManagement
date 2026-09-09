@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { getCustomers, getDeliveryMethods, getOrdersByDelivery, getProducts } from '@/server/orders';
+import { getBrands, getCustomers, getDeliveryMethods, getOrdersByDelivery, getProducts } from '@/server/orders';
 import { getIncidentCategories, getIncidentTypes } from '@/server/incidents';
 import { getViewer } from '@/server/data';
 import { monthRange } from '@/domain/orders/scheduling';
@@ -23,6 +23,7 @@ export default async function OrdersPage({
     customer?: string;
     method?: string;
     status?: string;
+    brand?: string;
     q?: string;
   };
 }) {
@@ -49,7 +50,7 @@ export default async function OrdersPage({
 
   const canReportIncident = viewer.can('incidents.manage');
 
-  const [found, customers, products, deliveryMethods, incidentCategories, incidentTypes] =
+  const [found, customers, products, deliveryMethods, brands, incidentCategories, incidentTypes] =
     await Promise.all([
       getOrdersByDelivery({
         from: start,
@@ -61,6 +62,7 @@ export default async function OrdersPage({
       getCustomers(),
       getProducts(),
       getDeliveryMethods(),
+      getBrands(),
       // Only for somebody who can actually raise one; a viewer who cannot is
       // never made to pay for the vocabulary.
       canReportIncident ? getIncidentCategories() : Promise.resolve([]),
@@ -79,17 +81,38 @@ export default async function OrdersPage({
       )
     : found;
 
+  /*
+   * The brand filter is applied HERE rather than in the query.
+   *
+   * A brand sits two joins below an order — orders to order_lines to
+   * products — so as a PostgREST filter it would need an inner join, and an
+   * inner join also trims the embedded lines to the ones that matched. The
+   * screen would then show orders missing half their contents, which is not a
+   * filtered list but a wrong one. An order is picked, packed and delivered
+   * as a unit, so the filter decides which ORDERS appear and never which
+   * lines they contain.
+   *
+   * Only an id that is actually a brand is honoured, so a hand-edited URL
+   * narrows the list to nothing visible rather than being passed through.
+   */
+  const brandId = brands.some((b) => b.id === searchParams.brand) ? searchParams.brand : undefined;
+  const visible = brandId
+    ? orders.filter((o) => o.lines.some((l) => l.product.brand_id === brandId))
+    : orders;
+
   return (
     <OrderControl
-      orders={orders}
+      orders={visible}
       customers={customers}
       products={products}
       deliveryMethods={deliveryMethods}
+      brands={brands}
       month={month}
       filters={{
         customerId: searchParams.customer,
         deliveryMethodId: searchParams.method,
         status: searchParams.status,
+        brandId,
         query,
       }}
       canManage

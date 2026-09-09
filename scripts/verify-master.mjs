@@ -50,8 +50,16 @@ async function main() {
   // produced and then failed every time somebody added a real customer — a
   // check that goes red during normal use teaches people to ignore the script.
   // What matters is that the import landed and nothing has wiped it.
-  check('the customer import is still there', custActive >= 216, `${custActive} active / ${custTotal} total`);
-  check('the product import is still there', prodActive >= 261, `${prodActive} active / ${prodTotal} total`);
+  // Asserted on the TOTAL, not on the active count.
+  //
+  // Deactivating a product is ordinary housekeeping and it moves the active
+  // number down every time — first this check demanded an exact 261, then a
+  // floor of 261, and both went red the moment somebody retired four
+  // products. Nothing here is ever deleted, so the total is the number that
+  // may not fall: if it does, something wiped rows rather than retired them,
+  // and that is the only failure worth waking anyone for.
+  check('the customer import is still there', custTotal >= 216, `${custActive} active / ${custTotal} total`);
+  check('the product import is still there', prodTotal >= 261, `${prodActive} active / ${prodTotal} total`);
 
   const { data: brands } = await admin.from('brands').select('name, is_active').order('sort_order');
   const brandNames = (brands ?? []).map((b) => b.name);
