@@ -65,6 +65,7 @@ export const en = {
     statistics: 'Statistics',
     settings: 'Settings',
     manage: 'Manage',
+    more: 'More',
     manageSubtitle: 'Master data, what generates work, and how the system is set up',
     sectionMasterData: 'Master data',
     sectionMasterDataBody: 'The customers, products and vocabulary everything else refers to',

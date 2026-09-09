@@ -63,6 +63,7 @@ export const de: Messages = {
     statistics: 'Statistik',
     settings: 'Einstellungen',
     manage: 'Verwaltung',
+    more: 'Mehr',
     manageSubtitle: 'Stammdaten, was Arbeit erzeugt, und wie das System eingerichtet ist',
     sectionMasterData: 'Stammdaten',
     sectionMasterDataBody: 'Die Kunden, Produkte und Begriffe, auf die sich alles andere bezieht',
