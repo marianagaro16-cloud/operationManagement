@@ -5,6 +5,7 @@ import { weekDays } from '@/domain/orders/scheduling';
 import { OVERDUE_LOOKBACK_DAYS } from '@/domain/buckets';
 import { addDays, type BusinessDate } from '@/lib/datetime';
 import type {
+  Brand,
   Customer,
   DeliveryMethod,
   Order,
@@ -198,11 +199,25 @@ export async function getCustomers(includeInactive = false): Promise<Customer[]>
 export async function getProducts(includeInactive = false): Promise<Product[]> {
   const supabase = createClient();
   // Imported name is the display order; legacy rows fall back to family.
-  let q = supabase.from('products').select('*').order('name', { nullsFirst: false }).order('family');
+  let q = supabase
+    .from('products')
+    .select('*, brand:brands ( id, name, sort_order, is_active )')
+    .order('name', { nullsFirst: false })
+    .order('family');
   if (!includeInactive) q = q.eq('is_active', true);
   const { data, error } = await q;
   if (error) throw new Error(error.message);
   return (data ?? []) as Product[];
+}
+
+/** Our own brands. Three of them, so the whole list is always fetched. */
+export async function getBrands(includeInactive = false): Promise<Brand[]> {
+  const supabase = createClient();
+  let q = supabase.from('brands').select('*').order('sort_order').order('name');
+  if (!includeInactive) q = q.eq('is_active', true);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Brand[];
 }
 
 export async function getDeliveryMethods(includeInactive = false): Promise<DeliveryMethod[]> {

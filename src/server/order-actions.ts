@@ -324,6 +324,8 @@ const productSchema = z.object({
    * a meaningful answer, not a missing one.
    */
   units_per_box: z.number().positive().nullable().optional(),
+  /** One of our brands, or null while the product is unclassified. */
+  brand_id: z.string().uuid().nullable().optional(),
   is_active: z.boolean(),
   needs_review: z.boolean(),
 });
@@ -337,7 +339,11 @@ export async function saveProduct(
   const supabase = createClient();
   // An omitted units_per_box means "not stated"; an explicit null means "no
   // reliable conversion exists". Both store NULL, which is the honest value.
-  const row = { ...parsed.data, units_per_box: parsed.data.units_per_box ?? null };
+  const row = {
+    ...parsed.data,
+    units_per_box: parsed.data.units_per_box ?? null,
+    brand_id: parsed.data.brand_id ?? null,
+  };
   const { error } = id
     ? await supabase.from('products').update(row).eq('id', id)
     : await supabase.from('products').insert(row);

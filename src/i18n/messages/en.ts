@@ -935,6 +935,13 @@ export const en = {
     stillOpen: '{count} products open',
   },
   master: {
+    brand: 'Brand',
+    brandHint: 'Which of our brands this product is sold under.',
+    noBrand: 'No brand',
+    allBrands: 'All brands',
+    brandsTitle: 'Brands',
+    brandsSubtitle: 'The names we sell under',
+    newBrand: 'New brand',
     codeHint: 'Business identifier. Must be unique among active products.',
     codeInUse: 'Another active product already uses this code',
     companyName: 'Company name',

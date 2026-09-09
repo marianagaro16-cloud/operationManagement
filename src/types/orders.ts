@@ -45,6 +45,14 @@ export interface DeliveryMethod {
   is_active: boolean;
 }
 
+/** One of our own brands. Proper nouns, so never translated. */
+export interface Brand {
+  id: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
 export interface Product {
   id: string;
   code: string | null;
@@ -63,6 +71,12 @@ export interface Product {
    * arrive from Postgres as a string.
    */
   units_per_box: number | string | null;
+  /**
+   * Which of our brands this is sold under. NULL means nobody has classified
+   * it yet — never inferred from the name, which is stored verbatim.
+   */
+  brand_id: string | null;
+  brand?: Brand | null;
   needs_review: boolean;
   is_active: boolean;
 }

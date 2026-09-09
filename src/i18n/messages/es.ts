@@ -913,6 +913,13 @@ export const es: Messages = {
     stillOpen: '{count} productos pendientes',
   },
   master: {
+    brand: 'Marca',
+    brandHint: 'Bajo cuál de nuestras marcas se vende este producto.',
+    noBrand: 'Sin marca',
+    allBrands: 'Todas las marcas',
+    brandsTitle: 'Marcas',
+    brandsSubtitle: 'Los nombres bajo los que vendemos',
+    newBrand: 'Nueva marca',
     codeHint: 'Identificador de negocio. Debe ser único entre los productos activos.',
     codeInUse: 'Otro producto activo ya usa este código',
     companyName: 'Nombre de la empresa',

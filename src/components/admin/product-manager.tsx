@@ -13,7 +13,7 @@ import { PageHeader } from '@/components/shell/app-shell';
 import { saveProduct } from '@/server/order-actions';
 import { addProductAlias, deleteProductAlias } from '@/server/import-actions';
 import type { ProductAliasRow } from '@/server/order-import';
-import { productLabel, type Customer, type Product } from '@/types/orders';
+import { productLabel, type Brand, type Customer, type Product } from '@/types/orders';
 
 /**
  * Product master.
@@ -37,10 +37,12 @@ export function ProductManager({
   products,
   aliases,
   customers,
+  brands,
 }: {
   products: Product[];
   aliases: ProductAliasRow[];
   customers: Customer[];
+  brands: Brand[];
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -48,6 +50,7 @@ export function ProductManager({
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+  const [brandFilter, setBrandFilter] = useState('');
 
   const inactiveCount = products.filter((p) => !p.is_active).length;
   const reviewCount = products.filter((p) => p.needs_review).length;
@@ -58,12 +61,19 @@ export function ProductManager({
   const visible = useMemo(
     () =>
       filterByQuery(
-        products.filter((p) => showInactive || p.is_active),
+        products
+          .filter((p) => showInactive || p.is_active)
+          .filter((p) =>
+            brandFilter === '' ? true
+              : brandFilter === 'none' ? p.brand_id === null
+                : p.brand_id === brandFilter,
+          ),
         query,
-        // Searchable by code and by name, which is how people actually look.
-        (p) => `${p.code ?? ''} ${p.name ?? ''} ${p.family}`,
+        // Searchable by code, name and BRAND, which is how people actually
+        // look — "masamor" should find the Masamor range.
+        (p) => `${p.code ?? ''} ${p.name ?? ''} ${p.family} ${p.brand?.name ?? ''}`,
       ),
-    [products, query, showInactive],
+    [products, query, showInactive, brandFilter],
   );
 
   return (
@@ -87,6 +97,22 @@ export function ProductManager({
           className="max-w-xs"
           aria-label={t('common.search')}
         />
+        {/* Three brands, so a plain select beats a combobox. "All brands"
+            and "No brand" are both real answers — the second is how somebody
+            finds the catalogue that still needs classifying. */}
+        <Select
+          value={brandFilter}
+          onChange={(e) => setBrandFilter(e.target.value)}
+          aria-label={t('master.brand')}
+          className="max-w-[12rem]"
+        >
+          <option value="">{t('master.allBrands')}</option>
+          {brands.map((b) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+          <option value="none">{t('master.noBrand')}</option>
+        </Select>
+
         {inactiveCount > 0 && (
           <button
             onClick={() => setShowInactive((v) => !v)}
@@ -131,6 +157,10 @@ export function ProductManager({
                 >
                   {productLabel(p)}
                 </span>
+                {/* The brand a product is sold under, beside its name.
+                    Absent rather than "—" when unclassified: a badge that
+                    says nothing still costs a column on a phone. */}
+                {p.brand && <Badge tone="neutral">{p.brand.name}</Badge>}
                 {p.needs_review && (
                   <Badge tone="warn" title={p.notes ?? undefined}>
                     <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
@@ -160,6 +190,7 @@ export function ProductManager({
           product={editing}
           aliases={editing ? aliases.filter((a) => a.product_id === editing.id) : []}
           customers={customers}
+          brands={brands}
           onClose={() => { setCreating(false); setEditing(null); }}
           onSaved={() => { setCreating(false); setEditing(null); router.refresh(); }}
           onAliasChanged={() => router.refresh()}
@@ -173,6 +204,7 @@ function ProductDialog({
   product,
   aliases,
   customers,
+  brands,
   onClose,
   onSaved,
   onAliasChanged,
@@ -180,6 +212,7 @@ function ProductDialog({
   product: Product | null;
   aliases: ProductAliasRow[];
   customers: Customer[];
+  brands: Brand[];
   onClose: () => void;
   onSaved: () => void;
   onAliasChanged: () => void;
@@ -188,6 +221,7 @@ function ProductDialog({
   const [code, setCode] = useState(product?.code ?? '');
   const [name, setName] = useState(product?.name ?? '');
   const [category, setCategory] = useState(product?.category ?? '');
+  const [brandId, setBrandId] = useState(product?.brand_id ?? '');
   const [notes, setNotes] = useState(product?.notes ?? '');
   const [unitsPerBox, setUnitsPerBox] = useState(
     product?.units_per_box === null || product?.units_per_box === undefined
@@ -210,6 +244,7 @@ function ProductDialog({
           family: product?.family ?? name.trim(),
           presentation: product?.presentation ?? '—',
           category: category.trim() || null,
+          brand_id: brandId || null,
           notes: notes.trim() || null,
           // An empty field is NULL, which says "no reliable conversion" and is
           // a real answer — the importer asks rather than assuming.
@@ -253,6 +288,17 @@ function ProductDialog({
           htmlFor="p-name"
         >
           <Input id="p-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        </Field>
+
+        <Field label={t('master.brand')} hint={t('master.brandHint')} htmlFor="p-brand">
+          <Select id="p-brand" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
+            {/* Empty is a real answer, not a prompt: a product nobody has
+                classified is a fact about the catalogue. */}
+            <option value="">{t('master.noBrand')}</option>
+            {brands.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </Select>
         </Field>
 
         <Field label={t('master.category')} htmlFor="p-cat">

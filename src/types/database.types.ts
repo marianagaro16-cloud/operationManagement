@@ -39,6 +39,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      brands: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -1980,6 +2007,7 @@ export type Database = {
       }
       products: {
         Row: {
+          brand_id: string | null
           category: string | null
           code: string | null
           created_at: string
@@ -1994,6 +2022,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          brand_id?: string | null
           category?: string | null
           code?: string | null
           created_at?: string
@@ -2008,6 +2037,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          brand_id?: string | null
           category?: string | null
           code?: string | null
           created_at?: string
@@ -2021,7 +2051,15 @@ export type Database = {
           units_per_box?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -2586,18 +2624,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      operational_audit: {
-        Row: {
-          action: string | null
-          actor_id: string | null
-          created_at: string | null
-          id: string | null
-          new_value: Json | null
-          previous_value: Json | null
-          source: string | null
-        }
-        Relationships: []
       }
     }
     Functions: {

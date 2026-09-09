@@ -913,6 +913,13 @@ export const de: Messages = {
     stillOpen: '{count} Produkte offen',
   },
   master: {
+    brand: 'Marke',
+    brandHint: 'Unter welcher unserer Marken dieses Produkt verkauft wird.',
+    noBrand: 'Keine Marke',
+    allBrands: 'Alle Marken',
+    brandsTitle: 'Marken',
+    brandsSubtitle: 'Die Namen, unter denen wir verkaufen',
+    newBrand: 'Neue Marke',
     codeHint: 'Geschäftskennung. Muss unter aktiven Produkten eindeutig sein.',
     codeInUse: 'Ein anderes aktives Produkt verwendet diesen Code bereits',
     companyName: 'Firmenname',
