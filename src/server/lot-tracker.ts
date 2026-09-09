@@ -63,6 +63,8 @@ export interface LotAllocationRow {
   modified_by: string | null;
   product_name: string;
   product_code: string | null;
+  /** Null for a product nobody has classified — never guessed from the name. */
+  brand_name: string | null;
   customer_name: string;
   customer_addition: string | null;
   customer_active: boolean;
@@ -76,7 +78,7 @@ export interface LotAllocationRow {
 const COLUMNS =
   'id, lot_number, quantity, note, created_at, updated_at, entered_by, modified_by, ' +
   'order_id, order_reference, order_status, preparation_date, delivery_date, ' +
-  'product_name, product_code, customer_name, customer_addition, customer_active';
+  'product_name, product_code, brand_name, customer_name, customer_addition, customer_active';
 
 /** Flat columns, so the database can order by any of them. */
 const ORDER_BY: Record<LotSort, { column: string; ascending: boolean }> = {
@@ -189,6 +191,7 @@ function shape(r: SearchRow): LotAllocationRow {
     modified_by: (r.modified_by as string | null) ?? null,
     product_name: (r.product_name as string | null) ?? '—',
     product_code: (r.product_code as string | null) ?? null,
+    brand_name: (r.brand_name as string | null) ?? null,
     customer_name: r.customer_name as string,
     customer_addition: (r.customer_addition as string | null) ?? null,
     customer_active: Boolean(r.customer_active),

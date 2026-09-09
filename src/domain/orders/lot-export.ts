@@ -15,6 +15,7 @@ export interface ExportableLotRow {
   lot_number: string;
   product_name: string;
   product_code: string | null;
+  brand_name: string | null;
   customer_name: string;
   customer_addition: string | null;
   order_reference: number;
@@ -30,6 +31,9 @@ const HEADER = [
   'lot',
   'product',
   'product_code',
+  // Beside the product rather than at the end: a recall is scoped by brand
+  // often enough that it belongs where somebody sorting the file will see it.
+  'brand',
   'customer',
   'customer_addition',
   'order',
@@ -59,6 +63,9 @@ export function lotAllocationsToCsv(rows: readonly ExportableLotRow[]): string {
       r.lot_number,
       r.product_name,
       r.product_code,
+      // Empty rather than a placeholder — the cell is what an Excel filter
+      // reads, and "no brand" as text would sort as though it were one.
+      r.brand_name,
       r.customer_name,
       r.customer_addition,
       // The human-facing order number, matching what the app shows everywhere.

@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { lotAllocationsToCsv, type ExportableLotRow } from './lot-export';
 
+const NL = String.fromCharCode(10);
+
 const row = (over: Partial<ExportableLotRow> = {}): ExportableLotRow => ({
   lot_number: 'LOT-260906-A',
   product_name: 'Bio Mais Tortillas 14cm',
   product_code: '0073',
+  brand_name: 'Masamor',
   customer_name: 'La Catedral',
   customer_addition: null,
   order_reference: 10452,
@@ -21,7 +24,7 @@ describe('lotAllocationsToCsv', () => {
   it('writes a header even with no rows, so the file is still openable', () => {
     const csv = lotAllocationsToCsv([]);
     expect(csv.split('\n')).toHaveLength(1);
-    expect(csv).toContain('lot;product;product_code');
+    expect(csv).toContain('lot;product;product_code;brand;customer');
   });
 
   it('writes one line per allocation', () => {
@@ -34,6 +37,7 @@ describe('lotAllocationsToCsv', () => {
     const line = csv.split('\n')[1];
     expect(line).toContain('LOT-260906-A');
     expect(line).toContain('0073');
+    expect(line).toContain('Masamor');
     expect(line).toContain('La Catedral');
     expect(line).toContain('#10452');
     expect(line).toContain('12');
@@ -56,6 +60,22 @@ describe('lotAllocationsToCsv', () => {
     ]).split('\n')[1];
     expect(line).not.toContain('null');
     expect(line.split(';')[2]).toBe('');
+  });
+
+  /*
+   * An unclassified product must still EXPORT, and its brand cell must be
+   * empty rather than say so.
+   *
+   * A recall that dropped a row because nobody had classified the product
+   * would be the worst failure this file can have — which is why the view
+   * left-joins the brand — and a literal "No brand" would sort and filter in
+   * Excel as though it were a brand of its own.
+   */
+  it('exports an unclassified product with an empty brand cell', () => {
+    const line = lotAllocationsToCsv([row({ brand_name: null })]).split(NL)[1];
+    expect(line).not.toContain('null');
+    expect(line.split(';')[3]).toBe('');
+    expect(line).toContain('LOT-260906-A');
   });
 
   // Semicolon-separated, so a customer name containing one would otherwise

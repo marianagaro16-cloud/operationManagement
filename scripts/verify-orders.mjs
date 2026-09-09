@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { readFile } from 'node:fs/promises';
 import { config } from 'dotenv';
 config({ path: '.env' });
 
@@ -193,6 +194,41 @@ async function main() {
   const { error: userGen } = await U.client.rpc('generate_order_from_template', { p_template_id: tpl.id, p_delivery_date: '2026-09-24' });
   check('user cannot generate orders', !!userGen);
   await admin.from('recurring_order_templates').delete().eq('id', tpl.id);
+
+  console.log('');
+  console.log('=== 13. The Lot Nummer Tracker read model ===');
+  /*
+   * Nothing verified this view, and it is a projection over five joins that
+   * every screen and the traceability export read through — exactly the shape
+   * that breaks silently when a column is added to it.
+   *
+   * The column list is READ OUT OF src/server/lot-tracker.ts rather than
+   * copied here. A copy would pass while the shipped query was broken, which
+   * is the same class of failure one level down.
+   */
+  const trackerSrc = await readFile(new URL('../src/server/lot-tracker.ts', import.meta.url), 'utf8');
+  const columnsBlock = trackerSrc.match(new RegExp('const COLUMNS =([^;]*);'));
+  const COLUMNS = columnsBlock
+    ? [...columnsBlock[1].matchAll(/'([^']+)'/g)].map((x) => x[1]).join('')
+    : '';
+  check('the tracker column list was found in the source', COLUMNS.includes('lot_number'), COLUMNS.slice(0, 60));
+
+  const trackerRead = await A.client.from('lot_allocation_search').select(COLUMNS).limit(5);
+  check('the tracker select runs against the view', !trackerRead.error, trackerRead.error?.message ?? `${(trackerRead.data ?? []).length} rows`);
+  check('the view exposes the brand', COLUMNS.includes('brand_name')
+    && (trackerRead.data ?? []).every((r) => 'brand_name' in r));
+
+  /*
+   * The brand join must be a LEFT join.
+   *
+   * An inner one would silently drop every allocation of an unclassified
+   * product — and a recall that omits rows because nobody filled in a field
+   * is the worst failure this view can have. Counted rather than reasoned
+   * about: the view must have exactly as many rows as the table it projects.
+   */
+  const { count: viewCount } = await admin.from('lot_allocation_search').select('id', { count: 'exact', head: true });
+  const { count: allocCount } = await admin.from('lot_allocations').select('id', { count: 'exact', head: true });
+  check('the brand join drops no allocations', viewCount === allocCount, `view ${viewCount} / table ${allocCount}`);
 }
 
 main()

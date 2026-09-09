@@ -2584,6 +2584,8 @@ export type Database = {
     Views: {
       lot_allocation_search: {
         Row: {
+          brand_id: string | null
+          brand_name: string | null
           created_at: string | null
           created_by: string | null
           customer_active: boolean | null
@@ -2621,6 +2623,13 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
             referencedColumns: ["id"]
           },
         ]
