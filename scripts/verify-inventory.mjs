@@ -141,8 +141,6 @@ async function main() {
       template_id: tpl.id,
       inventory_date: today,
       period_key: 'verify',
-      iso_week: 1,
-      iso_year: 2000,
       name_snapshot: '',
       kind: 'expiry',
       digital_enabled: false,
@@ -162,10 +160,20 @@ async function main() {
     `got ${inst.name_snapshot} / ${inst.kind} / ${inst.digital_enabled}`,
   );
 
+  /*
+   * iso_week and iso_year are GENERATED columns, so the caller cannot supply
+   * them even by mistake — stronger than the trigger this check was written
+   * for. What is left worth asserting is that the value derived is the RIGHT
+   * one, compared against the same date computed here.
+   */
+  const expectedYear = Number(
+    new Intl.DateTimeFormat('en-GB', { year: 'numeric', timeZone: 'Europe/Zurich' })
+      .format(new Date(`${today}T12:00:00Z`)),
+  );
   check(
-    'KW is derived server-side, not trusted from the caller',
-    inst.iso_year !== 2000 && inst.iso_week >= 1 && inst.iso_week <= 53,
-    `iso_year=${inst.iso_year} iso_week=${inst.iso_week}`,
+    'KW is derived by the database, never sent by the caller',
+    inst.iso_week >= 1 && inst.iso_week <= 53 && Math.abs(inst.iso_year - expectedYear) <= 1,
+    `iso_year=${inst.iso_year} iso_week=${inst.iso_week} for ${today}`,
   );
 
   const { data: items } = await db
@@ -441,7 +449,7 @@ async function main() {
     .from('inventory_instances')
     .insert({
       template_id: tpl.id, inventory_date: yesterday, period_key: 'verify-past',
-      iso_week: 1, iso_year: 2000, name_snapshot: '', kind: 'expiry', digital_enabled: false,
+      name_snapshot: '', kind: 'expiry', digital_enabled: false,
     })
     .select('id')
     .single();
@@ -526,7 +534,7 @@ async function main() {
     .from('inventory_instances')
     .insert({
       template_id: lotTpl.id, inventory_date: today, period_key: 'verify-lot',
-      iso_week: 1, iso_year: 2000, name_snapshot: '', kind: 'expiry', digital_enabled: false,
+      name_snapshot: '', kind: 'expiry', digital_enabled: false,
     })
     .select('id').single();
   await db.from('inventory_assignments').insert({ instance_id: lotInst.id, user_id: assigned.id });
@@ -569,7 +577,7 @@ async function main() {
     .from('inventory_instances')
     .insert({
       template_id: locTpl.id, inventory_date: today, period_key: 'verify-loc',
-      iso_week: 1, iso_year: 2000, name_snapshot: '', kind: 'expiry', digital_enabled: false,
+      name_snapshot: '', kind: 'expiry', digital_enabled: false,
     })
     .select('id').single();
   await db.from('inventory_assignments').insert({ instance_id: locInst.id, user_id: assigned.id });
@@ -606,7 +614,7 @@ async function main() {
     .from('inventory_instances')
     .insert({
       template_id: tpl.id, inventory_date: isoDate(7), period_key: 'verify-next',
-      iso_week: 1, iso_year: 2000, name_snapshot: '', kind: 'expiry', digital_enabled: false,
+      name_snapshot: '', kind: 'expiry', digital_enabled: false,
     })
     .select('id, inventory_date').single();
 
@@ -634,7 +642,7 @@ async function main() {
 
   const { error: duplicateDate } = await db.from('inventory_instances').insert({
     template_id: tpl.id, inventory_date: today, period_key: 'verify-dupe',
-    iso_week: 1, iso_year: 2000, name_snapshot: '', kind: 'expiry', digital_enabled: false,
+    name_snapshot: '', kind: 'expiry', digital_enabled: false,
   });
   check('a second inventory for the same template and date is refused', Boolean(duplicateDate));
 
@@ -662,51 +670,89 @@ async function main() {
   const { data: userAudit } = await assignedC.from('inventory_audit_log').select('id').limit(1);
   check('the audit log is not readable by a normal user', (userAudit?.length ?? 0) === 0);
 
-  /* -------------------------------------- imported configuration is intact */
-  section('Imported configuration');
+  /* ------------------------------------ the operational configuration */
+  section('Operational configuration');
 
   const { data: real } = await db
     .from('inventory_templates')
-    .select('slug, kind, frequency, digital_enabled, schedule_config, items:inventory_template_items(id)')
-    .in('slug', [
-      'masamor-del-barrio', 'colectivo-comestibles', 'materia-prima',
-      'empaques-mensual', 'empaques-semestral',
-    ]);
-  check('all five inventory types were imported', real.length === 5, `got ${real.length}`);
+    .select('id, slug, name, kind, frequency, digital_enabled, is_active, schedule_config, items:inventory_template_items(id, product_id, is_active)');
 
   const bySlug = Object.fromEntries(real.map((r) => [r.slug, r]));
-  check('Masamor / Del Barrio: weekly, expiry, Inventory Digital ON, 114 items',
-    bySlug['masamor-del-barrio']?.frequency === 'weekly' &&
-    bySlug['masamor-del-barrio']?.kind === 'expiry' &&
-    bySlug['masamor-del-barrio']?.digital_enabled === true &&
-    bySlug['masamor-del-barrio']?.items.length === 114,
-    JSON.stringify({ f: bySlug['masamor-del-barrio']?.frequency, n: bySlug['masamor-del-barrio']?.items.length }));
+  // The script's own throwaway templates are live while it runs, so they are
+  // excluded by their stamp — counting them would make this check depend on
+  // where in the file it happens to sit.
+  const live = real.filter((r) => r.is_active && !r.name.includes(STAMP));
+  check('six inventories are live: four brands, packaging and raw material',
+    live.length === 6, live.map((r) => r.name).sort().join(' | '));
 
-  check('Colectivo Comestibles: two days a month, Inventory Digital ON, 145 items',
-    bySlug['colectivo-comestibles']?.schedule_config?.rules?.length === 2 &&
-    bySlug['colectivo-comestibles']?.digital_enabled === true &&
-    bySlug['colectivo-comestibles']?.items.length === 145);
-
-  check('Materia Prima: lot tracking, Inventory Digital OFF, 7 items',
+  check('Materia Prima is untouched: lot tracking, Inventory Digital OFF',
     bySlug['materia-prima']?.kind === 'lot' &&
     bySlug['materia-prima']?.digital_enabled === false &&
-    bySlug['materia-prima']?.items.length === 7);
+    bySlug['materia-prima']?.is_active === true);
 
-  check('Empaques monthly: locations, Inventory Digital OFF, 26 items',
-    bySlug['empaques-mensual']?.kind === 'location' &&
-    bySlug['empaques-mensual']?.digital_enabled === false &&
-    bySlug['empaques-mensual']?.items.length === 26);
+  check('Empaques is ONE list now: monthly, by location',
+    bySlug['empaques']?.kind === 'location' &&
+    bySlug['empaques']?.frequency === 'monthly' &&
+    bySlug['empaques']?.items.length === 26 &&
+    bySlug['empaques-semestral']?.is_active === false,
+    `mensual=${bySlug['empaques']?.items.length} semestral active=${bySlug['empaques-semestral']?.is_active}`);
 
-  check('Empaques semiannual: 30 June and 31 December',
-    bySlug['empaques-semestral']?.frequency === 'semiannual' &&
-    bySlug['empaques-semestral']?.schedule_config?.dates?.length === 2);
+  /*
+   * The combined list must SURVIVE, deactivated.
+   *
+   * It holds two counting sessions, and inventory_instance_items references
+   * its items ON DELETE RESTRICT precisely so tidying the list cannot erase
+   * the history counted from it. A green run here is what says the cleanup
+   * did not take the past with it.
+   */
+  check('the old combined brand list is archived, not deleted',
+    bySlug['masamor-del-barrio'] !== undefined &&
+    bySlug['masamor-del-barrio']?.is_active === false);
 
-  const { count: instanceCount } = await db
-    .from('inventory_instances')
-    .select('id', { count: 'exact', head: true })
-    .in('template_id', real.map((r) => r.id).filter(Boolean));
-  check('the import created no fabricated historical inventories',
-    (instanceCount ?? 0) === 0, `found ${instanceCount}`);
+  /*
+   * DERIVED, never hardcoded.
+   *
+   * An item count typed as a number here goes red the first time somebody
+   * adds a product — which is exactly how the customer count in verify-master
+   * taught people to ignore a failing script. The inventory is defined as
+   * "this brand's active products", so that is what is asserted.
+   */
+  const { data: brandRows } = await db.from('brands').select('id, name').order('sort_order');
+  const SLUG_FOR = {
+    'Masamor': 'masamor',
+    'Del Barrio': 'del-barrio',
+    'Colectivo Comestibles': 'colectivo-comestibles',
+    'Complementarios': 'complementarios',
+  };
+  for (const b of brandRows ?? []) {
+    const t = bySlug[SLUG_FOR[b.name]];
+    if (!t) { check(`${b.name}: has an inventory of its own`, false, 'no template'); continue; }
+    const { count: products } = await db.from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true).eq('brand_id', b.id);
+    const items = t.items.filter((i) => i.is_active);
+    check(`${b.name}: Inventory Digital is ON`, t.digital_enabled === true);
+    check(`${b.name}: counts exactly its active products`,
+      items.length === products, `${items.length} items / ${products} products`);
+    check(`${b.name}: every item IS a product, none free text`,
+      items.every((i) => i.product_id), `${items.filter((i) => !i.product_id).length} unlinked`);
+  }
+
+  // Friday, which is both what the operation does and what the domain layer
+  // already documented as DEFAULT_WEEKLY_INVENTORY_WEEKDAY.
+  check('the weekly brands are counted on FRIDAY',
+    bySlug['masamor']?.schedule_config?.weekday === 5 &&
+    bySlug['del-barrio']?.schedule_config?.weekday === 5,
+    `masamor=${bySlug['masamor']?.schedule_config?.weekday} del-barrio=${bySlug['del-barrio']?.schedule_config?.weekday}`);
+
+  check('the monthly brands are counted twice a month',
+    bySlug['colectivo-comestibles']?.schedule_config?.rules?.length === 2 &&
+    bySlug['complementarios']?.schedule_config?.rules?.length === 2);
+
+  const { count: keptEntries } = await db
+    .from('inventory_entries').select('id', { count: 'exact', head: true });
+  check('every count ever recorded is still readable', (keptEntries ?? 0) >= 20,
+    `${keptEntries} entries`);
 
   /* --------------------------------- existing modules are unaffected */
   section('Existing modules');
