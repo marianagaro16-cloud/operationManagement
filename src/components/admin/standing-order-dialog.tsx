@@ -78,7 +78,10 @@ export function StandingOrderDialog({
   );
 
   const validLines = lines.filter((l) => l.product_id && Number(l.quantity) > 0);
-  const ready = customerId !== null && validLines.length > 0;
+  // A template with no delivery method cannot generate an order — the column
+  // is NOT NULL on both tables — so it is refused here, where somebody is
+  // looking, rather than at 03:30 in the scheduler where nobody is.
+  const ready = customerId !== null && methodId !== '' && validLines.length > 0;
 
   function submit() {
     startTransition(async () => {
@@ -186,7 +189,7 @@ export function StandingOrderDialog({
             />
           </Field>
 
-          <Field label={t('orders.deliveryMethod')}>
+          <Field label={t('orders.deliveryMethod')} required>
             <Select value={methodId} onChange={(e) => setMethodId(e.target.value)}>
               <option value="">—</option>
               {deliveryMethods.map((m) => (

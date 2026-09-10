@@ -40,6 +40,28 @@ if (!url || !anonKey || !service) {
 
 const admin = createClient(url, service, { auth: { persistSession: false } });
 
+/**
+ * A delivery method for the fixture orders.
+ *
+ * orders.delivery_method_id is NOT NULL since
+ * 20260926090000_delivery_method_required, so an order fixture without one no
+ * longer inserts — this suite aborted on its first fixture when that landed.
+ * Resolved once and reused, so the fixtures keep the shape a real order has.
+ */
+let methodId = null;
+async function deliveryMethodId() {
+  if (!methodId) {
+    const { data } = await admin
+      .from('delivery_methods')
+      .select('id')
+      .eq('is_active', true)
+      .limit(1)
+      .single();
+    methodId = data.id;
+  }
+  return methodId;
+}
+
 const PW = 'Throwaway-Test-Pw-9137';
 /** Unique per run. A leftover from an aborted run must never block the next. */
 const TAG = 'ZZ' + Date.now().toString(36);
@@ -136,7 +158,7 @@ async function main() {
   const order = must(
     await admin.from('orders').insert({
       customer_id: cust.id, delivery_date: '2026-12-05', preparation_date: '2026-12-04',
-      status: 'confirmed', order_type: 'sale',
+      status: 'confirmed', order_type: 'sale', delivery_method_id: await deliveryMethodId(),
     }).select('id, reference').single(),
     'order',
   );
@@ -317,7 +339,7 @@ async function main() {
   console.log('\n=== 10. A replacement is NOT the incident ===');
   const { data: replacementOrder } = await admin.from('orders').insert({
     customer_id: cust.id, delivery_date: '2026-12-12', preparation_date: '2026-12-11',
-    status: 'confirmed', order_type: 'sale', replaces_incident_id: incident.id,
+    status: 'confirmed', order_type: 'sale', delivery_method_id: await deliveryMethodId(), replaces_incident_id: incident.id,
   }).select('id, reference').single();
   created.orders.push(replacementOrder.id);
 
@@ -364,7 +386,7 @@ async function main() {
   created.customers.push(otherCust.id);
   const { data: otherOrder } = await admin.from('orders').insert({
     customer_id: otherCust.id, delivery_date: '2026-12-20', preparation_date: '2026-12-19',
-    status: 'confirmed', order_type: 'sale',
+    status: 'confirmed', order_type: 'sale', delivery_method_id: await deliveryMethodId(),
   }).select('id, reference').single();
   created.orders.push(otherOrder.id);
 

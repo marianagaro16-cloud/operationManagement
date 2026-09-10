@@ -385,6 +385,7 @@ export const de: Messages = {
     noInventoriesBody: 'Wähle einen anderen Zeitraum.',
   },
   orders: {
+    chooseDeliveryMethod: 'Liefermethode wählen',
     searchCustomer: 'Kunde suchen…',
     searchProduct: 'Code oder Produkt suchen…',
     noCustomersFound: 'Keine Kunden gefunden',

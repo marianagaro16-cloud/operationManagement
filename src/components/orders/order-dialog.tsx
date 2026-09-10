@@ -188,12 +188,22 @@ export function OrderDialog({
         source_text: l.source_text ?? null,
       }));
     if (cleaned.length === 0) next.lines = t('orders.needOneProduct');
+    // Required since 20260926090000: the database refuses an order with no
+    // delivery method, and a caught constraint violation is a worse way to
+    // learn that than a message beside the field.
+    if (!methodId) next.method = t('orders.chooseDeliveryMethod');
 
     if (Object.keys(next).length > 0) {
       setFieldErrors(next);
       // Take the person to the first thing that needs fixing rather than
       // leaving them to find it in a form that scrolls.
-      const first = next.customer ? 'o-customer' : next.preparation ? 'o-prep' : 'o-lines';
+      const first = next.customer
+        ? 'o-customer'
+        : next.preparation
+          ? 'o-prep'
+          : next.method
+            ? 'o-method'
+            : 'o-lines';
       document.getElementById(first)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
       document.getElementById(first)?.focus?.();
       return;
@@ -206,7 +216,7 @@ export function OrderDialog({
           delivery_date: deliveryDate,
           delivery_time: deliveryTime || null,
           preparation_date: preparationDate,
-          delivery_method_id: methodId || null,
+          delivery_method_id: methodId,
           status,
           order_type: orderType,
           note: note.trim() || null,
@@ -329,7 +339,12 @@ export function OrderDialog({
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Field label={t('orders.deliveryMethod')} htmlFor="o-method">
+          <Field
+            label={t('orders.deliveryMethod')}
+            htmlFor="o-method"
+            required
+            error={fieldErrors.method}
+          >
             <Select id="o-method" value={methodId} onChange={(e) => setMethodId(e.target.value)}>
               <option value="">—</option>
               {deliveryMethods.map((m) => (
@@ -433,7 +448,7 @@ export function OrderDialog({
                 delivery_date: deliveryDate,
                 delivery_time: deliveryTime || null,
                 preparation_date: preparationDate,
-                delivery_method_id: methodId || null,
+                delivery_method_id: methodId,
                 status: 'cancelled',
                 order_type: orderType,
                 note: note.trim() || null,

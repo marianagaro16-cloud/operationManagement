@@ -388,6 +388,7 @@ export const en = {
     noInventoriesBody: 'Choose another period.',
   },
   orders: {
+    chooseDeliveryMethod: 'Choose a delivery method',
     searchCustomer: 'Search customer…',
     searchProduct: 'Search code or product…',
     noCustomersFound: 'No customers found',

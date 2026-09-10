@@ -385,6 +385,7 @@ export const es: Messages = {
     noInventoriesBody: 'Elige otro periodo.',
   },
   orders: {
+    chooseDeliveryMethod: 'Elige un método de entrega',
     searchCustomer: 'Buscar cliente…',
     searchProduct: 'Buscar código o producto…',
     noCustomersFound: 'No se encontraron clientes',

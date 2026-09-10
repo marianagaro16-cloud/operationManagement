@@ -43,7 +43,9 @@ const orderInputSchema = z.object({
   // saves successfully instead of failing validation.
   delivery_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).nullable().optional(),
   preparation_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  delivery_method_id: z.string().uuid().nullable(),
+  // NOT NULL in the database. Validated here as well so a missing method is
+  // a translatable refusal rather than a constraint violation surfaced raw.
+  delivery_method_id: z.string().uuid(),
   status: z.enum(['draft', 'confirmed', 'cancelled']),
   order_type: z.enum(['sale', 'sample', 'replacement']),
   note: z.string().trim().nullable(),
