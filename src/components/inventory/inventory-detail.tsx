@@ -163,14 +163,19 @@ export function InventoryDetailView({
         </div>
       )}
 
-      {/* -------------------------- general comments ----------------------- */}
+      {/* -------------------------- general comments -----------------------
+          Carries the note colour for the same reason the per-item comments
+          do: this block only exists because somebody wrote something, and it
+          should not look like the surface it sits on. */}
       {detail.general_comments.length > 0 && (
-        <Card className="mb-4 p-3">
+        <Card className="mb-4 border-l-2 border-l-note bg-note/[0.07] p-3">
           <ul className="space-y-1.5">
             {detail.general_comments.map((c) => (
               <li key={c.id} className="text-[12.5px]">
-                <span className="font-medium">{c.author ? displayName(c.author) : '—'}</span>
-                <span className="text-muted"> · {c.body}</span>
+                <span className="font-medium text-note">
+                  {c.author ? displayName(c.author) : '—'}
+                </span>
+                <span className="text-note/80"> · {c.body}</span>
               </li>
             ))}
           </ul>

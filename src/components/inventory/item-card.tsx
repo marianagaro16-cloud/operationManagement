@@ -222,13 +222,20 @@ export function ItemCard({
             />
           </div>
 
-          {/* ---- item comments ---- */}
+          {/* ---- item comments ----
+              The note colour rather than the generic grey block. Orders and
+              incidents already give a thing somebody wrote its own colour;
+              inventory was the one place still rendering it as secondary
+              text, which is exactly how "count again, box was open" got read
+              as decoration. */}
           {item.comments.length > 0 && (
-            <ul className="space-y-1.5 rounded-lg bg-surface-2/40 p-2">
+            <ul className="space-y-1.5 rounded-r-lg border-l-2 border-note bg-note/[0.07] p-2">
               {item.comments.map((c) => (
                 <li key={c.id} className="text-[12.5px]">
-                  <span className="font-medium">{c.author ? displayName(c.author) : '—'}</span>
-                  <span className="text-muted"> · {c.body}</span>
+                  <span className="font-medium text-note">
+                    {c.author ? displayName(c.author) : '—'}
+                  </span>
+                  <span className="text-note/80"> · {c.body}</span>
                 </li>
               ))}
             </ul>

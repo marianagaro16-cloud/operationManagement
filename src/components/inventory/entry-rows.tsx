@@ -5,6 +5,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/primitives';
+import { cn } from '@/lib/utils';
 import { parseQuantityInput } from '@/domain/inventory/calc';
 import {
   addInventoryEntry,
@@ -121,6 +122,9 @@ function EntryRow({
   );
   const [quantityError, setQuantityError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // Whether this entry carries a note, for the colour below. Seeded from the
+  // saved value so an existing note is coloured on first paint.
+  const [hasNote, setHasNote] = useState(Boolean(entry.note?.trim()));
 
   // A server refresh must not clobber what the person is currently typing.
   const dirty = useRef(false);
@@ -252,14 +256,30 @@ function EntryRow({
         </label>
       )}
 
+      {/*
+        A note that exists looks different from an empty box.
+
+        Counting an inventory means scrolling past dozens of these rows, and
+        an empty note field and a filled one were the same grey rectangle —
+        so "3 packets water-damaged" was invisible until somebody clicked into
+        the field. The violet is the note colour the rest of the app already
+        uses for a thing a person wrote, so it reads as a note rather than as
+        a problem with the count.
+      */}
       <label className="mt-2 block">
         <span className="sr-only">{t('inventory.comment')}</span>
         <Input
           defaultValue={entry.note ?? ''}
           disabled={disabled}
           placeholder={t('inventory.comment')}
+          // Tracked rather than read from the DOM so the colour appears as
+          // the note is typed, not only after the blur that saves it.
+          onChange={(e) => setHasNote(e.target.value.trim().length > 0)}
           onBlur={(e) => save({ note: e.target.value.trim() || null })}
-          className="text-[13px]"
+          className={cn(
+            'text-[13px]',
+            hasNote && 'border-note bg-note/[0.07] text-note placeholder:text-note/50',
+          )}
         />
       </label>
 
