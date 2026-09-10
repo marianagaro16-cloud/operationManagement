@@ -436,6 +436,11 @@ export async function saveDeliveryMethod(
 
 /* --------------------------- recurring templates ------------------------ */
 
+/** A uuid, or nothing. Used where a missing id must be a message, not a throw. */
+function parsedUuid(value: string | null | undefined): boolean {
+  return z.string().uuid().safeParse(value).success;
+}
+
 export async function setTemplateActive(id: string, isActive: boolean): Promise<ActionResult> {
   const supabase = createClient();
   const { error } = await supabase
@@ -454,7 +459,7 @@ export async function saveTemplate(
     interval_weeks: number;
     anchor_date: string | null;
     preparation_lead_days: number;
-    delivery_method_id: string | null;
+    delivery_method_id: string;
     order_type: 'sale' | 'sample' | 'replacement';
     note: string | null;
     is_active: boolean;
@@ -462,6 +467,19 @@ export async function saveTemplate(
   },
   id?: string,
 ): Promise<ActionResult<{ id: string }>> {
+  /*
+   * A standing order with no delivery method cannot produce an order — the
+   * column is NOT NULL on both tables since
+   * 20260926090000_delivery_method_required. Refused here so the caller gets
+   * a translatable message; refused again by the database, which is what
+   * makes it true. saveTemplate had no runtime validation at all, so a stale
+   * browser tab posting the old shape would have surfaced a raw constraint
+   * violation.
+   */
+  if (!parsedUuid(input.delivery_method_id)) {
+    return { ok: false, error: 'delivery_method_required' };
+  }
+
   const supabase = createClient();
   const header = {
     customer_id: input.customer_id,

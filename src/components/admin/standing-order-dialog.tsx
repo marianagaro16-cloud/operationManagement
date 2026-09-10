@@ -92,7 +92,7 @@ export function StandingOrderDialog({
           interval_weeks: interval,
           anchor_date: interval > 1 ? anchorDate : null,
           preparation_lead_days: Number(leadDays) || 0,
-          delivery_method_id: methodId || null,
+          delivery_method_id: methodId,
           order_type: orderType as 'sale' | 'sample' | 'replacement',
           note: note.trim() || null,
           is_active: isActive,
@@ -189,7 +189,13 @@ export function StandingOrderDialog({
             />
           </Field>
 
-          <Field label={t('orders.deliveryMethod')} required>
+          {/* Save stays disabled until this is chosen, so the field says why
+              rather than leaving somebody to guess at a greyed-out button. */}
+          <Field
+            label={t('orders.deliveryMethod')}
+            required
+            error={methodId === '' ? t('orders.chooseDeliveryMethod') : undefined}
+          >
             <Select value={methodId} onChange={(e) => setMethodId(e.target.value)}>
               <option value="">—</option>
               {deliveryMethods.map((m) => (

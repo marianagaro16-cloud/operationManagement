@@ -923,6 +923,7 @@ export const de: Messages = {
     stillOpen: '{count} Produkte offen',
   },
   master: {
+    deliveryMethodRequired: 'Ein Dauerauftrag braucht eine Liefermethode.',
     addTemplateLine: 'Produkt hinzufügen',
     newStanding: 'Neuer Dauerauftrag',
     editStanding: 'Dauerauftrag',

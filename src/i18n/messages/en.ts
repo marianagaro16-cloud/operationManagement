@@ -945,6 +945,7 @@ export const en = {
     stillOpen: '{count} products open',
   },
   master: {
+    deliveryMethodRequired: 'A standing order needs a delivery method.',
     addTemplateLine: 'Add product',
     newStanding: 'New standing order',
     editStanding: 'Standing order',

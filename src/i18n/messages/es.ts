@@ -923,6 +923,7 @@ export const es: Messages = {
     stillOpen: '{count} productos pendientes',
   },
   master: {
+    deliveryMethodRequired: 'Un pedido fijo necesita un método de entrega.',
     addTemplateLine: 'Añadir producto',
     newStanding: 'Nuevo pedido fijo',
     editStanding: 'Pedido fijo',
