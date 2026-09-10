@@ -414,28 +414,66 @@ async function main() {
   }
 }
 
+/**
+ * Remove every fixture this run created.
+ *
+ * REWRITTEN AFTER IT LEAKED. The first version fired the deletes and ignored
+ * their results, so when one was refused the row simply stayed in the
+ * production database — a test supplier in the real supplier dropdown and a
+ * test reception holding GR-2026-0002. The refusal was a genuine schema bug
+ * (see 20260921090000_reception_audit_survives_cascade.sql), but what let it
+ * reach the operation's data was this function's silence.
+ *
+ * Two changes make that impossible to miss again: every delete reports its own
+ * error as a FAILED check, and afterwards the database is SWEPT for anything
+ * still carrying the ZZ prefix. A leak is now a named failure, not silence.
+ */
 async function cleanup() {
   console.log('\n=== cleanup ===');
-  // Order matters: children, then the rows they point at, then the accounts.
-  for (const id of created.snapshots) {
-    await admin.from('goods_reception_report_snapshots').delete().eq('id', id);
+
+  // Children first, then what they point at. Cascades handle most of this,
+  // but naming each one means a refusal says which table refused.
+  const removals = [
+    ['snapshots', () => admin.from('goods_reception_report_snapshots').delete().in('id', created.snapshots)],
+    ['incidents', () => admin.from('incidents').delete().in('id', created.incidents)],
+    ['assignee rows', () => admin.from('goods_reception_assignees').delete().in('user_id', created.users)],
+    ['receptions', () => admin.from('goods_receptions').delete().in('id', created.receptions)],
+    ['suppliers', () => admin.from('suppliers').delete().in('id', created.suppliers)],
+    ['transporters', () => admin.from('transporters').delete().in('id', created.transporters)],
+  ];
+
+  for (const [label, run] of removals) {
+    const res = await run();
+    if (res.error) check(`cleanup: ${label} removed`, false, res.error.message);
   }
-  for (const id of created.incidents) {
-    await admin.from('incidents').delete().eq('id', id);
-  }
-  for (const id of created.receptions) {
-    await admin.from('goods_receptions').delete().eq('id', id);
-  }
-  for (const id of created.suppliers) {
-    await admin.from('suppliers').delete().eq('id', id);
-  }
-  for (const id of created.transporters) {
-    await admin.from('transporters').delete().eq('id', id);
-  }
+
   for (const id of created.users) {
-    await admin.auth.admin.deleteUser(id).catch(() => {});
+    const res = await admin.auth.admin.deleteUser(id);
+    if (res?.error) check('cleanup: throwaway account removed', false, res.error.message);
   }
-  console.log('  removed throwaway fixtures');
+
+  /*
+   * The sweep.
+   *
+   * Everything this script writes carries a ZZ prefix, so anything still
+   * matching is a fixture that outlived its cleanup — which is precisely what
+   * the previous version could not see. Scoped to this module's tables plus
+   * the accounts, so it cannot mistake another script's leftovers for its own.
+   */
+  const leaks = [];
+  const sweep = [
+    ['supplier', await admin.from('suppliers').select('name').like('name', 'ZZ %')],
+    ['transporter', await admin.from('transporters').select('name').like('name', 'ZZ %')],
+    ['reception', await admin.from('goods_receptions').select('reception_number').like('delivery_note', 'ZZ-%')],
+    ['exception', await admin.from('goods_reception_exceptions').select('id').like('description', 'ZZ %')],
+    ['incident', await admin.from('incidents').select('incident_number').like('description', 'ZZ %')],
+    ['account', await admin.from('profiles').select('email').like('email', 'zz-gr-%')],
+  ];
+  for (const [label, res] of sweep) {
+    for (const row of res.data ?? []) leaks.push(`${label} ${Object.values(row)[0]}`);
+  }
+
+  check('no fixture survived the cleanup', leaks.length === 0, leaks.join(' | '));
 }
 
 main()
