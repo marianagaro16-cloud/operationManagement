@@ -346,3 +346,30 @@ describe('comparing two months', () => {
     expect(d[0]).toMatchObject({ previous: 6, current: 0, change: -6 });
   });
 });
+
+describe('incident origin (§43)', () => {
+  /*
+   * The report has to be able to say WHERE an incident came from, and that is
+   * not the same question as what category it fell into: a preparation error
+   * can perfectly well be discovered while receiving goods.
+   */
+  it('separates reception-born incidents from the rest', () => {
+    const report = build([
+      inc({ goods_reception_id: 'gr-1' }),
+      inc({ goods_reception_id: 'gr-2' }),
+      inc({ goods_reception_id: null }),
+      inc({}),
+    ]);
+
+    const origins = Object.fromEntries(
+      (report.byOrigin ?? []).map((b) => [b.key, b.count]),
+    );
+    expect(origins).toEqual({ goods_reception: 2, other: 2 });
+  });
+
+  it('counts an incident once, under one origin only', () => {
+    const report = build([inc({ goods_reception_id: 'gr-1' })]);
+    const total = (report.byOrigin ?? []).reduce((n, b) => n + b.count, 0);
+    expect(total).toBe(report.summary.total);
+  });
+});

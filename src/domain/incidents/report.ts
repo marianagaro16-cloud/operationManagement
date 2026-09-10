@@ -44,6 +44,15 @@ export interface ReportIncident {
   delivery_method_id: string | null;
   delivery_method_name: string | null;
 
+  /**
+   * The delivery this incident came out of, when it came out of one.
+   *
+   * OPTIONAL, because a snapshot frozen before Goods Reception existed does
+   * not carry it and must still render. §43 asks the report to be able to say
+   * where an incident originated, and this is the only new fact it needs.
+   */
+  goods_reception_id?: string | null;
+
   category_slug: string;
   type_slug: string;
 
@@ -142,6 +151,19 @@ export interface IncidentReportPayload {
    */
   byBrand?: Bucket[];
   byDeliveryMethod: Bucket[];
+
+  /**
+   * WHERE an incident originated — §43.
+   *
+   * Two buckets only: 'goods_reception' for one raised from a delivery, and
+   * 'other' for everything else. Deliberately NOT a breakdown by category:
+   * a category says what KIND of problem it was, and an origin says which
+   * process it was found in. An order-preparation incident found during a
+   * goods reception is possible, and collapsing the two would hide it.
+   *
+   * Optional for the same reason byBrand is: older snapshots predate it.
+   */
+  byOrigin?: Bucket[];
 
   correctiveActions: ActionSummary;
   patterns: Pattern[];
@@ -271,6 +293,10 @@ export function buildReport(params: {
     summary,
 
     byCategory: tally(incidents, (i) => ({ key: i.category_slug, label: null })),
+    byOrigin: tally(incidents, (i) => ({
+      key: i.goods_reception_id ? 'goods_reception' : 'other',
+      label: null,
+    })),
     byType: tally(incidents, (i) => ({ key: i.type_slug, label: null })),
     bySeverity: tally(incidents, (i) => ({ key: i.severity, label: null })),
 

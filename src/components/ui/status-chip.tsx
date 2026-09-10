@@ -23,7 +23,16 @@ import { Badge, type Tone } from '@/components/ui/primitives';
  * language instead of four, and a tone change is one line.
  */
 
-export type StatusDomain = 'task' | 'order' | 'line' | 'inventory' | 'incident' | 'severity';
+export type StatusDomain =
+  | 'task'
+  | 'order'
+  | 'line'
+  | 'inventory'
+  | 'incident'
+  | 'severity'
+  | 'reception'
+  | 'condition'
+  | 'quantity';
 
 interface Presentation {
   key: MessageKey;
@@ -80,6 +89,34 @@ export const STATUS_PRESENTATION: Record<string, Presentation> = {
   'severity.medium':   { key: 'incident.severity.medium',   tone: 'accent' },
   'severity.high':     { key: 'incident.severity.high',     tone: 'warn' },
   'severity.critical': { key: 'incident.severity.critical', tone: 'late' },
+
+  /* --- goods receptions ---
+     A draft is `warn`, matching an order draft: both mean "started and not
+     yet a statement about anything", and both are something somebody has to
+     come back to. RECEIVED and CHECKING share `accent` because they are both
+     work in progress; the distinction between them is in the label, and
+     giving them different colours would imply one is worse than the other. */
+  'reception.draft':     { key: 'gr.statusLabel.draft',     tone: 'warn' },
+  'reception.received':  { key: 'gr.statusLabel.received',  tone: 'accent' },
+  'reception.checking':  { key: 'gr.statusLabel.checking',  tone: 'accent' },
+  'reception.completed': { key: 'gr.statusLabel.completed', tone: 'done' },
+
+  /* --- the condition goods arrived in ---
+     Separate from the reception's status for the same reason severity is
+     separate from an incident's: a delivery always has both, and "completed"
+     says nothing about whether the pallet was wet. */
+  'condition.good':              { key: 'gr.conditionLabel.good',             tone: 'done' },
+  'condition.damaged':           { key: 'gr.conditionLabel.damaged',          tone: 'late' },
+  'condition.partially_damaged': { key: 'gr.conditionLabel.partiallyDamaged', tone: 'warn' },
+  'condition.other_issue':       { key: 'gr.conditionLabel.otherIssue',       tone: 'warn' },
+
+  /* --- the quantity check ---
+     `not_checked` is deliberately NEUTRAL and not `warn`: nobody has failed
+     yet. A pallet in the cold store waiting to be opened is an ordinary
+     state, and colouring it as a problem would train people to ignore it. */
+  'quantity.not_checked': { key: 'gr.quantityLabel.notChecked', tone: 'neutral' },
+  'quantity.checked_ok':  { key: 'gr.quantityLabel.checkedOk',  tone: 'done' },
+  'quantity.discrepancy': { key: 'gr.quantityLabel.discrepancy', tone: 'late' },
 };
 
 /** Look up a presentation, or null when the pair is not a known status. */

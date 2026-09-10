@@ -531,7 +531,7 @@ export async function getReportIncidents(
     .from('incidents')
     .select(`
       id, incident_number, detected_at, status, severity, primary_cause, responsibility,
-      customer_id, order_id, delivery_method_id,
+      customer_id, order_id, delivery_method_id, goods_reception_id,
       customer:customers ( id, name ),
       delivery_method:delivery_methods ( id, name ),
       type:incident_types!inner ( slug, category:incident_categories!inner ( slug ) ),
@@ -556,6 +556,7 @@ export async function getReportIncidents(
     customer_id: string | null;
     order_id: string | null;
     delivery_method_id: string | null;
+    goods_reception_id: string | null;
     customer: { id: string; name: string } | null;
     delivery_method: { id: string; name: string } | null;
     type: { slug: string; category: { slug: string } };
@@ -585,6 +586,7 @@ export async function getReportIncidents(
     order_id: r.order_id,
     delivery_method_id: r.delivery_method_id,
     delivery_method_name: r.delivery_method?.name ?? null,
+    goods_reception_id: r.goods_reception_id,
     category_slug: r.type.category.slug,
     type_slug: r.type.slug,
     products: (r.items ?? [])

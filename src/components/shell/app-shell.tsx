@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, Boxes, CalendarDays, ClipboardList, LayoutDashboard, MoreHorizontal, Package, ScanSearch, Settings, Shield, X } from 'lucide-react';
+import { AlertTriangle, Bell, Boxes, CalendarDays, ClipboardList, LayoutDashboard, MoreHorizontal, Package, ScanSearch, Settings, Shield, Truck, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,12 @@ export function AppShell({
           { href: '/incidents', label: t('incident.navLabel'), icon: AlertTriangle, primary: false },
         ]
       : []),
+    // Goods Reception is a MAIN section, never a corner of Orders: a supplier
+    // delivery has no customer order behind it and often no order at all.
+    // Unconditional, because §11 makes every approved user a viewer — the
+    // screen itself decides whether a New button is offered, which is a
+    // question about assignment rather than about role.
+    { href: '/goods-reception', label: t('gr.navLabel'), icon: Truck, primary: true },
     // Counting happens on the floor, so inventory sits in the main bar rather
     // than behind the admin section — the people who do it are not admins.
     { href: '/inventory', label: t('inventory.title'), icon: Boxes, primary: true },
@@ -87,7 +93,7 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception'];
   const active = (href: string) =>
     SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
 

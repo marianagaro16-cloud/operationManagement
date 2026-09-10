@@ -164,6 +164,23 @@ export function IncidentReportView({
           </div>
         </Section>
 
+        {/* ---------- where it was found ----------
+            §43: which process an incident came out of. Distinct from the
+            category above it — a category says what KIND of problem it was,
+            an origin says where it surfaced. Absent on snapshots frozen
+            before Goods Reception existed, which is why it is guarded. */}
+        {payload.byOrigin && payload.byOrigin.length > 0 && (
+          <Section title={t('ireport.origin')} note={t('ireport.originHint')}>
+            <BucketList
+              buckets={payload.byOrigin}
+              translate={(k) => t(`ireport.originLabel.${k === 'goods_reception' ? 'goodsReception' : 'other'}` as MessageKey)}
+              month={month}
+              param="origin"
+              resolve={false}
+            />
+          </Section>
+        )}
+
         {/* ---------- why: recorded findings ---------- */}
         <Section title={t('ireport.why')} note={t('ireport.whyHint')}>
           <BucketList

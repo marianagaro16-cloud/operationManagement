@@ -50,6 +50,11 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     description: 'nav.sectionMasterDataBody',
     screens: [
       { href: '/admin/customers', label: 'master.customersTitle', permission: 'customers.manage' },
+      // Who goods come FROM, and who carried them. Master data in the same
+      // sense customers are, so they live beside them rather than inside the
+      // reception module — a supplier outlives any one delivery.
+      { href: '/admin/suppliers', label: 'gr.suppliersTitle', permission: 'goods_reception.manage_config' },
+      { href: '/admin/transporters', label: 'gr.transportersTitle', permission: 'goods_reception.manage_config' },
       { href: '/admin/products', label: 'master.productsTitle', permission: 'products.manage' },
       { href: '/admin/brands', label: 'master.brandsTitle', permission: 'products.manage' },
       { href: '/admin/delivery-methods', label: 'master.methodsTitle', permission: 'orders.manage_config' },
@@ -70,6 +75,10 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       { href: '/admin/inventory', label: 'inventory.title', permission: 'inventory.manage_templates' },
       { href: '/admin/inventory/locations', label: 'inventory.locations', permission: 'inventory.manage_templates' },
       { href: '/admin/inventory/permissions', label: 'inventory.permissions', permission: 'inventory.grant_temporary_edit' },
+      // Who may register an incoming delivery. Beside the inventory
+      // assignment screens because it is the same kind of decision — a
+      // standing operational responsibility, not a role.
+      { href: '/admin/goods-reception/assignees', label: 'gr.assigneesTitle', permission: 'goods_reception.manage_config' },
     ],
   },
   {
@@ -79,6 +88,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     screens: [
       { href: '/admin/reports', label: 'report.title', permission: 'reports.view' },
       { href: '/admin/incident-reports', label: 'ireport.title', permission: 'incidents.view_all' },
+      { href: '/admin/goods-reception-reports', label: 'gr.reportsTitle', permission: 'reports.view' },
       { href: '/admin/statistics', label: 'nav.statistics', permission: 'reports.view' },
       { href: '/admin/history', label: 'nav.history', permission: 'tasks.manage_occurrences' },
     ],

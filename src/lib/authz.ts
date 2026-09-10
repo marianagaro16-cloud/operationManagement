@@ -66,6 +66,14 @@ export const PERMISSIONS = [
   // management, not system control — a Power User holds it.
   'notifications.send',
 
+  // Goods Reception. NOTE what is absent: there is no key for "may register a
+  // delivery". That authority comes from goods_reception_assignees, because
+  // role_permissions carries a CHECK constraint allowing only 'manager' and
+  // 'power_user' rows — the 'user' role structurally cannot be granted
+  // anything here, and the receiver on the floor is a plain user.
+  'goods_reception.manage_config',
+  'goods_reception.manage_all',
+
   // ADMIN-ONLY — listed so the matrix can render them locked, never grantable
   'users.manage',
   'users.approve',

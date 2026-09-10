@@ -153,6 +153,363 @@ export type Database = {
         }
         Relationships: []
       }
+      goods_reception_assignees: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_reception_assignees_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_reception_assignees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_reception_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          new_value: Json | null
+          previous_value: Json | null
+          reception_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          previous_value?: Json | null
+          reception_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          previous_value?: Json | null
+          reception_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_reception_audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_reception_audit_log_reception_id_fkey"
+            columns: ["reception_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_reception_evidence: {
+        Row: {
+          created_at: string
+          exception_id: string | null
+          file_name: string
+          id: string
+          mime_type: string
+          reception_id: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          exception_id?: string | null
+          file_name: string
+          id?: string
+          mime_type: string
+          reception_id: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          exception_id?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string
+          reception_id?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_reception_evidence_exception_id_fkey"
+            columns: ["exception_id"]
+            isOneToOne: false
+            referencedRelation: "goods_reception_exceptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_reception_evidence_reception_id_fkey"
+            columns: ["reception_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_reception_evidence_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_reception_exceptions: {
+        Row: {
+          affected_quantity: number | null
+          best_before: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          lot_number: string | null
+          product_id: string
+          reception_id: string
+          updated_at: string
+        }
+        Insert: {
+          affected_quantity?: number | null
+          best_before?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          lot_number?: string | null
+          product_id: string
+          reception_id: string
+          updated_at?: string
+        }
+        Update: {
+          affected_quantity?: number | null
+          best_before?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          lot_number?: string | null
+          product_id?: string
+          reception_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_reception_exceptions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_reception_exceptions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "goods_reception_exceptions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_reception_exceptions_reception_id_fkey"
+            columns: ["reception_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_reception_report_snapshots: {
+        Row: {
+          generated_at: string
+          generated_by: string | null
+          id: string
+          note: string | null
+          payload: Json
+          period_month: string
+          reception_ids: string[]
+          version: number
+        }
+        Insert: {
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          note?: string | null
+          payload: Json
+          period_month: string
+          reception_ids?: string[]
+          version: number
+        }
+        Update: {
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          note?: string | null
+          payload?: Json
+          period_month?: string
+          reception_ids?: string[]
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_reception_report_snapshots_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_receptions: {
+        Row: {
+          comments: string | null
+          completed_at: string | null
+          completed_by: string | null
+          condition:
+            | Database["public"]["Enums"]["goods_reception_condition"]
+            | null
+          created_at: string
+          created_by: string | null
+          delivery_note: string | null
+          id: string
+          quantity_check: Database["public"]["Enums"]["goods_reception_quantity_check"]
+          received_at: string
+          received_by: string
+          reception_number: string
+          reference: number
+          status: Database["public"]["Enums"]["goods_reception_status"]
+          supplier_id: string | null
+          transporter_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          comments?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          condition?:
+            | Database["public"]["Enums"]["goods_reception_condition"]
+            | null
+          created_at?: string
+          created_by?: string | null
+          delivery_note?: string | null
+          id?: string
+          quantity_check?: Database["public"]["Enums"]["goods_reception_quantity_check"]
+          received_at?: string
+          received_by: string
+          reception_number: string
+          reference?: never
+          status?: Database["public"]["Enums"]["goods_reception_status"]
+          supplier_id?: string | null
+          transporter_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          comments?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          condition?:
+            | Database["public"]["Enums"]["goods_reception_condition"]
+            | null
+          created_at?: string
+          created_by?: string | null
+          delivery_note?: string | null
+          id?: string
+          quantity_check?: Database["public"]["Enums"]["goods_reception_quantity_check"]
+          received_at?: string
+          received_by?: string
+          reception_number?: string
+          reference?: never
+          status?: Database["public"]["Enums"]["goods_reception_status"]
+          supplier_id?: string | null
+          transporter_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receptions_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receptions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receptions_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receptions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receptions_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receptions_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incident_affected_items: {
         Row: {
           affected_quantity: number | null
@@ -553,6 +910,7 @@ export type Database = {
           delivery_method_id: string | null
           description: string
           detected_at: string
+          goods_reception_id: string | null
           id: string
           incident_number: string
           incident_type_id: string
@@ -578,6 +936,7 @@ export type Database = {
           delivery_method_id?: string | null
           description: string
           detected_at?: string
+          goods_reception_id?: string | null
           id?: string
           incident_number: string
           incident_type_id: string
@@ -603,6 +962,7 @@ export type Database = {
           delivery_method_id?: string | null
           description?: string
           detected_at?: string
+          goods_reception_id?: string | null
           id?: string
           incident_number?: string
           incident_type_id?: string
@@ -653,6 +1013,13 @@ export type Database = {
             columns: ["delivery_method_id"]
             isOneToOne: false
             referencedRelation: "delivery_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_goods_reception_id_fkey"
+            columns: ["goods_reception_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receptions"
             referencedColumns: ["id"]
           },
           {
@@ -2342,6 +2709,51 @@ export type Database = {
           },
         ]
       }
+      suppliers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suppliers_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_audit_log: {
         Row: {
           action: string
@@ -2593,6 +3005,51 @@ export type Database = {
           },
         ]
       }
+      transporters: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transporters_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transporters_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       lot_allocation_search: {
@@ -2679,7 +3136,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      can_view_incident: { Args: { p_order_id: string }; Returns: boolean }
+      can_view_incident:
+        | { Args: { p_order_id: string }; Returns: boolean }
+        | {
+            Args: { p_goods_reception_id: string; p_order_id: string }
+            Returns: boolean
+          }
+      can_write_goods_reception: {
+        Args: {
+          p_status: Database["public"]["Enums"]["goods_reception_status"]
+        }
+        Returns: boolean
+      }
+      can_write_goods_reception_child: {
+        Args: { p_reception_id: string }
+        Returns: boolean
+      }
       claim_push_subscription: {
         Args: {
           p_auth: string
@@ -2923,6 +3395,11 @@ export type Database = {
         Args: { r: Database["public"]["Enums"]["user_role"] }
         Returns: boolean
       }
+      is_goods_reception_assignee: { Args: never; Returns: boolean }
+      next_goods_reception_report_version: {
+        Args: { p_month: string }
+        Returns: number
+      }
       next_incident_report_version: {
         Args: { p_month: string }
         Returns: number
@@ -3021,6 +3498,16 @@ export type Database = {
       }
     }
     Enums: {
+      goods_reception_condition:
+        | "good"
+        | "damaged"
+        | "partially_damaged"
+        | "other_issue"
+      goods_reception_quantity_check:
+        | "not_checked"
+        | "checked_ok"
+        | "discrepancy"
+      goods_reception_status: "draft" | "received" | "checking" | "completed"
       incident_cause:
         | "order_entry"
         | "picking"
@@ -3194,6 +3681,18 @@ export const Constants = {
   },
   public: {
     Enums: {
+      goods_reception_condition: [
+        "good",
+        "damaged",
+        "partially_damaged",
+        "other_issue",
+      ],
+      goods_reception_quantity_check: [
+        "not_checked",
+        "checked_ok",
+        "discrepancy",
+      ],
+      goods_reception_status: ["draft", "received", "checking", "completed"],
       incident_cause: [
         "order_entry",
         "picking",
