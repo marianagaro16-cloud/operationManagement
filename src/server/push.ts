@@ -19,6 +19,16 @@ export interface PushPayload {
   tag?: string;
   url?: string;
   level?: 'warning' | 'critical' | 'overdue';
+  /**
+   * Keep the notification on screen until it is explicitly acknowledged, and
+   * give it an OK button to acknowledge with.
+   *
+   * Set for direct messages from a supervisor, which are the one kind of
+   * notification the sender is entitled to assume was seen rather than
+   * scrolled past. Nothing is recorded when OK is pressed — see the note in
+   * the service worker about what the platforms actually honour.
+   */
+  requireOk?: boolean;
 }
 
 let configured = false;

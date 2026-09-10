@@ -62,6 +62,10 @@ export const PERMISSIONS = [
   'incidents.view_all',
   'incidents.manage_config',
 
+  // Push a direct message to specific people on the floor. Operational
+  // management, not system control — a Power User holds it.
+  'notifications.send',
+
   // ADMIN-ONLY — listed so the matrix can render them locked, never grantable
   'users.manage',
   'users.approve',

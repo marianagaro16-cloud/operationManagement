@@ -89,6 +89,11 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     description: 'nav.sectionSystemBody',
     screens: [
       { href: '/admin/users', label: 'nav.users', permission: 'users.manage' },
+      // The only screen in this section a non-admin can open. It sits beside
+      // the accounts because that is what it addresses — people, not
+      // configuration — and a Power User who holds nothing else here reaches
+      // the section card for this alone.
+      { href: '/admin/notifications', label: 'notify.title', permission: 'notifications.send' },
       { href: '/admin/permissions', label: 'roles.matrixTitle', permission: 'permissions.configure' },
       { href: '/admin/settings', label: 'nav.settings', permission: 'system.configure' },
     ],

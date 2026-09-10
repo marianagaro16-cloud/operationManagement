@@ -59,17 +59,44 @@ self.addEventListener('push', (event) => {
     tag: payload.tag || 'operation-manager',
     renotify: true,
     // Overdue and critical alerts must survive a locked screen without being
-    // silently collapsed into the notification tray.
-    requireInteraction: payload.level === 'overdue' || payload.level === 'critical',
+    // silently collapsed into the notification tray. A direct message from a
+    // supervisor gets the same treatment, plus a button to dismiss it with.
+    requireInteraction:
+      payload.requireOk === true ||
+      payload.level === 'overdue' ||
+      payload.level === 'critical',
     data: { url: payload.url || '/preparation' },
     timestamp: Date.now(),
   };
+
+  // "Stays until they press OK."
+  //
+  // Honoured on DESKTOP Chrome, Edge and Firefox, and there it does exactly
+  // what it says. Elsewhere the platform decides and we cannot override it:
+  // Android Chrome ignores requireInteraction, though its notifications
+  // already sit in the tray until dismissed, so the effect is close; iOS
+  // ignores both requireInteraction and action buttons, and the notification
+  // lands in Notification Centre until the recipient clears it.
+  //
+  // Literal 'OK' rather than a translated string on purpose: the service
+  // worker has no access to the i18n dictionaries or to the recipient's
+  // chosen locale, and the word is identical in all three languages the app
+  // speaks.
+  if (payload.requireOk) {
+    options.actions = [{ action: 'ok', title: 'OK' }];
+  }
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
+  // OK means "I have seen it", not "take me there". Opening the app on a
+  // shared warehouse tablet would yank whoever pressed it out of whatever
+  // they were doing, which is the opposite of acknowledging and moving on.
+  if (event.action === 'ok') return;
+
   const target = (event.notification.data && event.notification.data.url) || '/preparation';
 
   // Focus an already-open tab rather than piling up new windows on a shared
