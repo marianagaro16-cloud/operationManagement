@@ -89,7 +89,12 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       { href: '/admin/reports', label: 'report.title', permission: 'reports.view' },
       { href: '/admin/incident-reports', label: 'ireport.title', permission: 'incidents.view_all' },
       { href: '/admin/goods-reception-reports', label: 'gr.reportsTitle', permission: 'reports.view' },
-      { href: '/admin/statistics', label: 'nav.statistics', permission: 'reports.view' },
+      // No Statistics entry. Task statistics ARE the Tasks tab of
+      // /admin/reports — the separate screen was merged there because the two
+      // computed their own period bounds and disagreed about what a month
+      // was. /admin/statistics survives as a redirect for old bookmarks, but
+      // advertising it here offered a tab that bounced you to Reports and
+      // then highlighted Reports, which reads as a broken link.
       { href: '/admin/history', label: 'nav.history', permission: 'tasks.manage_occurrences' },
     ],
   },
