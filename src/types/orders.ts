@@ -217,3 +217,38 @@ export interface RecurringTemplate {
   customer: Customer;
   lines?: { id: string; product_id: string; default_quantity: number | string; product: Product }[];
 }
+
+/* ------------------------ customer specifications ----------------------- */
+
+/**
+ * A kind of standing reminder: invoicing, transport, other.
+ *
+ * `slug` is the i18n key and `name` the fallback, so a kind added later that
+ * no dictionary knows about still renders as something readable.
+ */
+export interface SpecificationType {
+  id: string;
+  slug: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
+/**
+ * Something to remember when working with this customer — "send the invoice
+ * at month end", "book transport on Monday".
+ *
+ * For the office, not the floor: a plain user cannot read these at all, which
+ * RLS enforces rather than the UI merely hiding them.
+ */
+export interface CustomerSpecification {
+  id: string;
+  customer_id: string;
+  type_id: string;
+  body: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  customer?: Customer;
+  type?: SpecificationType;
+}

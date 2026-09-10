@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { isValidSchedule } from '@/domain/orders/scheduling';
+import { getViewer } from './data';
 import type { ActionResult } from './actions';
 
 /**
@@ -521,4 +522,77 @@ export async function generateOrderFromTemplate(
   if (error) return fail(error);
   revalidateOrders();
   return { ok: true, data: { id: (data as { id: string }).id } };
+}
+
+/* ------------------------ customer specifications ----------------------- */
+
+const specificationSchema = z.object({
+  customer_id: z.string().uuid(),
+  type_id: z.string().uuid(),
+  body: z.string().trim().min(1).max(1000),
+  is_active: z.boolean(),
+});
+
+/**
+ * Record or correct a standing reminder for a customer.
+ *
+ * The capability check is customers.manage, which Manager and Power User hold
+ * and a plain user does not — the line asked for, expressed with a key that
+ * already means "may look after customer master data" rather than a new one
+ * invented for four reminders. RLS enforces the same rule on the table, so
+ * this check exists to produce a message rather than to be the boundary.
+ */
+export async function saveCustomerSpecification(
+  input: z.infer<typeof specificationSchema>,
+  id?: string,
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = specificationSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'specification_incomplete' };
+
+  const viewer = await getViewer();
+  if (!viewer?.can('customers.manage')) return { ok: false, error: 'not_authorized' };
+
+  const supabase = createClient();
+  const row = { ...parsed.data, updated_by: viewer.profile.id };
+
+  if (id) {
+    const { error } = await supabase.from('customer_specifications').update(row).eq('id', id);
+    if (error) return fail(error);
+    revalidatePath('/admin/specifications');
+    return { ok: true, data: { id } };
+  }
+
+  const { data, error } = await supabase
+    .from('customer_specifications')
+    .insert({ ...row, created_by: viewer.profile.id })
+    .select('id')
+    .single();
+
+  if (error) return fail(error);
+  revalidatePath('/admin/specifications');
+  return { ok: true, data: { id: (data as { id: string }).id } };
+}
+
+/**
+ * Retire a reminder, or bring it back.
+ *
+ * Never a delete: "we used to invoice them monthly" is a real answer to a
+ * question about an old invoice, and deleting the reminder deletes the answer.
+ */
+export async function setSpecificationActive(
+  id: string,
+  isActive: boolean,
+): Promise<ActionResult> {
+  const viewer = await getViewer();
+  if (!viewer?.can('customers.manage')) return { ok: false, error: 'not_authorized' };
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('customer_specifications')
+    .update({ is_active: isActive, updated_by: viewer.profile.id })
+    .eq('id', id);
+
+  if (error) return fail(error);
+  revalidatePath('/admin/specifications');
+  return { ok: true, data: undefined };
 }

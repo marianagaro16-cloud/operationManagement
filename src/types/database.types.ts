@@ -93,6 +93,108 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_specification_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      customer_specifications: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          is_active: boolean
+          type_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          is_active?: boolean
+          type_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          is_active?: boolean
+          type_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_specifications_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_specifications_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_specifications_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "customer_specifications_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "customer_specification_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_specifications_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_types: {
         Row: {
           created_at: string
@@ -2236,6 +2338,7 @@ export type Database = {
           order_date: string
           order_type: Database["public"]["Enums"]["order_type"]
           preparation_date: string
+          recurring_template_id: string | null
           reference: number
           replaces_incident_id: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -2257,6 +2360,7 @@ export type Database = {
           order_date?: string
           order_type?: Database["public"]["Enums"]["order_type"]
           preparation_date: string
+          recurring_template_id?: string | null
           reference?: never
           replaces_incident_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -2278,6 +2382,7 @@ export type Database = {
           order_date?: string
           order_type?: Database["public"]["Enums"]["order_type"]
           preparation_date?: string
+          recurring_template_id?: string | null
           reference?: never
           replaces_incident_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -2316,6 +2421,13 @@ export type Database = {
           {
             foreignKeyName: "orders_generated_from_template_id_fkey"
             columns: ["generated_from_template_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_order_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_recurring_template_id_fkey"
+            columns: ["recurring_template_id"]
             isOneToOne: false
             referencedRelation: "recurring_order_templates"
             referencedColumns: ["id"]
@@ -2607,11 +2719,13 @@ export type Database = {
       }
       recurring_order_templates: {
         Row: {
+          anchor_date: string | null
           created_at: string
           customer_id: string
           delivery_method_id: string | null
           delivery_weekday: number
           id: string
+          interval_weeks: number
           is_active: boolean
           name: string | null
           note: string | null
@@ -2620,11 +2734,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          anchor_date?: string | null
           created_at?: string
           customer_id: string
           delivery_method_id?: string | null
           delivery_weekday: number
           id?: string
+          interval_weeks?: number
           is_active?: boolean
           name?: string | null
           note?: string | null
@@ -2633,11 +2749,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          anchor_date?: string | null
           created_at?: string
           customer_id?: string
           delivery_method_id?: string | null
           delivery_weekday?: number
           id?: string
+          interval_weeks?: number
           is_active?: boolean
           name?: string | null
           note?: string | null
@@ -3249,6 +3367,7 @@ export type Database = {
           order_date: string
           order_type: Database["public"]["Enums"]["order_type"]
           preparation_date: string
+          recurring_template_id: string | null
           reference: number
           replaces_incident_id: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -3262,6 +3381,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_viewer: { Args: never; Returns: Json }
       has_permission: { Args: { p_key: string }; Returns: boolean }
       inventory_can_edit: { Args: { p_instance_id: string }; Returns: boolean }
       inventory_complete: {

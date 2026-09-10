@@ -7,12 +7,14 @@ import { addDays, type BusinessDate } from '@/lib/datetime';
 import type {
   Brand,
   Customer,
+  CustomerSpecification,
   CustomerType,
   DeliveryMethod,
   Order,
   OrderWithProgress,
   Product,
   RecurringTemplate,
+  SpecificationType,
 } from '@/types/orders';
 
 /**
@@ -282,4 +284,46 @@ export async function getOrderDashboardSummary(today: BusinessDate) {
     carriedOver: day.carriedOver,
     delivering,
   };
+}
+
+/* ------------------------ customer specifications ----------------------- */
+
+/**
+ * Every standing reminder, newest kinds first.
+ *
+ * One query for the whole screen rather than one per customer: the list is
+ * read as a working checklist — every transport reminder on a Monday morning
+ * — so it is grouped by TYPE in the UI, not fetched per customer.
+ *
+ * RLS returns nothing at all to a plain user, so this needs no permission
+ * check of its own to be safe; the page checks anyway, to redirect rather
+ * than render an empty screen.
+ */
+export async function getCustomerSpecifications(
+  includeInactive = false,
+): Promise<CustomerSpecification[]> {
+  const supabase = createClient();
+  let q = supabase
+    .from('customer_specifications')
+    .select(`
+      id, customer_id, type_id, body, is_active, created_at, updated_at,
+      customer:customers ( id, company_name, company_name_addition, name, is_active, created_at, updated_at ),
+      type:customer_specification_types ( id, slug, name, sort_order, is_active )
+    `);
+
+  if (!includeInactive) q = q.eq('is_active', true);
+
+  const { data, error } = await q.order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as CustomerSpecification[];
+}
+
+export async function getSpecificationTypes(): Promise<SpecificationType[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('customer_specification_types')
+    .select('id, slug, name, sort_order, is_active')
+    .order('sort_order');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as SpecificationType[];
 }

@@ -50,6 +50,10 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     description: 'nav.sectionMasterDataBody',
     screens: [
       { href: '/admin/customers', label: 'master.customersTitle', permission: 'customers.manage' },
+      // Standing office reminders per customer — invoicing and transport.
+      // Beside Customers because that is what they are about, and behind
+      // customers.manage because a plain user must not read them at all.
+      { href: '/admin/specifications', label: 'spec.title', permission: 'customers.manage' },
       // Who goods come FROM, and who carried them. Master data in the same
       // sense customers are, so they live beside them rather than inside the
       // reception module — a supplier outlives any one delivery.
