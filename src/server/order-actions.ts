@@ -286,6 +286,9 @@ const customerSchema = z.object({
   company_name: z.string().trim().min(1),
   // Kept separate from the company name on purpose; never merged away.
   company_name_addition: z.string().trim().nullable(),
+  /** Commercial segment, or null while unclassified. Optional so an older
+   *  caller that never sent it does not silently wipe an existing one. */
+  customer_type_id: z.string().uuid().nullable().optional(),
   is_active: z.boolean(),
 });
 
@@ -300,11 +303,46 @@ export async function saveCustomer(
   const row = {
     company_name: parsed.data.company_name,
     company_name_addition: parsed.data.company_name_addition || null,
+    // undefined leaves the column alone; null clears it deliberately.
+    ...(parsed.data.customer_type_id === undefined
+      ? {}
+      : { customer_type_id: parsed.data.customer_type_id }),
     is_active: parsed.data.is_active,
   };
   const { error } = id
     ? await supabase.from('customers').update(row).eq('id', id)
     : await supabase.from('customers').insert(row);
+  if (error) return fail(error);
+  revalidatePath('/admin/customers');
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Classify one customer, without opening the edit dialog.
+ *
+ * 221 customers arrived unclassified when the segment was introduced, and
+ * working through that backlog through a modal per customer is the kind of
+ * chore nobody finishes. This is the same write saveCustomer performs,
+ * reached from a dropdown in the list row.
+ *
+ * Deliberately does NOT touch any other column: classifying is not editing,
+ * and a fast control that quietly re-saved the name would be a trap.
+ */
+export async function setCustomerType(
+  customerId: string,
+  customerTypeId: string | null,
+): Promise<ActionResult> {
+  if (!z.string().uuid().safeParse(customerId).success) return { ok: false, error: 'name_required' };
+  if (customerTypeId !== null && !z.string().uuid().safeParse(customerTypeId).success) {
+    return { ok: false, error: 'name_required' };
+  }
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('customers')
+    .update({ customer_type_id: customerTypeId })
+    .eq('id', customerId);
+
   if (error) return fail(error);
   revalidatePath('/admin/customers');
   return { ok: true, data: undefined };

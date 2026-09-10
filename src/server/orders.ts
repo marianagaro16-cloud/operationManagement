@@ -7,6 +7,7 @@ import { addDays, type BusinessDate } from '@/lib/datetime';
 import type {
   Brand,
   Customer,
+  CustomerType,
   DeliveryMethod,
   Order,
   OrderWithProgress,
@@ -189,11 +190,32 @@ export async function getOrder(id: string): Promise<OrderWithProgress | null> {
 
 export async function getCustomers(includeInactive = false): Promise<Customer[]> {
   const supabase = createClient();
-  let q = supabase.from('customers').select('*').order('name');
+  let q = supabase
+    .from('customers')
+    .select('*, customer_type:customer_types ( id, slug, name, sort_order, is_active )')
+    .order('name');
   if (!includeInactive) q = q.eq('is_active', true);
   const { data, error } = await q;
   if (error) throw new Error(error.message);
   return (data ?? []) as Customer[];
+}
+
+/**
+ * The commercial segments a customer can belong to.
+ *
+ * Inactive ones are included by default so an existing customer keeps showing
+ * the segment it was classified under even after that segment is retired —
+ * the picker filters them out for NEW classifications, which is a different
+ * question.
+ */
+export async function getCustomerTypes(): Promise<CustomerType[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('customer_types')
+    .select('id, slug, name, sort_order, is_active')
+    .order('sort_order');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as CustomerType[];
 }
 
 export async function getProducts(includeInactive = false): Promise<Product[]> {

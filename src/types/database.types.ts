@@ -93,11 +93,42 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           company_name: string
           company_name_addition: string | null
           created_at: string
+          customer_type_id: string | null
           id: string
           is_active: boolean
           name: string | null
@@ -107,6 +138,7 @@ export type Database = {
           company_name: string
           company_name_addition?: string | null
           created_at?: string
+          customer_type_id?: string | null
           id?: string
           is_active?: boolean
           name?: string | null
@@ -116,12 +148,21 @@ export type Database = {
           company_name?: string
           company_name_addition?: string | null
           created_at?: string
+          customer_type_id?: string | null
           id?: string
           is_active?: boolean
           name?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_customer_type_id_fkey"
+            columns: ["customer_type_id"]
+            isOneToOne: false
+            referencedRelation: "customer_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       delivery_methods: {
         Row: {

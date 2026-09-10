@@ -14,12 +14,35 @@ export type OrderStatus = 'draft' | 'confirmed' | 'cancelled';
  */
 export type OrderType = 'sale' | 'sample' | 'replacement';
 
+/**
+ * A commercial segment: Gastro, Distribuidor, Reseller.
+ *
+ * `slug` is the i18n key and `name` the fallback, so a segment added later
+ * that no dictionary knows about still renders as something readable.
+ */
+export interface CustomerType {
+  id: string;
+  slug: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
 export interface Customer {
   id: string;
   /** Legal entity name, e.g. "5 Almas AG". */
   company_name: string;
   /** Trading name, e.g. "La Catedral". Kept separate on purpose. */
   company_name_addition: string | null;
+  /**
+   * Commercial segment, or NULL while unclassified.
+   *
+   * Unclassified is a real and permanent state, not a placeholder: guessing a
+   * segment from a company name would put invented commercial data into the
+   * master file and silently skew everything grouped by it.
+   */
+  customer_type_id?: string | null;
+  customer_type?: CustomerType | null;
   /**
    * "5 Almas AG — La Catedral", or just the company where there is no
    * addition. A GENERATED column in Postgres, so it can never disagree with

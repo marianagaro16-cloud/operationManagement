@@ -944,6 +944,17 @@ export const en = {
     stillOpen: '{count} products open',
   },
   master: {
+    customerTypeLabel: 'Customer type',
+    typeAll: 'All types',
+    typeNone: 'No type',
+    typeNoneCount: 'No type ({count})',
+    // Keyed by the customer_types.slug column. A segment added later with no
+    // entry here falls back to the name stored on its row.
+    customerType: {
+      gastro: 'Gastro',
+      distributor: 'Distributor',
+      reseller: 'Reseller',
+    },
     brand: 'Brand',
     brandHint: 'Which of our brands this product is sold under.',
     noBrand: 'No brand',

@@ -922,6 +922,17 @@ export const de: Messages = {
     stillOpen: '{count} Produkte offen',
   },
   master: {
+    customerTypeLabel: 'Kundentyp',
+    typeAll: 'Alle Typen',
+    typeNone: 'Kein Typ',
+    typeNoneCount: 'Kein Typ ({count})',
+    // Keyed by the customer_types.slug column. A segment added later with no
+    // entry here falls back to the name stored on its row.
+    customerType: {
+      gastro: 'Gastro',
+      distributor: 'Händler',
+      reseller: 'Wiederverkäufer',
+    },
     brand: 'Marke',
     brandHint: 'Unter welcher unserer Marken dieses Produkt verkauft wird.',
     noBrand: 'Keine Marke',
