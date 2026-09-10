@@ -319,6 +319,43 @@ export async function getCategories(): Promise<Category[]> {
  * gets empty lists and rejected writes.
  */
 export const getViewer = cache(async (): Promise<Viewer | null> => {
+  const supabase = createClient();
+
+  /*
+   * ONE round trip, not two.
+   *
+   * This used to await getProfile() — itself a profiles SELECT — and then
+   * issue a second query for role_permissions, strictly sequentially, on
+   * every authenticated page. Measured at ~64 ms and ~67 ms against
+   * production: ~130 ms of latency spent answering one question.
+   *
+   * get_viewer() is SECURITY INVOKER and reads exactly what RLS already lets
+   * the caller read, so nothing is trusted here that was not trusted before.
+   */
+  const { data, error } = await supabase.rpc('get_viewer');
+
+  // Falls back to the two-query path rather than logging somebody out. A
+  // missing function on a database that has not taken the migration yet
+  // should degrade in speed, never in access.
+  if (error || !data) return legacyViewer();
+
+  const payload = data as { profile: Profile | null; permissions: Permission[] };
+  const profile = payload.profile;
+  if (!profile) return null;
+
+  const caps = new Set<Permission>(payload.permissions ?? []);
+
+  return {
+    profile,
+    role: profile.role,
+    caps,
+    can: (permission: Permission) => can(profile.role, caps, permission),
+    atLeast: (min: Role) => atLeast(profile.role, min),
+  };
+});
+
+/** The original two-query path, kept as the fallback described above. */
+async function legacyViewer(): Promise<Viewer | null> {
   const profile = await getProfile();
   if (!profile) return null;
 
@@ -336,7 +373,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     can: (permission: Permission) => can(profile.role, caps, permission),
     atLeast: (min: Role) => atLeast(profile.role, min),
   };
-});
+}
 
 /** How many approved admins exist — the last-admin guard needs it. */
 export async function countApprovedAdmins(): Promise<number> {
