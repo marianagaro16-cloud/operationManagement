@@ -2,15 +2,16 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarPlus } from 'lucide-react';
+import { CalendarPlus, Pencil, Plus } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState, ErrorState } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { nextWeekdayOnOrAfter } from '@/domain/orders/scheduling';
+import { nextStandingDelivery } from '@/domain/orders/scheduling';
 import { businessToday } from '@/lib/datetime';
 import { generateOrderFromTemplate, setTemplateActive } from '@/server/order-actions';
-import type { RecurringTemplate } from '@/types/orders';
+import type { Customer, DeliveryMethod, Product, RecurringTemplate } from '@/types/orders';
+import { StandingOrderDialog } from './standing-order-dialog';
 
 /**
  * Recurring order templates.
@@ -23,12 +24,24 @@ import type { RecurringTemplate } from '@/types/orders';
  * Deliberately separate from the task recurrence engine: an order cadence and
  * an operational task cadence are different concepts.
  */
-export function RecurringManager({ templates }: { templates: RecurringTemplate[] }) {
+export function RecurringManager({
+  templates,
+  customers,
+  products,
+  deliveryMethods,
+}: {
+  templates: RecurringTemplate[];
+  customers: Customer[];
+  products: Product[];
+  deliveryMethods: DeliveryMethod[];
+}) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [editing, setEditing] = useState<RecurringTemplate | null>(null);
+  const [creating, setCreating] = useState(false);
   const today = businessToday();
 
   const byWeekday = new Map<number, RecurringTemplate[]>();
@@ -40,13 +53,31 @@ export function RecurringManager({ templates }: { templates: RecurringTemplate[]
 
   return (
     <>
-      <PageHeader title={t('master.recurringTitle')} subtitle={t('master.recurringSubtitle')} />
+      <PageHeader
+        title={t('master.recurringTitle')}
+        subtitle={t('master.recurringSubtitle')}
+        action={
+          <Button variant="primary" onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4" aria-hidden />
+            {t('master.newStanding')}
+          </Button>
+        }
+      />
 
       {error && <div className="mb-3"><ErrorState message={error} /></div>}
       {message && <p className="mb-3 text-[13px] text-done">{message}</p>}
 
       {templates.length === 0 ? (
-        <EmptyState title={t('stats.noData')} />
+        <EmptyState
+          title={t('master.standingEmpty')}
+          body={t('master.standingEmptyBody')}
+          action={
+            <Button variant="primary" onClick={() => setCreating(true)}>
+              <Plus className="h-4 w-4" aria-hidden />
+              {t('master.newStanding')}
+            </Button>
+          }
+        />
       ) : (
         <div className="space-y-4">
           {[...byWeekday.entries()]
@@ -59,13 +90,27 @@ export function RecurringManager({ templates }: { templates: RecurringTemplate[]
                 <Card className="overflow-hidden">
                   <ul className="divide-y divide-border">
                     {list.map((tpl) => {
-                      const nextDelivery = nextWeekdayOnOrAfter(today, tpl.delivery_weekday);
+                      // Cadence-aware: a fortnightly template must not be
+                      // offered its off-week.
+                      const nextDelivery = nextStandingDelivery(
+                        {
+                          weekday: tpl.delivery_weekday,
+                          intervalWeeks: tpl.interval_weeks,
+                          anchorDate: tpl.anchor_date,
+                        },
+                        today,
+                      );
                       return (
                         <li key={tpl.id} className="flex flex-wrap items-center gap-2 px-3.5 py-2.5">
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-[13.5px] font-medium">{tpl.customer.name}</p>
                             <p className="text-[11.5px] text-muted">
-                              {t('master.nextDelivery')}: {formatDate(nextDelivery, 'short')}
+                              {t('master.nextDelivery')}:{' '}
+                              {nextDelivery ? formatDate(nextDelivery, 'short') : '—'}
+                              {' · '}
+                              {tpl.interval_weeks > 1
+                                ? t('master.everyNWeeksShort', { n: tpl.interval_weeks })
+                                : t('master.weekly')}
                               {tpl.lines?.length ? ` · ${tpl.lines.length}` : ''}
                             </p>
                           </div>
@@ -73,6 +118,15 @@ export function RecurringManager({ templates }: { templates: RecurringTemplate[]
                           <Badge tone={tpl.is_active ? 'done' : 'warn'}>
                             {tpl.is_active ? t('status.active') : t('master.templateInactive')}
                           </Badge>
+
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label={t('common.edit')}
+                            onClick={() => setEditing(tpl)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" aria-hidden />
+                          </Button>
 
                           <Button
                             size="sm"
@@ -96,7 +150,7 @@ export function RecurringManager({ templates }: { templates: RecurringTemplate[]
                             onClick={() =>
                               startTransition(async () => {
                                 setError(null); setMessage(null);
-                                const res = await generateOrderFromTemplate(tpl.id, nextDelivery);
+                                const res = await generateOrderFromTemplate(tpl.id, nextDelivery!);
                                 if (!res.ok) setError(res.error);
                                 else setMessage(t('master.generatedOrder'));
                                 router.refresh();
@@ -114,6 +168,17 @@ export function RecurringManager({ templates }: { templates: RecurringTemplate[]
               </section>
             ))}
         </div>
+      )}
+
+      {(creating || editing) && (
+        <StandingOrderDialog
+          key={editing?.id ?? 'new'}
+          template={editing}
+          customers={customers}
+          products={products}
+          deliveryMethods={deliveryMethods}
+          onClose={() => { setCreating(false); setEditing(null); }}
+        />
       )}
     </>
   );

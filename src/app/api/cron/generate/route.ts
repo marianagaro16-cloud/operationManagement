@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ensureScheduled } from '@/server/scheduling';
+import { ensureStandingOrders } from '@/server/order-scheduling';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,22 @@ export async function GET(request: Request) {
     // server/scheduling.ts rather than being literals here, so the cron, the
     // admin button and the health check cannot disagree about them.
     const run = await ensureScheduled();
-    return NextResponse.json({ ok: true, ...run });
+
+    /*
+     * Standing orders ride the same nightly run rather than a second cron.
+     *
+     * Awaited separately so a template failing cannot stop the daily
+     * checklist from being materialised — the two are independent, and the
+     * checklist is what the floor opens first thing in the morning.
+     */
+    let standing: Awaited<ReturnType<typeof ensureStandingOrders>> | { error: string };
+    try {
+      standing = await ensureStandingOrders();
+    } catch (e) {
+      standing = { error: e instanceof Error ? e.message : String(e) };
+    }
+
+    return NextResponse.json({ ok: true, ...run, standing });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : String(e) },

@@ -202,6 +202,13 @@ export interface RecurringTemplate {
   customer_id: string;
   name: string | null;
   delivery_weekday: number;
+  /** Weeks between deliveries. 1 = weekly. */
+  interval_weeks: number;
+  /**
+   * Which week the interval counts from. Required above interval 1 — "every
+   * second Tuesday" is ambiguous until you say which Tuesday starts the count.
+   */
+  anchor_date: string | null;
   preparation_lead_days: number;
   delivery_method_id: string | null;
   order_type: OrderType;

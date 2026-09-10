@@ -448,6 +448,8 @@ export async function saveTemplate(
   input: {
     customer_id: string;
     delivery_weekday: number;
+    interval_weeks: number;
+    anchor_date: string | null;
     preparation_lead_days: number;
     delivery_method_id: string | null;
     order_type: 'sale' | 'sample' | 'replacement';
@@ -461,6 +463,10 @@ export async function saveTemplate(
   const header = {
     customer_id: input.customer_id,
     delivery_weekday: input.delivery_weekday,
+    interval_weeks: input.interval_weeks,
+    // Cleared at interval 1, where it means nothing and would only mislead
+    // whoever read the row later. The CHECK constraint requires it above 1.
+    anchor_date: input.interval_weeks > 1 ? input.anchor_date : null,
     preparation_lead_days: input.preparation_lead_days,
     delivery_method_id: input.delivery_method_id,
     order_type: input.order_type,
@@ -493,6 +499,9 @@ export async function saveTemplate(
   }
 
   revalidatePath('/admin/recurring');
+  // A template change alters what tomorrow's drafts will contain, and the
+  // order book is where anybody would look for the consequence.
+  revalidatePath('/orders');
   return { ok: true, data: { id: templateId as string } };
 }
 

@@ -80,3 +80,89 @@ export function proposedDeliveryDates(
   }
   return out;
 }
+
+/* ---------------------------- standing orders --------------------------- */
+
+/**
+ * A standing order's cadence.
+ *
+ * `intervalWeeks` of 1 is every week and needs no anchor. Anything wider does:
+ * "every second Tuesday" has two equally valid answers until you say which
+ * Tuesday the count starts from, and without one the schedule would drift
+ * depending on when it was asked. The database enforces the same rule with a
+ * CHECK constraint.
+ */
+export interface StandingCadence {
+  /** ISO weekday, Monday = 1. */
+  weekday: number;
+  intervalWeeks: number;
+  /** Any date in a week that IS a delivery week. Required above interval 1. */
+  anchorDate: BusinessDate | null;
+}
+
+/**
+ * Does this cadence deliver on this date?
+ *
+ * Weeks are counted between the Monday of the anchor's week and the Monday of
+ * the candidate's week, so the answer does not depend on which weekday the
+ * anchor happened to be written as — an anchor of Tuesday the 8th and one of
+ * Friday the 11th describe the same week and must behave identically.
+ *
+ * Counting is symmetric around the anchor: a date BEFORE it is on-cadence if
+ * it is a whole number of intervals away, which keeps "every second Tuesday"
+ * meaning the same thing whether you ask about next month or last.
+ */
+export function deliversOn(cadence: StandingCadence, date: BusinessDate): boolean {
+  const dt = parseBusinessDate(date);
+  if (dt.weekday !== cadence.weekday) return false;
+  if (cadence.intervalWeeks <= 1) return true;
+  if (!cadence.anchorDate) return false;
+
+  const anchorWeek = parseBusinessDate(cadence.anchorDate).startOf('week');
+  const candidateWeek = dt.startOf('week');
+  const weeksApart = Math.round(candidateWeek.diff(anchorWeek, 'weeks').weeks);
+
+  // Modulo that stays correct for negative differences: JavaScript's % keeps
+  // the sign of the dividend, so -2 % 2 is -0 but -3 % 2 is -1, not 1.
+  const remainder = ((weeksApart % cadence.intervalWeeks) + cadence.intervalWeeks)
+    % cadence.intervalWeeks;
+  return remainder === 0;
+}
+
+/**
+ * Every delivery date this cadence produces within a window, inclusive.
+ *
+ * The one implementation the screen and the scheduler both read, so the date
+ * a template SAYS it will next deliver on is the date the cron actually
+ * creates. Two copies of this rule would disagree the first time somebody
+ * fixed a boundary in one of them.
+ */
+export function standingDeliveryDates(
+  cadence: StandingCadence,
+  rangeStart: BusinessDate,
+  rangeEnd: BusinessDate,
+): BusinessDate[] {
+  const out: BusinessDate[] = [];
+  const end = parseBusinessDate(rangeEnd);
+  let cursor = parseBusinessDate(nextWeekdayOnOrAfter(rangeStart, cadence.weekday));
+
+  while (cursor <= end) {
+    const date = toBusinessDate(cursor);
+    if (deliversOn(cadence, date)) out.push(date);
+    // Always step a single week: stepping by the interval from a date that is
+    // off-cadence would stay off-cadence forever.
+    cursor = cursor.plus({ weeks: 1 });
+  }
+  return out;
+}
+
+/** The next date this cadence delivers on, at or after `from`. */
+export function nextStandingDelivery(
+  cadence: StandingCadence,
+  from: BusinessDate,
+): BusinessDate | null {
+  // A year is far enough: interval_weeks is capped at 52, so any live cadence
+  // delivers at least once inside it.
+  const end = toBusinessDate(parseBusinessDate(from).plus({ weeks: 53 }));
+  return standingDeliveryDates(cadence, from, end)[0] ?? null;
+}
