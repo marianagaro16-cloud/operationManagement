@@ -420,6 +420,7 @@ export const de: Messages = {
     typeSale: 'Verkauf',
     typeSample: 'Muster',
     typeReplacement: 'Ersatzlieferung',
+    typeSponsorship: 'Sponsoring',
     noOrders: 'Keine Bestellungen in diesem Zeitraum',
     noOrdersBody: 'Filter anpassen oder eine neue Bestellung anlegen.',
     month: 'Monat',

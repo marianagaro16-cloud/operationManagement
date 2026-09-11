@@ -2,6 +2,7 @@ import 'server-only';
 import { createAdminClient } from '@/lib/supabase/server';
 import { standingDeliveryDates, type StandingCadence } from '@/domain/orders/scheduling';
 import { addDays, businessToday, type BusinessDate } from '@/lib/datetime';
+import type { OrderType } from '@/types/orders';
 
 /**
  * Standing orders, materialised.
@@ -53,7 +54,7 @@ interface TemplateRow {
   anchor_date: string | null;
   preparation_lead_days: number;
   delivery_method_id: string | null;
-  order_type: 'sale' | 'sample' | 'replacement';
+  order_type: OrderType;
   note: string | null;
   lines: { product_id: string; default_quantity: number | string; position: number }[] | null;
 }

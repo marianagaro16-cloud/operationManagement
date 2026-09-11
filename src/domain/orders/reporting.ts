@@ -191,6 +191,12 @@ export interface OrderReport {
   samples: number;
   /** Free deliveries sent to make good. Counted apart from sales. */
   replacements: number;
+  /**
+   * Free deliveries given in exchange for visibility — an event, a team, a
+   * fair. Counted apart from sales for the same reason as the two above, and
+   * apart from samples because nobody is expected to buy afterwards.
+   */
+  sponsorships: number;
   customersServed: number;
   lines: number;
 
@@ -401,6 +407,7 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
     draft: counted.filter((o) => o.status === 'draft').length,
     samples: counted.filter((o) => o.order_type === 'sample').length,
     replacements: counted.filter((o) => o.order_type === 'replacement').length,
+    sponsorships: counted.filter((o) => o.order_type === 'sponsorship').length,
     customersServed: customers.size,
     lines,
     totalOrdered: round3(totalOrdered),

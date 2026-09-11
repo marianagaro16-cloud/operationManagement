@@ -88,7 +88,8 @@ export function OrderReportView({
 
           {/* Anything the headline hides */}
           {(report.cancelled > 0 || report.draft > 0 || report.samples > 0
-            || report.replacements > 0 || report.shortLines > 0) && (
+            || report.replacements > 0 || report.sponsorships > 0
+            || report.shortLines > 0) && (
             <div className="flex flex-wrap gap-1.5">
               {report.cancelled > 0 && (
                 <Badge tone="late">{t('report.cancelled')}: {report.cancelled}</Badge>
@@ -104,6 +105,9 @@ export function OrderReportView({
                   sent to apologise. */}
               {report.replacements > 0 && (
                 <Badge tone="warn">{t('orders.typeReplacement')}: {report.replacements}</Badge>
+              )}
+              {report.sponsorships > 0 && (
+                <Badge tone="accent">{t('orders.typeSponsorship')}: {report.sponsorships}</Badge>
               )}
               {report.shortLines > 0 && (
                 <Badge tone="warn">

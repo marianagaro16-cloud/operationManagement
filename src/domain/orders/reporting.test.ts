@@ -181,6 +181,32 @@ describe('headline numbers', () => {
     const r = computeOrderReport([order({ lines: [line('p1', '0001', 'T', 1)] })], SEP);
     expect(r.replacements).toBe(0);
   });
+
+  it('counts sponsorships apart from both sales and samples', () => {
+    // A sponsorship is not a sale — nobody pays for it — and it is not a
+    // sample either: no future order is expected of the recipient, so folding
+    // it into samples would answer "did they buy" with a permanent no and
+    // make every sample cohort look worse than it was.
+    const r = computeOrderReport(
+      [
+        order({ lines: [line('p1', '0001', 'T', 10)] }),
+        order({ order_type: 'sponsorship', lines: [line('p1', '0001', 'T', 4)] }),
+        order({ order_type: 'sample', lines: [line('p1', '0001', 'T', 1)] }),
+      ],
+      SEP,
+    );
+    expect(r.orders).toBe(3);
+    expect(r.sponsorships).toBe(1);
+    expect(r.samples).toBe(1);
+    expect(r.replacements).toBe(0);
+    // The crates left the warehouse either way.
+    expect(r.totalOrdered).toBe(15);
+  });
+
+  it('reports no sponsorships when there are none', () => {
+    const r = computeOrderReport([order({ lines: [line('p1', '0001', 'T', 1)] })], SEP);
+    expect(r.sponsorships).toBe(0);
+  });
 });
 
 describe('quantities per product — the main question', () => {

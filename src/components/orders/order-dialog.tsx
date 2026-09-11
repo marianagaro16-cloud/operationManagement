@@ -372,6 +372,7 @@ export function OrderDialog({
               <option value="sale">{t('orders.typeSale')}</option>
               <option value="sample">{t('orders.typeSample')}</option>
               <option value="replacement">{t('orders.typeReplacement')}</option>
+              <option value="sponsorship">{t('orders.typeSponsorship')}</option>
             </Select>
           </Field>
         </div>

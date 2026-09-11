@@ -11,7 +11,13 @@ import { Field, Input, Select, Textarea } from '@/components/ui/primitives';
 import { nextStandingDelivery } from '@/domain/orders/scheduling';
 import { businessToday } from '@/lib/datetime';
 import { saveTemplate } from '@/server/order-actions';
-import type { Customer, DeliveryMethod, Product, RecurringTemplate } from '@/types/orders';
+import type {
+  Customer,
+  DeliveryMethod,
+  OrderType,
+  Product,
+  RecurringTemplate,
+} from '@/types/orders';
 
 /**
  * Creating and editing a standing order.
@@ -93,7 +99,7 @@ export function StandingOrderDialog({
           anchor_date: interval > 1 ? anchorDate : null,
           preparation_lead_days: Number(leadDays) || 0,
           delivery_method_id: methodId,
-          order_type: orderType as 'sale' | 'sample' | 'replacement',
+          order_type: orderType as OrderType,
           note: note.trim() || null,
           is_active: isActive,
           lines: validLines.map((l) => ({

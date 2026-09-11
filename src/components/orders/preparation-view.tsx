@@ -18,6 +18,7 @@ import { UrgencyBadge } from './urgency-badge';
 import { NoteBlock, NoteChip } from '@/components/ui/note';
 import { productLabel, type OrderLine, type OrderWithProgress } from '@/types/orders';
 import { StatusChip, statusPresentation } from '@/components/ui/status-chip';
+import { OrderTypeBadge } from '@/components/orders/order-type-badge';
 import { saveLotAllocation, deleteLotAllocation, setShortfallReason } from '@/server/order-actions';
 
 /**
@@ -187,12 +188,10 @@ function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; 
           {order.delivery_method && (
             <Badge tone="neutral">{order.delivery_method.name}</Badge>
           )}
-          {order.order_type === 'sample' && <Badge tone="accent">{t('orders.typeSample')}</Badge>}
-          {/* A replacement is not a sale. Saying so on the row is what stops
-              a month of apologies reading as a month of trade. */}
-          {order.order_type === 'replacement' && (
-            <Badge tone="warn">{t('orders.typeReplacement')}</Badge>
-          )}
+          {/* A sample, a replacement and a sponsorship are not sales. Saying
+              so on the row is what stops a month of giveaways reading as a
+              month of trade. */}
+          <OrderTypeBadge type={order.order_type} />
           {order.status !== 'confirmed' && <StatusChip domain="order" status={order.status} />}
         </div>
         <div className="flex items-center gap-2">

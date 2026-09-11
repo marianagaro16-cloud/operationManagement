@@ -423,6 +423,7 @@ export const en = {
     typeSale: 'Sale',
     typeSample: 'Sample',
     typeReplacement: 'Replacement',
+    typeSponsorship: 'Sponsorship',
     noOrders: 'No orders for this period',
     noOrdersBody: 'Adjust the filters or create a new order.',
     month: 'Month',

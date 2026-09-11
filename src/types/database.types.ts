@@ -2328,7 +2328,7 @@ export type Database = {
           created_by: string | null
           customer_id: string
           delivery_date: string
-          delivery_method_id: string | null
+          delivery_method_id: string
           delivery_time: string | null
           generated_from_template_id: string | null
           id: string
@@ -2350,7 +2350,7 @@ export type Database = {
           created_by?: string | null
           customer_id: string
           delivery_date: string
-          delivery_method_id?: string | null
+          delivery_method_id: string
           delivery_time?: string | null
           generated_from_template_id?: string | null
           id?: string
@@ -2372,7 +2372,7 @@ export type Database = {
           created_by?: string | null
           customer_id?: string
           delivery_date?: string
-          delivery_method_id?: string | null
+          delivery_method_id?: string
           delivery_time?: string | null
           generated_from_template_id?: string | null
           id?: string
@@ -2722,7 +2722,7 @@ export type Database = {
           anchor_date: string | null
           created_at: string
           customer_id: string
-          delivery_method_id: string | null
+          delivery_method_id: string
           delivery_weekday: number
           id: string
           interval_weeks: number
@@ -2737,7 +2737,7 @@ export type Database = {
           anchor_date?: string | null
           created_at?: string
           customer_id: string
-          delivery_method_id?: string | null
+          delivery_method_id: string
           delivery_weekday: number
           id?: string
           interval_weeks?: number
@@ -2752,7 +2752,7 @@ export type Database = {
           anchor_date?: string | null
           created_at?: string
           customer_id?: string
-          delivery_method_id?: string | null
+          delivery_method_id?: string
           delivery_weekday?: number
           id?: string
           interval_weeks?: number
@@ -3357,7 +3357,7 @@ export type Database = {
           created_by: string | null
           customer_id: string
           delivery_date: string
-          delivery_method_id: string | null
+          delivery_method_id: string
           delivery_time: string | null
           generated_from_template_id: string | null
           id: string
@@ -3701,7 +3701,7 @@ export type Database = {
       inventory_status: "in_progress" | "completed" | "to_review" | "resolved"
       occurrence_status: "pending" | "completed" | "skipped" | "blocked"
       order_status: "draft" | "confirmed" | "cancelled"
-      order_type: "sale" | "sample" | "replacement"
+      order_type: "sale" | "sample" | "replacement" | "sponsorship"
       schedule_source: "auto" | "manual"
       task_frequency:
         | "daily"
@@ -3889,7 +3889,7 @@ export const Constants = {
       inventory_status: ["in_progress", "completed", "to_review", "resolved"],
       occurrence_status: ["pending", "completed", "skipped", "blocked"],
       order_status: ["draft", "confirmed", "cancelled"],
-      order_type: ["sale", "sample", "replacement"],
+      order_type: ["sale", "sample", "replacement", "sponsorship"],
       schedule_source: ["auto", "manual"],
       task_frequency: [
         "daily",

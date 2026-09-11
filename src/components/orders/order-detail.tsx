@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, ReadOnlyNotice, SectionHeading } from '@/components/ui/primitives';
 import { StatusChip } from '@/components/ui/status-chip';
+import { OrderTypeBadge } from '@/components/orders/order-type-badge';
 import { PageHeader } from '@/components/shell/app-shell';
 import { lineProgress, toQuantity } from '@/domain/orders/progress';
 import { BUSINESS_TZ } from '@/lib/datetime';
@@ -123,12 +124,10 @@ export function OrderDetail({
             <StatusChip domain="line" status="partial" />
           )}
           {order.delivery_method && <Badge tone="neutral">{order.delivery_method.name}</Badge>}
-          {order.order_type === 'sample' && <Badge tone="accent">{t('orders.typeSample')}</Badge>}
-          {/* A replacement is not a sale. Saying so on the row is what stops
-              a month of apologies reading as a month of trade. */}
-          {order.order_type === 'replacement' && (
-            <Badge tone="warn">{t('orders.typeReplacement')}</Badge>
-          )}
+          {/* A sample, a replacement and a sponsorship are not sales. Saying
+              so on the row is what stops a month of giveaways reading as a
+              month of trade. */}
+          <OrderTypeBadge type={order.order_type} />
           {/* Provenance: a standing order proposed this, a person did not. */}
           {order.generated_from_template_id && (
             <Badge tone="neutral">{t('orders.fromTemplate')}</Badge>

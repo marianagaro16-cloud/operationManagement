@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState, Input, Select } from '@/components/ui/primitives';
 import { Combobox } from '@/components/ui/combobox';
 import { StatusChip } from '@/components/ui/status-chip';
+import { OrderTypeBadge } from '@/components/orders/order-type-badge';
 import { PageHeader } from '@/components/shell/app-shell';
 import { lineProgress, toQuantity } from '@/domain/orders/progress';
 import { isBeforeGoLive } from '@/domain/orders/config';
@@ -387,12 +388,10 @@ function OrderCard({
           #{order.reference}
         </Link>
         {order.delivery_method && <Badge tone="neutral">{order.delivery_method.name}</Badge>}
-        {order.order_type === 'sample' && <Badge tone="accent">{t('orders.typeSample')}</Badge>}
-        {/* A replacement is not a sale. Saying so on the row is what stops a
-            month of apologies reading as a month of trade. */}
-        {order.order_type === 'replacement' && (
-          <Badge tone="warn">{t('orders.typeReplacement')}</Badge>
-        )}
+        {/* A sample, a replacement and a sponsorship are not sales. Saying so
+            on the row is what stops a month of giveaways reading as a month
+            of trade. */}
+        <OrderTypeBadge type={order.order_type} />
         {/* Provenance. A generated order used to be indistinguishable from a
             hand-typed one, so a draft gave the reviewer nothing to review. */}
         {order.generated_from_template_id && (

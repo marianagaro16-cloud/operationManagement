@@ -8,11 +8,13 @@ export type OrderStatus = 'draft' | 'confirmed' | 'cancelled';
  * The commercial nature of a delivery, not its provenance.
  *
  * 'sale' is billed, 'sample' is free for evaluation, 'replacement' is free to
- * make good. Independent of `replaces_incident_id`, which records WHICH
+ * make good, 'sponsorship' is free in exchange for visibility — an event, a
+ * team, a fair, where no future order is expected of the recipient and none
+ * is the point. Independent of `replaces_incident_id`, which records WHICH
  * incident prompted the delivery — a redelivery the customer still pays for
  * is a sale with an incident attached.
  */
-export type OrderType = 'sale' | 'sample' | 'replacement';
+export type OrderType = 'sale' | 'sample' | 'replacement' | 'sponsorship';
 
 /**
  * A commercial segment: Gastro, Distribuidor, Reseller.

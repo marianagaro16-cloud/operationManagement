@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { isValidSchedule } from '@/domain/orders/scheduling';
+import type { OrderType } from '@/types/orders';
 import { getViewer } from './data';
 import type { ActionResult } from './actions';
 
@@ -47,7 +48,7 @@ const orderInputSchema = z.object({
   // a translatable refusal rather than a constraint violation surfaced raw.
   delivery_method_id: z.string().uuid(),
   status: z.enum(['draft', 'confirmed', 'cancelled']),
-  order_type: z.enum(['sale', 'sample', 'replacement']),
+  order_type: z.enum(['sale', 'sample', 'replacement', 'sponsorship']),
   note: z.string().trim().nullable(),
   /**
    * How the order arrived. Omitted means what it has always meant — entered
@@ -460,7 +461,7 @@ export async function saveTemplate(
     anchor_date: string | null;
     preparation_lead_days: number;
     delivery_method_id: string;
-    order_type: 'sale' | 'sample' | 'replacement';
+    order_type: OrderType;
     note: string | null;
     is_active: boolean;
     lines: { product_id: string; default_quantity: number }[];
