@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/shell/app-shell';
 import { minutesUntilDeadline } from '@/domain/inventory/calc';
 import { formatCalendarWeek } from '@/domain/inventory/schedule';
 import { completeInventory, reopenInventory, setInventoryAssignees } from '@/server/inventory-actions';
+import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { DigitalPendingBadge, StatusBadge, useInventoryError } from './inventory-bits';
 import { CommentDialog, ItemCard } from './item-card';
 import type { InventoryDetail, InventoryLocation, InventoryStatus } from '@/types/inventory';
@@ -31,11 +32,14 @@ export function InventoryDetailView({
   locations,
   users,
   canManage,
+  reminderViewerId,
 }: {
   detail: InventoryDetail;
   locations: InventoryLocation[];
   users: Profile[];
   canManage: boolean;
+  /** Null when the viewer cannot use reminders; the button then renders nothing. */
+  reminderViewerId: string | null;
 }) {
   const { t, formatDate } = useI18n();
   const translateError = useInventoryError();
@@ -92,7 +96,17 @@ export function InventoryDetailView({
       <PageHeader
         title={detail.name_snapshot}
         subtitle={`${formatDate(detail.inventory_date, 'medium')} · ${formatCalendarWeek(detail.iso_week)}`}
-        action={<StatusBadge status={detail.status} />}
+        action={
+          // The button only opens the dialog; a reminder links to the
+          // inventory and never writes to it, so a locked count is fine.
+          <div className="flex flex-wrap items-center gap-1.5">
+            <QuickReminderButton
+              viewerId={reminderViewerId}
+              link={{ type: 'inventory', id: detail.id, label: detail.name_snapshot }}
+            />
+            <StatusBadge status={detail.status} />
+          </div>
+        }
       />
 
       {/* ------------------------- header facts ------------------------- */}

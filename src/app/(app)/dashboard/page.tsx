@@ -8,6 +8,8 @@ import { OrderWidgets } from '@/components/orders/order-widgets';
 import { UrgentAlert } from '@/components/orders/urgent-alert';
 import { InventoryWidget } from '@/components/inventory/inventory-widget';
 import { PushPrompt } from '@/components/shell/push-prompt';
+import { getDashboardReminders, getPersonalTasks } from '@/server/reminders';
+import { ReminderWidgets } from '@/components/reminders/reminder-widgets';
 
 // Always render fresh: task and order state change constantly during a shift.
 export const dynamic = 'force-dynamic';
@@ -20,12 +22,17 @@ export default async function DashboardPage() {
   // invites working on tomorrow's list, and buries what is due now.
   const plans = viewer?.can('tasks.manage_occurrences') ?? false;
   const canManageOrders = viewer?.can('orders.manage') ?? false;
-  const [data, orders, inventory] = await Promise.all([
+  // Fetched only for someone who can use reminders; a plain user's dashboard
+  // does not pay for queries it would never show.
+  const usesReminders = viewer?.can('reminders.use') ?? false;
+  const [data, orders, inventory, reminders, personalTasks] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
     // The forward view lives on the inventory screen.
     getInventoryDashboard(1),
+    usesReminders ? getDashboardReminders() : null,
+    usesReminders ? getPersonalTasks().then((r) => r.open) : null,
   ]);
 
   const countsToday = [...inventory.overdue, ...inventory.dueToday];
@@ -69,6 +76,16 @@ export default async function DashboardPage() {
       {/* Renders nothing unless a count is due or late, so it never becomes
           empty furniture people learn to scroll past. */}
       <InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} />
+      {/* Personal follow-ups, in their own cards and their own counts — never
+          folded into the summary strip above, which counts team work. */}
+      {viewer && reminders && personalTasks && (
+        <ReminderWidgets
+          viewerId={viewer.profile.id}
+          reminders={reminders}
+          tasks={personalTasks}
+          nowIso={new Date().toISOString()}
+        />
+      )}
       <DashboardView data={data} showUpcoming={plans} />
     </>
   );

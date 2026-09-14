@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
+import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { ScheduleEditor, defaultConfigFor } from './schedule-editor';
 import { saveTask, setTaskActive, type TaskInput } from '@/server/actions';
 import { resolveScheduleConfig } from '@/domain/recurrence/engine';
@@ -28,7 +29,16 @@ const EMPTY: TaskInput = {
   is_active: true,
 };
 
-export function TaskManager({ tasks, categories }: { tasks: TaskRow[]; categories: Category[] }) {
+export function TaskManager({
+  tasks,
+  categories,
+  reminderViewerId,
+}: {
+  tasks: TaskRow[];
+  categories: Category[];
+  /** Null when the viewer cannot use reminders; the row button then renders nothing. */
+  reminderViewerId: string | null;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
@@ -157,6 +167,11 @@ export function TaskManager({ tasks, categories }: { tasks: TaskRow[]; categorie
                           <Badge tone={task.is_active ? 'done' : 'neutral'}>
                             {task.is_active ? t('status.active') : t('status.inactive')}
                           </Badge>
+                          <QuickReminderButton
+                            viewerId={reminderViewerId}
+                            variant="ghost"
+                            link={{ type: 'task', id: task.id, label: task.title }}
+                          />
                           <Button
                             size="icon"
                             variant="ghost"

@@ -30,6 +30,7 @@ import { productLabel, type Customer, type DeliveryMethod, type Product } from '
 import type { Incident } from '@/types/incidents';
 import type { Profile } from '@/types/database';
 import { NoteChip } from '@/components/ui/note';
+import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { categoryLabel, typeLabel } from './incident-list';
 import { errorKey } from './incident-dialog';
 
@@ -53,6 +54,7 @@ export function IncidentDetail({
   deliveryMethods,
   canManage,
   canClose,
+  reminderViewerId,
 }: {
   incident: Incident;
   /** For assigning a corrective action. Approved users only. */
@@ -63,6 +65,8 @@ export function IncidentDetail({
   deliveryMethods: DeliveryMethod[];
   canManage: boolean;
   canClose: boolean;
+  /** Null when the viewer cannot use reminders; the button then renders nothing. */
+  reminderViewerId: string | null;
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
@@ -83,12 +87,18 @@ export function IncidentDetail({
         title={incident.incident_number}
         subtitle={typeLabel(t, incident.type.slug, incident.type.name)}
         action={
-          <Link href="/incidents">
-            <Button variant="ghost" size="sm">
-              <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-              {t('incident.backToList')}
-            </Button>
-          </Link>
+          <div className="flex flex-wrap gap-1.5">
+            <QuickReminderButton
+              viewerId={reminderViewerId}
+              link={{ type: 'incident', id: incident.id, label: incident.incident_number ?? '' }}
+            />
+            <Link href="/incidents">
+              <Button variant="ghost" size="sm">
+                <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+                {t('incident.backToList')}
+              </Button>
+            </Link>
+          </div>
         }
       />
 

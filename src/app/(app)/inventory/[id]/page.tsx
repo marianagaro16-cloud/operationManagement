@@ -30,6 +30,7 @@ export default async function InventoryDetailPage({ params }: { params: { id: st
       locations={locations}
       users={users}
       canManage={canManage}
+      reminderViewerId={viewer?.can('reminders.use') ? viewer.profile.id : null}
     />
   );
 }

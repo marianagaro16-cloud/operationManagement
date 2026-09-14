@@ -72,6 +72,7 @@ export default async function ReceptionDetailPage({ params }: { params: { id: st
       // stays a prop rather than a constant because the rule lives in SQL and
       // could be narrowed there without this page noticing.
       canSeeIncidents
+      reminderViewerId={viewer.can('reminders.use') ? viewer.profile.id : null}
     />
   );
 }

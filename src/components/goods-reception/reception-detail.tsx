@@ -37,6 +37,7 @@ import {
 import type { ReceptionAuditEntry, ReceptionDetail, Supplier, Transporter } from '@/types/goods-reception';
 import type { Product } from '@/types/orders';
 import type { IncidentType } from '@/types/incidents';
+import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { ReceptionForm } from './reception-form';
 import { ExceptionEditor } from './exception-editor';
 import { ReportIncidentDialog } from './report-incident-dialog';
@@ -70,6 +71,7 @@ export function ReceptionDetailView({
   canManageAll,
   canReportIncident,
   canSeeIncidents,
+  reminderViewerId,
 }: {
   reception: ReceptionDetail;
   suppliers: Supplier[];
@@ -82,6 +84,8 @@ export function ReceptionDetailView({
   canReportIncident: boolean;
   /** Whether the linked incidents are readable, or only countable. */
   canSeeIncidents: boolean;
+  /** Null when the viewer cannot use reminders; the button then renders nothing. */
+  reminderViewerId: string | null;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -129,12 +133,20 @@ export function ReceptionDetailView({
         title={reception.reception_number}
         subtitle={`${date(reception.received_at)} · ${time(reception.received_at)}`}
         action={
-          canEdit ? (
-            <Button variant="secondary" onClick={() => setEditing(true)}>
-              <Pencil className="h-3.5 w-3.5" aria-hidden />
-              {t('gr.save')}
-            </Button>
-          ) : undefined
+          // A reminder is not an edit, so it is offered on a completed or
+          // read-only delivery too.
+          <div className="flex flex-wrap gap-1.5">
+            <QuickReminderButton
+              viewerId={reminderViewerId}
+              link={{ type: 'goods_reception', id: reception.id, label: reception.reception_number }}
+            />
+            {canEdit && (
+              <Button variant="secondary" onClick={() => setEditing(true)}>
+                <Pencil className="h-3.5 w-3.5" aria-hidden />
+                {t('gr.save')}
+              </Button>
+            )}
+          </div>
         }
       />
 

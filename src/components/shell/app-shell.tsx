@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, Boxes, CalendarDays, ClipboardList, LayoutDashboard, MoreHorizontal, Package, ScanSearch, Settings, Shield, Truck, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, ClipboardList, LayoutDashboard, MoreHorizontal, Package, ScanSearch, Settings, Shield, Truck, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -19,10 +19,13 @@ import type { Profile } from '@/types/database';
 export function AppShell({
   profile,
   caps,
+  reminderAttention = 0,
   children,
 }: {
   profile: Profile;
   caps: Permission[];
+  /** Reminders due or overdue for this viewer; drawn as a count on the nav entry. */
+  reminderAttention?: number;
   children: ReactNode;
 }) {
   const { t, formatDate } = useI18n();
@@ -46,8 +49,16 @@ export function AppShell({
    * is. Manage matters enormously and is still behind More, because nobody
    * administers the system from a phone in the warehouse.
    */
-  const nav = [
+  const nav: { href: string; label: string; icon: typeof LayoutDashboard; primary: boolean; badge?: number }[] = [
     { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, primary: true },
+    // Reminders sit right after the dashboard, where today's tasks are, and
+    // apart from every operational section. Not in the phone's bar: its five
+    // slots are the floor workflows; quick creation is on the dashboard and on
+    // each record, and a due reminder announces itself with a push and with
+    // the count below.
+    ...(can(role, held, 'reminders.use')
+      ? [{ href: '/reminders', label: t('reminder.navLabel'), icon: BellRing, primary: false, badge: reminderAttention }]
+      : []),
     // Preparation is the main floor workflow, so it sits high in the bar.
     { href: '/preparation', label: t('prep.title'), icon: ClipboardList, primary: true },
     // Order Control is the ORDER BOOK — customers, dates, quantities, the
@@ -93,7 +104,7 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/reminders'];
   const active = (href: string) =>
     SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
 
@@ -241,7 +252,7 @@ export function AppShell({
         {/* ---------------- sidebar (md+) ---------------- */}
         <nav className="hidden w-44 shrink-0 py-6 md:block">
           <ul className="sticky top-20 space-y-0.5">
-            {nav.map(({ href, label, icon: Icon }) => (
+            {nav.map(({ href, label, icon: Icon, badge }) => (
               <li key={href}>
                 <Link
                   href={href}
@@ -252,6 +263,7 @@ export function AppShell({
                 >
                   <Icon className="h-4 w-4" aria-hidden />
                   {label}
+                  <NavBadge count={badge} />
                 </Link>
               </li>
             ))}
@@ -271,7 +283,7 @@ export function AppShell({
         {moreOpen && !fitsWithoutMore && (
           <div className="animate-slide-up border-t border-border bg-surface shadow-pop">
             <ul className="mx-auto max-w-5xl p-2">
-              {secondaryNav.map(({ href, label, icon: Icon }) => (
+              {secondaryNav.map(({ href, label, icon: Icon, badge }) => (
                 <li key={href}>
                   <Link
                     href={href}
@@ -285,6 +297,7 @@ export function AppShell({
                     {/* Full width here, and no truncation: the sheet is where
                         the long names finally get to be read. */}
                     {label}
+                    <NavBadge count={badge} />
                   </Link>
                 </li>
               ))}
@@ -297,7 +310,7 @@ export function AppShell({
             className="mx-auto flex max-w-5xl"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
-            {barNav.map(({ href, label, icon: Icon }) => (
+            {barNav.map(({ href, label, icon: Icon, badge }) => (
               // min-w-0 is load-bearing. A flex item defaults to min-width:auto,
               // so a tab could not shrink below its longest WORD — and the bar
               // measured 438px in English, 457 in Spanish and 580 in German
@@ -315,7 +328,10 @@ export function AppShell({
                     active(href) ? 'text-accent' : 'text-muted',
                   )}
                 >
-                  <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                  <span className="relative">
+                    <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                    {Boolean(badge) && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-late" aria-hidden />}
+                  </span>
                   <span className="w-full truncate text-center">{label}</span>
                 </Link>
               </li>
@@ -331,11 +347,17 @@ export function AppShell({
                     moreOpen || inMore ? 'text-accent' : 'text-muted',
                   )}
                 >
-                  {moreOpen ? (
-                    <X className="h-[18px] w-[18px] shrink-0" aria-hidden />
-                  ) : (
-                    <MoreHorizontal className="h-[18px] w-[18px] shrink-0" aria-hidden />
-                  )}
+                  <span className="relative">
+                    {moreOpen ? (
+                      <X className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                    ) : (
+                      <MoreHorizontal className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                    )}
+                    {/* Something behind More needs attention. */}
+                    {!moreOpen && secondaryNav.some((i) => i.badge) && (
+                      <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-late" aria-hidden />
+                    )}
+                  </span>
                   <span className="w-full truncate text-center">{t('nav.more')}</span>
                 </button>
               </li>
@@ -356,6 +378,16 @@ export function AppShell({
         />
       )}
     </div>
+  );
+}
+
+/** A due count beside a nav label. Nothing at zero, so it only ever means something. */
+function NavBadge({ count }: { count?: number }) {
+  if (!count) return null;
+  return (
+    <span className="ml-auto rounded-full bg-late/15 px-1.5 text-[11px] font-semibold tabular text-late">
+      {count > 99 ? '99+' : count}
+    </span>
   );
 }
 

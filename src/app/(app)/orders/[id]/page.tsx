@@ -5,7 +5,8 @@ import { getViewer } from '@/server/data';
 import { OrderDetail } from '@/components/orders/order-detail';
 import { IncidentLinks } from '@/components/incidents/incident-links';
 import { ReportIncidentButton } from '@/components/incidents/report-incident-button';
-import { orderContextFrom } from '@/components/incidents/incident-dialog';
+import { orderContextFrom } from '@/components/incidents/order-context';
+import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
   const viewer = await getViewer();
   const canManage = viewer?.can('orders.manage') ?? false;
   const canReportIncident = viewer?.can('incidents.manage') ?? false;
+  const reminderViewerId = viewer?.can('reminders.use') ? viewer.profile.id : null;
 
   const order = await getOrder(params.id);
   if (!order) notFound();
@@ -65,14 +67,22 @@ export default async function OrderDetailPage({ params }: { params: { id: string
         // Beside Edit, because reporting an incident is a thing you do TO
         // this order and that is where a person looks for it.
         headerAction={
-          canReportIncident ? (
-            <ReportIncidentButton
-              order={orderContext}
-              customers={customers}
-              products={products}
-              categories={categories}
-              types={types}
-            />
+          canReportIncident || reminderViewerId ? (
+            <>
+              {canReportIncident && (
+                <ReportIncidentButton
+                  order={orderContext}
+                  customers={customers}
+                  products={products}
+                  categories={categories}
+                  types={types}
+                />
+              )}
+              <QuickReminderButton
+                viewerId={reminderViewerId}
+                link={{ type: 'order', id: order.id, label: `#${order.reference}` }}
+              />
+            </>
           ) : undefined
         }
       />

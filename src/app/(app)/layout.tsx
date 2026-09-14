@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getViewer } from '@/server/data';
+import { getReminderAttentionCount } from '@/server/reminders';
 import { AppShell } from '@/components/shell/app-shell';
 import { AccountStatusScreen } from '@/components/shell/account-status';
 
@@ -20,8 +21,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return <AccountStatusScreen status={viewer.profile.status} />;
   }
 
+  // The in-app signal that a reminder is due: a count on the Reminders nav
+  // entry, on every screen. Only asked for when the viewer can use reminders.
+  const reminderAttention = viewer.can('reminders.use') ? await getReminderAttentionCount() : 0;
+
   return (
-    <AppShell profile={viewer.profile} caps={[...viewer.caps]}>
+    <AppShell profile={viewer.profile} caps={[...viewer.caps]} reminderAttention={reminderAttention}>
       {children}
     </AppShell>
   );

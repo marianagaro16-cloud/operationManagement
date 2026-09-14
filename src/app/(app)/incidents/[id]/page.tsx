@@ -47,6 +47,7 @@ export default async function IncidentPage({ params }: { params: { id: string } 
       deliveryMethods={deliveryMethods}
       canManage={canManage}
       canClose={viewer.can('incidents.close')}
+      reminderViewerId={viewer.can('reminders.use') ? viewer.profile.id : null}
     />
   );
 }

@@ -27,6 +27,7 @@
     "master:extract": "tsx scripts/import-master.ts extract",
     "master:seed": "tsx scripts/import-master.ts seed",
     "verify:master": "node scripts/verify-master.mjs",
+    "verify:reminders": "node scripts/verify-reminders.mjs",
     "tasks:translate": "tsx scripts/seed-task-translations.ts",
     "inventory:extract": "tsx scripts/import-inventory.ts extract",
     "inventory:seed": "tsx scripts/import-inventory.ts seed",
