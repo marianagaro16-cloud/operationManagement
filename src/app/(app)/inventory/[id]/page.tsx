@@ -1,4 +1,5 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { businessToday } from '@/lib/datetime';
 import { getUsers, getViewer } from '@/server/data';
 import { getInventoryDetail, getInventoryLocations } from '@/server/inventory';
 import { InventoryDetailView } from '@/components/inventory/inventory-detail';
@@ -20,6 +21,11 @@ export default async function InventoryDetailPage({ params }: { params: { id: st
   ]);
 
   if (!detail) notFound();
+
+  // A future inventory is not opened by somebody who only counts, even from a
+  // saved link: the list no longer shows it, and the URL must not be the way
+  // round that. Planners still open it to assign people ahead of time.
+  if (!canManage && detail.inventory_date > businessToday()) redirect('/inventory');
 
   // The assign dialog is the only consumer, so anyone who cannot manage
   // instances never pays for the query.

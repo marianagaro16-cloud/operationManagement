@@ -1,4 +1,5 @@
 import { getUsers, getViewer } from '@/server/data';
+import { businessToday } from '@/lib/datetime';
 import {
   getInventories,
   getInventoryDashboard,
@@ -41,8 +42,21 @@ export default async function InventoryPage({
   const take = Math.min(Number(searchParams.take) || 25, 200);
   const week = Number(searchParams.week);
 
+  /*
+   * Somebody who counts but does not plan sees today, not the weeks ahead.
+   *
+   * The same rule the dashboard already applies to tasks: a forward view
+   * invites working on tomorrow's list and buries what is due now. So without
+   * inventory.manage_instances there is no Upcoming section, and the history
+   * never reaches past today — however the date filters are set, because a
+   * hand-typed "to" date is still a way to look ahead. Unfinished inventories
+   * from earlier days stay: that is work still owed, not the future.
+   */
+  const today = businessToday();
+  const capTo = (to: string | undefined) => (canManage ? to : !to || to > today ? today : to);
+
   const [dashboard, history, templates, users] = await Promise.all([
-    getInventoryDashboard(21),
+    getInventoryDashboard(canManage ? 21 : 0),
     getInventories({
       templateId: searchParams.template,
       status: STATUSES.includes(searchParams.status as InventoryStatus)
@@ -50,7 +64,7 @@ export default async function InventoryPage({
         : undefined,
       isoWeek: Number.isFinite(week) && week >= 1 && week <= 53 ? week : undefined,
       from: searchParams.from || undefined,
-      to: searchParams.to || undefined,
+      to: capTo(searchParams.to || undefined),
       assignedUserId: searchParams.user || undefined,
       digitalPending: searchParams.pending === '1',
       needsReview: searchParams.review === '1',
@@ -69,7 +83,7 @@ export default async function InventoryPage({
           today: dashboard.today,
           dueToday: dashboard.dueToday,
           overdue: dashboard.overdue,
-          upcoming: dashboard.upcoming,
+          upcoming: canManage ? dashboard.upcoming : [],
           // Only an admin can act on either of these, so they are not fetched
           // into a regular user's payload at all.
           needsReview: canManage ? dashboard.needsReview : [],
