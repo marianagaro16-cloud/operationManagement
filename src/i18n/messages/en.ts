@@ -438,6 +438,7 @@ export const en = {
     preparationOn: 'Prepare {date}',
     deliveryOn: 'Deliver {date}',
     splitHint: 'One order covers one delivery date. Products needed on another day belong to a separate order.',
+    createdBy: 'Created by {name}',
     preparationAfterDelivery: 'Preparation cannot be after the delivery date',
     customerInactive: 'This customer is inactive and cannot be used on a new order',
     productInactive: 'An inactive product cannot be added to a new order',

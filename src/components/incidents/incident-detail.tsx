@@ -55,6 +55,7 @@ export function IncidentDetail({
   canManage,
   canClose,
   reminderViewerId,
+  currentUserName,
 }: {
   incident: Incident;
   /** For assigning a corrective action. Approved users only. */
@@ -67,6 +68,8 @@ export function IncidentDetail({
   canClose: boolean;
   /** Null when the viewer cannot use reminders; the button then renders nothing. */
   reminderViewerId: string | null;
+  /** Named in the replacement-order dialog as the person creating it. */
+  currentUserName: string;
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
@@ -231,6 +234,7 @@ export function IncidentDetail({
           products={products}
           deliveryMethods={deliveryMethods}
           canManage={canManage}
+          currentUserName={currentUserName}
           pending={pending}
           onRun={run}
         />
@@ -706,6 +710,7 @@ function ReplacementSection({
   products,
   deliveryMethods,
   canManage,
+  currentUserName,
   pending,
   onRun,
 }: {
@@ -714,6 +719,7 @@ function ReplacementSection({
   products: Product[];
   deliveryMethods: DeliveryMethod[];
   canManage: boolean;
+  currentUserName: string;
   pending: boolean;
   onRun: (fn: () => Promise<{ ok: boolean; error?: string }>) => void;
 }) {
@@ -824,6 +830,7 @@ function ReplacementSection({
           products={products}
           deliveryMethods={deliveryMethods}
           initial={initial}
+          currentUserName={currentUserName}
           onClose={() => setCreating(false)}
           onSaved={(orderId) => {
             setCreating(false);

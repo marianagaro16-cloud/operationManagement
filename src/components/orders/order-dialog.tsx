@@ -1,9 +1,9 @@
 'use client';
 
 import { useRef, useState, useTransition } from 'react';
-import { FileSpreadsheet, Keyboard, Mail } from 'lucide-react';
+import { FileSpreadsheet, Keyboard, Mail, UserRound } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { cn } from '@/lib/utils';
+import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
@@ -39,6 +39,7 @@ export function OrderDialog({
   products,
   deliveryMethods,
   initial,
+  currentUserName,
   onClose,
   onSaved,
 }: {
@@ -60,6 +61,12 @@ export function OrderDialog({
     order_type?: OrderType;
     lines?: { product_id: string; ordered_quantity: string }[];
   };
+  /**
+   * The person creating a NEW order, named in the dialog so it is plain whose
+   * name the order will carry. Editing shows the original creator instead —
+   * an edit does not change who created it.
+   */
+  currentUserName?: string;
   onClose: () => void;
   /**
    * Receives the id of the order that was saved.
@@ -70,6 +77,9 @@ export function OrderDialog({
   onSaved: (id: string) => void;
 }) {
   const { t } = useI18n();
+  const creatorLabel = order
+    ? order.creator ? displayName(order.creator) : null
+    : currentUserName ?? null;
   const today = businessToday();
 
   const [customerId, setCustomerId] = useState(order?.customer_id ?? initial?.customer_id ?? '');
@@ -274,6 +284,12 @@ export function OrderDialog({
       }
     >
       <div className="space-y-3.5">
+        {creatorLabel && (
+          <p className="flex items-center gap-1.5 text-[12.5px] text-muted">
+            <UserRound className="h-3.5 w-3.5" aria-hidden />
+            {t('orders.createdBy', { name: creatorLabel })}
+          </p>
+        )}
         <Field label={t('orders.customer')} required htmlFor="o-customer" error={fieldErrors.customer}>
           {/* Searches company name AND trading name: "catedral" finds
               "5 Almas AG — La Catedral". */}

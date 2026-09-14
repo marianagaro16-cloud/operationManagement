@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, ClipboardList, Pencil, Users } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
-import { cn } from '@/lib/utils';
+import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, ReadOnlyNotice, SectionHeading } from '@/components/ui/primitives';
 import { StatusChip } from '@/components/ui/status-chip';
@@ -176,6 +176,12 @@ export function OrderDetail({
           <Fact label={t('admin.userCreated')}>
             <span className="tabular text-muted">
               {DateTime.fromISO(order.created_at).setZone(BUSINESS_TZ).toFormat('d LLL yyyy')}
+              {/* Who, beside when. A standing order has no author: the
+                  system generated it, and saying so beats a blank. */}
+              {' · '}
+              {order.creator
+                ? displayName(order.creator)
+                : order.generated_from_template_id ? t('orders.fromTemplate') : '—'}
             </span>
           </Fact>
         </dl>

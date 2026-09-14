@@ -30,6 +30,7 @@ const ORDER_SELECT = `
   delivery_method_id, status, order_type, note, generated_from_template_id, import_source, created_by, updated_by,
   created_at, updated_at,
   customer:customers!inner ( id, name, is_active, customer_type_id, customer_type:customer_types ( id, slug, name, sort_order, is_active ) ),
+  creator:profiles!orders_created_by_fkey ( name, email ),
   delivery_method:delivery_methods ( id, slug, name, sort_order, is_active ),
   lines:order_lines (
     id, order_id, product_id, ordered_quantity, generated_quantity, note, source_text, shortfall_reason, position,

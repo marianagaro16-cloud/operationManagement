@@ -176,6 +176,11 @@ export interface Order {
   updated_by: string | null;
   created_at: string;
   updated_at: string;
+  /**
+   * Who entered the order. Null for orders the system generated from a
+   * standing order, and for any whose author's account was removed.
+   */
+  creator?: { name: string | null; email: string } | null;
   customer: Customer;
   delivery_method: DeliveryMethod | null;
   lines: OrderLine[];

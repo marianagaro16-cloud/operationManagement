@@ -8,6 +8,7 @@ import { ORDERS_GO_LIVE } from '@/domain/orders/config';
 import { BUSINESS_TZ, addDays, businessToday } from '@/lib/datetime';
 import { filterByQuery } from '@/lib/search';
 import { productLabel } from '@/types/orders';
+import { displayName } from '@/lib/utils';
 import { OrderControl } from '@/components/orders/order-control';
 import { redirect } from 'next/navigation';
 
@@ -132,6 +133,7 @@ export default async function OrdersPage({
         to: dateRange?.end,
       }}
       canManage
+      currentUserName={displayName(viewer.profile)}
       incidentCategories={incidentCategories}
       incidentTypes={incidentTypes}
       canReportIncident={canReportIncident}

@@ -42,6 +42,7 @@ export function OrderControl({
   month,
   filters,
   canManage,
+  currentUserName,
   incidentCategories,
   incidentTypes,
   canReportIncident,
@@ -65,6 +66,8 @@ export function OrderControl({
     to?: string;
   };
   canManage: boolean;
+  /** Named in the new-order dialog as the person creating it. */
+  currentUserName: string;
   /** The incident vocabulary, for reporting one straight from a row. */
   incidentCategories: IncidentCategory[];
   incidentTypes: IncidentType[];
@@ -393,6 +396,7 @@ export function OrderControl({
           customers={customers}
           products={products}
           deliveryMethods={deliveryMethods}
+          currentUserName={currentUserName}
           onClose={() => { setCreating(false); setEditing(null); }}
           onSaved={() => { setCreating(false); setEditing(null); router.refresh(); }}
         />
