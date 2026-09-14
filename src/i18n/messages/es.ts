@@ -1230,6 +1230,8 @@ export const es: Messages = {
     errNothingCounted: 'Registra primero una cantidad, o márcalo como sin stock.',
     completeBlocked: 'Completar inventario · faltan {count} productos',
     errItemsNotDone: 'Todos los productos tienen que estar listos antes de completar el inventario.',
+    shortShelfLifeTitle: '{count} productos con caducidad corta',
+    shortShelfLifeBody: 'Vencen antes del {date}: menos de {months} meses desde la fecha del inventario.',
     notCounted: 'Sin contar',
     emptyBadge: 'Sin stock',
     markEmpty: 'Sin stock',

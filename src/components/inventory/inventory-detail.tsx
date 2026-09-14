@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, Lock, MessageSquare, RotateCcw, Search, Users } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Lock, MessageSquare, RotateCcw, Search, Users } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { filterByQuery } from '@/lib/search';
 import { cn, displayName } from '@/lib/utils';
@@ -18,6 +18,7 @@ import { DigitalPendingBadge, StatusBadge, useInventoryError } from './inventory
 import { CommentDialog, ItemCard } from './item-card';
 import type { InventoryDetail, InventoryLocation, InventoryStatus } from '@/types/inventory';
 import type { Profile } from '@/types/database';
+import { shelfLifeThreshold, shortShelfLife } from '@/domain/inventory/shelf-life';
 
 /**
  * One inventory, being counted.
@@ -54,6 +55,11 @@ export function InventoryDetailView({
   const canEdit = detail.can_edit;
   const doneCount = detail.items.filter((i) => i.counted_at).length;
   const notDoneCount = detail.items.length - doneCount;
+  const shelfLifeMonths = detail.template?.short_shelf_life_months ?? null;
+  const shortLines = useMemo(
+    () => (shelfLifeMonths ? shortShelfLife(detail.items, detail.inventory_date, shelfLifeMonths) : []),
+    [detail.items, detail.inventory_date, shelfLifeMonths],
+  );
   const digitalPendingCount = detail.digital_enabled
     ? detail.items.filter((i) => i.digital_quantity === null).length
     : 0;
@@ -207,6 +213,31 @@ export function InventoryDetailView({
       )}
 
       {/* ------------------------------- items ----------------------------- */}
+      {/* Stock close to expiry, once the count is done — the same list the
+          completion alert carries, so it is here for anyone without push. */}
+      {detail.completed_at && shelfLifeMonths && shortLines.length > 0 && (
+        <Card className="mb-5 border-warn/40 bg-warn/[0.05] p-3.5">
+          <p className="flex items-center gap-1.5 text-[13.5px] font-semibold">
+            <AlertTriangle className="h-4 w-4 text-warn" aria-hidden />
+            {t('inventory.shortShelfLifeTitle', { count: new Set(shortLines.map((l) => l.itemId)).size })}
+          </p>
+          <p className="mt-0.5 text-[12.5px] text-muted">
+            {t('inventory.shortShelfLifeBody', { months: shelfLifeMonths, date: formatDate(shelfLifeThreshold(detail.inventory_date, shelfLifeMonths), 'medium') })}
+          </p>
+          <ul className="mt-2 divide-y divide-border">
+            {shortLines.map((l) => (
+              <li key={`${l.itemId}:${l.expiryDate}`} className="flex items-baseline justify-between gap-3 py-1.5 text-[13px]">
+                <span className="min-w-0 truncate">{l.itemName}</span>
+                <span className="shrink-0 tabular text-muted">× {l.quantity}</span>
+                <span className={cn('w-28 shrink-0 text-right tabular', l.daysLeft < 0 ? 'font-semibold text-late' : l.daysLeft <= 30 ? 'font-medium text-warn' : 'text-muted')}>
+                  {formatDate(l.expiryDate, 'short')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       <SectionHeading title={t('inventory.items')} />
 
       {/* A 114-item count is unusable without a way to jump to a product. */}

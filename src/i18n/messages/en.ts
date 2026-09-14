@@ -1262,6 +1262,8 @@ export const en = {
     errNothingCounted: 'Record a quantity first — or mark it as nothing in stock.',
     completeBlocked: 'Complete inventory · {count} products not done',
     errItemsNotDone: 'Every product has to be marked done before the inventory can be completed.',
+    shortShelfLifeTitle: '{count} products with short shelf life',
+    shortShelfLifeBody: 'Expiring before {date} — less than {months} months from the count date.',
     notCounted: 'Not counted',
     emptyBadge: 'Nothing in stock',
     markEmpty: 'Nothing in stock',

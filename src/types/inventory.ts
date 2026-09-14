@@ -43,6 +43,8 @@ export interface InventoryTemplate {
    * What decides whether "refresh from products" means anything here.
    */
   brand_id: string | null;
+  /** Warn about stock expiring within this many months of the count. Null = no warning. */
+  short_shelf_life_months: number | null;
   is_active: boolean;
   created_by: string | null;
   created_at: string;

@@ -7,6 +7,7 @@ import {
 } from '@/domain/inventory/notifications';
 import { sendToPermissionHolders, sendToUsers } from './push';
 import { addDays, businessToday } from '@/lib/datetime';
+import { shortShelfLife, shortShelfLifeAlert } from '@/domain/inventory/shelf-life';
 
 /**
  * Inventory push alerts.
@@ -191,6 +192,74 @@ export async function notifyPhysicalCountDone(instanceId: string, completedBy: s
     return recipients;
   } catch (e) {
     console.error('[inventory] physical-count-done notification failed', e);
+    return 0;
+  }
+}
+
+/**
+ * Tell whoever manages inventories about stock close to its expiry date, when
+ * a count of a template that asks for it is completed.
+ *
+ * Only templates with short_shelf_life_months set — today Complementarios,
+ * at three months — and only when something is actually short: no alert that
+ * says "nothing to report". The same list is shown on the inventory page, so
+ * nobody depends on having push switched on to see it.
+ *
+ * Sent to everyone with inventory.manage_instances, the person who completed
+ * the count included: unlike "the count is finished", this is news to them
+ * too. Claimed once in the ledger, released if nobody could be reached.
+ * Never throws.
+ */
+export async function notifyShortShelfLife(instanceId: string): Promise<number> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('inventory_instances')
+      .select(`
+        id, name_snapshot, iso_week, inventory_date,
+        template:inventory_templates ( short_shelf_life_months ),
+        items:inventory_instance_items ( id, item_name, entries:inventory_entries ( quantity, expiry_date ) )
+      `)
+      .eq('id', instanceId)
+      .maybeSingle();
+    if (error || !data) return 0;
+    const inv = data as unknown as {
+      id: string; name_snapshot: string; iso_week: number; inventory_date: string;
+      template: { short_shelf_life_months: number | null } | null;
+      items: { id: string; item_name: string; entries: { quantity: number | null; expiry_date: string | null }[] }[] | null;
+    };
+
+    const months = inv.template?.short_shelf_life_months;
+    if (!months) return 0;
+
+    const lines = shortShelfLife(inv.items ?? [], inv.inventory_date, months);
+    if (lines.length === 0) return 0;
+
+    const { error: claimError } = await admin
+      .from('inventory_notifications')
+      .insert({ instance_id: instanceId, kind: 'short_shelf_life', recipients: 0 });
+    if (claimError) return 0;
+
+    const { title, body } = shortShelfLifeAlert(inv.name_snapshot, inv.iso_week, months, lines);
+    const recipients = await sendToPermissionHolders('inventory.manage_instances', {
+      title,
+      body,
+      // Its own tag: it must not replace the "count finished" card sent a
+      // moment earlier, which the digital side still needs.
+      tag: `inventory-shelf-life-${instanceId}`,
+      url: `/inventory/${instanceId}`,
+      level: 'warning',
+    });
+
+    const ledger = admin.from('inventory_notifications');
+    if (recipients === 0) {
+      await ledger.delete().eq('instance_id', instanceId).eq('kind', 'short_shelf_life');
+      return 0;
+    }
+    await ledger.update({ recipients }).eq('instance_id', instanceId).eq('kind', 'short_shelf_life');
+    return recipients;
+  } catch (e) {
+    console.error('[inventory] short-shelf-life notification failed', e);
     return 0;
   }
 }

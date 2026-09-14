@@ -1230,6 +1230,8 @@ export const de: Messages = {
     errNothingCounted: 'Zuerst eine Menge erfassen – oder als «kein Bestand» markieren.',
     completeBlocked: 'Inventur abschliessen · {count} Produkte nicht fertig',
     errItemsNotDone: 'Jedes Produkt muss als fertig markiert sein, bevor die Inventur abgeschlossen werden kann.',
+    shortShelfLifeTitle: '{count} Produkte mit kurzer Haltbarkeit',
+    shortShelfLifeBody: 'Läuft vor dem {date} ab — weniger als {months} Monate ab dem Inventurdatum.',
     notCounted: 'Nicht gezählt',
     emptyBadge: 'Kein Bestand',
     markEmpty: 'Kein Bestand',
