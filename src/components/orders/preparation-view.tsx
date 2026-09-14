@@ -16,7 +16,8 @@ import { weekDays } from '@/domain/orders/scheduling';
 import { addDays } from '@/lib/datetime';
 import { UrgencyBadge } from './urgency-badge';
 import { NoteBlock, NoteChip } from '@/components/ui/note';
-import { productLabel, type OrderLine, type OrderWithProgress } from '@/types/orders';
+import { productLabel, type CustomerType, type OrderLine, type OrderWithProgress } from '@/types/orders';
+import { useCustomerTypeLabel } from '@/components/customers/use-customer-type-label';
 import { StatusChip, statusPresentation } from '@/components/ui/status-chip';
 import { OrderTypeBadge } from '@/components/orders/order-type-badge';
 import { saveLotAllocation, deleteLotAllocation, setShortfallReason } from '@/server/order-actions';
@@ -140,9 +141,10 @@ export function PreparationView({
           <div className="space-y-3">
             {carriedOver.map((order) => (
               <div key={order.id}>
-                <h3 className="mb-1 text-[13.5px] font-medium">
+                <h3 className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13.5px] font-medium">
                   {order.customer.name}
-                  <span className="ml-2 text-[12px] font-normal text-warn">
+                  <CustomerTypeBadge type={order.customer.customer_type} />
+                  <span className="text-[12px] font-normal text-warn">
                     {t('orders.preparationOn', {
                       date: formatDate(order.preparation_date, 'short'),
                     })}
@@ -163,7 +165,10 @@ export function PreparationView({
         <div className="space-y-6">
           {[...byCustomer.entries()].map(([customerName, customerOrders]) => (
             <section key={customerName}>
-              <h2 className="mb-2 text-[15px] font-semibold">{customerName}</h2>
+              <h2 className="mb-2 flex flex-wrap items-center gap-2 text-[15px] font-semibold">
+                {customerName}
+                <CustomerTypeBadge type={customerOrders[0].customer.customer_type} />
+              </h2>
               <div className="space-y-3">
                 {customerOrders.map((order) => (
                   <OrderPreparationCard key={order.id} order={order} canManage={canManage} />
@@ -175,6 +180,17 @@ export function PreparationView({
       )}
     </>
   );
+}
+
+/**
+ * The customer's segment beside their name. Nothing is shown for a customer
+ * nobody has classified — "no type" on every heading would be noise, not
+ * information, for the person preparing.
+ */
+function CustomerTypeBadge({ type }: { type: CustomerType | null | undefined }) {
+  const label = useCustomerTypeLabel();
+  if (!type) return null;
+  return <Badge tone="neutral">{label(type)}</Badge>;
 }
 
 function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; canManage: boolean }) {
