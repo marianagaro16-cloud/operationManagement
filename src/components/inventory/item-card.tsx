@@ -1,19 +1,14 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { ChevronDown, CircleSlash, History, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Check, CheckCircle2, ChevronDown, CircleSlash, History, MessageSquare, RotateCcw, ShieldCheck } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Field, Input, Textarea } from '@/components/ui/primitives';
 import { countState, physicalStock } from '@/domain/inventory/calc';
-import {
-  addInventoryComment,
-  markInventoryItemEmpty,
-  resolveInventoryItem,
-  setInventoryDigital,
-} from '@/server/inventory-actions';
+import { addInventoryComment, markInventoryItemEmpty, resolveInventoryItem, setInventoryDigital, setInventoryItemDone } from '@/server/inventory-actions';
 import { DifferenceValue, DigitalPendingBadge, StatusBadge, useInventoryError } from './inventory-bits';
 import { EntryRows } from './entry-rows';
 import type { InventoryItemDetail, InventoryKind, InventoryLocation } from '@/types/inventory';
@@ -46,6 +41,19 @@ export function ItemCard({
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(Boolean(defaultOpen));
+  const done = Boolean(item.counted_at);
+  const [savingDone, startSavingDone] = useTransition();
+  const [doneError, setDoneError] = useState<string | null>(null);
+
+  function setDone(next: boolean) {
+    setDoneError(null);
+    startSavingDone(async () => {
+      const res = await setInventoryItemDone(item.id, instanceId, next);
+      if (!res.ok) { setDoneError(translateError(res.error)); return; }
+      // A finished product folds away; a reopened one opens for editing.
+      setOpen(!next);
+    });
+  }
   const [digitalOpen, setDigitalOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -94,6 +102,8 @@ export function ItemCard({
       className={cn(
         'rounded-xl border bg-surface shadow-card',
         item.status === 'to_review' ? 'border-late/30' : 'border-border',
+        // Finished products recede, so the eye lands on what is left.
+        done && 'bg-surface-2/40',
       )}
     >
       {/* The toggle and the one-tap zero sit side by side rather than nested:
@@ -106,7 +116,10 @@ export function ItemCard({
         className="flex min-w-0 flex-1 items-start gap-2 text-left"
       >
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-medium leading-snug">{item.item_name}</p>
+          <p className={cn('flex items-center gap-1.5 text-[14px] font-medium leading-snug', done && 'text-muted')}>
+            {done && <CheckCircle2 className="h-4 w-4 shrink-0 text-done" aria-hidden />}
+            {item.item_name}
+          </p>
           {item.item_group && (
             <p className="mt-0.5 text-[11px] uppercase tracking-wide text-subtle">{item.item_group}</p>
           )}
@@ -142,6 +155,14 @@ export function ItemCard({
 
             {item.entries.length > 0 && (
               <Badge tone="neutral">{item.entries.length}</Badge>
+            )}
+
+            {done && (
+              <span className="text-[12px] text-done">
+                {item.counted_by_profile
+                  ? t('inventory.doneBy', { name: displayName(item.counted_by_profile) })
+                  : t('inventory.doneBadge')}
+              </span>
             )}
           </div>
 
@@ -184,6 +205,34 @@ export function ItemCard({
         </div>
       </button>
 
+      {/* Done, beside the toggle for the same reason as the empty button.
+          Offered once something is recorded: done means counted, and an
+          untouched line is not. */}
+      {canEdit && !done && state !== 'uncounted' && (
+        <Button
+          size="sm"
+          variant="success"
+          onClick={() => setDone(true)}
+          loading={savingDone}
+          className="mt-[2px] shrink-0 whitespace-nowrap"
+        >
+          <Check className="h-3.5 w-3.5" aria-hidden />
+          {t('inventory.markDone')}
+        </Button>
+      )}
+      {canEdit && done && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setDone(false)}
+          loading={savingDone}
+          className="mt-[2px] shrink-0 whitespace-nowrap"
+        >
+          <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+          {t('inventory.reopenItem')}
+        </Button>
+      )}
+
       {/* One tap to say "I looked, there is none". Only while the line is
           genuinely uncounted: once a number exists this would be ambiguous,
           and the action refuses it server-side anyway. */}
@@ -202,6 +251,7 @@ export function ItemCard({
       </div>
 
       {emptyError && <p className="px-3 pb-2 text-[12px] text-late">{emptyError}</p>}
+      {doneError && <p className="px-3 pb-2 text-[12px] text-late">{doneError}</p>}
 
       {open && (
         <div className="space-y-3 border-t border-border px-3 pb-3 pt-3">
@@ -215,7 +265,9 @@ export function ItemCard({
               itemId={item.id}
               entries={item.entries}
               locations={locations}
-              disabled={!canEdit}
+              // A done product is read-only until reopened, so a stray tap
+              // cannot change a number somebody already signed off.
+              disabled={!canEdit || done}
               onLocalChange={(entryId, quantity) =>
                 setLocalQuantities((prev) => ({ ...prev, [entryId]: quantity }))
               }

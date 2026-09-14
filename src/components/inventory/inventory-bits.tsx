@@ -104,6 +104,8 @@ export function useInventoryError() {
         return t('inventory.errAlreadyCompleted');
       case 'already_counted':
         return t('inventory.errAlreadyCounted');
+      case 'nothing_counted':
+        return t('inventory.errNothingCounted');
       case 'location_required':
       case 'location_not_found':
         return t('inventory.errLocationRequired');

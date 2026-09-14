@@ -52,6 +52,7 @@ export function InventoryDetailView({
   const [commentOpen, setCommentOpen] = useState(false);
 
   const canEdit = detail.can_edit;
+  const doneCount = detail.items.filter((i) => i.counted_at).length;
   const digitalPendingCount = detail.digital_enabled
     ? detail.items.filter((i) => i.digital_quantity === null).length
     : 0;
@@ -68,7 +69,11 @@ export function InventoryDetailView({
         ),
         query,
         (item) => `${item.item_name} ${item.item_group ?? ''}`,
-      ),
+      )
+        // Done products sink to the bottom; everything keeps its own order
+        // within each half (the sort is stable), so the list still reads in
+        // shelf order from the top.
+        .sort((a, b) => Number(Boolean(a.counted_at)) - Number(Boolean(b.counted_at))),
     [detail.items, query, onlyOpen],
   );
 
@@ -132,6 +137,10 @@ export function InventoryDetailView({
 
           {digitalPendingCount > 0 && <DigitalPendingBadge count={digitalPendingCount} />}
           <Badge tone="neutral">{t('inventory.itemsCounted', { count: detail.items.length })}</Badge>
+          {/* How far the count has got, by product. */}
+          <Badge tone={doneCount === detail.items.length && doneCount > 0 ? 'done' : 'neutral'}>
+            {t('inventory.itemsDone', { done: doneCount, total: detail.items.length })}
+          </Badge>
 
           {/* The title is a frozen snapshot, deliberately not the live
               template name — a renamed template must not rewrite history.

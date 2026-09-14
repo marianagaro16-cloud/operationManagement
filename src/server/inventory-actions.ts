@@ -40,6 +40,7 @@ function fail(error: unknown): { ok: false; error: string } {
     'unexpected_field_for_kind',
     'inventory_template_not_found',
     'template_has_no_brand',
+    'nothing_counted',
   ];
   for (const code of codes) if (message.includes(code)) return { ok: false, error: code };
   // Constraint names are not messages a warehouse operator can act on.
@@ -107,6 +108,21 @@ export async function addInventoryEntry(input: EntryInput): Promise<ActionResult
 }
 
 /**
+ * "Nothing in stock" is a finished count, so the product is marked done in
+ * the same tap and folds away with the rest of the finished ones. If marking
+ * it done fails, the zero is still recorded; the counter can press done.
+ */
+async function markDoneAfterEmpty(
+  supabase: ReturnType<typeof createClient>,
+  itemId: string,
+  instanceId: string,
+): Promise<ActionResult> {
+  await supabase.rpc('inventory_item_set_done', { p_item_id: itemId, p_done: true });
+  revalidateInventory(instanceId);
+  return { ok: true, data: undefined };
+}
+
+/**
  * Record "nothing in stock" for one line, in one tap.
  *
  * Counting an empty shelf used to take five interactions — expand, Add entry,
@@ -155,14 +171,12 @@ export async function markInventoryItemEmpty(
       .update({ quantity: 0, updated_by: user.id })
       .in('id', blanks.map((r) => r.id));
     if (error) return fail(error);
-    revalidateInventory(instanceId);
-    return { ok: true, data: undefined };
+    return markDoneAfterEmpty(supabase, itemId, instanceId);
   }
 
   // Already an explicit zero and nothing blank — nothing left to say.
   if (rows.length > 0) {
-    revalidateInventory(instanceId);
-    return { ok: true, data: undefined };
+    return markDoneAfterEmpty(supabase, itemId, instanceId);
   }
 
   const kind = (instance as { kind: string }).kind;
@@ -205,6 +219,24 @@ export async function markInventoryItemEmpty(
     if (error) return fail(error);
   }
 
+  return markDoneAfterEmpty(supabase, itemId, instanceId);
+}
+
+/**
+ * Mark one product done, or reopen it.
+ *
+ * Done products fold away to the bottom of the count, so what is left at the
+ * top is what is still to do. The database decides who may (the same rule as
+ * the entries) and refuses a product with nothing recorded.
+ */
+export async function setInventoryItemDone(
+  itemId: string,
+  instanceId: string,
+  done: boolean,
+): Promise<ActionResult> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc('inventory_item_set_done', { p_item_id: itemId, p_done: done });
+  if (error) return fail(error);
   revalidateInventory(instanceId);
   return { ok: true, data: undefined };
 }

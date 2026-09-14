@@ -116,6 +116,9 @@ export interface InventoryInstanceItem {
   is_resolved: boolean;
   resolved_at: string | null;
   resolved_by: string | null;
+  /** When the counter marked this product done. Not part of the review cycle. */
+  counted_at: string | null;
+  counted_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -201,6 +204,7 @@ export interface InventoryListRow extends InventoryInstance {
 
 /** One counted line, with everything the detail screen shows. */
 export interface InventoryItemDetail extends InventoryInstanceItem {
+  counted_by_profile: Person | null;
   entries: InventoryEntry[];
   comments: (InventoryComment & { author: Person | null })[];
   resolutions: (InventoryResolution & { author: Person | null })[];
