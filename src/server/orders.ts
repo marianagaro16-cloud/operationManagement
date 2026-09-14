@@ -29,7 +29,7 @@ const ORDER_SELECT = `
   id, reference, customer_id, order_date, delivery_date, delivery_time, preparation_date,
   delivery_method_id, status, order_type, note, generated_from_template_id, import_source, created_by, updated_by,
   created_at, updated_at,
-  customer:customers!inner ( id, name, is_active, customer_type_id, customer_type:customer_types ( id, slug, name, sort_order, is_active ) ),
+  customer:customers!inner ( id, name, is_active ),
   delivery_method:delivery_methods ( id, slug, name, sort_order, is_active ),
   lines:order_lines (
     id, order_id, product_id, ordered_quantity, generated_quantity, note, source_text, shortfall_reason, position,
