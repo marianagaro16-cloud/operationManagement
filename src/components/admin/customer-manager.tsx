@@ -3,7 +3,8 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Pencil, Plus } from 'lucide-react';
-import { useI18n, type MessageKey } from '@/i18n';
+import { useI18n } from '@/i18n';
+import { useCustomerTypeLabel } from '@/components/customers/use-customer-type-label';
 import { filterByQuery } from '@/lib/search';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -12,23 +13,6 @@ import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select } f
 import { PageHeader } from '@/components/shell/app-shell';
 import { saveCustomer, setCustomerType } from '@/server/order-actions';
 import type { Customer, CustomerType } from '@/types/orders';
-
-/**
- * A segment's label.
- *
- * The slug is the dictionary key and `name` is the fallback, so a segment
- * added later that no dictionary knows about still renders as something
- * readable rather than as a raw key.
- */
-function useTypeLabel() {
-  const { t } = useI18n();
-  return (type: CustomerType | null | undefined) => {
-    if (!type) return t('master.typeNone');
-    const key = `master.customerType.${type.slug}` as MessageKey;
-    const translated = t(key);
-    return translated === key ? type.name : translated;
-  };
-}
 
 /**
  * Customer master.
@@ -57,7 +41,7 @@ export function CustomerManager({
   // '' is every segment; 'none' is the unclassified backlog, which needs to be
   // reachable in one click or nobody will ever work through it.
   const [typeFilter, setTypeFilter] = useState('');
-  const typeLabel = useTypeLabel();
+  const typeLabel = useCustomerTypeLabel();
 
   const inactiveCount = customers.filter((c) => !c.is_active).length;
   // Named on the filter itself, so the size of the backlog is visible without
@@ -212,7 +196,7 @@ function CustomerDialog({
   const [addition, setAddition] = useState(customer?.company_name_addition ?? '');
   const [typeId, setTypeId] = useState(customer?.customer_type_id ?? '');
   const [active, setActive] = useState(customer?.is_active ?? true);
-  const typeLabel = useTypeLabel();
+  const typeLabel = useCustomerTypeLabel();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -309,7 +293,7 @@ function TypeSelect({
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const typeLabel = useTypeLabel();
+  const typeLabel = useCustomerTypeLabel();
   const [value, setValue] = useState(customer.customer_type_id ?? '');
   const [pending, startTransition] = useTransition();
 
