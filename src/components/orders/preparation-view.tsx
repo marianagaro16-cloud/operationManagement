@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, Plus, Trash2, UserRound } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { cn } from '@/lib/utils';
+import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState, ErrorState, Field, Input, Textarea } from '@/components/ui/primitives';
 import { ConfirmDialog } from '@/components/ui/dialog';
@@ -198,6 +198,17 @@ function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; 
   // Computed once by the query layer; see OrderWithProgress.
   const progress = order.progress;
 
+  // Who is working on it: everyone who recorded a lot, in the order they
+  // started. Read from the allocations themselves, which carry their author,
+  // so there is no separate 'assigned to' that could disagree with the work.
+  const preparers = [...new Map(
+    order.lines
+      .flatMap((l) => l.allocations)
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .filter((a) => a.author)
+      .map((a) => [a.created_by, displayName(a.author!)] as const),
+  ).values()];
+
   return (
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2">
@@ -218,6 +229,14 @@ function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; 
               month of trade. */}
           <OrderTypeBadge type={order.order_type} />
           {order.status !== 'confirmed' && <StatusChip domain="order" status={order.status} />}
+          {preparers.length > 0 && (
+            <span className="inline-flex min-w-0 items-center gap-1 text-[12px] text-muted">
+              <UserRound className="h-3 w-3 shrink-0" aria-hidden />
+              <span className="truncate">
+                {t(progress.isComplete ? 'prep.preparedBy' : 'prep.preparingBy', { names: preparers.join(', ') })}
+              </span>
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <UrgencyBadge
@@ -365,6 +384,10 @@ function PreparationLine({ line, canManage }: { line: OrderLine; canManage: bool
             >
               <span className="font-medium tabular">{a.lot_number}</span>
               <span className="tabular text-muted">× {toQuantity(a.quantity)}</span>
+              {/* Who recorded this lot. */}
+              {a.author && (
+                <span className="shrink-0 text-[11.5px] text-subtle">{displayName(a.author)}</span>
+              )}
               {a.note && (
                 <NoteChip className="min-w-0 flex-1 truncate">{a.note}</NoteChip>
               )}

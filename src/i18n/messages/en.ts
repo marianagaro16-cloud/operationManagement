@@ -905,6 +905,8 @@ export const en = {
     enteredBy: 'Entered by {name}',
     carriedOver: 'Carried over',
     carriedOverBody: 'Started on an earlier day and not finished.',
+    preparingBy: 'Being prepared by {names}',
+    preparedBy: 'Prepared by {names}',
     openWork: 'unfinished',
   },
   push: {

@@ -883,6 +883,8 @@ export const de: Messages = {
     enteredBy: 'Erfasst von {name}',
     carriedOver: 'Übertrag aus früheren Tagen',
     carriedOverBody: 'An einem früheren Tag begonnen und nicht beendet.',
+    preparingBy: 'Wird vorbereitet von {names}',
+    preparedBy: 'Vorbereitet von {names}',
     openWork: 'offen',
   },
   push: {

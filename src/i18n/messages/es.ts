@@ -883,6 +883,8 @@ export const es: Messages = {
     enteredBy: 'Registrado por {name}',
     carriedOver: 'Pendiente de días anteriores',
     carriedOverBody: 'Se empezó otro día y no se terminó.',
+    preparingBy: 'Preparando: {names}',
+    preparedBy: 'Preparado por {names}',
     openWork: 'sin terminar',
   },
   push: {
