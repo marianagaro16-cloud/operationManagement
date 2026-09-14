@@ -53,6 +53,7 @@ export function InventoryDetailView({
 
   const canEdit = detail.can_edit;
   const doneCount = detail.items.filter((i) => i.counted_at).length;
+  const notDoneCount = detail.items.length - doneCount;
   const digitalPendingCount = detail.digital_enabled
     ? detail.items.filter((i) => i.digital_quantity === null).length
     : 0;
@@ -247,6 +248,8 @@ export function InventoryDetailView({
       )}
 
       {/* ----------------------------- complete ---------------------------- */}
+      {/* Only once every product is done — the database refuses otherwise,
+          so the button says what is missing instead of offering a refusal. */}
       {canEdit && !detail.completed_at && (
         <div className="sticky bottom-20 mt-5 md:bottom-4">
           <Button
@@ -254,9 +257,12 @@ export function InventoryDetailView({
             size="lg"
             className="w-full justify-center shadow-pop"
             onClick={() => setCompleteOpen(true)}
+            disabled={notDoneCount > 0}
           >
             <CheckCircle2 className="h-4 w-4" aria-hidden />
-            {t('inventory.completeInventory')}
+            {notDoneCount > 0
+              ? t('inventory.completeBlocked', { count: notDoneCount })
+              : t('inventory.completeInventory')}
           </Button>
         </div>
       )}

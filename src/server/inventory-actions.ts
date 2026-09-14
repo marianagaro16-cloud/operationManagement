@@ -41,6 +41,7 @@ function fail(error: unknown): { ok: false; error: string } {
     'inventory_template_not_found',
     'template_has_no_brand',
     'nothing_counted',
+    'items_not_done',
   ];
   for (const code of codes) if (message.includes(code)) return { ok: false, error: code };
   // Constraint names are not messages a warehouse operator can act on.

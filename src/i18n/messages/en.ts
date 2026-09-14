@@ -1260,6 +1260,8 @@ export const en = {
     doneBy: 'Done · {name}',
     itemsDone: '{done} / {total} done',
     errNothingCounted: 'Record a quantity first — or mark it as nothing in stock.',
+    completeBlocked: 'Complete inventory · {count} products not done',
+    errItemsNotDone: 'Every product has to be marked done before the inventory can be completed.',
     notCounted: 'Not counted',
     emptyBadge: 'Nothing in stock',
     markEmpty: 'Nothing in stock',

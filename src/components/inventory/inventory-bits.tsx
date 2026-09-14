@@ -106,6 +106,8 @@ export function useInventoryError() {
         return t('inventory.errAlreadyCounted');
       case 'nothing_counted':
         return t('inventory.errNothingCounted');
+      case 'items_not_done':
+        return t('inventory.errItemsNotDone');
       case 'location_required':
       case 'location_not_found':
         return t('inventory.errLocationRequired');

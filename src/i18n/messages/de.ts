@@ -1228,6 +1228,8 @@ export const de: Messages = {
     doneBy: 'Fertig · {name}',
     itemsDone: '{done} / {total} fertig',
     errNothingCounted: 'Zuerst eine Menge erfassen – oder als «kein Bestand» markieren.',
+    completeBlocked: 'Inventur abschliessen · {count} Produkte nicht fertig',
+    errItemsNotDone: 'Jedes Produkt muss als fertig markiert sein, bevor die Inventur abgeschlossen werden kann.',
     notCounted: 'Nicht gezählt',
     emptyBadge: 'Kein Bestand',
     markEmpty: 'Kein Bestand',
