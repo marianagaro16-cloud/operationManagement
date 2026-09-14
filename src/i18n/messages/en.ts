@@ -940,6 +940,9 @@ export const en = {
     carriedOverBody: 'Started on an earlier day and not finished.',
     preparingBy: 'Being prepared by {names}',
     preparedBy: 'Prepared by {names}',
+    expand: 'Show products',
+    collapse: 'Hide products',
+    linesDone: '{done} / {total} products prepared',
     openWork: 'unfinished',
   },
   push: {

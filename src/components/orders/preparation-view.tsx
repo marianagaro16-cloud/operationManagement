@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Plus, Trash2, UserRound } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, ChevronLeft, ChevronRight, Plus, Trash2, UserRound } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -209,10 +209,37 @@ function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; 
       .map((a) => [a.created_by, displayName(a.author!)] as const),
   ).values()];
 
+  // Collapsible, so a long day reads as a list of orders rather than a wall
+  // of products. Work still to do starts open; a finished order starts folded
+  // — it already sits at the bottom, and its lines are only needed to check.
+  const [expanded, setExpanded] = useState(!progress.isComplete);
+
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2">
+      <div
+        className={cn(
+          'flex cursor-pointer flex-wrap items-center justify-between gap-2 px-3.5 py-2',
+          expanded && 'border-b border-border',
+        )}
+        // The whole header toggles, except the links and buttons inside it,
+        // which keep doing what they say.
+        onClick={(e) => {
+          if (!(e.target as HTMLElement).closest('a, button')) setExpanded((v) => !v);
+        }}
+      >
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-label={expanded ? t('prep.collapse') : t('prep.expand')}
+            className="-ml-1.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+          >
+            <ChevronDown
+              className={cn('h-4 w-4 transition-transform', !expanded && '-rotate-90')}
+              aria-hidden
+            />
+          </button>
           {/* The order this preparation belongs to, one tap away. */}
           <Link
             href={`/orders/${order.id}`}
@@ -250,8 +277,18 @@ function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; 
         </div>
       </div>
 
+      {/* Folded: how far along it is, so nothing needs opening to find out. */}
+      {!expanded && (
+        <p className="border-t border-border px-3.5 py-1.5 text-[12px] tabular text-muted">
+          {t('prep.linesDone', { done: progress.complete, total: progress.lines })}
+          {progress.hasUnexplainedShortfall && (
+            <span className="ml-2 text-warn">· {t('prep.shortfallRequired')}</span>
+          )}
+        </p>
+      )}
+
       {/* Order-level note is shown once, never repeated per product. */}
-      {order.note && (
+      {expanded && order.note && (
         <NoteBlock className="border-b border-border px-3.5 py-2">{order.note}</NoteBlock>
       )}
 
@@ -260,7 +297,7 @@ function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; 
           heading shows even when an order is all one brand: a picker reads
           one layout rather than two, and knowing the shelf before starting
           is worth a single line. Quantities and positions are untouched. */}
-      {groupLinesByBrand(order.lines).map((group) => (
+      {expanded && groupLinesByBrand(order.lines).map((group) => (
         <div key={group.brandId ?? '__none__'}>
           <p className="border-b border-border bg-surface-2/40 px-3.5 py-1 text-[11px] font-medium uppercase tracking-wide text-subtle">
             {group.name ?? t('master.noBrand')}

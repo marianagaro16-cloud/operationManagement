@@ -918,6 +918,9 @@ export const es: Messages = {
     carriedOverBody: 'Se empezó otro día y no se terminó.',
     preparingBy: 'Preparando: {names}',
     preparedBy: 'Preparado por {names}',
+    expand: 'Mostrar productos',
+    collapse: 'Ocultar productos',
+    linesDone: '{done} / {total} productos preparados',
     openWork: 'sin terminar',
   },
   push: {

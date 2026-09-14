@@ -918,6 +918,9 @@ export const de: Messages = {
     carriedOverBody: 'An einem früheren Tag begonnen und nicht beendet.',
     preparingBy: 'Wird vorbereitet von {names}',
     preparedBy: 'Vorbereitet von {names}',
+    expand: 'Produkte anzeigen',
+    collapse: 'Produkte ausblenden',
+    linesDone: '{done} / {total} Produkte vorbereitet',
     openWork: 'offen',
   },
   push: {
