@@ -13,7 +13,26 @@ import { cookies } from 'next/headers';
  * alerted on, and alerts already sent were re-claimed every 15 minutes,
  * hitting the unique constraint each time. Its reads never reached Supabase.
  */
-const noStoreFetch: typeof fetch = (input, init) => fetch(input, { ...init, cache: 'no-store' });
+const noStoreFetch: typeof fetch = async (input, init) => {
+  const request = { ...init, cache: 'no-store' as const };
+  const response = await fetch(input, request);
+
+  /*
+   * One retry for a READ that Supabase's gateway gave up on.
+   *
+   * Measured on 2026-09-14: about 4% of requests from Vercel came back 504
+   * after a fixed ~5 s, having never reached Postgres — and the longer the app
+   * had been idle, the likelier (13% after five quiet minutes). The same query
+   * from elsewhere answered in 0.2 s, and the immediate retry nearly always
+   * succeeds. Only GET and HEAD are retried: a write that timed out at the
+   * gateway may still have landed, and repeating it is not ours to decide.
+   */
+  const method = (request.method ?? 'GET').toUpperCase();
+  if (response.status === 504 && (method === 'GET' || method === 'HEAD')) {
+    return fetch(input, request);
+  }
+  return response;
+};
 
 /**
  * Request-scoped Supabase client bound to the user's session cookies.
