@@ -231,6 +231,21 @@ export interface OrderReport {
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
 /**
+ * Keep only the lines of one product, and only the orders that carry it.
+ *
+ * Unlike the Orders screen's brand filter, a REPORT filtered by product must
+ * trim the lines: "units ordered" of a product cannot include the other seven
+ * things on the same order, and 3 boxes of one product and 2 kilos of another
+ * are not 5 of anything.
+ */
+export function narrowToProduct<T extends Order>(orders: T[], productId: string): T[] {
+  return orders.flatMap((o) => {
+    const lines = (o.lines ?? []).filter((l) => l.product_id === productId);
+    return lines.length > 0 ? [{ ...o, lines }] : [];
+  });
+}
+
+/**
  * Aggregate a set of orders into a report.
  *
  * Cancelled orders are excluded from every quantity and from the product and

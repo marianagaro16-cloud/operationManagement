@@ -1,4 +1,4 @@
-import { getOrdersByDelivery } from '@/server/orders';
+import { getCustomers, getOrdersByDelivery, getProducts } from '@/server/orders';
 import { getOccurrencesInRange, getUsers } from '@/server/data';
 import { getInventoryReport } from '@/server/inventory';
 import { businessToday } from '@/lib/datetime';
@@ -7,6 +7,7 @@ import { computeStats } from '@/domain/stats';
 import {
   computeOrderReport,
   customRange,
+  narrowToProduct,
   periodRange,
   type ReportPeriod,
 } from '@/domain/orders/reporting';
@@ -35,7 +36,15 @@ const isDate = (v: string | undefined): v is string => /^\d{4}-\d{2}-\d{2}$/.tes
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: { tab?: string; period?: string; date?: string; from?: string; to?: string };
+  searchParams: {
+    tab?: string;
+    period?: string;
+    date?: string;
+    from?: string;
+    to?: string;
+    customer?: string;
+    product?: string;
+  };
 }) {
   const tab: ReportTab = TABS.includes(searchParams.tab as ReportTab)
     ? (searchParams.tab as ReportTab)
@@ -80,7 +89,31 @@ export default async function ReportsPage({
     return <InventoryReportView report={report} range={range} anchor={anchor} />;
   }
 
+  // Only an id that looks like one is honoured, so a hand-edited URL narrows
+  // to nothing rather than reaching PostgREST as a malformed uuid.
+  const customerId = isUuid(searchParams.customer) ? searchParams.customer : undefined;
+  const productId = isUuid(searchParams.product) ? searchParams.product : undefined;
+
   // Reuses the existing order query — no reporting tables, no duplicated data.
-  const orders = await getOrdersByDelivery({ from: range.start, to: range.end });
-  return <OrderReportView report={computeOrderReport(orders, range)} anchor={anchor} />;
+  // Inactive customers and products are offered too: a report looks backwards.
+  const [found, customers, products] = await Promise.all([
+    getOrdersByDelivery({ from: range.start, to: range.end, customerId }),
+    getCustomers(true),
+    getProducts(true),
+  ]);
+  const orders = productId ? narrowToProduct(found, productId) : found;
+
+  return (
+    <OrderReportView
+      report={computeOrderReport(orders, range)}
+      anchor={anchor}
+      customers={customers}
+      products={products}
+      filters={{ customerId, productId }}
+    />
+  );
+}
+
+function isUuid(value: string | undefined): value is string {
+  return Boolean(value && /^[0-9a-f-]{36}$/i.test(value));
 }

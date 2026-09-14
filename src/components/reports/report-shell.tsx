@@ -44,6 +44,8 @@ export function reportHref(
   range: PeriodRange,
   anchor: string,
   override?: { period?: ReportPeriod; date?: string; from?: string; to?: string },
+  /** Tab-specific filters (e.g. customer, product), kept while moving through periods. */
+  filters?: Record<string, string | undefined>,
 ): string {
   const period = override?.period ?? range.kind;
   const params = new URLSearchParams({ tab, period });
@@ -54,6 +56,9 @@ export function reportHref(
   } else {
     params.set('date', override?.date ?? anchor);
   }
+  for (const [key, value] of Object.entries(filters ?? {})) {
+    if (value) params.set(key, value);
+  }
   return `/admin/reports?${params.toString()}`;
 }
 
@@ -61,12 +66,19 @@ export function ReportShell({
   tab,
   range,
   anchor,
+  filters,
   action,
   children,
 }: {
   tab: ReportTab;
   range: PeriodRange;
   anchor: string;
+  /**
+   * This tab's filters. Carried by the period links so stepping to the next
+   * month keeps looking at the same customer; dropped when switching tabs,
+   * where they mean nothing.
+   */
+  filters?: Record<string, string | undefined>;
   /** Tab-specific control shown beside the period nav, e.g. Export CSV. */
   action?: ReactNode;
   children: ReactNode;
@@ -79,12 +91,12 @@ export function ReportShell({
   // A custom range slides by its own length rather than by a calendar unit,
   // so "previous" on a 10-day window means the 10 days before it.
   const prevHref = isCustom
-    ? (() => { const r = shiftCustomRange(range, -1); return reportHref(tab, range, anchor, { period: 'custom', from: r.start, to: r.end }); })()
-    : reportHref(tab, range, anchor, { date: shiftPeriod(range.kind, anchor, -1) });
+    ? (() => { const r = shiftCustomRange(range, -1); return reportHref(tab, range, anchor, { period: 'custom', from: r.start, to: r.end }, filters); })()
+    : reportHref(tab, range, anchor, { date: shiftPeriod(range.kind, anchor, -1) }, filters);
 
   const nextHref = isCustom
-    ? (() => { const r = shiftCustomRange(range, 1); return reportHref(tab, range, anchor, { period: 'custom', from: r.start, to: r.end }); })()
-    : reportHref(tab, range, anchor, { date: shiftPeriod(range.kind, anchor, 1) });
+    ? (() => { const r = shiftCustomRange(range, 1); return reportHref(tab, range, anchor, { period: 'custom', from: r.start, to: r.end }, filters); })()
+    : reportHref(tab, range, anchor, { date: shiftPeriod(range.kind, anchor, 1) }, filters);
 
   return (
     <>
@@ -116,7 +128,7 @@ export function ReportShell({
         {PERIODS.map((p) => (
           <Link
             key={p}
-            href={reportHref(tab, range, anchor, { period: p })}
+            href={reportHref(tab, range, anchor, { period: p }, filters)}
             className={cn(
               'rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors',
               range.kind === p
@@ -162,7 +174,7 @@ export function ReportShell({
               <Field label={t('report.to')} htmlFor="r-to">
                 <Input id="r-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
               </Field>
-              <Link href={reportHref(tab, range, anchor, { period: 'custom', from, to })}>
+              <Link href={reportHref(tab, range, anchor, { period: 'custom', from, to }, filters)}>
                 <Button variant="primary">{t('report.apply')}</Button>
               </Link>
             </div>

@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Download } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Badge, Card, CardBody, EmptyState } from '@/components/ui/primitives';
-import { ReportShell } from '@/components/reports/report-shell';
+import { Combobox } from '@/components/ui/combobox';
+import { ReportShell, reportHref } from '@/components/reports/report-shell';
 import { productReportToCsv, type OrderReport } from '@/domain/orders/reporting';
+import { productLabel, type Customer, type Product } from '@/types/orders';
 
 /**
  * Order report — the Orders tab of /admin/reports.
@@ -24,12 +27,24 @@ import { productReportToCsv, type OrderReport } from '@/domain/orders/reporting'
 export function OrderReportView({
   report,
   anchor,
+  customers,
+  products,
+  filters,
 }: {
   report: OrderReport;
   anchor: string;
+  customers: Customer[];
+  products: Product[];
+  /** Narrowing applied to the whole report, carried in the URL. */
+  filters: { customerId?: string; productId?: string };
 }) {
   const { t, formatDate } = useI18n();
+  const router = useRouter();
   const { range } = report;
+
+  const urlFilters = { customer: filters.customerId, product: filters.productId };
+  const setFilter = (key: 'customer' | 'product', value: string | null) =>
+    router.push(reportHref('orders', range, anchor, undefined, { ...urlFilters, [key]: value ?? undefined }));
 
   function downloadCsv() {
     // Built in the browser from data already on the page — no round trip.
@@ -58,6 +73,7 @@ export function OrderReportView({
       tab="orders"
       range={range}
       anchor={anchor}
+      filters={urlFilters}
       action={
         report.byProduct.length > 0 ? (
           <button
@@ -70,6 +86,31 @@ export function OrderReportView({
         ) : undefined
       }
     >
+      {/* Outside the empty state, so a filter that matches nothing can still
+          be seen and cleared. Clearing a field means "all". */}
+      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <Combobox
+          items={customers}
+          value={filters.customerId ?? null}
+          onChange={(id) => setFilter('customer', id)}
+          getKey={(c) => c.id}
+          getLabel={(c) => c.name}
+          getSearchText={(c) => `${c.company_name} ${c.company_name_addition ?? ''}`}
+          placeholder={t('orders.allCustomers')}
+          emptyMessage={t('orders.noCustomersFound')}
+        />
+        <Combobox
+          items={products}
+          value={filters.productId ?? null}
+          onChange={(id) => setFilter('product', id)}
+          getKey={(p) => p.id}
+          getLabel={(p) => (p.code ? `${p.code} · ${productLabel(p)}` : productLabel(p))}
+          getSearchText={(p) => `${p.code ?? ''} ${p.name ?? ''} ${p.family}`}
+          placeholder={t('incident.allProducts')}
+          emptyMessage={t('orders.noProductsFound')}
+        />
+      </div>
+
       {report.orders === 0 && report.cancelled === 0 ? (
         <EmptyState title={t('report.noOrders')} body={t('report.noOrdersBody')} />
       ) : (

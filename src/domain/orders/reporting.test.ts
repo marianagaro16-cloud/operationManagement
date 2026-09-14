@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   computeOrderReport,
+  narrowToProduct,
   periodRange,
   shiftPeriod,
   productReportToCsv,
@@ -561,5 +562,19 @@ describe('period labels', () => {
     const label = periodLabel(customRange('2026-12-20', '2027-01-10'), 'en');
     expect(label).toContain('2026');
     expect(label).toContain('2027');
+  });
+});
+
+describe('narrowToProduct', () => {
+  it('keeps only that product\'s lines, and only the orders that carry it', () => {
+    const orders = [
+      order({ lines: [line('p1', '01', 'Chorizo', 4, [4]), line('p2', '02', 'Queso', 7)] }),
+      order({ lines: [line('p2', '02', 'Queso', 3)] }),
+    ];
+    const report = computeOrderReport(narrowToProduct(orders, 'p1'), SEP);
+    expect(report.orders).toBe(1);
+    expect(report.totalOrdered).toBe(4);
+    expect(report.byProduct.map((p) => p.productId)).toEqual(['p1']);
+    expect(report.fulfilmentRate).toBe(100);
   });
 });
