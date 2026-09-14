@@ -46,10 +46,19 @@ export function PreparationView({
 }) {
   const { t, formatDate } = useI18n();
 
+  // Work still to do on top, finished orders at the bottom, so the list reads
+  // as what is left rather than whatever order the references came in. The
+  // sort is stable, so each half keeps its reference order; a customer with
+  // anything unfinished sits in the top half, with its done orders after the
+  // open ones.
+  const sorted = [...orders].sort(
+    (a, b) => Number(a.progress.isComplete) - Number(b.progress.isComplete),
+  );
+
   // Several orders may exist for one customer on one day; they stay separate
   // records and are only grouped visually.
   const byCustomer = new Map<string, OrderWithProgress[]>();
-  for (const o of orders) {
+  for (const o of sorted) {
     const list = byCustomer.get(o.customer.name);
     if (list) list.push(o);
     else byCustomer.set(o.customer.name, [o]);
