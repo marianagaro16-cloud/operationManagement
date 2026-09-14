@@ -921,6 +921,8 @@ export const es: Messages = {
     expand: 'Mostrar productos',
     collapse: 'Ocultar productos',
     linesDone: '{done} / {total} productos preparados',
+    expandAll: 'Expandir todo',
+    collapseAll: 'Colapsar todo',
     openWork: 'sin terminar',
   },
   push: {

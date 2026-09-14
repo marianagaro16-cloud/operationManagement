@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Check, ChevronDown, ChevronLeft, ChevronRight, Plus, Trash2, UserRound } from 'lucide-react';
+import {
+  AlertTriangle, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Plus, Trash2, UserRound,
+} from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -46,6 +48,7 @@ export function PreparationView({
   canManage: boolean;
 }) {
   const { t, formatDate } = useI18n();
+  const [bulk, setBulk] = useState<BulkToggle>(null);
 
   // Work still to do on top, finished orders at the bottom, so the list reads
   // as what is left rather than whatever order the references came in. The
@@ -122,6 +125,21 @@ export function PreparationView({
         </Link>
       </div>
 
+      {/* Open or fold every card at once. Individual cards still toggle on
+          their own afterwards; this only sets them all to one state. */}
+      {orders.length + carriedOver.length > 0 && (
+        <div className="mb-3 flex justify-end gap-1.5">
+          <Button size="sm" variant="ghost" onClick={() => setBulk({ expanded: true })}>
+            <ChevronsUpDown className="h-3.5 w-3.5" aria-hidden />
+            {t('prep.expandAll')}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setBulk({ expanded: false })}>
+            <ChevronsDownUp className="h-3.5 w-3.5" aria-hidden />
+            {t('prep.collapseAll')}
+          </Button>
+        </div>
+      )}
+
       {/* ------------------------- carried over ------------------------- */}
       {/* Above the day's own work: something already late outranks something
           merely due. Each card names the day it was scheduled for, so this
@@ -150,7 +168,7 @@ export function PreparationView({
                     })}
                   </span>
                 </h3>
-                <OrderPreparationCard order={order} canManage={canManage} />
+                <OrderPreparationCard order={order} canManage={canManage} bulk={bulk} />
               </div>
             ))}
           </div>
@@ -171,7 +189,7 @@ export function PreparationView({
               </h2>
               <div className="space-y-3">
                 {customerOrders.map((order) => (
-                  <OrderPreparationCard key={order.id} order={order} canManage={canManage} />
+                  <OrderPreparationCard key={order.id} order={order} canManage={canManage} bulk={bulk} />
                 ))}
               </div>
             </section>
@@ -193,7 +211,18 @@ function CustomerTypeBadge({ type }: { type: CustomerType | null | undefined }) 
   return <Badge tone="neutral">{label(type)}</Badge>;
 }
 
-function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; canManage: boolean }) {
+/** The last expand-all / collapse-all press. A new object each press, so pressing the same one twice still applies. */
+type BulkToggle = { expanded: boolean } | null;
+
+function OrderPreparationCard({
+  order,
+  canManage,
+  bulk,
+}: {
+  order: OrderWithProgress;
+  canManage: boolean;
+  bulk: BulkToggle;
+}) {
   const { t, formatDate } = useI18n();
   // Computed once by the query layer; see OrderWithProgress.
   const progress = order.progress;
@@ -213,6 +242,9 @@ function OrderPreparationCard({ order, canManage }: { order: OrderWithProgress; 
   // of products. Work still to do starts open; a finished order starts folded
   // — it already sits at the bottom, and its lines are only needed to check.
   const [expanded, setExpanded] = useState(!progress.isComplete);
+  useEffect(() => {
+    if (bulk) setExpanded(bulk.expanded);
+  }, [bulk]);
 
   return (
     <Card>

@@ -943,6 +943,8 @@ export const en = {
     expand: 'Show products',
     collapse: 'Hide products',
     linesDone: '{done} / {total} products prepared',
+    expandAll: 'Expand all',
+    collapseAll: 'Collapse all',
     openWork: 'unfinished',
   },
   push: {
