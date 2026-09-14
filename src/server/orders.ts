@@ -99,6 +99,26 @@ export async function getOrdersByDelivery(filters: {
 }
 
 /**
+ * The preparation report: every non-cancelled order whose PREPARATION date
+ * falls in the range, with its lots and their authors. The same rows the
+ * preparation screen reads, over a period instead of a day.
+ */
+export async function getOrdersByPreparation(from: BusinessDate, to: BusinessDate): Promise<OrderWithProgress[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('orders')
+    .select(ORDER_SELECT)
+    .gte('preparation_date', from)
+    .lte('preparation_date', to)
+    .neq('status', 'cancelled')
+    .order('preparation_date', { ascending: true })
+    .order('reference', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return withProgress(sortLines((data ?? []) as unknown as Order[]));
+}
+
+/**
  * Lotnummerkontrol: filtered by PREPARATION date.
  * Cancelled orders are excluded — there is nothing to prepare.
  */

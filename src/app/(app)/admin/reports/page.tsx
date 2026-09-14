@@ -1,4 +1,6 @@
-import { getCustomers, getOrdersByDelivery, getProducts } from '@/server/orders';
+import { getCustomers, getOrdersByDelivery, getOrdersByPreparation, getProducts } from '@/server/orders';
+import { computePreparationReport } from '@/domain/orders/preparation-report';
+import { PreparationReportView } from '@/components/reports/preparation-report-view';
 import { getOccurrencesInRange, getUsers } from '@/server/data';
 import { getInventoryReport } from '@/server/inventory';
 import { businessToday } from '@/lib/datetime';
@@ -19,7 +21,7 @@ import type { ReportTab } from '@/components/reports/report-shell';
 export const dynamic = 'force-dynamic';
 
 const PERIODS: ReportPeriod[] = ['day', 'week', 'month', 'year', 'custom'];
-const TABS: ReportTab[] = ['orders', 'tasks', 'inventory'];
+const TABS: ReportTab[] = ['orders', 'preparation', 'tasks', 'inventory'];
 
 const isDate = (v: string | undefined): v is string => /^\d{4}-\d{2}-\d{2}$/.test(v ?? '');
 
@@ -87,6 +89,18 @@ export default async function ReportsPage({
   if (tab === 'inventory') {
     const report = await getInventoryReport(range.start, range.end);
     return <InventoryReportView report={report} range={range} anchor={anchor} />;
+  }
+
+  // Keyed on PREPARATION date — the same rows the preparation screen reads,
+  // over a period instead of a day.
+  if (tab === 'preparation') {
+    const orders = await getOrdersByPreparation(range.start, range.end);
+    return (
+      <PreparationReportView
+        report={computePreparationReport(orders, range, businessToday())}
+        anchor={anchor}
+      />
+    );
   }
 
   // Only an id that looks like one is honoured, so a hand-edited URL narrows

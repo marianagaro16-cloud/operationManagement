@@ -33,9 +33,9 @@ import {
  * moving from Orders to Inventory keeps the month you were looking at.
  */
 
-export type ReportTab = 'orders' | 'tasks' | 'inventory';
+export type ReportTab = 'orders' | 'preparation' | 'tasks' | 'inventory';
 
-const TABS: ReportTab[] = ['orders', 'tasks', 'inventory'];
+const TABS: ReportTab[] = ['orders', 'preparation', 'tasks', 'inventory'];
 const PERIODS: ReportPeriod[] = ['day', 'week', 'month', 'year', 'custom'];
 
 /** Every link in here keeps the tab and the period together. */
