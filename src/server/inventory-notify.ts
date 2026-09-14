@@ -1,10 +1,11 @@
 import 'server-only';
 import { createAdminClient } from '@/lib/supabase/server';
 import {
+  physicalCountDoneAlert,
   selectInventoryNotifications,
   type NotifiableInventory,
 } from '@/domain/inventory/notifications';
-import { sendToAdmins, sendToUsers } from './push';
+import { sendToPermissionHolders, sendToUsers } from './push';
 import { addDays, businessToday } from '@/lib/datetime';
 
 /**
@@ -98,8 +99,8 @@ export async function runInventoryNotifications(now: Date = new Date()): Promise
     };
 
     const recipients =
-      n.audience === 'admins'
-        ? await sendToAdmins(payload)
+      n.audience === 'reconcilers'
+        ? await sendToPermissionHolders('inventory.manage_instances', payload)
         : await sendToUsers(n.userIds, payload);
 
     if (recipients === 0) {
@@ -124,4 +125,72 @@ export async function runInventoryNotifications(now: Date = new Date()): Promise
   }
 
   return { considered: inventories.length, sent };
+}
+
+/**
+ * Tell the digital side a physical count is finished — now, not at the next
+ * scheduler tick.
+ *
+ * Called straight after inventory_complete() succeeded, so the count is
+ * already closed and authorised by the database; this only delivers the
+ * news. It claims the ledger kinds it stands for before sending, exactly as
+ * the scheduler does, so the scheduler will not repeat it — and if nobody
+ * with the capability has a device registered, it releases them again so
+ * the scheduler can still deliver once somebody subscribes.
+ *
+ * Never throws: a failed push must not make a completed count look failed.
+ */
+export async function notifyPhysicalCountDone(instanceId: string, completedBy: string | null): Promise<number> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('inventory_instances')
+      .select('id, name_snapshot, iso_week, digital_enabled, items:inventory_instance_items ( id )')
+      .eq('id', instanceId)
+      .maybeSingle();
+    if (error || !data) return 0;
+    const inv = data as unknown as {
+      id: string; name_snapshot: string; iso_week: number; digital_enabled: boolean; items: { id: string }[] | null;
+    };
+
+    const alert = physicalCountDoneAlert({
+      name_snapshot: inv.name_snapshot,
+      iso_week: inv.iso_week,
+      digital_enabled: inv.digital_enabled,
+      product_count: (inv.items ?? []).length,
+    });
+
+    // Claim first. If the primary kind is already taken, another path has
+    // told them; say nothing twice.
+    const primary = alert.claims[alert.claims.length - 1];
+    const { error: claimError } = await admin
+      .from('inventory_notifications')
+      .insert({ instance_id: instanceId, kind: primary, recipients: 0 });
+    if (claimError) return 0;
+    const others = alert.claims.filter((k) => k !== primary);
+    if (others.length) {
+      await admin.from('inventory_notifications').upsert(
+        others.map((kind) => ({ instance_id: instanceId, kind, recipients: 0 })),
+        { onConflict: 'instance_id,kind', ignoreDuplicates: true },
+      );
+    }
+
+    const recipients = await sendToPermissionHolders('inventory.manage_instances', {
+      title: alert.title,
+      body: alert.body,
+      tag: `inventory-${instanceId}`,
+      url: `/inventory/${instanceId}`,
+    }, completedBy);
+
+    if (recipients === 0) {
+      await admin.from('inventory_notifications').delete().eq('instance_id', instanceId).in('kind', alert.claims);
+      return 0;
+    }
+
+    await admin.from('inventory_notifications').update({ recipients }).eq('instance_id', instanceId).in('kind', alert.claims);
+    return recipients;
+  } catch (e) {
+    console.error('[inventory] physical-count-done notification failed', e);
+    return 0;
+  }
 }

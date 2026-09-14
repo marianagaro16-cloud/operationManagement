@@ -7,6 +7,7 @@ import { inventoryScheduleSchema, INVENTORY_FREQUENCIES, INVENTORY_KINDS } from 
 import { planTemplateRefresh } from '@/domain/inventory/refresh';
 import { sendToUser } from './push';
 import type { ActionResult } from './actions';
+import { notifyPhysicalCountDone } from './inventory-notify';
 
 /**
  * Inventory server actions.
@@ -291,6 +292,12 @@ export async function completeInventory(instanceId: string): Promise<ActionResul
   const supabase = createClient();
   const { error } = await supabase.rpc('inventory_complete', { p_instance_id: instanceId });
   if (error) return fail(error);
+
+  // The count is closed; whoever does Inventory Digital can start now, so
+  // they hear it now. Never fails the completion — see notifyPhysicalCountDone.
+  const { data: { user } } = await supabase.auth.getUser();
+  await notifyPhysicalCountDone(instanceId, user?.id ?? null);
+
   revalidateInventory(instanceId);
   return { ok: true, data: undefined };
 }

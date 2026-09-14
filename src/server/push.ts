@@ -136,6 +136,38 @@ export async function sendToUsers(userIds: string[], payload: PushPayload): Prom
 }
 
 /**
+ * Send to everyone who holds a capability: approved admins, and approved
+ * users whose role is granted it in role_permissions — the same answer
+ * has_permission() gives in SQL, asked for many people at once.
+ *
+ * `exclude` leaves out one person, typically whoever caused the alert: the
+ * one who just completed a count does not need telling that it is complete.
+ */
+export async function sendToPermissionHolders(
+  permission: string,
+  payload: PushPayload,
+  exclude?: string | null,
+): Promise<number> {
+  const admin = createAdminClient();
+  const { data: grants, error: grantsError } = await admin
+    .from('role_permissions')
+    .select('role')
+    .eq('permission', permission);
+  if (grantsError) throw new Error(grantsError.message);
+
+  const roles = ['admin', ...(grants ?? []).map((g) => (g as { role: string }).role)];
+  const { data: people, error: peopleError } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('status', 'approved')
+    .in('role', roles);
+  if (peopleError) throw new Error(peopleError.message);
+
+  const ids = (people ?? []).map((p) => (p as { id: string }).id).filter((id) => id !== exclude);
+  return sendToUsers(ids, payload);
+}
+
+/**
  * Send to every approved ADMIN's devices.
  *
  * Reconciliation work — entering Inventory Digital, resolving a difference —

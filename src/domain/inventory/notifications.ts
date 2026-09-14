@@ -17,8 +17,15 @@ export type InventoryNotificationKind =
   | 'digital_pending'
   | 'review_required';
 
-/** Who an alert is for. Assignees can act on the count; admins reconcile it. */
-export type Audience = 'assignees' | 'admins';
+/**
+ * Who an alert is for. Assignees can act on the count; reconcilers — whoever
+ * holds inventory.manage_instances, which is what entering Inventory Digital
+ * requires — do the digital half and the review.
+ *
+ * This used to be 'admins', and sent to the admin ROLE only: a manager or
+ * power user who does the digital entry was never told a count had finished.
+ */
+export type Audience = 'assignees' | 'reconcilers';
 
 export interface NotifiableInventory {
   id: string;
@@ -102,20 +109,52 @@ export function selectInventoryNotifications(
       }
     }
 
-    // ---- for the admins who reconcile ----
+    // ---- for whoever reconciles ----
     if (inv.completed_at !== null) {
-      if (!seen('completed')) push('completed', 'admins', []);
+      if (!seen('completed')) push('completed', 'reconcilers', []);
 
       // Only meaningful on a template that uses Inventory Digital at all.
       if (inv.digital_enabled && inv.digital_pending_count > 0 && !seen('digital_pending')) {
-        push('digital_pending', 'admins', [], inv.digital_pending_count);
+        push('digital_pending', 'reconcilers', [], inv.digital_pending_count);
       }
 
       if (inv.review_count > 0 && !seen('review_required')) {
-        push('review_required', 'admins', [], inv.review_count);
+        push('review_required', 'reconcilers', [], inv.review_count);
       }
     }
   }
 
   return out;
+}
+
+/**
+ * The alert sent the moment a physical count is completed.
+ *
+ * Immediate, from the completion itself, rather than on the next scheduler
+ * tick: the person entering Inventory Digital is waiting on exactly this, and
+ * the tick can be a quarter of an hour away — or outside the scheduler's
+ * hours altogether.
+ *
+ * `claims` are the ledger kinds this one message stands for, so the
+ * scheduler does not follow it with a second "completed" and a third
+ * "digital pending" about the same count.
+ */
+export function physicalCountDoneAlert(inv: {
+  name_snapshot: string;
+  iso_week: number;
+  digital_enabled: boolean;
+  product_count: number;
+}): { claims: InventoryNotificationKind[]; title: string; body: string } {
+  if (inv.digital_enabled) {
+    return {
+      claims: ['completed', 'digital_pending'],
+      title: inv.name_snapshot,
+      body: `Inventario físico terminado — ya se puede cargar el Inventario Digital (${inv.product_count} productos) · KW ${inv.iso_week}`,
+    };
+  }
+  return {
+    claims: ['completed'],
+    title: inv.name_snapshot,
+    body: `Inventario completado — KW ${inv.iso_week}`,
+  };
 }

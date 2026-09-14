@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DateTime } from 'luxon';
 import {
+  physicalCountDoneAlert,
   selectInventoryNotifications,
   type NotifiableInventory,
 } from './notifications';
@@ -95,7 +96,7 @@ describe('selectInventoryNotifications', () => {
     expect(kinds(out)).not.toContain('deadline_soon');
   });
 
-  it('tells admins when a count is completed', () => {
+  it('tells the reconcilers when a count is completed', () => {
     const out = selectInventoryNotifications(
       [inventory({ completed_at: '2026-09-11T15:00:00Z' })],
       new Set(),
@@ -103,10 +104,10 @@ describe('selectInventoryNotifications', () => {
       zurich('2026-09-11T16:00'),
     );
     const completed = out.find((n) => n.kind === 'completed');
-    expect(completed?.audience).toBe('admins');
+    expect(completed?.audience).toBe('reconcilers');
   });
 
-  it('tells admins that Inventory Digital is outstanding', () => {
+  it('tells the reconcilers that Inventory Digital is outstanding', () => {
     const out = selectInventoryNotifications(
       [inventory({ completed_at: 'x', digital_pending_count: 12 })],
       new Set(),
@@ -126,7 +127,7 @@ describe('selectInventoryNotifications', () => {
     expect(kinds(out)).not.toContain('digital_pending');
   });
 
-  it('tells admins when differences need review', () => {
+  it('tells the reconcilers when differences need review', () => {
     const out = selectInventoryNotifications(
       [inventory({ completed_at: 'x', review_count: 3 })],
       new Set(),
@@ -134,7 +135,7 @@ describe('selectInventoryNotifications', () => {
       zurich('2026-09-11T16:00'),
     );
     const review = out.find((n) => n.kind === 'review_required');
-    expect(review?.audience).toBe('admins');
+    expect(review?.audience).toBe('reconcilers');
     expect(review?.body).toContain('3');
   });
 
@@ -146,5 +147,34 @@ describe('selectInventoryNotifications', () => {
       zurich('2026-09-11T16:00'),
     );
     expect(out).toEqual([]);
+  });
+});
+
+describe('physical count done', () => {
+  it('tells the digital side it can start, and stands for both ledger kinds', () => {
+    const alert = physicalCountDoneAlert({ name_snapshot: 'Complementarios', iso_week: 38, digital_enabled: true, product_count: 94 });
+    expect(alert.title).toBe('Complementarios');
+    expect(alert.body).toContain('Inventario Digital');
+    expect(alert.body).toContain('94');
+    expect(alert.body).toContain('KW 38');
+    expect(alert.claims.sort()).toEqual(['completed', 'digital_pending']);
+  });
+
+  it('on a template without Inventory Digital, just says it is completed', () => {
+    const alert = physicalCountDoneAlert({ name_snapshot: 'Empaques', iso_week: 38, digital_enabled: false, product_count: 114 });
+    expect(alert.body).not.toContain('Digital');
+    expect(alert.claims).toEqual(['completed']);
+  });
+
+  it('keeps the scheduler from repeating what the immediate alert already said', () => {
+    const alert = physicalCountDoneAlert({ name_snapshot: 'X', iso_week: 37, digital_enabled: true, product_count: 12 });
+    const out = selectInventoryNotifications(
+      [inventory({ completed_at: 'x', digital_pending_count: 12 })],
+      new Set(alert.claims.map((k) => `inv-1:${k}`)),
+      TODAY,
+      zurich('2026-09-11T16:00'),
+    );
+    expect(kinds(out)).not.toContain('completed');
+    expect(kinds(out)).not.toContain('digital_pending');
   });
 });
