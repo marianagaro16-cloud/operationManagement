@@ -2,6 +2,7 @@ import { getViewer } from '@/server/data';
 import { getBrands, getCustomers, getProducts } from '@/server/orders';
 import { getProductAliases } from '@/server/order-import';
 import { ProductManager } from '@/components/admin/product-manager';
+import { canUseReminders } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export default async function ProductsPage() {
       aliases={aliases}
       customers={customers}
       brands={brands}
-      reminderViewerId={viewer?.can('reminders.use') ? viewer.profile.id : null}
+      reminderViewerId={viewer && canUseReminders(viewer) ? viewer.profile.id : null}
     />
   );
 }

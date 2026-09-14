@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { getCategories, getTasksForAdmin, getViewer } from '@/server/data';
 import { TaskManager } from '@/components/admin/task-manager';
+import { canUseReminders } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ export default async function AdminTasksPage() {
       <TaskManager
         tasks={tasks}
         categories={categories}
-        reminderViewerId={viewer?.can('reminders.use') ? viewer.profile.id : null}
+        reminderViewerId={viewer && canUseReminders(viewer) ? viewer.profile.id : null}
       />
     </Suspense>
   );

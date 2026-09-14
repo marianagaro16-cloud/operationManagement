@@ -56,9 +56,8 @@ export function AppShell({
     // slots are the floor workflows; quick creation is on the dashboard and on
     // each record, and a due reminder announces itself with a push and with
     // the count below.
-    ...(can(role, held, 'reminders.use')
-      ? [{ href: '/reminders', label: t('reminder.navLabel'), icon: BellRing, primary: false, badge: reminderAttention }]
-      : []),
+    // Every approved account, whatever its role: a personal tool.
+    { href: '/reminders', label: t('reminder.navLabel'), icon: BellRing, primary: false, badge: reminderAttention },
     // Preparation is the main floor workflow, so it sits high in the bar.
     { href: '/preparation', label: t('prep.title'), icon: ClipboardList, primary: true },
     // Order Control is the ORDER BOOK — customers, dates, quantities, the

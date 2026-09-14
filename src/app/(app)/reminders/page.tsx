@@ -4,6 +4,7 @@ import { countReminders, listReminders, REMINDER_PAGE_SIZE } from '@/server/remi
 import { isLinkType } from '@/domain/reminders/links';
 import { ReminderList } from '@/components/reminders/reminder-list';
 import { REMINDER_VIEWS, type ReminderFilters, type ReminderView } from '@/types/reminders';
+import { canUseReminders } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ export default async function RemindersPage({
   searchParams: Record<string, string | undefined>;
 }) {
   const viewer = await getViewer();
-  if (!viewer?.can('reminders.use')) redirect('/dashboard');
+  if (!viewer || !canUseReminders(viewer)) redirect('/dashboard');
 
   // Anything unrecognised in a hand-edited URL is dropped rather than passed on.
   const filters: ReminderFilters = {

@@ -16,6 +16,7 @@ import {
 import { getViewer } from './data';
 import type { ActionResult } from './actions';
 import type { ReminderPerson } from '@/types/reminders';
+import { canUseReminders } from '@/lib/authz';
 
 /**
  * Reminder and Personal Task mutations.
@@ -61,7 +62,7 @@ function fail(error: unknown): { ok: false; error: ReminderErrorCode } {
 
 async function requireAccess(): Promise<boolean> {
   const viewer = await getViewer();
-  return Boolean(viewer && viewer.profile.status === 'approved' && viewer.can('reminders.use'));
+  return canUseReminders(viewer);
 }
 
 function revalidateReminders(id?: string) {
@@ -225,7 +226,7 @@ function linkColumns(link: { type: LinkType; id: string } | null): Record<string
 
 export async function savePersonalTask(input: SavePersonalTaskInput): Promise<ActionResult<{ id: string }>> {
   const viewer = await getViewer();
-  if (!viewer || !viewer.can('reminders.use')) return { ok: false, error: 'not_authorized' };
+  if (!viewer || !canUseReminders(viewer)) return { ok: false, error: 'not_authorized' };
 
   const parsed = taskSchema.safeParse(input);
   if (!parsed.success) {

@@ -74,11 +74,6 @@ export const PERMISSIONS = [
   'goods_reception.manage_config',
   'goods_reception.manage_all',
 
-  // Reminders and Personal Tasks — the user's OWN follow-ups. Granting this
-  // gives no sight of anybody else's: a reminder is visible only to its
-  // participants, a personal task only to its owner, admins included.
-  'reminders.use',
-
   // ADMIN-ONLY — listed so the matrix can render them locked, never grantable
   'users.manage',
   'users.approve',
@@ -121,6 +116,19 @@ export type ConfigurableRole = (typeof CONFIGURABLE_ROLES)[number];
  */
 export function permissionKey(permission: Permission): string {
   return permission.replace(/[._](\w)/g, (_, c: string) => c.toUpperCase());
+}
+
+/**
+ * May this account use Reminders and Personal Tasks?
+ *
+ * Any approved account, whatever its role: they are a personal tool, not an
+ * operational capability, so there is no permission to grant. Mirrors
+ * can_use_reminders() in SQL, which is what enforces it. Privacy does not
+ * depend on this: a reminder is visible only to its participants and a
+ * personal task only to its owner, admins included.
+ */
+export function canUseReminders(viewer: { profile: { status: string } } | null | undefined): boolean {
+  return viewer?.profile.status === 'approved';
 }
 
 export function isRole(value: string): value is Role {

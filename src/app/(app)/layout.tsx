@@ -3,6 +3,7 @@ import { getViewer } from '@/server/data';
 import { getReminderAttentionCount } from '@/server/reminders';
 import { AppShell } from '@/components/shell/app-shell';
 import { AccountStatusScreen } from '@/components/shell/account-status';
+import { canUseReminders } from '@/lib/authz';
 
 /**
  * The approval gate. A pending, rejected or deactivated account never reaches
@@ -22,8 +23,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   // The in-app signal that a reminder is due: a count on the Reminders nav
-  // entry, on every screen. Only asked for when the viewer can use reminders.
-  const reminderAttention = viewer.can('reminders.use') ? await getReminderAttentionCount() : 0;
+  // entry, on every screen.
+  const reminderAttention = canUseReminders(viewer) ? await getReminderAttentionCount() : 0;
 
   return (
     <AppShell profile={viewer.profile} caps={[...viewer.caps]} reminderAttention={reminderAttention}>

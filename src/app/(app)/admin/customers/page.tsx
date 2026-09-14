@@ -1,6 +1,7 @@
 import { getViewer } from '@/server/data';
 import { getCustomers, getCustomerTypes } from '@/server/orders';
 import { CustomerManager } from '@/components/admin/customer-manager';
+import { canUseReminders } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ export default async function CustomersPage() {
     <CustomerManager
       customers={customers}
       customerTypes={customerTypes}
-      reminderViewerId={viewer?.can('reminders.use') ? viewer.profile.id : null}
+      reminderViewerId={viewer && canUseReminders(viewer) ? viewer.profile.id : null}
     />
   );
 }

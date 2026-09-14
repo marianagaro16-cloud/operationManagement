@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getUsers, getViewer } from '@/server/data';
 import { getInventoryDetail, getInventoryLocations } from '@/server/inventory';
 import { InventoryDetailView } from '@/components/inventory/inventory-detail';
+import { canUseReminders } from '@/lib/authz';
 
 // Never cached: two people may be counting the same inventory at once, and
 // the 18:00 lock has to be evaluated against the real clock on every load.
@@ -30,7 +31,7 @@ export default async function InventoryDetailPage({ params }: { params: { id: st
       locations={locations}
       users={users}
       canManage={canManage}
-      reminderViewerId={viewer?.can('reminders.use') ? viewer.profile.id : null}
+      reminderViewerId={viewer && canUseReminders(viewer) ? viewer.profile.id : null}
     />
   );
 }

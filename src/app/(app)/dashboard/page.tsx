@@ -10,6 +10,7 @@ import { InventoryWidget } from '@/components/inventory/inventory-widget';
 import { PushPrompt } from '@/components/shell/push-prompt';
 import { getDashboardReminders, getPersonalTasks } from '@/server/reminders';
 import { ReminderWidgets } from '@/components/reminders/reminder-widgets';
+import { canUseReminders } from '@/lib/authz';
 
 // Always render fresh: task and order state change constantly during a shift.
 export const dynamic = 'force-dynamic';
@@ -22,9 +23,8 @@ export default async function DashboardPage() {
   // invites working on tomorrow's list, and buries what is due now.
   const plans = viewer?.can('tasks.manage_occurrences') ?? false;
   const canManageOrders = viewer?.can('orders.manage') ?? false;
-  // Fetched only for someone who can use reminders; a plain user's dashboard
-  // does not pay for queries it would never show.
-  const usesReminders = viewer?.can('reminders.use') ?? false;
+  // Every approved account has reminders and personal tasks, whatever its role.
+  const usesReminders = canUseReminders(viewer);
   const [data, orders, inventory, reminders, personalTasks] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),

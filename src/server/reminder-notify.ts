@@ -44,24 +44,14 @@ export async function runReminderNotifications(now = new Date()): Promise<{
   })[];
   if (reminders.length === 0) return { considered: 0, alerts: 0, sent: 0 };
 
-  // Who may still receive reminders. A participant whose role no longer holds
-  // the capability stopped seeing the reminder under RLS; they must stop
-  // hearing about it too.
+  // Who may still receive reminders: approved accounts, as in
+  // reminders_eligible(). A participant whose account was deactivated stopped
+  // seeing the reminder under RLS; they must stop hearing about it too.
   const userIds = [...new Set(reminders.flatMap((r) => r.participants.map((p) => p.user_id)))];
-  // Two queries for everybody rather than one per participant; mirrors
-  // reminders_eligible() in SQL.
-  const [{ data: profiles, error: profilesError }, { data: grants, error: grantsError }] = await Promise.all([
-    admin.from('profiles').select('id, role, status').in('id', userIds),
-    admin.from('role_permissions').select('role').eq('permission', 'reminders.use'),
-  ]);
+  const { data: profiles, error: profilesError } = await admin
+    .from('profiles').select('id, status').in('id', userIds);
   if (profilesError) throw new Error(profilesError.message);
-  if (grantsError) throw new Error(grantsError.message);
-  const grantedRoles = new Set((grants ?? []).map((g) => g.role as string));
-  const eligible = new Set(
-    (profiles ?? [])
-      .filter((p) => p.status === 'approved' && (p.role === 'admin' || grantedRoles.has(p.role as string)))
-      .map((p) => p.id as string),
-  );
+  const eligible = new Set((profiles ?? []).filter((p) => p.status === 'approved').map((p) => p.id as string));
 
   const ids = reminders.map((r) => r.id);
   const { data: sentRows, error: sentError } = await admin

@@ -11,6 +11,7 @@ import {
 } from '@/server/goods-reception';
 import { canEditReception } from '@/domain/goods-reception/workflow';
 import { ReceptionDetailView } from '@/components/goods-reception/reception-detail';
+import { canUseReminders } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +73,7 @@ export default async function ReceptionDetailPage({ params }: { params: { id: st
       // stays a prop rather than a constant because the rule lives in SQL and
       // could be narrowed there without this page noticing.
       canSeeIncidents
-      reminderViewerId={viewer.can('reminders.use') ? viewer.profile.id : null}
+      reminderViewerId={canUseReminders(viewer) ? viewer.profile.id : null}
     />
   );
 }

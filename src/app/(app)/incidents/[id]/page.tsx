@@ -4,6 +4,7 @@ import { getUsers, getViewer } from '@/server/data';
 import { getIncident } from '@/server/incidents';
 import { getCustomers, getDeliveryMethods, getProducts } from '@/server/orders';
 import { IncidentDetail } from '@/components/incidents/incident-detail';
+import { canUseReminders } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +49,7 @@ export default async function IncidentPage({ params }: { params: { id: string } 
       deliveryMethods={deliveryMethods}
       canManage={canManage}
       canClose={viewer.can('incidents.close')}
-      reminderViewerId={viewer.can('reminders.use') ? viewer.profile.id : null}
+      reminderViewerId={canUseReminders(viewer) ? viewer.profile.id : null}
       currentUserName={displayName(viewer.profile)}
     />
   );

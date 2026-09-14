@@ -7,6 +7,7 @@ import { IncidentLinks } from '@/components/incidents/incident-links';
 import { ReportIncidentButton } from '@/components/incidents/report-incident-button';
 import { orderContextFrom } from '@/components/incidents/order-context';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
+import { canUseReminders } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
   const viewer = await getViewer();
   const canManage = viewer?.can('orders.manage') ?? false;
   const canReportIncident = viewer?.can('incidents.manage') ?? false;
-  const reminderViewerId = viewer?.can('reminders.use') ? viewer.profile.id : null;
+  const reminderViewerId = viewer && canUseReminders(viewer) ? viewer.profile.id : null;
 
   const order = await getOrder(params.id);
   if (!order) notFound();

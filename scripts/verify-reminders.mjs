@@ -10,7 +10,7 @@
  * Postgres — RLS, the reminder_* functions, column privileges — as REAL
  * signed-in users through the anon key, the same path a browser takes.
  *
- * Five throwaway accounts are created and removed. Every reminder and personal
+ * Six throwaway accounts are created and removed. Every reminder and personal
  * task they create goes with them (ON DELETE CASCADE on the creator/owner).
  * Existing records are only READ, to link to.
  */
@@ -89,18 +89,28 @@ async function main() {
   const U = await makeUser('user');
   created.users.push(A.id, M.id, M2.id, P.id, U.id);
 
-  console.log('\n=== 1. Who holds the capability ===');
-  for (const [who, expected] of [[A, true], [M, true], [P, true], [U, false]]) {
-    const { data } = await who.client.rpc('has_permission', { p_key: 'reminders.use' });
-    check(`${who.role} has reminders.use = ${expected}`, data === expected, `got ${data}`);
+  console.log('\n=== 1. Every approved account can use reminders, whatever its role ===');
+  for (const who of [A, M, P, U]) {
+    const { data } = await who.client.rpc('can_use_reminders');
+    check(`${who.role} can_use_reminders() = true`, data === true, `got ${data}`);
   }
+  const { data: stillInCatalog } = await admin.from('permission_catalog').select('key').eq('key', 'reminders.use');
+  check('the old reminders.use capability is gone from the matrix', (stillInCatalog ?? []).length === 0);
 
-  console.log('\n=== 2. A plain USER has no way in ===');
-  check('user CANNOT create a reminder', errorIs(await save(U), 'not_authorized'));
-  check('user CANNOT list participants', denied(await U.client.rpc('reminder_participant_candidates')));
-  check('user CANNOT create a personal task',
-    denied(await U.client.from('personal_tasks').insert({ owner_id: U.id, title: 'ZZ' }).select()));
-  check('user sees no reminders at all', denied(await U.client.from('reminders').select('id').limit(1)));
+  console.log('\n=== 2. A plain USER has reminders and personal tasks of their own ===');
+  const userReminder = await save(U, { p_title: 'ZZ Check the cold room thermometer' });
+  check('user CAN create a reminder', !userReminder.error, userReminder.error?.message);
+  check('...and sees it', !denied(await U.client.from('reminders').select('id').eq('id', userReminder.data)));
+  check('...which a manager CANNOT see', denied(await M.client.from('reminders').select('id').eq('id', userReminder.data)));
+  check('...nor an admin', denied(await A.client.from('reminders').select('id').eq('id', userReminder.data)));
+  const userTask = await U.client.from('personal_tasks').insert({ owner_id: U.id, title: 'ZZ user task' }).select('id').single();
+  check('user CAN create a personal task', !userTask.error, userTask.error?.message);
+  check('...which a manager CANNOT see', denied(await M.client.from('personal_tasks').select('id').eq('id', userTask.data?.id)));
+  const { data: candidates } = await U.client.rpc('reminder_participant_candidates');
+  check('user CAN list who to share with — including managers',
+    (candidates ?? []).some((c) => c.id === M.id), `${candidates?.length} people`);
+  check('a user still CANNOT touch operational tasks',
+    denied(await U.client.from('tasks').insert({ title: 'ZZ Task user', frequency: 'weekly', schedule_config: { kind: 'weekly', weekday: 2 } }).select()));
 
   console.log('\n=== 3. A personal reminder is private — admins included ===');
   const mine = await save(P, { p_title: 'ZZ Call Carlos about replacement' });
@@ -150,8 +160,15 @@ async function main() {
     ['created', 'edited', 'snoozed', 'completed'].every((a) => actions.includes(a)), actions.join(','));
 
   console.log('\n=== 5. Shared reminders ===');
-  check('a USER cannot be added as a participant',
-    errorIs(await save(M, { p_participants: [U.id] }), 'participant_not_eligible'));
+  const withUser = await save(M, { p_title: 'ZZ Tell the floor about the new labels', p_participants: [U.id] });
+  check('a USER CAN be added as a participant', !withUser.error, withUser.error?.message);
+  check('...and sees the shared reminder', !denied(await U.client.from('reminders').select('id').eq('id', withUser.data)));
+
+  const pending = await makeUser('user', 'pending');
+  created.users.push(pending.id);
+  await admin.from('profiles').update({ status: 'pending' }).eq('id', pending.id);
+  check('an account that is NOT approved cannot be added',
+    errorIs(await save(M, { p_participants: [pending.id] }), 'participant_not_eligible'));
 
   const shared = await save(M, { p_title: 'ZZ Check DHL claim before Friday', p_participants: [P.id, A.id] });
   check('a manager CAN share with exactly the people chosen', !shared.error, shared.error?.message);
@@ -325,13 +342,13 @@ async function main() {
   check('a user cannot write it',
     denied(await P.client.from('reminder_notifications').insert({ reminder_id: late.data, kind: 'due', slot_at: inHours(-3) }).select()));
 
-  console.log('\n=== 12. Removing the capability removes the access ===');
-  await admin.from('role_permissions').delete().eq('role', 'power_user').eq('permission', 'reminders.use');
-  check('power user loses sight of their reminders', denied(await P.client.from('reminders').select('id').limit(1)));
-  check('...and of their personal tasks', denied(await P.client.from('personal_tasks').select('id').limit(1)));
+  console.log('\n=== 12. A deactivated account loses access ===');
+  await admin.from('profiles').update({ status: 'deactivated' }).eq('id', P.id);
+  check('a deactivated account loses sight of its reminders', denied(await P.client.from('reminders').select('id').limit(1)));
+  check('...and of its personal tasks', denied(await P.client.from('personal_tasks').select('id').limit(1)));
   check('...and cannot create', errorIs(await save(P), 'not_authorized'));
-  await admin.from('role_permissions').insert({ role: 'power_user', permission: 'reminders.use' });
-  check('...and regains everything when it is granted back', !denied(await P.client.from('reminders').select('id').limit(1)));
+  await admin.from('profiles').update({ status: 'approved' }).eq('id', P.id);
+  check('...and regains everything when approved again', !denied(await P.client.from('reminders').select('id').limit(1)));
 
   if (WITH_NOTIFY) {
     console.log('\n=== 13. The deployed notifier (--notify) ===');
@@ -364,11 +381,6 @@ async function main() {
 }
 
 async function cleanup() {
-  // Restore the shipped default first, in case a check above left it off.
-  const { data: grant } = await admin.from('role_permissions')
-    .select('role').eq('role', 'power_user').eq('permission', 'reminders.use');
-  if (!grant?.length) await admin.from('role_permissions').insert({ role: 'power_user', permission: 'reminders.use' });
-
   for (const id of created.users) {
     // Explicit, rather than trusting the cascade: a leftover ZZ reminder
     // shared with a real person would be visible to them.
