@@ -214,6 +214,45 @@ function CustomerTypeBadge({ type }: { type: CustomerType | null | undefined }) 
 /** The last expand-all / collapse-all press. A new object each press, so pressing the same one twice still applies. */
 type BulkToggle = { expanded: boolean } | null;
 
+/*
+ * Which cards somebody opened or folded, remembered across reloads.
+ *
+ * In this browser only: it is how one person likes to look at the list, not
+ * a fact about the order, so it has no business in the database or on
+ * anybody else's screen. Entries expire after two weeks — an order's
+ * preparation is long over by then — so the list cannot grow for ever.
+ *
+ * Every access is guarded: storage can be unavailable (private browsing,
+ * blocked site data), and then the cards simply use their defaults.
+ */
+const EXPANDED_KEY = 'om_prep_expanded';
+const EXPANDED_TTL_MS = 14 * 86_400_000;
+
+type ExpandedStore = Record<string, { e: boolean; t: number }>;
+
+function readExpanded(): ExpandedStore {
+  try {
+    const raw = window.localStorage.getItem(EXPANDED_KEY);
+    return raw ? (JSON.parse(raw) as ExpandedStore) : {};
+  } catch {
+    return {};
+  }
+}
+
+function rememberExpanded(orderId: string, expanded: boolean) {
+  try {
+    const now = Date.now();
+    const store = readExpanded();
+    for (const [id, entry] of Object.entries(store)) {
+      if (now - entry.t > EXPANDED_TTL_MS) delete store[id];
+    }
+    store[orderId] = { e: expanded, t: now };
+    window.localStorage.setItem(EXPANDED_KEY, JSON.stringify(store));
+  } catch {
+    // Not remembered this time; the card still toggles.
+  }
+}
+
 function OrderPreparationCard({
   order,
   canManage,
@@ -242,8 +281,23 @@ function OrderPreparationCard({
   // of products. Work still to do starts open; a finished order starts folded
   // — it already sits at the bottom, and its lines are only needed to check.
   const [expanded, setExpanded] = useState(!progress.isComplete);
+
+  // The server renders the default; what this browser remembers is applied
+  // once mounted, because storage only exists on the client.
   useEffect(() => {
-    if (bulk) setExpanded(bulk.expanded);
+    const saved = readExpanded()[order.id];
+    if (saved) setExpanded(saved.e);
+  }, [order.id]);
+
+  const setAndRemember = (next: boolean) => {
+    setExpanded(next);
+    rememberExpanded(order.id, next);
+  };
+
+  useEffect(() => {
+    if (bulk) setAndRemember(bulk.expanded);
+    // Only a new press should apply; setAndRemember is recreated every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bulk]);
 
   return (
@@ -256,13 +310,13 @@ function OrderPreparationCard({
         // The whole header toggles, except the links and buttons inside it,
         // which keep doing what they say.
         onClick={(e) => {
-          if (!(e.target as HTMLElement).closest('a, button')) setExpanded((v) => !v);
+          if (!(e.target as HTMLElement).closest('a, button')) setAndRemember(!expanded);
         }}
       >
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setExpanded((v) => !v)}
+            onClick={() => setAndRemember(!expanded)}
             aria-expanded={expanded}
             aria-label={expanded ? t('prep.collapse') : t('prep.expand')}
             className="-ml-1.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-fg"
