@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computePreparationReport, preparationReportToCsv } from './preparation-report';
+import { computePreparationReport, lotRegisterToCsv, preparationReportToCsv } from './preparation-report';
 import { periodRange } from './reporting';
 import type { Order } from '@/types/orders';
 
@@ -136,6 +136,74 @@ describe('by preparer', () => {
     expect(r.lots).toBe(1);
     expect(r.done).toBe(1);
     expect(r.byPreparer).toEqual([]);
+  });
+});
+
+describe('lots per product — the traceability register', () => {
+  const productLine = (productId: string, code: string, name: string, ordered: number, allocations: ReturnType<typeof lot>[]) =>
+    ({
+      id: `l${++lineSeq}`, product_id: productId, ordered_quantity: ordered, shortfall_reason: null, allocations,
+      product: { id: productId, code, name, family: name, presentation: null },
+    }) as unknown as NonNullable<Order['lines']>[number];
+
+  const withLot = (who: string, name: string, lotNumber: string, quantity: number) => ({ ...lot(who, name, quantity, ON_THE_3RD), lot_number: lotNumber });
+
+  const orders = () => [
+    order({ reference: 2001, customer: { name: 'La Brea' } as never, delivery_date: '2026-09-04', lines: [
+      productLine('p1', '0073', 'Tortilla 1kg', 5, [withLot('u1', 'Ana', 'L-10', 3), withLot('u2', 'Ben', 'L-9', 2)]),
+      productLine('p2', '0012', 'Chorizo', 1, [withLot('u1', 'Ana', 'C-1', 1)]),
+    ] }),
+    order({ reference: 2002, customer: { name: 'El Catrin' } as never, delivery_date: '2026-09-06', lines: [
+      productLine('p1', '0073', 'Tortilla 1kg', 4, [withLot('u2', 'Ben', 'L-10 ', 4)]),
+    ] }),
+  ];
+
+  it('groups by product, then lot, with quantity, orders, customers and delivery dates', () => {
+    const r = computePreparationReport(orders(), SEP, TODAY);
+    expect(r.byProductLot.map((p) => [p.code, p.quantity])).toEqual([['0012', 1], ['0073', 9]]);
+
+    const tortilla = r.byProductLot.find((p) => p.code === '0073')!;
+    // Numeric-aware: L-9 before L-10. The trailing space typed on one entry
+    // does not split L-10 into two lots.
+    expect(tortilla.lots.map((l) => l.lotNumber)).toEqual(['L-9', 'L-10']);
+
+    const l10 = tortilla.lots[1];
+    expect(l10).toMatchObject({
+      quantity: 7,
+      customers: ['La Brea', 'El Catrin'],
+      firstDelivery: '2026-09-04',
+      lastDelivery: '2026-09-06',
+      preparers: ['Ana', 'Ben'],
+    });
+    expect(l10.orders.map((o) => [o.reference, o.customer, o.quantity])).toEqual([
+      [2001, 'La Brea', 3],
+      [2002, 'El Catrin', 4],
+    ]);
+  });
+
+  it('adds up two allocations of the same lot on the same order into one entry', () => {
+    const r = computePreparationReport([
+      order({ reference: 3001, lines: [productLine('p1', '0073', 'Tortilla', 5, [withLot('u1', 'Ana', 'L-1', 2), withLot('u2', 'Ben', 'L-1', 3)])] }),
+    ], SEP, TODAY);
+    const l1 = r.byProductLot[0].lots[0];
+    expect(l1.orders).toEqual([expect.objectContaining({ reference: 3001, quantity: 5 })]);
+    expect(r.lotRows).toHaveLength(2);
+  });
+
+  it('exports every allocation as its own row, ready for an inspector', () => {
+    const r = computePreparationReport(orders(), SEP, TODAY);
+    const lines = lotRegisterToCsv(r).split('\n');
+    expect(lines[0]).toBe('product_code;product;lot;quantity;order;customer;preparation_date;delivery_date;recorded_at;prepared_by');
+    expect(lines).toHaveLength(5);
+    expect(lines).toContain('0073;Tortilla 1kg;L-10;4;2002;El Catrin;2026-09-03;2026-09-06;2026-09-03 10:00;Ben');
+  });
+
+  it('leaves out lots on cancelled orders — nothing went out', () => {
+    const r = computePreparationReport([
+      order({ status: 'cancelled', lines: [productLine('p1', '0073', 'Tortilla', 1, [withLot('u1', 'Ana', 'L-1', 1)])] }),
+    ], SEP, TODAY);
+    expect(r.byProductLot).toEqual([]);
+    expect(r.lotRows).toEqual([]);
   });
 });
 

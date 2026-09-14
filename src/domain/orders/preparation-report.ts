@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon';
 import { BUSINESS_TZ, parseBusinessDate, toBusinessDate, type BusinessDate } from '@/lib/datetime';
-import { lineProgress } from './progress';
+import { lineProgress, toQuantity } from './progress';
 import { DAY_BREAKDOWN_LIMIT, type PeriodRange } from './reporting';
-import type { Order } from '@/types/orders';
+import { productLabel, type Order } from '@/types/orders';
 
 /**
  * Preparation reporting.
@@ -63,8 +63,55 @@ export interface PreparationOrderRow {
   unexplainedShortLines: number;
 }
 
+/**
+ * One lot of one product, across every order it went out on in the period.
+ *
+ * This is the traceability register: the question an inspection asks is
+ * "this lot of this product — how much, to whom, when, prepared by whom",
+ * and it must be answerable for a whole period at once, not one lot search
+ * at a time.
+ */
+export interface LotLine {
+  lotNumber: string;
+  /** Packages allocated from this lot, in the product's own presentation. */
+  quantity: number;
+  /** Orders this lot went out on, with where each one went. */
+  orders: { id: string; reference: number; customer: string; deliveryDate: BusinessDate; quantity: number }[];
+  customers: string[];
+  firstDelivery: BusinessDate;
+  lastDelivery: BusinessDate;
+  preparers: string[];
+}
+
+export interface ProductLotsLine {
+  productId: string;
+  code: string | null;
+  name: string;
+  /** Quantities are summed only within one product — one presentation. */
+  quantity: number;
+  lots: LotLine[];
+}
+
+/** One allocation, flat: the row an inspector's spreadsheet wants. */
+export interface LotRow {
+  productCode: string | null;
+  product: string;
+  lotNumber: string;
+  quantity: number;
+  reference: number;
+  customer: string;
+  preparationDate: BusinessDate;
+  deliveryDate: BusinessDate;
+  recordedAt: string;
+  preparedBy: string;
+}
+
 export interface PreparationReport {
   range: PeriodRange;
+  /** Products and the lots each went out from. The heart of the report. */
+  byProductLot: ProductLotsLine[];
+  /** Every allocation, flat, for the traceability export. */
+  lotRows: LotRow[];
   orders: number;
   done: number;
   inProgress: number;
@@ -109,6 +156,8 @@ export function computePreparationReport(
   }>();
   const days = new Map<BusinessDate, PreparationDayLine>();
   const rows: PreparationOrderRow[] = [];
+  const productLots = new Map<string, { code: string | null; name: string; lots: Map<string, LotLine> }>();
+  const lotRows: LotRow[] = [];
 
   let lines = 0, linesComplete = 0, shortLines = 0, unexplained = 0, over = 0, lots = 0;
 
@@ -139,6 +188,45 @@ export function computePreparationReport(
         anyAllocation = true;
         lots++;
         if (!lastActivityAt || a.created_at > lastActivityAt) lastActivityAt = a.created_at;
+
+        // --- the traceability register ---
+        const quantity = toQuantity(a.quantity);
+        const authorName = a.author?.name?.trim() || a.author?.email || '—';
+        const customer = order.customer?.name ?? '—';
+        const productName = line.product ? productLabel(line.product) : '—';
+        // Lot numbers are typed by hand; trimmed so "L123 " and "L123" are one lot.
+        const lotNumber = a.lot_number.trim();
+
+        const product = productLots.get(line.product_id) ?? {
+          code: line.product?.code ?? null, name: productName, lots: new Map<string, LotLine>(),
+        };
+        const lotLine = product.lots.get(lotNumber) ?? {
+          lotNumber, quantity: 0, orders: [], customers: [], preparers: [],
+          firstDelivery: order.delivery_date, lastDelivery: order.delivery_date,
+        };
+        lotLine.quantity += quantity;
+        const onOrder = lotLine.orders.find((o) => o.id === order.id);
+        if (onOrder) onOrder.quantity += quantity;
+        else lotLine.orders.push({ id: order.id, reference: order.reference, customer, deliveryDate: order.delivery_date, quantity });
+        if (!lotLine.customers.includes(customer)) lotLine.customers.push(customer);
+        if (a.author && !lotLine.preparers.includes(authorName)) lotLine.preparers.push(authorName);
+        if (order.delivery_date < lotLine.firstDelivery) lotLine.firstDelivery = order.delivery_date;
+        if (order.delivery_date > lotLine.lastDelivery) lotLine.lastDelivery = order.delivery_date;
+        product.lots.set(lotNumber, lotLine);
+        productLots.set(line.product_id, product);
+
+        lotRows.push({
+          productCode: line.product?.code ?? null,
+          product: productName,
+          lotNumber,
+          quantity,
+          reference: order.reference,
+          customer,
+          preparationDate: order.preparation_date,
+          deliveryDate: order.delivery_date,
+          recordedAt: a.created_at,
+          preparedBy: a.author ? authorName : '—',
+        });
 
         // A lot whose author's account was removed still counts as work done;
         // it just cannot be credited to anybody.
@@ -199,8 +287,36 @@ export function computePreparationReport(
     }
   }
 
+  const round3 = (n: number) => Math.round(n * 1000) / 1000;
+  const byProductLot: ProductLotsLine[] = [...productLots.entries()]
+    .map(([productId, p]) => {
+      const lotsList = [...p.lots.values()]
+        .map((l) => ({
+          ...l,
+          quantity: round3(l.quantity),
+          orders: l.orders
+            .map((o) => ({ ...o, quantity: round3(o.quantity) }))
+            .sort((a, b) => a.deliveryDate.localeCompare(b.deliveryDate) || a.reference - b.reference),
+        }))
+        .sort((a, b) => a.lotNumber.localeCompare(b.lotNumber, undefined, { numeric: true }));
+      return {
+        productId,
+        code: p.code,
+        name: p.name,
+        quantity: round3(lotsList.reduce((sum, l) => sum + l.quantity, 0)),
+        lots: lotsList,
+      };
+    })
+    .sort((a, b) => (a.code ?? '').localeCompare(b.code ?? '', undefined, { numeric: true }) || a.name.localeCompare(b.name));
+
   return {
     range,
+    byProductLot,
+    lotRows: lotRows.sort((a, b) =>
+      a.product.localeCompare(b.product)
+      || a.lotNumber.localeCompare(b.lotNumber, undefined, { numeric: true })
+      || a.deliveryDate.localeCompare(b.deliveryDate)
+      || a.reference - b.reference),
     orders: rows.length,
     done,
     inProgress: rows.filter((r) => r.state === 'in_progress').length,
@@ -226,6 +342,33 @@ export function computePreparationReport(
     rows: rows.sort((a, b) =>
       a.preparationDate.localeCompare(b.preparationDate) || a.reference - b.reference),
   };
+}
+
+/**
+ * The traceability export: one row per lot allocation.
+ *
+ * Deliberately flat and complete — product, lot, quantity, order, customer,
+ * both dates, when it was recorded and by whom — so it can be handed to an
+ * inspector as it is, or filtered to one lot in a spreadsheet.
+ */
+export function lotRegisterToCsv(report: PreparationReport): string {
+  const header = [
+    'product_code', 'product', 'lot', 'quantity', 'order', 'customer',
+    'preparation_date', 'delivery_date', 'recorded_at', 'prepared_by',
+  ];
+  const escape = (v: string | number) => {
+    const s = String(v);
+    return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const rows = report.lotRows.map((r) =>
+    [
+      r.productCode ?? '', r.product, r.lotNumber, r.quantity, r.reference, r.customer,
+      r.preparationDate, r.deliveryDate,
+      DateTime.fromISO(r.recordedAt, { zone: BUSINESS_TZ }).toFormat('yyyy-MM-dd HH:mm'),
+      r.preparedBy,
+    ].map(escape).join(';'),
+  );
+  return [header.join(';'), ...rows].join('\n');
 }
 
 /** One row per order, so the numbers can leave the app and be pivoted. */
