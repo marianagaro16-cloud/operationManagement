@@ -15,6 +15,7 @@ import { OrderTypeBadge } from '@/components/orders/order-type-badge';
 import { PageHeader } from '@/components/shell/app-shell';
 import { lineProgress, toQuantity } from '@/domain/orders/progress';
 import { isBeforeGoLive } from '@/domain/orders/config';
+import { customRange, periodLabel } from '@/domain/orders/reporting';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { productLabel, type Brand, type Customer, type DeliveryMethod, type OrderWithProgress, type Product } from '@/types/orders';
 import { IncidentDialog, orderContextFrom } from '@/components/incidents/incident-dialog';
@@ -59,6 +60,9 @@ export function OrderControl({
     brandId?: string;
     /** Free text. When set, the search spans every month, not just this one. */
     query?: string;
+    /** Delivery-date range. When set, it replaces the month. */
+    from?: string;
+    to?: string;
   };
   canManage: boolean;
   /** The incident vocabulary, for reporting one straight from a row. */
@@ -66,8 +70,11 @@ export function OrderControl({
   incidentTypes: IncidentType[];
   canReportIncident: boolean;
 }) {
-  const { t, formatDate } = useI18n();
+  const { t, formatDate, locale } = useI18n();
   const router = useRouter();
+  const hasRange = Boolean(filters.from && filters.to);
+  const [draftFrom, setDraftFrom] = useState(filters.from ?? '');
+  const [draftTo, setDraftTo] = useState(filters.to ?? '');
   const [editing, setEditing] = useState<OrderWithProgress | null>(null);
   const [creating, setCreating] = useState(false);
   // One dialog for the whole list, exactly as the editor is — not one per card.
@@ -96,8 +103,26 @@ export function OrderControl({
     if (filters.status) params.set('status', filters.status);
     if (filters.brandId) params.set('brand', filters.brandId);
     if (filters.query) params.set('q', filters.query);
+    if (filters.from && filters.to) {
+      params.set('from', filters.from);
+      params.set('to', filters.to);
+    }
     if (value) params.set(key, value);
     else params.delete(key);
+    // The range is one filter with two ends: removing it removes both.
+    if (key === 'range') {
+      params.delete('from');
+      params.delete('to');
+    }
+    router.push(`/orders?${params.toString()}`);
+  };
+
+  const applyRange = () => {
+    if (!draftFrom || !draftTo) return;
+    const params = new URLSearchParams(window.location.search);
+    params.set('month', month);
+    params.set('from', draftFrom);
+    params.set('to', draftTo);
     router.push(`/orders?${params.toString()}`);
   };
 
@@ -110,6 +135,10 @@ export function OrderControl({
     filters.query && {
       key: 'q',
       label: `"${filters.query}"`,
+    },
+    hasRange && {
+      key: 'range',
+      label: periodLabel(customRange(filters.from!, filters.to!), locale),
     },
     filters.customerId && {
       key: 'customer',
@@ -175,13 +204,13 @@ export function OrderControl({
           />
         </form>
 
-        {filters.query && (
+        {filters.query && !hasRange && (
           <p className="text-[12px] text-muted">
             {t('orders.searchAcrossMonths', { count: orders.length })}
           </p>
         )}
 
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           {/* Months before go-live hold no data — that history lives in Excel,
               so navigating there would look like data loss. */}
           {isBeforeGoLive(shiftMonth(-1)) ? (
@@ -197,8 +226,12 @@ export function OrderControl({
               <ChevronLeft className="h-4 w-4" aria-hidden />
             </Link>
           )}
+          {/* With a range chosen the month is not what is on screen, so the
+              label says the range. The arrows go back to plain months. */}
           <span className="min-w-[150px] text-center text-[14px] font-semibold capitalize">
-            {formatDate(`${month}-01`, 'monthYear')}
+            {hasRange
+              ? periodLabel(customRange(filters.from!, filters.to!), locale)
+              : formatDate(`${month}-01`, 'monthYear')}
           </span>
           <Link
             href={`/orders?month=${shiftMonth(1)}`}
@@ -207,6 +240,31 @@ export function OrderControl({
           >
             <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
+
+          {/* Delivery-date range, for spans that are not a calendar month. */}
+          <form
+            onSubmit={(e) => { e.preventDefault(); applyRange(); }}
+            className="ml-auto flex flex-wrap items-center gap-1.5"
+          >
+            <Input
+              type="date"
+              value={draftFrom}
+              onChange={(e) => setDraftFrom(e.target.value)}
+              aria-label={t('report.from')}
+              className="w-auto"
+            />
+            <span className="text-[13px] text-subtle">–</span>
+            <Input
+              type="date"
+              value={draftTo}
+              onChange={(e) => setDraftTo(e.target.value)}
+              aria-label={t('report.to')}
+              className="w-auto"
+            />
+            <Button type="submit" disabled={!draftFrom || !draftTo}>
+              {t('report.apply')}
+            </Button>
+          </form>
         </div>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -274,6 +332,7 @@ export function OrderControl({
                 key={f.key}
                 onClick={() => {
                   if (f.key === 'q') setDraftQuery('');
+                  if (f.key === 'range') { setDraftFrom(''); setDraftTo(''); }
                   setFilter(f.key, '');
                 }}
                 className="inline-flex items-center gap-1 rounded-md border border-accent/25 bg-accent/[0.08] px-2 py-1 text-[12px] font-medium text-accent transition-colors hover:bg-accent/15"
@@ -284,7 +343,7 @@ export function OrderControl({
             ))}
             <Link
               href={`/orders?month=${month}`}
-              onClick={() => setDraftQuery('')}
+              onClick={() => { setDraftQuery(''); setDraftFrom(''); setDraftTo(''); }}
               className="px-1.5 py-1 text-[12px] font-medium text-muted transition-colors hover:text-fg"
             >
               {t('inventory.clearFilters')}

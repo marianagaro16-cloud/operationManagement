@@ -3,6 +3,7 @@ import { getBrands, getCustomers, getDeliveryMethods, getOrdersByDelivery, getPr
 import { getIncidentCategories, getIncidentTypes } from '@/server/incidents';
 import { getViewer } from '@/server/data';
 import { monthRange } from '@/domain/orders/scheduling';
+import { customRange } from '@/domain/orders/reporting';
 import { ORDERS_GO_LIVE } from '@/domain/orders/config';
 import { BUSINESS_TZ, addDays, businessToday } from '@/lib/datetime';
 import { filterByQuery } from '@/lib/search';
@@ -25,6 +26,8 @@ export default async function OrdersPage({
     status?: string;
     brand?: string;
     q?: string;
+    from?: string;
+    to?: string;
   };
 }) {
   // The month is only a filter over a single orders table — never a separate
@@ -40,13 +43,24 @@ export default async function OrdersPage({
 
   const query = (searchParams.q ?? '').trim();
 
+  // An explicit delivery-date range, when both ends are given. Reversed ends
+  // are swapped and an over-long span is clamped, by the same rule the reports
+  // use. With one end missing the range is half-typed and ignored.
+  const dateRange =
+    isDate(searchParams.from) && isDate(searchParams.to)
+      ? customRange(searchParams.from, searchParams.to)
+      : null;
+
   // A text search that only looked inside the open month would be a worse
   // version of the Excel it replaced: finding an order from three months ago
   // meant stepping month by month with the customer filter reapplied. The
-  // month is just a range over one table, so a query simply widens the range.
-  const { start, end } = query
-    ? { start: ORDERS_GO_LIVE, end: addDays(businessToday(), SEARCH_HORIZON_DAYS) }
-    : monthRange(month);
+  // month is just a range over one table, so a query simply widens the range —
+  // unless a date range was chosen, which is then what the search looks in.
+  const { start, end } = dateRange
+    ? dateRange
+    : query
+      ? { start: ORDERS_GO_LIVE, end: addDays(businessToday(), SEARCH_HORIZON_DAYS) }
+      : monthRange(month);
 
   const canReportIncident = viewer.can('incidents.manage');
 
@@ -114,6 +128,8 @@ export default async function OrdersPage({
         status: searchParams.status,
         brandId,
         query,
+        from: dateRange?.start,
+        to: dateRange?.end,
       }}
       canManage
       incidentCategories={incidentCategories}
@@ -121,4 +137,8 @@ export default async function OrdersPage({
       canReportIncident={canReportIncident}
     />
   );
+}
+
+function isDate(value: string | undefined): value is string {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
 }
