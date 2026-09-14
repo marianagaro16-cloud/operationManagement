@@ -79,10 +79,13 @@ export async function GET(request: Request) {
     }
 
     // What has already gone out, so escalations notify once each.
-    const { data: sentRows } = await admin
+    // A failed lookup must stop the run: treated as "nothing sent yet", it
+    // would re-alert every order the next tick is already handling.
+    const { data: sentRows, error: sentError } = await admin
       .from('order_notifications')
       .select('order_id, level')
       .in('order_id', candidateIds);
+    if (sentError) throw new Error(sentError.message);
 
     const alreadySent = new Set(
       (sentRows ?? []).map((r) => `${(r as { order_id: string }).order_id}:${(r as { level: string }).level}`),
