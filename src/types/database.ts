@@ -99,6 +99,13 @@ export interface TaskComment {
 }
 
 /** An occurrence joined to its definition — the shape the dashboard renders. */
+export interface TaskComment {
+  id: string;
+  body: string;
+  created_at: string;
+  author: { name: string | null; email: string } | null;
+}
+
 export interface OccurrenceWithTask extends TaskOccurrence {
   task: Pick<
     Task,
@@ -106,6 +113,8 @@ export interface OccurrenceWithTask extends TaskOccurrence {
     | 'translations'
   > & { category: Pick<Category, 'slug' | 'name'> | null };
   comment_count?: number;
+  /** Every comment on this occurrence, shown on the card at all times. */
+  comments?: TaskComment[];
   /**
    * Display name of whoever resolved this occurrence — completed or skipped it.
    *

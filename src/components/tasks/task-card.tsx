@@ -14,7 +14,7 @@ import { daysLate } from '@/domain/recurrence/engine';
 import { localizedTitle, localizedDescription } from '@/lib/localized-content';
 import { SkipDialog } from './skip-dialog';
 import { BlockDialog } from './block-dialog';
-import { CommentThread } from './comment-thread';
+import { CommentComposer, TaskComments } from './comment-thread';
 import type { OccurrenceWithTask } from '@/types/database';
 
 interface Props {
@@ -154,6 +154,9 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
           </p>
         )}
 
+        {/* Comments, always visible and in the note colour. */}
+        <TaskComments comments={occurrence.comments ?? []} />
+
         {error && <div className="mt-2"><ErrorState message={error} /></div>}
 
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
@@ -208,7 +211,11 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
         </div>
 
         {commentsOpen && (
-          <CommentThread occurrenceId={occurrence.id} taskId={occurrence.task_id} />
+          <CommentComposer
+            occurrenceId={occurrence.id}
+            taskId={occurrence.task_id}
+            onPosted={() => setCommentsOpen(false)}
+          />
         )}
       </div>
 

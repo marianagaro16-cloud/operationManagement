@@ -32,7 +32,8 @@ const OCCURRENCE_SELECT = `
   task:tasks!inner (
     id, title, description, frequency, is_skippable, is_active, category_id, translations,
     category:categories ( slug, name )
-  )
+  ),
+  comments:task_comments ( id, body, created_at, author:profiles!task_comments_user_id_fkey ( name, email ) )
 `;
 
 /** The signed-in user's profile, or null. Deduped per request. */
