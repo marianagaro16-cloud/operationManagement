@@ -383,7 +383,8 @@ export async function countApprovedAdmins(): Promise<number> {
     .from('profiles')
     .select('id', { count: 'exact', head: true })
     .eq('role', 'admin')
-    .eq('status', 'approved');
+    .eq('status', 'approved')
+    .is('deleted_at', null);
   return count ?? 0;
 }
 
@@ -392,6 +393,7 @@ export async function getUsers(): Promise<Profile[]> {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
+    .is('deleted_at', null)
     .order('status')
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);

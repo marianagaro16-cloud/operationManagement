@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Badge, Card, EmptyState, ErrorState, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { setUserRole, setUserStatus } from '@/server/actions';
+import { deleteUser, setUserRole, setUserStatus } from '@/server/actions';
 import { ROLES, type Role } from '@/lib/authz';
 import type { Profile, UserStatus } from '@/types/database';
 
@@ -34,7 +34,8 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{
     user: Profile;
-    status: UserStatus;
+    /** A status to set, or 'delete' to remove the account. */
+    status: UserStatus | 'delete';
     message: string;
     destructive?: boolean;
   } | null>(null);
@@ -52,10 +53,16 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
     }
   };
 
-  function apply(userId: string, status: UserStatus) {
+  function apply(userId: string, status: UserStatus | 'delete') {
     startTransition(async () => {
-      const res = await setUserStatus(userId, status);
-      if (!res.ok) setError(res.error);
+      const res = status === 'delete' ? await deleteUser(userId) : await setUserStatus(userId, status);
+      if (!res.ok) {
+        setError(
+          res.error === 'last_admin' ? t('roles.lastAdmin')
+          : res.error === 'cannot_delete_self' ? t('admin.cannotDeleteSelf')
+          : res.error,
+        );
+      }
       setConfirm(null);
       router.refresh();
     });
@@ -163,6 +170,20 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
             {t('admin.reactivate')}
           </Button>
         )}
+
+        {user.id !== currentUserId && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-late"
+            disabled={pending}
+            onClick={() =>
+              setConfirm({ user, status: 'delete', message: t('admin.deleteUserConfirm'), destructive: true })
+            }
+          >
+            {t('admin.deleteUser')}
+          </Button>
+        )}
       </div>
     </li>
   );
@@ -199,7 +220,7 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
         loading={pending}
         title={confirm ? displayName(confirm.user) : ''}
         message={confirm?.message ?? ''}
-        confirmLabel={t('common.confirm')}
+        confirmLabel={confirm?.status === 'delete' ? t('admin.deleteUser') : t('common.confirm')}
         cancelLabel={t('common.cancel')}
         destructive={confirm?.destructive}
         onConfirm={() => confirm && apply(confirm.user.id, confirm.status)}

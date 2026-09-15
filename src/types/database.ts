@@ -24,6 +24,8 @@ export interface Profile {
   role: UserRole;
   status: UserStatus;
   last_seen_at: string | null;
+  /** Set when an admin deleted the user; such profiles only survive for history. */
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 }

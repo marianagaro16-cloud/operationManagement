@@ -194,6 +194,23 @@ export async function setUserStatus(
   return { ok: true, data: undefined };
 }
 
+/**
+ * Deletes the login; the profile stays, marked deleted, so history keeps the
+ * name. Authorization, the self and last-admin guards all live in the RPC.
+ */
+export async function deleteUser(userId: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc('admin_delete_user', { p_user_id: userId });
+  if (error) {
+    for (const code of ['cannot_delete_self', 'last_admin', 'user_not_found']) {
+      if (error.message.includes(code)) return { ok: false, error: code };
+    }
+    return fail(error);
+  }
+  revalidatePath('/admin/users');
+  return { ok: true, data: undefined };
+}
+
 const userRoleSchema = z.enum(ROLES);
 
 export async function setUserRole(userId: string, role: Role): Promise<ActionResult> {
