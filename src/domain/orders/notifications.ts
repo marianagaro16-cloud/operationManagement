@@ -115,7 +115,7 @@ function notificationTitle(level: PendingNotification['level'], customer: string
   switch (level) {
     case 'overdue':  return `Pedido atrasado — ${customer}`;
     case 'critical': return `Urgente — ${customer}`;
-    case 'warning':  return `Entrega próxima — ${customer}`;
+    case 'warning':  return `Envío próximo — ${customer}`;
   }
 }
 
@@ -129,7 +129,7 @@ function notificationBody(
   const parts: string[] = [`Pedido #${reference}`];
 
   if (urgency.hoursRemaining === null) {
-    parts.push(level === 'overdue' ? 'entrega vencida' : 'entrega hoy');
+    parts.push(level === 'overdue' ? 'envío vencido' : 'envío hoy');
   } else if (urgency.isPast) {
     parts.push(
       urgency.hours === 0
