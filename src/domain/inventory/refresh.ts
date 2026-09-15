@@ -6,9 +6,10 @@
  * join Friday's count by itself. This computes the difference so somebody can
  * pull it in deliberately.
  *
- * Deliberately not automatic. A list that changed underneath an open count
- * would mean the sheet somebody is filling in stops matching the shelf they
- * walked, which is worse than a list refreshed on purpose.
+ * Since 20261001093000_inventory_follows_products.sql the database does this
+ * by itself on every product change (public.inventory_sync_brand, which
+ * mirrors these rules in SQL and also updates inventories not yet completed).
+ * This planner stays behind the manual button, as a way to force a pass.
  *
  * Pure: it decides, and the caller writes. That is what lets the rules below
  * be asserted directly rather than inferred from what the database ended up
