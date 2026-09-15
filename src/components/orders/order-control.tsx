@@ -22,7 +22,7 @@ import { IncidentDialog, orderContextFrom } from '@/components/incidents/inciden
 import type { IncidentCategory, IncidentType } from '@/types/incidents';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
-import { NoteBlock } from '@/components/ui/note';
+import { NoteBlock, NoteChip } from '@/components/ui/note';
 import { OrderStageChip } from './order-fulfilment';
 
 /**
@@ -540,6 +540,7 @@ function OrderCard({
             <li key={line.id} className="flex items-center gap-3 px-3.5 py-2">
               <span className="min-w-0 flex-1 truncate text-[13px]">
                 {productLabel(line.product)}
+                {line.note && <NoteChip className="ml-2">{line.note}</NoteChip>}
               </span>
               {diverged && (
                 <span

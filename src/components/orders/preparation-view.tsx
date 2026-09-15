@@ -208,6 +208,13 @@ export function OrderPreparationCard({
         </div>
       </div>
 
+      {/* Order-level note: shown once, never repeated per product, and visible
+          whether the card is open or folded — a folded order must not hide
+          'deliver before 10'. */}
+      {order.note && (
+        <NoteBlock className="px-3.5 py-2">{order.note}</NoteBlock>
+      )}
+
       {/* Folded: how far along it is, so nothing needs opening to find out. */}
       {!expanded && (
         <p className="border-t border-border px-3.5 py-1.5 text-[12px] tabular text-muted">
@@ -218,10 +225,6 @@ export function OrderPreparationCard({
         </p>
       )}
 
-      {/* Order-level note is shown once, never repeated per product. */}
-      {expanded && order.note && (
-        <NoteBlock className="border-b border-border px-3.5 py-2">{order.note}</NoteBlock>
-      )}
 
       {/* Grouped by brand, because our own brands are stocked together and
           the line order is otherwise whatever sequence somebody typed. The
@@ -330,6 +333,8 @@ function PreparationLine({
           {line.product.code && (
             <span className="text-[11px] tabular text-subtle">{line.product.code}</span>
           )}
+          {/* A note on this product only, e.g. from the customer's order. */}
+          {line.note && <NoteChip className="mt-1 inline-block">{line.note}</NoteChip>}
         </div>
         <Badge tone={tone}>
           {progress.status === 'complete' && <Check className="h-2.5 w-2.5" aria-hidden />}

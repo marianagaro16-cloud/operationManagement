@@ -30,11 +30,13 @@ export function NoteBlock({
   return (
     <p
       className={cn(
-        'flex items-start gap-1.5 border-l-2 border-note bg-note/[0.07] text-[12.5px] text-note',
+        // Strong enough to be seen on a busy card from arm's length: a note is
+        // an instruction somebody expects to be followed.
+        'flex items-start gap-1.5 border-l-4 border-note bg-note/[0.15] text-[13px] font-medium text-note',
         className,
       )}
     >
-      <StickyNote className="mt-[2px] h-3.5 w-3.5 shrink-0" aria-hidden />
+      <StickyNote className="mt-[2px] h-4 w-4 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1">{children}</span>
     </p>
   );
@@ -55,7 +57,7 @@ export function NoteChip({
   className?: string;
 }) {
   return (
-    <span className={cn('rounded bg-note/[0.08] px-1.5 py-0.5 text-note', className)}>
+    <span className={cn('rounded bg-note/[0.15] px-1.5 py-0.5 font-medium text-note', className)}>
       {children}
     </span>
   );

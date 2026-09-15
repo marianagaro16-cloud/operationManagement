@@ -254,6 +254,7 @@ function DetailLine({ line }: { line: OrderLine }) {
           {line.product.code && (
             <span className="text-[11px] tabular text-subtle">{line.product.code}</span>
           )}
+          {line.note && <NoteChip className="mt-1 inline-block">{line.note}</NoteChip>}
           {/* What the customer wrote, on an imported line.
               The preview showed this before the order existed; keeping it
               means a line matched to the wrong product can be traced back to
