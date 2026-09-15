@@ -21,7 +21,12 @@ export type ActionResult<T = void> =
   | { ok: false; error: string };
 
 function fail(error: unknown): { ok: false; error: string } {
-  const message = error instanceof Error ? error.message : String(error);
+  // Supabase errors are plain objects, not Error instances; String() on them
+  // is "[object Object]", which is what an admin once saw instead of a reason.
+  const message =
+    error instanceof Error ? error.message
+    : typeof error === 'object' && error !== null && 'message' in error ? String((error as { message: unknown }).message)
+    : String(error);
   // Map the RPC's error codes to stable, translatable identifiers.
   if (message.includes('skip_reason_required')) return { ok: false, error: 'skip_reason_required' };
   if (message.includes('block_reason_required')) return { ok: false, error: 'block_reason_required' };
