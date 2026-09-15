@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { getBrands, getCustomers, getDeliveryMethods, getOrdersByDelivery, getProducts } from '@/server/orders';
+import { getBrands, getCustomers, getDeliveryMethods, getOrdersBoard, getOrdersByDelivery, getProducts } from '@/server/orders';
 import { getIncidentCategories, getIncidentTypes } from '@/server/incidents';
 import { getViewer } from '@/server/data';
 import { monthRange } from '@/domain/orders/scheduling';
@@ -10,6 +10,7 @@ import { filterByQuery } from '@/lib/search';
 import { productLabel } from '@/types/orders';
 import { displayName } from '@/lib/utils';
 import { OrderControl } from '@/components/orders/order-control';
+import { OrdersBoard, OrdersTabs, type OrdersMode, type OrdersTab } from '@/components/orders/orders-board';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,9 @@ export default async function OrdersPage({
     q?: string;
     from?: string;
     to?: string;
+    tab?: string;
+    date?: string;
+    mode?: string;
   };
 }) {
   // The month is only a filter over a single orders table — never a separate
@@ -37,10 +41,48 @@ export default async function OrdersPage({
     ? (searchParams.month as string)
     : DateTime.fromISO(businessToday(), { zone: BUSINESS_TZ }).toFormat('yyyy-MM');
 
-  // Hiding the tab would leave the route reachable by URL, and an approved
-  // user can READ orders under RLS — so the gate has to be here too.
   const viewer = await getViewer();
-  if (!viewer?.can('orders.manage')) redirect('/dashboard');
+  if (!viewer || viewer.profile.status !== 'approved') redirect('/dashboard');
+  const canManage = viewer.can('orders.manage');
+
+  /*
+   * Which tab. The stage tabs are for everyone; All — the monthly order book,
+   * where orders are created, edited and imported — is orders.manage only.
+   * A link from elsewhere carrying order-book filters (a report's customer
+   * link, an old bookmark) opens All for someone who may see it.
+   */
+  const hasBookFilters = Boolean(
+    searchParams.month || searchParams.customer || searchParams.method || searchParams.status
+    || searchParams.brand || searchParams.q || searchParams.from || searchParams.to,
+  );
+  const requested = searchParams.tab as OrdersTab | undefined;
+  const tab: OrdersTab =
+    requested === 'all' || (!requested && hasBookFilters)
+      ? (canManage ? 'all' : 'to_prepare')
+      : requested === 'ready' || requested === 'shipped' ? requested : 'to_prepare';
+
+  if (tab !== 'all') {
+    const today = businessToday();
+    // A plain user works today only — whatever the URL says. Managers can move
+    // between days and key the day on delivery instead of preparation.
+    const date = canManage && isDate(searchParams.date) ? searchParams.date : today;
+    const mode: OrdersMode = canManage && searchParams.mode === 'delivery' ? 'delivery' : 'preparation';
+    const board = await getOrdersBoard(date, mode, date === today);
+    return (
+      <OrdersBoard
+        tab={tab}
+        date={date}
+        today={today}
+        mode={mode}
+        canManage={canManage}
+        toPrepare={board.toPrepare}
+        carriedOver={board.carriedOver}
+        ready={board.ready}
+        shipped={board.shipped}
+        openDays={board.openDays}
+      />
+    );
+  }
 
   const query = (searchParams.q ?? '').trim();
 
@@ -117,6 +159,7 @@ export default async function OrdersPage({
 
   return (
     <OrderControl
+      tabs={<OrdersTabs active="all" canManage />}
       orders={visible}
       customers={customers}
       products={products}

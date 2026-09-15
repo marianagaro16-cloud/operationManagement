@@ -107,7 +107,7 @@ export function UrgentAlert({ orders }: { orders: OrderWithProgress[] }) {
           )}
 
           <Link
-            href="/preparation"
+            href="/orders?tab=to_prepare"
             className={cn(
               'mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium',
               critical ? 'text-late' : 'text-warn',

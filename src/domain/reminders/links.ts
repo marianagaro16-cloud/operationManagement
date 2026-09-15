@@ -68,7 +68,7 @@ export interface ResolvedLink {
  */
 export function linkHref(type: LinkType, id: string): string {
   switch (type) {
-    case 'customer':        return `/orders?customer=${id}`;
+    case 'customer':        return `/orders?tab=all&customer=${id}`;
     case 'order':           return `/orders/${id}`;
     case 'incident':        return `/incidents/${id}`;
     case 'goods_reception': return `/goods-reception/${id}`;

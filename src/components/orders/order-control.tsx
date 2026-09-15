@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AlertTriangle, ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from 'lucide-react';
@@ -35,6 +35,7 @@ import { OrderStageChip } from './order-fulfilment';
  * Grouping mirrors the operational workflow: DAY -> CUSTOMER -> PRODUCTS.
  */
 export function OrderControl({
+  tabs,
   orders,
   customers,
   products,
@@ -48,6 +49,8 @@ export function OrderControl({
   incidentTypes,
   canReportIncident,
 }: {
+  /** The Orders section tabs, shown under the heading. */
+  tabs?: ReactNode;
   orders: OrderWithProgress[];
   customers: Customer[];
   products: Product[];
@@ -101,6 +104,7 @@ export function OrderControl({
 
   const setFilter = (key: string, value: string) => {
     const params = new URLSearchParams();
+    params.set('tab', 'all');
     params.set('month', month);
     if (filters.customerId) params.set('customer', filters.customerId);
     if (filters.deliveryMethodId) params.set('method', filters.deliveryMethodId);
@@ -124,6 +128,7 @@ export function OrderControl({
   const applyRange = () => {
     if (!draftFrom || !draftTo) return;
     const params = new URLSearchParams(window.location.search);
+    params.set('tab', 'all');
     params.set('month', month);
     params.set('from', draftFrom);
     params.set('to', draftTo);
@@ -185,6 +190,8 @@ export function OrderControl({
         }
       />
 
+      {tabs}
+
       {/* Month navigation + filters */}
       <div className="mb-4 space-y-2">
         {/* Free text across every month. Submitted rather than typed-through,
@@ -225,7 +232,7 @@ export function OrderControl({
             </span>
           ) : (
             <Link
-              href={`/orders?month=${shiftMonth(-1)}`}
+              href={`/orders?tab=all&month=${shiftMonth(-1)}`}
               aria-label={t('calendar.prev')}
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
             >
@@ -240,7 +247,7 @@ export function OrderControl({
               : formatDate(`${month}-01`, 'monthYear')}
           </span>
           <Link
-            href={`/orders?month=${shiftMonth(1)}`}
+            href={`/orders?tab=all&month=${shiftMonth(1)}`}
             aria-label={t('calendar.next')}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
           >
@@ -350,7 +357,7 @@ export function OrderControl({
               </button>
             ))}
             <Link
-              href={`/orders?month=${month}`}
+              href={`/orders?tab=all&month=${month}`}
               onClick={() => { setDraftQuery(''); setDraftFrom(''); setDraftTo(''); }}
               className="px-1.5 py-1 text-[12px] font-medium text-muted transition-colors hover:text-fg"
             >
@@ -486,7 +493,7 @@ function OrderCard({
               and links to the day it lands on, which the route has always
               accepted as a parameter and nothing ever pointed at. */}
           <Link
-            href={`/preparation?date=${order.preparation_date}`}
+            href={`/orders?tab=to_prepare&date=${order.preparation_date}`}
             className="text-[11.5px] text-muted transition-colors hover:text-accent hover:underline"
             title={t('orders.openPreparationDay')}
           >

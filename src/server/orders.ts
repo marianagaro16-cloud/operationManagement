@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { orderProgress } from '@/domain/orders/progress';
 import { weekDays } from '@/domain/orders/scheduling';
 import { OVERDUE_LOOKBACK_DAYS } from '@/domain/buckets';
-import { addDays, type BusinessDate } from '@/lib/datetime';
+import { addDays, BUSINESS_TZ, type BusinessDate } from '@/lib/datetime';
+import { DateTime } from 'luxon';
 import type {
   Brand,
   Customer,
@@ -173,6 +174,19 @@ export async function getPreparationDay(
   date: BusinessDate,
   lookbackDays = OVERDUE_LOOKBACK_DAYS,
 ): Promise<PreparationDay> {
+  return getOrderDay(date, 'preparation_date', lookbackDays);
+}
+
+/**
+ * The same day, keyed on either date an order carries. Preparation is the
+ * floor's view; delivery is what leaves that day. Only confirmed orders — a
+ * draft has not been agreed.
+ */
+async function getOrderDay(
+  date: BusinessDate,
+  column: 'preparation_date' | 'delivery_date',
+  lookbackDays = OVERDUE_LOOKBACK_DAYS,
+): Promise<PreparationDay> {
   const week = weekDays(date);
   // Carried-over work can predate the visible week; the week can extend past
   // the selected day. Take whichever bound is further out on each side.
@@ -183,31 +197,98 @@ export async function getPreparationDay(
   const { data, error } = await supabase
     .from('orders')
     .select(ORDER_SELECT)
-    .gte('preparation_date', from)
-    .lte('preparation_date', to)
+    .gte(column, from)
+    .lte(column, to)
     .eq('status', 'confirmed')
-    .order('preparation_date', { ascending: true })
+    .order(column, { ascending: true })
     .order('reference', { ascending: true });
 
   if (error) throw new Error(error.message);
 
   const all = withProgress(sortLines((data ?? []) as unknown as Order[]));
 
-  const due = all.filter((o) => o.preparation_date === date);
+  const due = all.filter((o) => o[column] === date);
   const carriedOver = all.filter(
     // Not ready yet: an order is carried over until somebody confirms it is
     // prepared, not until its lines happen to add up.
-    (o) => o.preparation_date < date && !o.ready_at,
+    (o) => o[column] < date && !o.ready_at,
   );
 
   // A weekday is "open" when something scheduled for it is unfinished. The
   // selected day's own carry-over is not attributed to the days it came from
   // twice — each order marks the day it was scheduled on.
   const openDays = week.filter((d) =>
-    all.some((o) => o.preparation_date === d && !o.ready_at),
+    all.some((o) => o[column] === d && !o.ready_at),
   );
 
   return { due, carriedOver, openDays };
+}
+
+export type BoardTab = 'to_prepare' | 'ready' | 'shipped';
+export type BoardMode = 'preparation' | 'delivery';
+
+export interface OrdersBoard {
+  /** The day's own orders still to prepare (not ready). */
+  toPrepare: OrderWithProgress[];
+  /** Not ready, from an earlier day. */
+  carriedOver: OrderWithProgress[];
+  /** Ready and not shipped. */
+  ready: OrderWithProgress[];
+  /** Shipped during the day. */
+  shipped: OrderWithProgress[];
+  openDays: BusinessDate[];
+}
+
+/**
+ * Everything the Orders section shows for one day, in three reads.
+ *
+ * - the day, by preparation or delivery date, with carried-over work;
+ * - ready-but-not-shipped: on TODAY, every such order whatever its date —
+ *   something prepared on Monday that has still not left is exactly what
+ *   the person at the door needs to see on Wednesday; on any other day, only
+ *   that day's own;
+ * - what was shipped during the day, by when it shipped.
+ */
+export async function getOrdersBoard(date: BusinessDate, mode: BoardMode, isToday: boolean): Promise<OrdersBoard> {
+  const column = mode === 'delivery' ? 'delivery_date' : 'preparation_date';
+  const supabase = createClient();
+  const start = DateTime.fromISO(date, { zone: BUSINESS_TZ }).startOf('day');
+
+  const [day, backlog, shippedRes] = await Promise.all([
+    getOrderDay(date, column),
+    isToday
+      ? supabase
+          .from('orders')
+          .select(ORDER_SELECT)
+          .eq('status', 'confirmed')
+          .not('ready_at', 'is', null)
+          .is('shipped_at', null)
+          .order('delivery_date', { ascending: true })
+          .order('reference', { ascending: true })
+          .limit(300)
+      : null,
+    supabase
+      .from('orders')
+      .select(ORDER_SELECT)
+      .gte('shipped_at', start.toUTC().toISO()!)
+      .lt('shipped_at', start.plus({ days: 1 }).toUTC().toISO()!)
+      .order('shipped_at', { ascending: false })
+      .limit(300),
+  ]);
+  if (backlog?.error) throw new Error(backlog.error.message);
+  if (shippedRes.error) throw new Error(shippedRes.error.message);
+
+  const ready = backlog
+    ? withProgress(sortLines((backlog.data ?? []) as unknown as Order[]))
+    : day.due.filter((o) => o.ready_at && !o.shipped_at);
+
+  return {
+    toPrepare: day.due.filter((o) => !o.ready_at),
+    carriedOver: day.carriedOver,
+    ready,
+    shipped: withProgress(sortLines((shippedRes.data ?? []) as unknown as Order[])),
+    openDays: day.openDays,
+  };
 }
 
 export async function getOrder(id: string): Promise<OrderWithProgress | null> {

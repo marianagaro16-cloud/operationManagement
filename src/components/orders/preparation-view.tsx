@@ -26,195 +26,26 @@ import { saveLotAllocation, deleteLotAllocation, setShortfallReason } from '@/se
 import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
 import { orderStage, stageWeight } from '@/domain/orders/stage';
 
-/**
- * Lotnummerkontrol.
- *
- * Driven by PREPARATION date, grouped customer -> products. The person
- * preparing never re-enters customer, product or ordered quantity — those
- * come from the order. They enter only lot number, quantity and an optional
- * note, which is the entire point of the module.
+/*
+ * The preparation card and its lines, used by the Orders section
+ * (orders-board.tsx). The person preparing never re-enters customer, product
+ * or ordered quantity — those come from the order. They enter only lot
+ * number, quantity and an optional note, which is the entire point of it.
  */
-export function PreparationView({
-  orders,
-  carriedOver,
-  openDays,
-  date,
-  canManage,
-}: {
-  orders: OrderWithProgress[];
-  /** Unfinished work from earlier days. See getPreparationDay(). */
-  carriedOver: OrderWithProgress[];
-  /** Days in this week that still hold unfinished orders. */
-  openDays: string[];
-  date: string;
-  canManage: boolean;
-}) {
-  const { t, formatDate } = useI18n();
-  const [bulk, setBulk] = useState<BulkToggle>(null);
-
-  // Work still to do on top, finished orders at the bottom, so the list reads
-  // as what is left rather than whatever order the references came in. The
-  // sort is stable, so each half keeps its reference order; a customer with
-  // anything unfinished sits in the top half, with its done orders after the
-  // open ones.
-  const sorted = [...orders].sort(
-    (a, b) => stageWeight(orderStage(a)) - stageWeight(orderStage(b)),
-  );
-
-  // Several orders may exist for one customer on one day; they stay separate
-  // records and are only grouped visually.
-  const byCustomer = new Map<string, OrderWithProgress[]>();
-  for (const o of sorted) {
-    const list = byCustomer.get(o.customer.name);
-    if (list) list.push(o);
-    else byCustomer.set(o.customer.name, [o]);
-  }
-
-  const days = weekDays(date);
-  const openDaySet = new Set(openDays);
-
-  return (
-    <>
-      <PageHeader title={t('prep.title')} subtitle={t('prep.subtitle')} />
-
-      {/* Weekday quick-navigation over real dates, never weekday entities. */}
-      <div className="mb-4 flex items-center gap-1.5">
-        <Link
-          href={`/preparation?date=${addDays(date, -7)}`}
-          aria-label={t('calendar.prev')}
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-        </Link>
-
-        <div className="-mx-1 flex flex-1 gap-1 overflow-x-auto px-1">
-          {days.map((d) => (
-            <Link
-              key={d}
-              href={`/preparation?date=${d}`}
-              className={cn(
-                'flex min-w-[52px] flex-1 flex-col items-center rounded-lg border px-1.5 py-1.5 text-center transition-colors',
-                d === date
-                  ? 'border-accent bg-accent/10 text-accent'
-                  : 'border-border bg-surface text-muted hover:text-fg',
-              )}
-            >
-              <span className="text-[10.5px] font-medium uppercase">
-                {formatDate(d, 'weekday').split(' ')[0].slice(0, 3)}
-              </span>
-              <span className="text-[13px] font-semibold tabular">{d.slice(8)}</span>
-              {/* A day with unfinished work says so. Without this the strip is
-                  seven bare numbers and the only way to find open work is to
-                  open each day in turn. */}
-              <span
-                className={cn(
-                  'mt-0.5 h-1 w-1 rounded-full',
-                  openDaySet.has(d) ? 'bg-warn' : 'bg-transparent',
-                )}
-                aria-hidden
-              />
-              {openDaySet.has(d) && <span className="sr-only">{t('prep.openWork')}</span>}
-            </Link>
-          ))}
-        </div>
-
-        <Link
-          href={`/preparation?date=${addDays(date, 7)}`}
-          aria-label={t('calendar.next')}
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
-        >
-          <ChevronRight className="h-4 w-4" aria-hidden />
-        </Link>
-      </div>
-
-      {/* Open or fold every card at once. Individual cards still toggle on
-          their own afterwards; this only sets them all to one state. */}
-      {orders.length + carriedOver.length > 0 && (
-        <div className="mb-3 flex justify-end gap-1.5">
-          <Button size="sm" variant="ghost" onClick={() => setBulk({ expanded: true })}>
-            <ChevronsUpDown className="h-3.5 w-3.5" aria-hidden />
-            {t('prep.expandAll')}
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setBulk({ expanded: false })}>
-            <ChevronsDownUp className="h-3.5 w-3.5" aria-hidden />
-            {t('prep.collapseAll')}
-          </Button>
-        </div>
-      )}
-
-      {/* ------------------------- carried over ------------------------- */}
-      {/* Above the day's own work: something already late outranks something
-          merely due. Each card names the day it was scheduled for, so this
-          never reads as duplicated work. */}
-      {carriedOver.length > 0 && (
-        <section className="mb-6">
-          <div className="mb-2 flex items-start gap-2.5 rounded-xl border border-warn/30 bg-warn/[0.06] px-3.5 py-2.5">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <p className="text-[13.5px] font-semibold">
-                {t('prep.carriedOver')}
-                <span className="ml-1.5 tabular text-warn">{carriedOver.length}</span>
-              </p>
-              <p className="text-[12.5px] text-muted">{t('prep.carriedOverBody')}</p>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {carriedOver.map((order) => (
-              <div key={order.id}>
-                <h3 className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13.5px] font-medium">
-                  {order.customer.name}
-                  <CustomerTypeBadge type={order.customer.customer_type} />
-                  <span className="text-[12px] font-normal text-warn">
-                    {t('orders.preparationOn', {
-                      date: formatDate(order.preparation_date, 'short'),
-                    })}
-                  </span>
-                </h3>
-                <OrderPreparationCard order={order} canManage={canManage} bulk={bulk} />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <p className="mb-4 text-[13px] font-medium capitalize">{formatDate(date, 'weekday')}</p>
-
-      {orders.length === 0 ? (
-        <EmptyState title={t('prep.noWork')} body={t('prep.noWorkBody')} />
-      ) : (
-        <div className="space-y-6">
-          {[...byCustomer.entries()].map(([customerName, customerOrders]) => (
-            <section key={customerName}>
-              <h2 className="mb-2 flex flex-wrap items-center gap-2 text-[15px] font-semibold">
-                {customerName}
-                <CustomerTypeBadge type={customerOrders[0].customer.customer_type} />
-              </h2>
-              <div className="space-y-3">
-                {customerOrders.map((order) => (
-                  <OrderPreparationCard key={order.id} order={order} canManage={canManage} bulk={bulk} />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
 
 /**
  * The customer's segment beside their name. Nothing is shown for a customer
  * nobody has classified — "no type" on every heading would be noise, not
  * information, for the person preparing.
  */
-function CustomerTypeBadge({ type }: { type: CustomerType | null | undefined }) {
+export function CustomerTypeBadge({ type }: { type: CustomerType | null | undefined }) {
   const label = useCustomerTypeLabel();
   if (!type) return null;
   return <Badge tone="neutral">{label(type)}</Badge>;
 }
 
 /** The last expand-all / collapse-all press. A new object each press, so pressing the same one twice still applies. */
-type BulkToggle = { expanded: boolean } | null;
+export type BulkToggle = { expanded: boolean } | null;
 
 /*
  * Which cards somebody opened or folded, remembered across reloads.
@@ -255,14 +86,17 @@ function rememberExpanded(orderId: string, expanded: boolean) {
   }
 }
 
-function OrderPreparationCard({
+export function OrderPreparationCard({
   order,
   canManage,
   bulk,
+  selection,
 }: {
   order: OrderWithProgress;
   canManage: boolean;
   bulk: BulkToggle;
+  /** On the Ready tab: a checkbox to include this order in a bulk Shipped. */
+  selection?: { checked: boolean; onToggle: () => void };
 }) {
   const { t, formatDate } = useI18n();
   // Computed once by the query layer; see OrderWithProgress.
@@ -312,7 +146,7 @@ function OrderPreparationCard({
         // The whole header toggles, except the links and buttons inside it,
         // which keep doing what they say.
         onClick={(e) => {
-          if (!(e.target as HTMLElement).closest('a, button')) setAndRemember(!expanded);
+          if (!(e.target as HTMLElement).closest('a, button, input, label')) setAndRemember(!expanded);
         }}
       >
         <div className="flex items-center gap-2">
@@ -328,6 +162,15 @@ function OrderPreparationCard({
               aria-hidden
             />
           </button>
+          {selection && (
+            <input
+              type="checkbox"
+              checked={selection.checked}
+              onChange={selection.onToggle}
+              aria-label={t('orders.selectForShipping', { reference: order.reference })}
+              className="h-5 w-5 shrink-0 accent-accent"
+            />
+          )}
           {/* The order this preparation belongs to, one tap away. */}
           <Link
             href={`/orders/${order.id}`}

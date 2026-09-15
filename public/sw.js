@@ -65,7 +65,7 @@ self.addEventListener('push', (event) => {
       payload.requireOk === true ||
       payload.level === 'overdue' ||
       payload.level === 'critical',
-    data: { url: payload.url || '/preparation' },
+    data: { url: payload.url || '/orders' },
     timestamp: Date.now(),
   };
 
@@ -97,7 +97,7 @@ self.addEventListener('notificationclick', (event) => {
   // they were doing, which is the opposite of acknowledging and moving on.
   if (event.action === 'ok') return;
 
-  const target = (event.notification.data && event.notification.data.url) || '/preparation';
+  const target = (event.notification.data && event.notification.data.url) || '/orders';
 
   // Focus an already-open tab rather than piling up new windows on a shared
   // warehouse device.

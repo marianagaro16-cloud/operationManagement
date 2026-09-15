@@ -83,7 +83,7 @@ export function OrderDetail({
       {/* Back to where this most likely came from. The month and customer are
           carried so the list reopens showing this order, not a blank month. */}
       <Link
-        href={`/orders?month=${month}`}
+        href={canManage ? `/orders?tab=all&month=${month}` : '/orders'}
         className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg"
       >
         <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
@@ -151,7 +151,7 @@ export function OrderDetail({
           <Fact label={t('orders.customer')}>
             {/* Every other order this customer has in this month. */}
             <Link
-              href={`/orders?month=${month}&customer=${order.customer_id}`}
+              href={`/orders?tab=all&month=${month}&customer=${order.customer_id}`}
               className="inline-flex items-center gap-1.5 font-medium text-accent hover:underline"
               title={t('orders.customerOrders')}
             >
@@ -168,7 +168,7 @@ export function OrderDetail({
             {/* The preparation day this order lands on. The route already
                 takes exactly this parameter; it simply was never linked. */}
             <Link
-              href={`/preparation?date=${order.preparation_date}`}
+              href={`/orders?tab=to_prepare&date=${order.preparation_date}`}
               className="inline-flex items-center gap-1.5 font-medium text-accent hover:underline"
               title={t('orders.openPreparationDay')}
             >

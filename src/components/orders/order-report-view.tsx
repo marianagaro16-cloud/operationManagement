@@ -259,7 +259,7 @@ export function OrderReportView({
                               already knew how to filter. */}
                           <td className="max-w-[260px] truncate px-3 py-2" title={c.name}>
                             <Link
-                              href={`/orders?month=${range.start.slice(0, 7)}&customer=${c.customerId}`}
+                              href={`/orders?tab=all&month=${range.start.slice(0, 7)}&customer=${c.customerId}`}
                               className="transition-colors hover:text-accent hover:underline"
                             >
                               {c.name}

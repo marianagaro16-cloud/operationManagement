@@ -46,7 +46,7 @@ export function OrderWidgets({
     <section className="mb-6">
       <div className={cn('grid gap-2.5', canManage ? 'grid-cols-2' : 'grid-cols-1')}>
         <Tile
-          href="/preparation"
+          href="/orders?tab=to_prepare"
           icon={<ClipboardList className="h-4 w-4" aria-hidden />}
           label={t('prep.title')}
           value={`${incomplete.length} / ${toPrepare.length}`}
@@ -59,7 +59,7 @@ export function OrderWidgets({
             IS their work, keeps its tile and takes the full width. */}
         {canManage && (
           <Tile
-            href="/orders"
+            href="/orders?tab=all"
             icon={<Package className="h-4 w-4" aria-hidden />}
             label={t('orders.title')}
             value={String(delivering.length)}
@@ -72,7 +72,7 @@ export function OrderWidgets({
 
       {needsAttention.length > 0 && (
         <Link
-          href="/preparation"
+          href="/orders?tab=to_prepare"
           className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-warn/30 bg-warn/[0.06] px-3.5 py-2.5 transition-colors hover:bg-warn/10"
         >
           <AlertTriangle className="h-4 w-4 shrink-0 text-warn" aria-hidden />

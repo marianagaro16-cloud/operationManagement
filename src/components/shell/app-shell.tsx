@@ -58,15 +58,16 @@ export function AppShell({
     // the count below.
     // Every approved account, whatever its role: a personal tool.
     { href: '/reminders', label: t('reminder.navLabel'), icon: BellRing, primary: false, badge: reminderAttention },
-    // Preparation is the main floor workflow, so it sits high in the bar.
-    { href: '/preparation', label: t('prep.title'), icon: ClipboardList, primary: true },
+    // Orders — to prepare, ready, shipped — is the main floor workflow, so it
+    // sits high in the bar, for everyone. It replaced the separate Preparation
+    // screen; the monthly order book is its All tab, for orders.manage.
+    { href: '/orders', label: t('orders.title'), icon: Package, primary: true },
     // Order Control is the ORDER BOOK — customers, dates, quantities, the
     // definitions themselves. A person on the floor works lot control and
     // inventory; the order book is not theirs to browse, so it follows the
     // capability rather than being shown to everyone.
     ...(can(role, held, 'orders.manage')
       ? [
-          { href: '/orders', label: t('orders.title'), icon: Package, primary: true },
           // Traceability sits beside the order book, not inside Inventory:
           // it answers a question about ORDERS — where a lot was used — and
           // its one call to action is to open the order and fix it there.

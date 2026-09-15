@@ -115,7 +115,7 @@ export async function GET(request: Request) {
         // One tag per order, so an escalation replaces the earlier card
         // instead of stacking three notifications for the same delivery.
         tag: `order-${n.orderId}`,
-        url: '/preparation',
+        url: '/orders?tab=to_prepare',
         level: n.level,
       });
 
