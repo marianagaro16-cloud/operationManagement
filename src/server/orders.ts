@@ -293,10 +293,14 @@ export async function getRecurringTemplates(): Promise<RecurringTemplate[]> {
 
 /** Dashboard: what is being prepared today and what still needs attention. */
 export async function getOrderDashboardSummary(today: BusinessDate) {
-  const [day, delivering] = await Promise.all([
+  const [day, deliveringAll] = await Promise.all([
     getPreparationDay(today),
     getOrdersByDelivery({ from: today, to: today }),
   ]);
+  // A cancelled order is not going anywhere today, so it is not counted as
+  // delivering. getOrdersByDelivery keeps them on purpose — Order Control
+  // filters by status itself — so they are removed here, for the tile.
+  const delivering = deliveringAll.filter((o) => o.status !== 'cancelled');
   return {
     toPrepare: day.due,
     // Kept separate from today's own work so the tile still counts the day,

@@ -468,6 +468,7 @@ export const es: Messages = {
     preparationOn: 'Preparar {date}',
     deliveryOn: 'Entregar {date}',
     splitHint: 'Un pedido cubre una sola fecha de entrega. Los productos para otro día van en un pedido aparte.',
+    deliveringToday: 'se entregan hoy',
     createdBy: 'Creado por {name}',
     preparationAfterDelivery: 'La preparación no puede ser posterior a la entrega',
     customerInactive: 'Este cliente está inactivo y no puede usarse en un pedido nuevo',

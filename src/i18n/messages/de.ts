@@ -468,6 +468,7 @@ export const de: Messages = {
     preparationOn: 'Vorbereiten am {date}',
     deliveryOn: 'Liefern am {date}',
     splitHint: 'Eine Bestellung deckt ein Lieferdatum ab. Produkte für einen anderen Tag gehören in eine eigene Bestellung.',
+    deliveringToday: 'heute in Lieferung',
     createdBy: 'Erstellt von {name}',
     preparationAfterDelivery: 'Die Vorbereitung darf nicht nach der Lieferung liegen',
     customerInactive: 'Dieser Kunde ist inaktiv und kann für eine neue Bestellung nicht verwendet werden',

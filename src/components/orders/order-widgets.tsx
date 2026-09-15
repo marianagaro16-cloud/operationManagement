@@ -62,7 +62,8 @@ export function OrderWidgets({
             icon={<Package className="h-4 w-4" aria-hidden />}
             label={t('orders.title')}
             value={String(delivering.length)}
-            hint={t('orders.deliveryDate')}
+            // Says what the number is. "Delivery date" read like a heading.
+            hint={t('orders.deliveringToday')}
             tone="neutral"
           />
         )}
