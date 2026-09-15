@@ -23,6 +23,7 @@ import type { IncidentCategory, IncidentType } from '@/types/incidents';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
 import { NoteBlock } from '@/components/ui/note';
+import { OrderStageChip } from './order-fulfilment';
 
 /**
  * Order Control — replaces the monthly "Control de pedidos" workbook.
@@ -162,7 +163,9 @@ export function OrderControl({
       label: t(
         filters.status === 'draft' ? 'orders.statusDraft'
           : filters.status === 'confirmed' ? 'orders.statusConfirmed'
-            : 'orders.statusCancelled',
+            : filters.status === 'ready' ? 'orders.stageReady'
+              : filters.status === 'shipped' ? 'orders.stageShipped'
+                : 'orders.statusCancelled',
       ),
     },
   ].filter(Boolean) as { key: string; label: string }[];
@@ -324,6 +327,8 @@ export function OrderControl({
             <option value="draft">{t('orders.statusDraft')}</option>
             <option value="confirmed">{t('orders.statusConfirmed')}</option>
             <option value="cancelled">{t('orders.statusCancelled')}</option>
+            <option value="ready">{t('orders.stageReady')}</option>
+            <option value="shipped">{t('orders.stageShipped')}</option>
           </Select>
         </div>
 
@@ -463,9 +468,8 @@ function OrderCard({
         {/* Label and tone both come from STATUS_PRESENTATION, so an order
             status and an inventory status can no longer be tinted by two
             independent decisions that happen to agree. */}
-        {order.status !== 'confirmed' && <StatusChip domain="order" status={order.status} />}
-        {!cancelled && progress.isComplete && <StatusChip domain="line" status="complete" />}
-        {!cancelled && progress.hasUnexplainedShortfall && (
+        <OrderStageChip order={order} />
+                {!cancelled && progress.hasUnexplainedShortfall && (
           <StatusChip domain="line" status="partial" />
         )}
 
@@ -475,7 +479,7 @@ function OrderCard({
             <UrgencyBadge
               deliveryDate={order.delivery_date}
               deliveryTime={order.delivery_time}
-              isComplete={progress.isComplete}
+              isComplete={Boolean(order.ready_at)}
             />
           )}
           {/* Delivery date leads here; preparation date is exposed alongside —
@@ -503,7 +507,8 @@ function OrderCard({
               <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
             </Button>
           )}
-          {canManage && (
+          {/* A ready or shipped order is edited by reopening it first. */}
+          {canManage && !order.ready_at && (
             <Button size="icon" variant="ghost" onClick={onEdit} aria-label={t('common.edit')}>
               <Pencil className="h-3.5 w-3.5" aria-hidden />
             </Button>

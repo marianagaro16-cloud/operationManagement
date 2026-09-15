@@ -30,7 +30,10 @@ const ORDER_SELECT = `
   delivery_method_id, status, order_type, note, generated_from_template_id, import_source, created_by, updated_by,
   created_at, updated_at,
   customer:customers!inner ( id, name, is_active, customer_type_id, customer_type:customer_types ( id, slug, name, sort_order, is_active ) ),
+  ready_at, ready_by, shipped_at, shipped_by,
   creator:profiles!orders_created_by_fkey ( name, email ),
+  ready_by_profile:profiles!orders_ready_by_fkey ( name, email ),
+  shipped_by_profile:profiles!orders_shipped_by_fkey ( name, email ),
   delivery_method:delivery_methods ( id, slug, name, sort_order, is_active ),
   lines:order_lines (
     id, order_id, product_id, ordered_quantity, generated_quantity, note, source_text, shortfall_reason, position,
@@ -91,7 +94,11 @@ export async function getOrdersByDelivery(filters: {
 
   if (filters.customerId) q = q.eq('customer_id', filters.customerId);
   if (filters.deliveryMethodId) q = q.eq('delivery_method_id', filters.deliveryMethodId);
-  if (filters.status) q = q.eq('status', filters.status);
+  // Ready and Shipped are milestones on a confirmed order, not status values
+  // (see migration 20261001090000), so they filter on their own columns.
+  if (filters.status === 'ready') q = q.eq('status', 'confirmed').not('ready_at', 'is', null).is('shipped_at', null);
+  else if (filters.status === 'shipped') q = q.not('shipped_at', 'is', null);
+  else if (filters.status) q = q.eq('status', filters.status);
 
   const { data, error } = await q;
   if (error) throw new Error(error.message);
@@ -110,7 +117,7 @@ export async function getOrdersByPreparation(from: BusinessDate, to: BusinessDat
     .select(ORDER_SELECT)
     .gte('preparation_date', from)
     .lte('preparation_date', to)
-    .neq('status', 'cancelled')
+    .eq('status', 'confirmed')
     .order('preparation_date', { ascending: true })
     .order('reference', { ascending: true });
 
@@ -128,7 +135,7 @@ export async function getOrdersForPreparation(date: BusinessDate): Promise<Order
     .from('orders')
     .select(ORDER_SELECT)
     .eq('preparation_date', date)
-    .neq('status', 'cancelled')
+    .eq('status', 'confirmed')
     .order('reference', { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -178,7 +185,7 @@ export async function getPreparationDay(
     .select(ORDER_SELECT)
     .gte('preparation_date', from)
     .lte('preparation_date', to)
-    .neq('status', 'cancelled')
+    .eq('status', 'confirmed')
     .order('preparation_date', { ascending: true })
     .order('reference', { ascending: true });
 
@@ -188,14 +195,16 @@ export async function getPreparationDay(
 
   const due = all.filter((o) => o.preparation_date === date);
   const carriedOver = all.filter(
-    (o) => o.preparation_date < date && !o.progress.isComplete,
+    // Not ready yet: an order is carried over until somebody confirms it is
+    // prepared, not until its lines happen to add up.
+    (o) => o.preparation_date < date && !o.ready_at,
   );
 
   // A weekday is "open" when something scheduled for it is unfinished. The
   // selected day's own carry-over is not attributed to the days it came from
   // twice — each order marks the day it was scheduled on.
   const openDays = week.filter((d) =>
-    all.some((o) => o.preparation_date === d && !o.progress.isComplete),
+    all.some((o) => o.preparation_date === d && !o.ready_at),
   );
 
   return { due, carriedOver, openDays };

@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     const { data: orders, error } = await admin
       .from('orders')
       .select(`
-        id, reference, status, delivery_date, delivery_time,
+        id, reference, status, delivery_date, delivery_time, ready_at,
         customer:customers!inner ( name ),
         lines:order_lines (
           ordered_quantity, shortfall_reason,
@@ -69,7 +69,8 @@ export async function GET(request: Request) {
       `)
       .gte('delivery_date', addDays(today, -1))
       .lte('delivery_date', addDays(today, 1))
-      .neq('status', 'cancelled');
+      .eq('status', 'confirmed')
+      .is('ready_at', null);
 
     if (error) throw new Error(error.message);
 

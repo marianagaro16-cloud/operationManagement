@@ -25,6 +25,7 @@ import {
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
 import { NoteBlock, NoteChip } from '@/components/ui/note';
+import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
 
 /**
  * One order, at its own address.
@@ -93,11 +94,12 @@ export function OrderDetail({
         title={`#${order.reference}`}
         subtitle={order.customer.name}
         action={
-          canManage || headerAction ? (
+          (canManage && !order.ready_at) || headerAction ? (
             // Wraps so the two buttons stack rather than overflow on a phone.
             <div className="flex flex-wrap gap-1.5">
               {headerAction}
-              {canManage && (
+              {/* A ready or shipped order is edited by reopening it first. */}
+              {canManage && !order.ready_at && (
                 <Button variant="secondary" onClick={() => setEditing(true)}>
                   <Pencil className="h-3.5 w-3.5" aria-hidden />
                   {t('common.edit')}
@@ -118,9 +120,8 @@ export function OrderDetail({
       {/* ------------------------- the facts ------------------------- */}
       <Card className={cn('mb-4 p-3.5', cancelled && 'opacity-70')}>
         <div className="flex flex-wrap items-center gap-1.5">
-          {order.status !== 'confirmed' && <StatusChip domain="order" status={order.status} />}
-          {!cancelled && progress.isComplete && <StatusChip domain="line" status="complete" />}
-          {!cancelled && progress.hasUnexplainedShortfall && (
+          <OrderStageChip order={order} />
+                    {!cancelled && progress.hasUnexplainedShortfall && (
             <StatusChip domain="line" status="partial" />
           )}
           {order.delivery_method && <Badge tone="neutral">{order.delivery_method.name}</Badge>}
@@ -137,11 +138,14 @@ export function OrderDetail({
               <UrgencyBadge
                 deliveryDate={order.delivery_date}
                 deliveryTime={order.delivery_time}
-                isComplete={progress.isComplete}
+                isComplete={Boolean(order.ready_at)}
               />
             </span>
           )}
         </div>
+
+        {/* Ready and Shipped: who, when, and the buttons to move it on. */}
+        <OrderFulfilment order={order} className="mt-3" />
 
         <dl className="mt-3 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
           <Fact label={t('orders.customer')}>

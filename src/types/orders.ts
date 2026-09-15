@@ -181,6 +181,14 @@ export interface Order {
    * standing order, and for any whose author's account was removed.
    */
   creator?: { name: string | null; email: string } | null;
+  /** Confirmed as prepared. Set only by order_set_ready(). */
+  ready_at?: string | null;
+  ready_by?: string | null;
+  ready_by_profile?: { name: string | null; email: string } | null;
+  /** Left — shipped or picked up. Set only by order_set_shipped(). */
+  shipped_at?: string | null;
+  shipped_by?: string | null;
+  shipped_by_profile?: { name: string | null; email: string } | null;
   customer: Customer;
   delivery_method: DeliveryMethod | null;
   lines: OrderLine[];

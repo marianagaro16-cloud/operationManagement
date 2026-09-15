@@ -26,6 +26,7 @@ import { Badge, type Tone } from '@/components/ui/primitives';
 export type StatusDomain =
   | 'task'
   | 'order'
+  | 'stage'
   | 'line'
   | 'inventory'
   | 'incident'
@@ -55,6 +56,15 @@ export const STATUS_PRESENTATION: Record<string, Presentation> = {
   'order.draft':     { key: 'orders.statusDraft',     tone: 'warn' },
   'order.confirmed': { key: 'orders.statusConfirmed', tone: 'accent' },
   'order.cancelled': { key: 'orders.statusCancelled', tone: 'late' },
+
+  /* --- order stage: status + milestones, see domain/orders/stage.ts --- */
+  'stage.draft':          { key: 'orders.statusDraft',         tone: 'warn' },
+  'stage.cancelled':      { key: 'orders.statusCancelled',     tone: 'late' },
+  'stage.to_prepare':     { key: 'orders.stageToPrepare',      tone: 'neutral' },
+  'stage.in_preparation': { key: 'orders.stageInPreparation',  tone: 'accent' },
+  'stage.ready':          { key: 'orders.stageReady',          tone: 'done' },
+  // Quiet: a shipped order is finished, and should recede in a list.
+  'stage.shipped':        { key: 'orders.stageShipped',        tone: 'skipped' },
 
   /* --- order lines (derived from allocations, never stored) --- */
   'line.not_prepared':   { key: 'prep.statusNotPrepared', tone: 'neutral' },

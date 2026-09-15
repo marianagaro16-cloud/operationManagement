@@ -167,6 +167,22 @@ describe('order-level aggregation', () => {
     expect(p.complete).toBe(1);
   });
 
+  it('is prepared when every line is complete, over, or short WITH a reason', () => {
+    expect(orderProgress([line(10, [10]), line(5, [6])]).isPrepared).toBe(true);
+    const explained = orderProgress([line(10, [10]), line(5, [2], 'only 2 in stock')]);
+    expect(explained.isPrepared).toBe(true);
+    // Not complete — but finished, which is what Ready needs.
+    expect(explained.isComplete).toBe(false);
+  });
+
+  it('is not prepared with a short line lacking a reason, an untouched line, or no lines', () => {
+    expect(orderProgress([line(10, [10]), line(5, [2])]).isPrepared).toBe(false);
+    expect(orderProgress([line(10, [10]), line(5, [])]).isPrepared).toBe(false);
+    // A reason on a line nobody touched is not a count: nothing was looked at.
+    expect(orderProgress([line(5, [], 'none in stock')]).isPrepared).toBe(false);
+    expect(orderProgress([]).isPrepared).toBe(false);
+  });
+
   it('surfaces unexplained shortfalls across the order', () => {
     expect(orderProgress([line(10, [8])]).hasUnexplainedShortfall).toBe(true);
     expect(orderProgress([line(10, [8], 'short stock')]).hasUnexplainedShortfall).toBe(false);

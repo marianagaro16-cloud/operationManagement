@@ -23,6 +23,8 @@ import { useCustomerTypeLabel } from '@/components/customers/use-customer-type-l
 import { StatusChip, statusPresentation } from '@/components/ui/status-chip';
 import { OrderTypeBadge } from '@/components/orders/order-type-badge';
 import { saveLotAllocation, deleteLotAllocation, setShortfallReason } from '@/server/order-actions';
+import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
+import { orderStage, stageWeight } from '@/domain/orders/stage';
 
 /**
  * Lotnummerkontrol.
@@ -56,7 +58,7 @@ export function PreparationView({
   // anything unfinished sits in the top half, with its done orders after the
   // open ones.
   const sorted = [...orders].sort(
-    (a, b) => Number(a.progress.isComplete) - Number(b.progress.isComplete),
+    (a, b) => stageWeight(orderStage(a)) - stageWeight(orderStage(b)),
   );
 
   // Several orders may exist for one customer on one day; they stay separate
@@ -280,7 +282,7 @@ function OrderPreparationCard({
   // Collapsible, so a long day reads as a list of orders rather than a wall
   // of products. Work still to do starts open; a finished order starts folded
   // — it already sits at the bottom, and its lines are only needed to check.
-  const [expanded, setExpanded] = useState(!progress.isComplete);
+  const [expanded, setExpanded] = useState(!order.ready_at);
 
   // The server renders the default; what this browser remembers is applied
   // once mounted, because storage only exists on the client.
@@ -341,12 +343,12 @@ function OrderPreparationCard({
               so on the row is what stops a month of giveaways reading as a
               month of trade. */}
           <OrderTypeBadge type={order.order_type} />
-          {order.status !== 'confirmed' && <StatusChip domain="order" status={order.status} />}
+          <OrderStageChip order={order} />
           {preparers.length > 0 && (
             <span className="inline-flex min-w-0 items-center gap-1 text-[12px] text-muted">
               <UserRound className="h-3 w-3 shrink-0" aria-hidden />
               <span className="truncate">
-                {t(progress.isComplete ? 'prep.preparedBy' : 'prep.preparingBy', { names: preparers.join(', ') })}
+                {t(order.ready_at ? 'prep.preparedBy' : 'prep.preparingBy', { names: preparers.join(', ') })}
               </span>
             </span>
           )}
@@ -355,7 +357,7 @@ function OrderPreparationCard({
           <UrgencyBadge
             deliveryDate={order.delivery_date}
             deliveryTime={order.delivery_time}
-            isComplete={progress.isComplete}
+            isComplete={Boolean(order.ready_at)}
           />
           <span className="text-[12px] text-muted">
             {t('orders.deliveryOn', { date: formatDate(order.delivery_date, 'short') })}
@@ -390,16 +392,30 @@ function OrderPreparationCard({
           </p>
           <ul className="divide-y divide-border">
             {group.lines.map((line) => (
-              <PreparationLine key={line.id} line={line} canManage={canManage} />
+              <PreparationLine key={line.id} line={line} canManage={canManage} locked={Boolean(order.ready_at)} />
             ))}
           </ul>
         </div>
       ))}
+
+      {/* Ready and Shipped, always reachable — folded or open. */}
+      <div className="border-t border-border px-3.5 py-2">
+        <OrderFulfilment order={order} />
+      </div>
     </Card>
   );
 }
 
-function PreparationLine({ line, canManage }: { line: OrderLine; canManage: boolean }) {
+function PreparationLine({
+  line,
+  canManage,
+  locked,
+}: {
+  line: OrderLine;
+  canManage: boolean;
+  /** The order is Ready: its lots are frozen until somebody reopens it. */
+  locked: boolean;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -518,6 +534,7 @@ function PreparationLine({ line, canManage }: { line: OrderLine; canManage: bool
                   touchscreen, next to a scrolling list, and erased a recorded
                   lot with no undo — while the confirmation text for it sat
                   translated in all three dictionaries, unused. */}
+              {!locked && (
               <button
                 onClick={() => setDeleting(a.id)}
                 disabled={pending}
@@ -526,6 +543,7 @@ function PreparationLine({ line, canManage }: { line: OrderLine; canManage: bool
               >
                 <Trash2 className="h-3.5 w-3.5" aria-hidden />
               </button>
+              )}
             </li>
           ))}
         </ul>
@@ -576,7 +594,7 @@ function PreparationLine({ line, canManage }: { line: OrderLine; canManage: bool
           </div>
         </div>
       ) : (
-        progress.status !== 'complete' && (
+        !locked && progress.status !== 'complete' && (
           <Button size="sm" variant="secondary" className="mt-2" onClick={() => setAdding(true)}>
             <Plus className="h-3.5 w-3.5" aria-hidden />
             {t('prep.addLot')}
@@ -585,7 +603,7 @@ function PreparationLine({ line, canManage }: { line: OrderLine; canManage: bool
       )}
 
       {/* A shortfall may not be left silent. */}
-      {progress.needsReason && (
+      {!locked && progress.needsReason && (
         <div className="mt-2 rounded-lg border border-warn/30 bg-warn/[0.06] p-2.5">
           <p className="mb-1.5 flex items-center gap-1.5 text-[12.5px] font-medium text-warn">
             <AlertTriangle className="h-3.5 w-3.5" aria-hidden />

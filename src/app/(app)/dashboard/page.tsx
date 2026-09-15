@@ -52,7 +52,7 @@ export default async function DashboardPage() {
           total: data.dailyToday.length + data.extraToday.length,
         }}
         prepare={{
-          done: orders.toPrepare.filter((o) => o.progress.isComplete).length,
+          done: orders.toPrepare.filter((o) => o.ready_at).length,
           total: orders.toPrepare.length,
         }}
         counts={{

@@ -39,7 +39,8 @@ export function OrderWidgets({
   const needsAttention = [...toPrepare, ...carriedOver].filter(
     (o) => o.progress.hasUnexplainedShortfall,
   );
-  const incomplete = toPrepare.filter((o) => !o.progress.isComplete);
+  // Still to do until somebody marks it ready.
+  const incomplete = toPrepare.filter((o) => !o.ready_at);
 
   return (
     <section className="mb-6">

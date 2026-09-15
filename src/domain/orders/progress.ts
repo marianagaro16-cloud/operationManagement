@@ -76,8 +76,16 @@ export interface OrderProgress {
   partial: number;
   notPrepared: number;
   overAllocated: number;
-  /** Every line fully allocated. */
+  /** Every line fully allocated, exactly. */
   isComplete: boolean;
+  /**
+   * Every line accounted for: fully allocated, over-allocated, or short WITH a
+   * reason. What decides whether an order can be marked Ready — the same rule
+   * as order_is_prepared() in SQL and the preparation report. An explained
+   * shortfall is a finished preparation; isComplete alone would leave it
+   * looking unfinished for ever.
+   */
+  isPrepared: boolean;
   /** Work has started but is not finished. */
   isPartial: boolean;
   /** At least one short line still lacks an explanation. */
@@ -87,7 +95,7 @@ export interface OrderProgress {
 export function orderProgress(
   lines: { ordered_quantity: unknown; shortfall_reason?: string | null; allocations: AllocationLike[] }[],
 ): OrderProgress {
-  let complete = 0, partial = 0, notPrepared = 0, overAllocated = 0, unexplained = 0;
+  let complete = 0, partial = 0, notPrepared = 0, overAllocated = 0, unexplained = 0, accounted = 0;
 
   for (const line of lines) {
     const p = lineProgress(line.ordered_quantity, line.allocations, line.shortfall_reason);
@@ -96,6 +104,7 @@ export function orderProgress(
     else if (p.status === 'over_allocated') overAllocated++;
     else notPrepared++;
     if (p.needsReason) unexplained++;
+    if (p.status === 'complete' || p.status === 'over_allocated' || (p.status === 'partial' && !p.needsReason)) accounted++;
   }
 
   const total = lines.length;
@@ -106,6 +115,7 @@ export function orderProgress(
     notPrepared,
     overAllocated,
     isComplete: total > 0 && complete === total,
+    isPrepared: total > 0 && accounted === total,
     isPartial: total > 0 && complete !== total && notPrepared !== total,
     hasUnexplainedShortfall: unexplained > 0,
   };

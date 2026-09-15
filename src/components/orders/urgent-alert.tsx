@@ -38,7 +38,7 @@ export function UrgentAlert({ orders }: { orders: OrderWithProgress[] }) {
       urgency: deliveryUrgency(
         order.delivery_date,
         order.delivery_time,
-        order.progress.isComplete,
+        Boolean(order.ready_at),
         current,
       ),
     }))

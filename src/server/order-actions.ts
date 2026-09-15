@@ -23,6 +23,8 @@ function fail(error: unknown): { ok: false; error: string } {
   if (message.includes('over_allocation')) return { ok: false, error: 'over_allocation' };
   if (message.includes('reason_required')) return { ok: false, error: 'reason_required' };
   if (message.includes('not_authorized')) return { ok: false, error: 'not_authorized' };
+  if (message.includes('order_ready_locked')) return { ok: false, error: 'order_ready_locked' };
+  if (message.includes('order_shipped_locked')) return { ok: false, error: 'order_shipped_locked' };
   if (message.includes('row-level security')) return { ok: false, error: 'not_authorized' };
   return { ok: false, error: message };
 }
@@ -219,6 +221,41 @@ export async function setOrderStatus(
   if (error) return fail(error);
   revalidateOrders();
   return { ok: true, data: undefined };
+}
+
+/* --------------------------- ready / shipped ---------------------------- */
+
+/**
+ * Ready and Shipped are marked by whoever prepares — any approved user. The
+ * order_set_* functions hold every rule (confirmed only, prepared first,
+ * shipped only once ready, reopen in order) and write the audit trail.
+ */
+export async function setOrderReady(orderId: string, ready: boolean): Promise<ActionResult> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc('order_set_ready', { p_order_id: orderId, p_ready: ready });
+  if (error) return fulfilmentFail(error);
+  revalidateOrders();
+  return { ok: true, data: undefined };
+}
+
+/** One order or many — the day's DHL orders in one press. All or nothing. */
+export async function setOrdersShipped(orderIds: string[], shipped: boolean): Promise<ActionResult<{ changed: number }>> {
+  if (orderIds.length === 0) return { ok: true, data: { changed: 0 } };
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('order_set_shipped', { p_order_ids: orderIds, p_shipped: shipped });
+  if (error) return fulfilmentFail(error);
+  revalidateOrders();
+  return { ok: true, data: { changed: Number(data ?? 0) } };
+}
+
+function fulfilmentFail(error: unknown): { ok: false; error: string } {
+  const message = error instanceof Error ? error.message : (error as { message?: string })?.message ?? String(error);
+  const codes = [
+    'order_not_prepared', 'order_not_confirmed', 'order_already_shipped', 'order_not_ready',
+    'order_ready_locked', 'order_shipped_locked', 'order_not_found', 'too_many_orders', 'not_authorized',
+  ];
+  const code = codes.find((c) => message.includes(c));
+  return { ok: false, error: code ?? message };
 }
 
 /* --------------------------- lot allocations ---------------------------- */

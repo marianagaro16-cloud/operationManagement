@@ -18,6 +18,8 @@ import { compareUrgency, deliveryUrgency, formatDeliveryTime, type UrgencyLevel 
 export const NOTIFY_LEVELS: UrgencyLevel[] = ['warning', 'critical', 'overdue'];
 
 export interface NotifiableOrder {
+  /** Set once the order is confirmed as prepared; ready orders do not alert. */
+  ready_at?: string | null;
   id: string;
   reference: number;
   status: string;
@@ -56,7 +58,9 @@ export function selectNotifications(
   const out: { pending: PendingNotification; sortKey: ReturnType<typeof deliveryUrgency> }[] = [];
 
   for (const order of orders) {
-    if (order.status === 'cancelled') continue;
+    // Only confirmed orders, and only until they are ready: a draft is not
+    // agreed, and a ready order is waiting for the van, not for the floor.
+    if (order.status !== 'confirmed' || order.ready_at) continue;
 
     const progress = orderProgress(
       order.lines.map((l) => ({
@@ -66,7 +70,7 @@ export function selectNotifications(
       })),
     );
     // Finished work never interrupts anyone.
-    if (progress.isComplete) continue;
+    if (progress.isPrepared) continue;
 
     const urgency = deliveryUrgency(
       order.delivery_date,
