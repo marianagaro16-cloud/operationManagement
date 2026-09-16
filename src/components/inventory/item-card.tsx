@@ -39,9 +39,10 @@ export function ItemCard({
   canManage: boolean;
   defaultOpen?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
   const [open, setOpen] = useState(Boolean(defaultOpen));
   const done = Boolean(item.counted_at);
+  const entryNotes = item.entries.filter((e) => e.note?.trim());
   const [savingDone, startSavingDone] = useTransition();
   const [doneError, setDoneError] = useState<string | null>(null);
 
@@ -250,6 +251,37 @@ export function ItemCard({
       )}
       </div>
 
+      {/* ---- notes ----
+          Always visible, open or folded. A finished product folds away, and
+          "count again, box was open" hidden behind a tap is a note nobody
+          reads. Item comments sit here permanently; entry notes are listed
+          only while folded, since open they are already in the entry rows. */}
+      {(item.comments.length > 0 || (!open && entryNotes.length > 0)) && (
+        <ul className="mx-3 mb-3 space-y-1.5 rounded-r-lg border-l-2 border-note bg-note/[0.07] p-2">
+          {item.comments.map((c) => (
+            <li key={c.id} className="text-[12.5px]">
+              <span className="font-medium text-note">
+                {c.author ? displayName(c.author) : '—'}
+              </span>
+              <span className="text-note/80"> · {c.body}</span>
+            </li>
+          ))}
+          {!open &&
+            entryNotes.map((e) => {
+              const label = kind === 'location' ? e.location_name : e.expiry_date && formatDate(e.expiry_date, 'short');
+              return (
+                <li key={e.id} className="text-[12.5px]">
+                  <span className="font-medium text-note">
+                    {e.quantity ?? '—'}
+                    {label ? ` · ${label}` : ''}
+                  </span>
+                  <span className="text-note/80"> · {e.note}</span>
+                </li>
+              );
+            })}
+        </ul>
+      )}
+
       {emptyError && <p className="px-3 pb-2 text-[12px] text-late">{emptyError}</p>}
       {doneError && <p className="px-3 pb-2 text-[12px] text-late">{doneError}</p>}
 
@@ -273,25 +305,6 @@ export function ItemCard({
               }
             />
           </div>
-
-          {/* ---- item comments ----
-              The note colour rather than the generic grey block. Orders and
-              incidents already give a thing somebody wrote its own colour;
-              inventory was the one place still rendering it as secondary
-              text, which is exactly how "count again, box was open" got read
-              as decoration. */}
-          {item.comments.length > 0 && (
-            <ul className="space-y-1.5 rounded-r-lg border-l-2 border-note bg-note/[0.07] p-2">
-              {item.comments.map((c) => (
-                <li key={c.id} className="text-[12.5px]">
-                  <span className="font-medium text-note">
-                    {c.author ? displayName(c.author) : '—'}
-                  </span>
-                  <span className="text-note/80"> · {c.body}</span>
-                </li>
-              ))}
-            </ul>
-          )}
 
           <div className="flex flex-wrap gap-1.5">
             <Button size="sm" variant="ghost" onClick={() => setCommentOpen(true)}>
