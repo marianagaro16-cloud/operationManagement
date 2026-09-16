@@ -65,6 +65,7 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
       case 'skip_reason_required': return t('task.skipReasonRequired');
       case 'task_not_skippable': return t('task.notSkippable');
       case 'not_your_action': return t('task.notYourAction');
+      case 'not_assigned_to_you': return t('task.notAssignedToYou');
       case 'block_reason_required': return t('task.blockReasonRequired');
       case 'not_authorized': return t('common.error');
       default: return code ?? t('common.error');

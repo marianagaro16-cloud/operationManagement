@@ -3848,6 +3848,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      can_act_on_occurrence: {
+        Args: { p_assignee_id: string }
+        Returns: boolean
+      }
       can_use_reminders: { Args: never; Returns: boolean }
       can_view_incident:
         | { Args: { p_order_id: string }; Returns: boolean }

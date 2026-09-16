@@ -234,6 +234,50 @@ async function main() {
     }).select();
     check('user CANNOT place an inventory', denied(userInv));
   }
+
+  console.log('\n=== 8. An assigned task belongs to its assignee ===');
+  const A = await makeUser('user');
+  const P = await makeUser('power_user');
+  created.users.push(A.id, P.id);
+
+  const { data: action, error: actionErr } = await admin.from('tasks').insert({
+    title: `ZZ Assigned Action ${stamp}`, frequency: 'one_off', is_skippable: true, is_active: true,
+  }).select().single();
+  if (actionErr) throw new Error('fixture assigned task: ' + actionErr.message);
+  created.tasks.push(action.id);
+  const { data: assigned } = await admin.from('task_occurrences').insert({
+    task_id: action.id, period_key: today, due_date: today, source: 'manual', assignee_id: A.id,
+  }).select().single();
+  const { data: shared } = await admin.from('task_occurrences').insert({
+    task_id: action.id, period_key: plus(1), due_date: plus(1), source: 'manual',
+  }).select().single();
+
+  const sees = async (who, id) => ((await who.client.from('task_occurrences').select('id').eq('id', id)).data ?? []).length === 1;
+  check('the assignee sees it', await sees(A, assigned.id));
+  check('a manager sees it', await sees(M, assigned.id));
+  check('a power user sees it', await sees(P, assigned.id));
+  check('another user does NOT see it', !(await sees(U, assigned.id)));
+  check('an unassigned occurrence is still seen by everyone', await sees(U, shared.id));
+
+  const statusOf = async (id) => (await admin.from('task_occurrences').select('status').eq('id', id).single()).data.status;
+  const otherComplete = await U.client.rpc('complete_occurrence', { p_occurrence_id: assigned.id });
+  check('another user CANNOT complete it', !!otherComplete.error?.message.includes('not_assigned_to_you') && (await statusOf(assigned.id)) === 'pending',
+    otherComplete.error?.message);
+  const otherSkip = await U.client.rpc('skip_occurrence', { p_occurrence_id: assigned.id, p_reason: 'x' });
+  const otherBlock = await U.client.rpc('block_occurrence', { p_occurrence_id: assigned.id, p_reason: 'x' });
+  check('...nor skip or block it', !!otherSkip.error && !!otherBlock.error && (await statusOf(assigned.id)) === 'pending');
+
+  const ownComplete = await A.client.rpc('complete_occurrence', { p_occurrence_id: assigned.id });
+  check('the assignee CAN complete it', !ownComplete.error && (await statusOf(assigned.id)) === 'completed', ownComplete.error?.message);
+  const otherReopen = await U.client.rpc('reopen_occurrence', { p_occurrence_id: assigned.id });
+  check('another user CANNOT reopen it', !!otherReopen.error && (await statusOf(assigned.id)) === 'completed');
+  const puReopen = await P.client.rpc('reopen_occurrence', { p_occurrence_id: assigned.id });
+  const puComplete = await P.client.rpc('complete_occurrence', { p_occurrence_id: assigned.id });
+  check('a power user CAN reopen and complete it', !puReopen.error && !puComplete.error && (await statusOf(assigned.id)) === 'completed',
+    (puReopen.error ?? puComplete.error)?.message);
+
+  const sharedComplete = await U.client.rpc('complete_occurrence', { p_occurrence_id: shared.id });
+  check('anyone can still complete an unassigned occurrence', !sharedComplete.error, sharedComplete.error?.message);
 }
 
 async function cleanup() {

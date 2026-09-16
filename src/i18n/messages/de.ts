@@ -109,6 +109,7 @@ export const de: Messages = {
     reopen: 'Wieder öffnen',
     undo: 'Rückgängig',
     notYourAction: 'Nur wer sie gesetzt hat oder die geplante Arbeit verwaltet, kann das rückgängig machen',
+    notAssignedToYou: 'Diese Aufgabe ist jemand anderem zugewiesen',
     skip: 'Überspringen',
     skipped: 'Übersprungen',
     comment: 'Kommentieren',

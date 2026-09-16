@@ -33,6 +33,7 @@ function fail(error: unknown): { ok: false; error: string } {
   if (message.includes('task_not_skippable')) return { ok: false, error: 'task_not_skippable' };
   if (message.includes('not_authorized')) return { ok: false, error: 'not_authorized' };
   if (message.includes('not_your_action')) return { ok: false, error: 'not_your_action' };
+  if (message.includes('not_assigned_to_you')) return { ok: false, error: 'not_assigned_to_you' };
   if (message.includes('occurrence_not_found')) return { ok: false, error: 'occurrence_not_found' };
   return { ok: false, error: message };
 }

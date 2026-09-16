@@ -109,6 +109,7 @@ export const es: Messages = {
     reopen: 'Reabrir',
     undo: 'Deshacer',
     notYourAction: 'Solo quien la marcó, o alguien que gestiona el trabajo programado, puede deshacerla',
+    notAssignedToYou: 'Esta tarea está asignada a otra persona',
     skip: 'Omitir',
     skipped: 'Omitida',
     comment: 'Comentar',

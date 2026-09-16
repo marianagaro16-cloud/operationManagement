@@ -111,6 +111,7 @@ export const en = {
     reopen: 'Reopen',
     undo: 'Undo',
     notYourAction: 'Only the person who set this, or someone who manages scheduled work, can undo it',
+    notAssignedToYou: 'This task is assigned to someone else',
     skip: 'Skip',
     skipped: 'Skipped',
     comment: 'Comment',
