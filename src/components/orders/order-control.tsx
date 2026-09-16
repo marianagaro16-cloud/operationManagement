@@ -529,7 +529,7 @@ function OrderCard({
 
       <ul className="divide-y divide-border">
         {order.lines.map((line) => {
-          const p = lineProgress(line.ordered_quantity, line.allocations, line.shortfall_reason);
+          const p = lineProgress(line.ordered_quantity, line.allocations, line);
           // Only a genuine divergence is worth showing. A null proposal means
           // the line was typed by hand, or predates provenance being recorded
           // — neither is "changed", so neither gets a marker.

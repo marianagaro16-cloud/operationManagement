@@ -73,16 +73,31 @@ describe('shortfall reason', () => {
   });
 
   it('is satisfied once a reason is given', () => {
-    expect(lineProgress(10, alloc(8), 'Only 8 packs left in stock').needsReason).toBe(false);
+    expect(lineProgress(10, alloc(8), { shortfall_reason: 'Only 8 packs left in stock' }).needsReason).toBe(false);
   });
 
   it('ignores a whitespace-only reason', () => {
-    expect(lineProgress(10, alloc(8), '   ').needsReason).toBe(true);
+    expect(lineProgress(10, alloc(8), { shortfall_reason: '   ' }).needsReason).toBe(true);
   });
 
   it('does not demand a reason for an untouched or complete line', () => {
     expect(lineProgress(10, []).needsReason).toBe(false);
     expect(lineProgress(10, alloc(10)).needsReason).toBe(false);
+  });
+
+  it('accepts a reason code with no note', () => {
+    const p = lineProgress(10, alloc(8), { shortfall_code: 'no_stock' });
+    expect(p.needsReason).toBe(false);
+    expect(p.accounted).toBe(true);
+  });
+
+  it('lets an untouched line be left out, with a reason', () => {
+    const p = lineProgress(10, [], { shortfall_code: 'no_stock' });
+    expect(p.notSent).toBe(true);
+    expect(p.accounted).toBe(true);
+    expect(p.remaining).toBe(10);
+    expect(lineProgress(10, []).accounted).toBe(false);
+    expect(lineProgress(10, []).notSent).toBe(false);
   });
 });
 
@@ -146,9 +161,10 @@ describe('admin changing ordered quantity after preparation started', () => {
 });
 
 describe('order-level aggregation', () => {
-  const line = (ordered: number, qs: number[], reason?: string) => ({
+  const line = (ordered: number, qs: number[], reason?: string, code?: string) => ({
     ordered_quantity: ordered,
     shortfall_reason: reason ?? null,
+    shortfall_code: code ?? null,
     allocations: alloc(...qs),
   });
 
@@ -178,9 +194,16 @@ describe('order-level aggregation', () => {
   it('is not prepared with a short line lacking a reason, an untouched line, or no lines', () => {
     expect(orderProgress([line(10, [10]), line(5, [2])]).isPrepared).toBe(false);
     expect(orderProgress([line(10, [10]), line(5, [])]).isPrepared).toBe(false);
-    // A reason on a line nobody touched is not a count: nothing was looked at.
+    // Every product left out: nothing would leave, so it is not prepared.
     expect(orderProgress([line(5, [], 'none in stock')]).isPrepared).toBe(false);
+    expect(orderProgress([line(5, [], undefined, 'no_stock'), line(3, [], undefined, 'damaged')]).isPrepared).toBe(false);
     expect(orderProgress([]).isPrepared).toBe(false);
+  });
+
+  it('is prepared with a product left out for a reason, when something else was recorded', () => {
+    expect(orderProgress([line(10, [10]), line(5, [], undefined, 'no_stock')]).isPrepared).toBe(true);
+    // A reason written before codes existed still counts.
+    expect(orderProgress([line(10, [10]), line(5, [], 'none in stock')]).isPrepared).toBe(true);
   });
 
   it('surfaces unexplained shortfalls across the order', () => {

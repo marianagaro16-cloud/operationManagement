@@ -70,6 +70,18 @@ describe('order state', () => {
     expect(r.unexplainedShortLines).toBe(0);
   });
 
+  it('counts a product left out WITH a reason as finished and short', () => {
+    const r = computePreparationReport([
+      order({ lines: [line(5, [lot('u1', 'Ana', 5, ON_THE_3RD)]), line(4, [], 'No stock')] }),
+      // Everything left out: nothing leaves, so not done.
+      order({ lines: [line(4, [], 'No stock')] }),
+    ], SEP, TODAY);
+    expect(r.done).toBe(1);
+    expect(r.notStarted).toBe(1);
+    expect(r.shortLines).toBe(2);
+    expect(r.unexplainedShortLines).toBe(0);
+  });
+
   it('does not count a short line without a reason as finished', () => {
     const r = computePreparationReport([
       order({ lines: [line(5, [lot('u1', 'Ana', 3, ON_THE_3RD)])] }),

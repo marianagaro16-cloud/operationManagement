@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { isValidSchedule } from '@/domain/orders/scheduling';
-import type { OrderType } from '@/types/orders';
+import { SHORTFALL_CODES, type OrderType } from '@/types/orders';
 import { getViewer } from './data';
 import type { ActionResult } from './actions';
 
@@ -25,6 +25,8 @@ function fail(error: unknown): { ok: false; error: string } {
   if (message.includes('not_authorized')) return { ok: false, error: 'not_authorized' };
   if (message.includes('order_ready_locked')) return { ok: false, error: 'order_ready_locked' };
   if (message.includes('order_shipped_locked')) return { ok: false, error: 'order_shipped_locked' };
+  if (message.includes('order_not_confirmed')) return { ok: false, error: 'order_not_confirmed' };
+  if (message.includes('line_not_short')) return { ok: false, error: 'line_not_short' };
   if (message.includes('row-level security')) return { ok: false, error: 'not_authorized' };
   return { ok: false, error: message };
 }
@@ -305,20 +307,47 @@ export async function deleteLotAllocation(allocationId: string): Promise<ActionR
   return { ok: true, data: undefined };
 }
 
-/** A user may explain a shortfall but change nothing else on the line. */
-export async function setShortfallReason(
-  orderLineId: string,
-  reason: string,
-): Promise<ActionResult> {
-  if (!reason.trim()) return { ok: false, error: 'reason_required' };
+const shortfallSchema = z.object({
+  order_line_id: z.string().uuid(),
+  /** Null clears the reason. */
+  code: z.enum(SHORTFALL_CODES).nullable(),
+  note: z.string().trim().max(500).nullable(),
+  /** Also raise a Missing-product incident about this line (once per line). */
+  report_incident: z.boolean(),
+  /** Composed by the client in the reporter's language. */
+  incident_description: z.string().trim().max(4000).nullable(),
+});
+
+/**
+ * Why a line is short or not sent — a code and a note — and, if asked, an
+ * incident about it. Any approved user: the person preparing is the one who
+ * knows. One RPC so the reason and the incident land together or not at all.
+ */
+export async function setLineShortfall(
+  input: z.infer<typeof shortfallSchema>,
+): Promise<ActionResult<{ incident_id: string; incident_number: string } | null>> {
+  const parsed = shortfallSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'reason_required' };
+  const d = parsed.data;
+  if (d.code === 'other' && !d.note) return { ok: false, error: 'reason_required' };
+
   const supabase = createClient();
-  const { error } = await supabase.rpc('set_line_shortfall_reason', {
-    p_order_line_id: orderLineId,
-    p_reason: reason.trim(),
+  const { data, error } = await supabase.rpc('set_line_shortfall', {
+    p_order_line_id: d.order_line_id,
+    p_code: d.code,
+    p_note: d.note,
+    p_report_incident: d.report_incident,
+    p_incident_description: d.incident_description,
   });
   if (error) return fail(error);
+
   revalidateOrders();
-  return { ok: true, data: undefined };
+  const incident = data as { incident_id: string; incident_number: string } | null;
+  if (incident && d.report_incident) {
+    revalidatePath('/incidents');
+    revalidatePath(`/incidents/${incident.incident_id}`);
+  }
+  return { ok: true, data: incident };
 }
 
 /* ------------------------------ master data ----------------------------- */

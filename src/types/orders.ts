@@ -17,6 +17,14 @@ export type OrderStatus = 'draft' | 'confirmed' | 'cancelled';
 export type OrderType = 'sale' | 'sample' | 'replacement' | 'sponsorship';
 
 /**
+ * Why a product was prepared short, or not sent at all. A fixed list so the
+ * reasons can be counted; 'other' needs a note. Mirrors the check constraint
+ * in 20261002090000_shortfall_reasons_and_preparation_incidents.sql.
+ */
+export const SHORTFALL_CODES = ['no_stock', 'damaged', 'short_shelf_life', 'quality_hold', 'other'] as const;
+export type ShortfallCode = (typeof SHORTFALL_CODES)[number];
+
+/**
  * A commercial segment: Gastro, Distribuidor, Reseller.
  *
  * `slug` is the i18n key and `name` the fallback, so a segment added later
@@ -149,7 +157,12 @@ export interface OrderLine {
    * lines. Traceability only — never used for matching or fulfilment.
    */
   source_text: string | null;
+  /** Why the line is short or not sent. Null on lines explained in free text before codes existed. */
+  shortfall_code: ShortfallCode | null;
+  /** The note on the shortfall; on its own, a reason written before codes existed. */
   shortfall_reason: string | null;
+  /** The incident raised from preparation about this shortfall. Null when none, or not visible to the viewer. */
+  shortfall_incident: { id: string; incident_number: string } | null;
   position: number;
   product: Product;
   allocations: LotAllocation[];

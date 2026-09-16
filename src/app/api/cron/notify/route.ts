@@ -63,7 +63,7 @@ export async function GET(request: Request) {
         id, reference, status, delivery_date, delivery_time, ready_at,
         customer:customers!inner ( name ),
         lines:order_lines (
-          ordered_quantity, shortfall_reason,
+          ordered_quantity, shortfall_code, shortfall_reason,
           allocations:lot_allocations ( quantity )
         )
       `)

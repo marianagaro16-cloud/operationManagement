@@ -25,6 +25,25 @@ export interface LineProgress {
   status: LineStatus;
   /** A short line needs an explanation before it counts as resolved. */
   needsReason: boolean;
+  /** A reason is recorded — a code, or free text written before codes existed. */
+  explained: boolean;
+  /**
+   * Nothing more to do on this line: fully allocated, over, or short — even
+   * wholly unsent — with a reason.
+   */
+  accounted: boolean;
+  /** Left out on purpose: nothing allocated, and a reason says why. */
+  notSent: boolean;
+}
+
+/** What a line carries about its shortfall. */
+export interface ShortfallLike {
+  shortfall_code?: string | null;
+  shortfall_reason?: string | null;
+}
+
+export function isShortfallExplained(shortfall: ShortfallLike | null | undefined): boolean {
+  return Boolean(shortfall?.shortfall_code) || Boolean(shortfall?.shortfall_reason?.trim());
 }
 
 /** Quantities are numeric(12,3) in Postgres and may arrive as strings. */
@@ -45,7 +64,7 @@ function round3(n: number): number {
 export function lineProgress(
   orderedQuantity: unknown,
   allocations: AllocationLike[],
-  shortfallReason?: string | null,
+  shortfall?: ShortfallLike | null,
 ): LineProgress {
   const ordered = round3(toQuantity(orderedQuantity));
   const allocated = allocatedQuantity(allocations);
@@ -57,16 +76,21 @@ export function lineProgress(
         : diff === 0 ? 'complete'
           : 'over_allocated';
 
+  const explained = isShortfallExplained(shortfall);
+
   return {
     ordered,
     allocated,
     remaining: Math.max(0, diff),
     overBy: Math.max(0, -diff),
     status,
-    // Only a genuine shortfall needs a reason, and only once work has begun:
-    // an untouched line is simply not prepared yet, not a discrepancy.
-    needsReason:
-      status === 'partial' && !(shortfallReason && shortfallReason.trim().length > 0),
+    // Only a started line demands a reason: an untouched line is simply not
+    // prepared yet. It MAY be given one, though — that is how a product with
+    // no stock at all is left out of the order.
+    needsReason: status === 'partial' && !explained,
+    explained,
+    accounted: status === 'complete' || status === 'over_allocated' || explained,
+    notSent: status === 'not_prepared' && explained,
   };
 }
 
@@ -79,11 +103,13 @@ export interface OrderProgress {
   /** Every line fully allocated, exactly. */
   isComplete: boolean;
   /**
-   * Every line accounted for: fully allocated, over-allocated, or short WITH a
-   * reason. What decides whether an order can be marked Ready — the same rule
-   * as order_is_prepared() in SQL and the preparation report. An explained
+   * Every line accounted for — fully allocated, over-allocated, or short WITH
+   * a reason, a wholly unsent line included — and at least one lot recorded.
+   * What decides whether an order can be marked Ready — the same rule as
+   * order_is_prepared() in SQL and the preparation report. An explained
    * shortfall is a finished preparation; isComplete alone would leave it
-   * looking unfinished for ever.
+   * looking unfinished for ever. An order with every product left out is not:
+   * nothing would leave.
    */
   isPrepared: boolean;
   /** Work has started but is not finished. */
@@ -93,18 +119,20 @@ export interface OrderProgress {
 }
 
 export function orderProgress(
-  lines: { ordered_quantity: unknown; shortfall_reason?: string | null; allocations: AllocationLike[] }[],
+  lines: ({ ordered_quantity: unknown; allocations: AllocationLike[] } & ShortfallLike)[],
 ): OrderProgress {
   let complete = 0, partial = 0, notPrepared = 0, overAllocated = 0, unexplained = 0, accounted = 0;
+  let anyAllocated = false;
 
   for (const line of lines) {
-    const p = lineProgress(line.ordered_quantity, line.allocations, line.shortfall_reason);
+    const p = lineProgress(line.ordered_quantity, line.allocations, line);
+    if (p.allocated > 0) anyAllocated = true;
     if (p.status === 'complete') complete++;
     else if (p.status === 'partial') partial++;
     else if (p.status === 'over_allocated') overAllocated++;
     else notPrepared++;
     if (p.needsReason) unexplained++;
-    if (p.status === 'complete' || p.status === 'over_allocated' || (p.status === 'partial' && !p.needsReason)) accounted++;
+    if (p.accounted) accounted++;
   }
 
   const total = lines.length;
@@ -115,7 +143,7 @@ export function orderProgress(
     notPrepared,
     overAllocated,
     isComplete: total > 0 && complete === total,
-    isPrepared: total > 0 && accounted === total,
+    isPrepared: total > 0 && accounted === total && anyAllocated,
     isPartial: total > 0 && complete !== total && notPrepared !== total,
     hasUnexplainedShortfall: unexplained > 0,
   };

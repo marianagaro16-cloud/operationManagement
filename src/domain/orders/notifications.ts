@@ -28,6 +28,7 @@ export interface NotifiableOrder {
   customer: { name: string };
   lines: {
     ordered_quantity: unknown;
+    shortfall_code?: string | null;
     shortfall_reason?: string | null;
     allocations: { quantity: unknown }[];
   }[];
@@ -65,6 +66,7 @@ export function selectNotifications(
     const progress = orderProgress(
       order.lines.map((l) => ({
         ordered_quantity: l.ordered_quantity,
+        shortfall_code: l.shortfall_code ?? null,
         shortfall_reason: l.shortfall_reason ?? null,
         allocations: l.allocations,
       })),

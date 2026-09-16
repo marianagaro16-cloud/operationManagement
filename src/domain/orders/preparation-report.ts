@@ -171,17 +171,16 @@ export function computePreparationReport(
     for (const line of order.lines ?? []) {
       lines++;
       const allocations = line.allocations ?? [];
-      const p = lineProgress(line.ordered_quantity, allocations, line.shortfall_reason);
+      const p = lineProgress(line.ordered_quantity, allocations, line);
 
       if (p.status === 'complete') linesComplete++;
       if (p.status === 'over_allocated') over++;
-      if (p.status === 'partial') {
+      if (p.status === 'partial' || p.notSent) {
         shortLines++; orderShort++;
         if (p.needsReason) { unexplained++; orderUnexplained++; }
       }
 
-      const lineDone =
-        p.status === 'complete' || p.status === 'over_allocated' || (p.status === 'partial' && !p.needsReason);
+      const lineDone = p.accounted;
       if (!lineDone) orderDone = false;
 
       for (const a of allocations) {
@@ -247,7 +246,7 @@ export function computePreparationReport(
     // An order with no lines has nothing to prepare, and nothing prepared.
     const hasLines = (order.lines ?? []).length > 0;
     const state: PreparationState =
-      hasLines && orderDone ? 'done' : anyAllocation ? 'in_progress' : 'not_started';
+      hasLines && orderDone && anyAllocation ? 'done' : anyAllocation ? 'in_progress' : 'not_started';
     const onTime =
       state === 'done' ? (lastActivityAt ? zurichDay(lastActivityAt) <= order.preparation_date : true) : null;
 

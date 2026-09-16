@@ -28,7 +28,7 @@ async function makeUser(role) {
   return { id: up.user.id, client };
 }
 
-const created = { orders: [], users: [], products: [], customers: [] };
+const created = { orders: [], users: [], products: [], customers: [], incidents: [] };
 
 async function main() {
   const A = await makeUser('admin');
@@ -143,6 +143,97 @@ async function main() {
   check('user CAN record a shortfall reason', !goodReason, goodReason?.message);
   const { data: lineBAfter } = await admin.from('order_lines').select('shortfall_reason').eq('id', lineB.id).single();
   check('reason stored on the line', lineBAfter.shortfall_reason === 'Only 3 packs in stock');
+
+  console.log('\n=== 7b. Shortfall reason codes, products left out, incidents from preparation ===');
+  // U2 records no lot on this order; U3 has nothing to do with it.
+  const U2 = await makeUser('user');
+  const U3 = await makeUser('user');
+  created.users.push(U2.id, U3.id);
+  const shortfall = (client, lineId, code, note = null, report = false, description = null) =>
+    client.rpc('set_line_shortfall', {
+      p_order_line_id: lineId, p_code: code, p_note: note,
+      p_report_incident: report, p_incident_description: description,
+    });
+
+  const { error: otherNoNote } = await shortfall(U2.client, lineB.id, 'other');
+  check('"other" without a note is rejected', !!otherNoNote?.message.includes('reason_required'), otherNoNote?.message);
+  const { error: badCode } = await shortfall(U2.client, lineB.id, 'bogus', 'x');
+  check('an unknown reason code is rejected', !!badCode, badCode?.message);
+
+  const { data: reported, error: reportErr } = await shortfall(
+    U2.client, lineB.id, 'no_stock', 'Supplier late', true, 'ZZ test: 2 of 5 not sent. Reason: out of stock.');
+  check('a plain user can record a code AND raise an incident', !reportErr && !!reported?.incident_number,
+    reportErr?.message ?? reported?.incident_number);
+  if (reported?.incident_id) created.incidents.push(reported.incident_id);
+  const incidentId = reported?.incident_id ?? '00000000-0000-0000-0000-000000000000';
+
+  const { data: inc } = await admin.from('incidents')
+    .select('order_id, customer_id, created_by, type:incident_types ( slug ), items:incident_affected_items ( product_id, order_line_id, affected_quantity )')
+    .eq('id', incidentId).maybeSingle();
+  check('incident is a missing_product on this order and customer',
+    inc?.type?.slug === 'missing_product' && inc.order_id === order.id && inc.customer_id === cust.id && inc.created_by === U2.id);
+  check('affected item is the product, the line and the missing 2',
+    inc?.items?.length === 1 && inc.items[0].product_id === pB.id && inc.items[0].order_line_id === lineB.id
+      && Number(inc.items[0].affected_quantity) === 2, JSON.stringify(inc?.items));
+  const { data: lineBCoded } = await admin.from('order_lines')
+    .select('shortfall_code, shortfall_reason, shortfall_incident_id').eq('id', lineB.id).single();
+  check('line carries the code, the note and the incident',
+    lineBCoded.shortfall_code === 'no_stock' && lineBCoded.shortfall_reason === 'Supplier late'
+      && lineBCoded.shortfall_incident_id === reported?.incident_id);
+
+  const { data: seenByReporter } = await U2.client.from('incidents').select('id').eq('id', incidentId);
+  check('the reporter sees their incident (no lot on the order)', seenByReporter?.length === 1);
+  const { data: itemsByReporter } = await U2.client.from('incident_affected_items').select('id').eq('incident_id', incidentId);
+  check('the reporter sees its affected product', itemsByReporter?.length === 1);
+  const { data: seenByPreparer } = await U.client.from('incidents').select('id').eq('id', incidentId);
+  check('the person who prepared the order sees it', seenByPreparer?.length === 1);
+  const { data: seenByStranger } = await U3.client.from('incidents').select('id').eq('id', incidentId);
+  check('an unrelated user does not', seenByStranger?.length === 0);
+  const { data: embedded } = await U2.client.from('order_lines')
+    .select('shortfall_incident:incidents!order_lines_shortfall_incident_id_fkey ( id, incident_number )')
+    .eq('id', lineB.id).single();
+  check('the order query embeds the incident number', embedded?.shortfall_incident?.incident_number === reported?.incident_number);
+
+  const { data: again } = await shortfall(U2.client, lineB.id, 'damaged', null, true, 'second attempt');
+  const { count: incCount } = await admin.from('incidents').select('id', { count: 'exact', head: true }).eq('order_id', order.id);
+  check('asking again does not raise a second incident', incCount === 1 && again?.incident_id === reported?.incident_id, `count=${incCount}`);
+
+  await U2.client.from('incidents').update({ severity: 'critical', status: 'resolved' }).eq('id', incidentId);
+  const { data: incAfter } = await admin.from('incidents').select('severity, status').eq('id', incidentId).single();
+  check('the reporter still cannot edit or resolve the incident', incAfter.severity === 'medium' && incAfter.status === 'open');
+
+  const { error: clearErr } = await shortfall(U2.client, lineB.id, null);
+  const { data: lineBCleared } = await admin.from('order_lines')
+    .select('shortfall_code, shortfall_reason, shortfall_incident_id').eq('id', lineB.id).single();
+  check('a reason can be removed; the incident link stays',
+    !clearErr && lineBCleared.shortfall_code === null && lineBCleared.shortfall_reason === null
+      && lineBCleared.shortfall_incident_id === reported?.incident_id, clearErr?.message);
+
+  const { data: lineC } = await admin.from('order_lines')
+    .insert({ order_id: order.id, product_id: pInactive.id, ordered_quantity: 4, position: 2 }).select().single();
+  const prepared = async () => (await admin.rpc('order_is_prepared', { p_order_id: order.id })).data;
+  await shortfall(U.client, lineA.id, 'no_stock');
+  await shortfall(U.client, lineB.id, 'damaged');
+  check('an untouched line without a reason keeps the order unprepared', (await prepared()) === false);
+  const { error: notSentErr } = await shortfall(U.client, lineC.id, 'quality_hold');
+  check('a product with nothing allocated can be given a reason', !notSentErr, notSentErr?.message);
+  check('...and then the order counts as prepared', (await prepared()) === true);
+
+  const { error: readyErr } = await U.client.rpc('order_set_ready', { p_order_id: order.id, p_ready: true });
+  check('the user can mark it ready', !readyErr, readyErr?.message);
+  const { error: shipErr } = await U.client.rpc('order_set_shipped', { p_order_ids: [order.id], p_shipped: true });
+  check('...and shipped, with a product left out', !shipErr, shipErr?.message);
+  const { error: lockedErr } = await shortfall(U.client, lineC.id, 'no_stock');
+  check('a ready order locks its reasons', !!lockedErr?.message.includes('order_ready_locked'), lockedErr?.message);
+  await U.client.rpc('order_set_shipped', { p_order_ids: [order.id], p_shipped: false });
+  await U.client.rpc('order_set_ready', { p_order_id: order.id, p_ready: false });
+  await admin.from('order_lines').delete().eq('id', lineC.id);
+
+  await U.client.from('lot_allocations').insert({ order_line_id: lineA.id, lot_number: '260906', quantity: 2, created_by: U.id });
+  const { error: completeErr } = await shortfall(U.client, lineA.id, 'no_stock');
+  check('a complete line refuses a reason', !!completeErr?.message.includes('line_not_short'), completeErr?.message);
+  await admin.from('lot_allocations').delete().eq('lot_number', '260906');
+  await admin.from('order_lines').update({ shortfall_code: null }).eq('id', lineA.id);
 
   console.log('\n=== 8. Lot number is mandatory; free text is accepted ===');
   const { error: noLot } = await U.client.from('lot_allocations').insert({ order_line_id: lineB.id, lot_number: '  ', quantity: 1, created_by: U.id });
@@ -281,6 +372,8 @@ let aborted = null;
 main()
   .catch((e) => { aborted = e.message; console.error('\nFATAL: ' + e.message); fail++; })
   .finally(async () => {
+    // An incident restricts deleting its customer and products, so it goes first.
+    for (const id of created.incidents) await admin.from('incidents').delete().eq('id', id);
     for (const id of created.orders) await admin.from('orders').delete().eq('id', id);
     for (const id of created.products) await admin.from('products').delete().eq('id', id);
     for (const id of created.customers) await admin.from('customers').delete().eq('id', id);

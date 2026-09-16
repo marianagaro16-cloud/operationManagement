@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  AlertTriangle, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Plus, Trash2, UserRound,
+  Ban, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Plus, Trash2, UserRound,
 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
@@ -22,7 +22,8 @@ import { productLabel, type CustomerType, type OrderLine, type OrderWithProgress
 import { useCustomerTypeLabel } from '@/components/customers/use-customer-type-label';
 import { StatusChip, statusPresentation } from '@/components/ui/status-chip';
 import { OrderTypeBadge } from '@/components/orders/order-type-badge';
-import { saveLotAllocation, deleteLotAllocation, setShortfallReason } from '@/server/order-actions';
+import { saveLotAllocation, deleteLotAllocation } from '@/server/order-actions';
+import { ShortfallEditor, ShortfallSummary } from './shortfall';
 import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
 import { orderStage, stageWeight } from '@/domain/orders/stage';
 
@@ -269,17 +270,18 @@ function PreparationLine({
   const [lot, setLot] = useState('');
   const [qty, setQty] = useState('');
   const [note, setNote] = useState('');
-  const [reason, setReason] = useState(line.shortfall_reason ?? '');
+  const [editingShortfall, setEditingShortfall] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const progress = lineProgress(line.ordered_quantity, line.allocations, line.shortfall_reason);
+  const progress = lineProgress(line.ordered_quantity, line.allocations, line);
 
   // Both the label and the colour come from the one registry, instead of two
-  // parallel four-branch ladders that had to be kept in step by hand.
+  // parallel four-branch ladders that had to be kept in step by hand. A
+  // product left out on purpose is not "not prepared yet": it is decided.
   const presentation = statusPresentation('line', progress.status);
-  const tone = presentation?.tone ?? 'neutral';
-  const statusLabel = presentation ? t(presentation.key) : '';
+  const tone = progress.notSent ? 'warn' : presentation?.tone ?? 'neutral';
+  const statusLabel = progress.notSent ? t('prep.statusNotSent') : presentation ? t(presentation.key) : '';
 
   function submitLot() {
     setError(null);
@@ -312,15 +314,6 @@ function PreparationLine({
         return;
       }
       setLot(''); setQty(''); setNote(''); setAdding(false);
-      router.refresh();
-    });
-  }
-
-  function submitReason() {
-    if (!reason.trim()) return;
-    startTransition(async () => {
-      const res = await setShortfallReason(line.id, reason);
-      if (!res.ok) setError(res.error);
       router.refresh();
     });
   }
@@ -443,45 +436,43 @@ function PreparationLine({
         </div>
       ) : (
         !locked && progress.status !== 'complete' && (
-          <Button size="sm" variant="secondary" className="mt-2" onClick={() => setAdding(true)}>
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            {t('prep.addLot')}
-          </Button>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setAdding(true)}>
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              {t('prep.addLot')}
+            </Button>
+            {/* Nothing of this product can go: say why, and the order can
+                still be marked ready and shipped without it. */}
+            {progress.status === 'not_prepared' && !progress.explained && !editingShortfall && (
+              <Button size="sm" variant="ghost" onClick={() => setEditingShortfall(true)}>
+                <Ban className="h-3.5 w-3.5" aria-hidden />
+                {t('prep.markNotSent')}
+              </Button>
+            )}
+          </div>
         )
       )}
 
       {/* A shortfall may not be left silent. */}
-      {!locked && progress.needsReason && (
-        <div className="mt-2 rounded-lg border border-warn/30 bg-warn/[0.06] p-2.5">
-          <p className="mb-1.5 flex items-center gap-1.5 text-[12.5px] font-medium text-warn">
-            <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
-            {t('prep.shortfallRequired')}
-          </p>
-          <Textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder={t('prep.shortfallPlaceholder')}
-            rows={1}
-            className="min-h-[38px] text-[13px]"
-            aria-label={t('prep.shortfallReason')}
-          />
-          <Button
-            size="sm"
-            variant="secondary"
-            className="mt-2"
-            onClick={submitReason}
-            loading={pending}
-            disabled={!reason.trim()}
-          >
-            {t('prep.saveReason')}
-          </Button>
-        </div>
-      )}
-
-      {line.shortfall_reason && !progress.needsReason && progress.status === 'partial' && (
-        <p className="mt-2 rounded-md bg-surface-2 px-2 py-1 text-[12px] text-muted">
-          <span className="font-medium">{t('prep.shortfallReason')}:</span> {line.shortfall_reason}
-        </p>
+      {!locked && (progress.needsReason || editingShortfall) ? (
+        <ShortfallEditor
+          line={line}
+          ordered={progress.ordered}
+          missing={progress.remaining}
+          required={progress.needsReason}
+          onDone={() => setEditingShortfall(false)}
+        />
+      ) : (
+        progress.explained && progress.remaining > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <ShortfallSummary line={line} className="min-w-0 flex-1" />
+            {!locked && (
+              <Button size="sm" variant="ghost" onClick={() => setEditingShortfall(true)}>
+                {t('prep.changeReason')}
+              </Button>
+            )}
+          </div>
+        )
       )}
 
       <ConfirmDialog

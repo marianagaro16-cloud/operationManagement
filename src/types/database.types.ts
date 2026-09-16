@@ -1579,6 +1579,8 @@ export type Database = {
       }
       inventory_instance_items: {
         Row: {
+          counted_at: string | null
+          counted_by: string | null
           created_at: string
           difference: number | null
           digital_quantity: number | null
@@ -1597,6 +1599,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          counted_at?: string | null
+          counted_by?: string | null
           created_at?: string
           difference?: number | null
           digital_quantity?: number | null
@@ -1615,6 +1619,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          counted_at?: string | null
+          counted_by?: string | null
           created_at?: string
           difference?: number | null
           digital_quantity?: number | null
@@ -1633,6 +1639,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_instance_items_counted_by_fkey"
+            columns: ["counted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inventory_instance_items_instance_id_fkey"
             columns: ["instance_id"]
@@ -1966,6 +1979,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["inventory_kind"]
           name: string
           schedule_config: Json | null
+          short_shelf_life_months: number | null
           slug: string
           translations: Json
           updated_at: string
@@ -1982,6 +1996,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["inventory_kind"]
           name: string
           schedule_config?: Json | null
+          short_shelf_life_months?: number | null
           slug: string
           translations?: Json
           updated_at?: string
@@ -1998,6 +2013,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["inventory_kind"]
           name?: string
           schedule_config?: Json | null
+          short_shelf_life_months?: number | null
           slug?: string
           translations?: Json
           updated_at?: string
@@ -2143,6 +2159,8 @@ export type Database = {
           ordered_quantity: number
           position: number
           product_id: string
+          shortfall_code: string | null
+          shortfall_incident_id: string | null
           shortfall_reason: string | null
           source_text: string | null
           updated_at: string
@@ -2156,6 +2174,8 @@ export type Database = {
           ordered_quantity: number
           position?: number
           product_id: string
+          shortfall_code?: string | null
+          shortfall_incident_id?: string | null
           shortfall_reason?: string | null
           source_text?: string | null
           updated_at?: string
@@ -2169,6 +2189,8 @@ export type Database = {
           ordered_quantity?: number
           position?: number
           product_id?: string
+          shortfall_code?: string | null
+          shortfall_incident_id?: string | null
           shortfall_reason?: string | null
           source_text?: string | null
           updated_at?: string
@@ -2200,6 +2222,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_lines_shortfall_incident_id_fkey"
+            columns: ["shortfall_incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
             referencedColumns: ["id"]
           },
         ]
@@ -2338,9 +2367,13 @@ export type Database = {
           order_date: string
           order_type: Database["public"]["Enums"]["order_type"]
           preparation_date: string
+          ready_at: string | null
+          ready_by: string | null
           recurring_template_id: string | null
           reference: number
           replaces_incident_id: string | null
+          shipped_at: string | null
+          shipped_by: string | null
           status: Database["public"]["Enums"]["order_status"]
           updated_at: string
           updated_by: string | null
@@ -2360,9 +2393,13 @@ export type Database = {
           order_date?: string
           order_type?: Database["public"]["Enums"]["order_type"]
           preparation_date: string
+          ready_at?: string | null
+          ready_by?: string | null
           recurring_template_id?: string | null
           reference?: never
           replaces_incident_id?: string | null
+          shipped_at?: string | null
+          shipped_by?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
           updated_by?: string | null
@@ -2382,9 +2419,13 @@ export type Database = {
           order_date?: string
           order_type?: Database["public"]["Enums"]["order_type"]
           preparation_date?: string
+          ready_at?: string | null
+          ready_by?: string | null
           recurring_template_id?: string | null
           reference?: never
           replaces_incident_id?: string | null
+          shipped_at?: string | null
+          shipped_by?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
           updated_by?: string | null
@@ -2426,6 +2467,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orders_ready_by_fkey"
+            columns: ["ready_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_recurring_template_id_fkey"
             columns: ["recurring_template_id"]
             isOneToOne: false
@@ -2437,6 +2485,13 @@ export type Database = {
             columns: ["replaces_incident_id"]
             isOneToOne: false
             referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_shipped_by_fkey"
+            columns: ["shipped_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2468,6 +2523,157 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      personal_tasks: {
+        Row: {
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          customer_id: string | null
+          due_date: string | null
+          due_time: string | null
+          goods_reception_id: string | null
+          id: string
+          incident_id: string | null
+          inventory_instance_id: string | null
+          notes: string | null
+          order_id: string | null
+          owner_id: string
+          product_id: string | null
+          source_reminder_id: string | null
+          status: string
+          task_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          goods_reception_id?: string | null
+          id?: string
+          incident_id?: string | null
+          inventory_instance_id?: string | null
+          notes?: string | null
+          order_id?: string | null
+          owner_id: string
+          product_id?: string | null
+          source_reminder_id?: string | null
+          status?: string
+          task_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          goods_reception_id?: string | null
+          id?: string
+          incident_id?: string | null
+          inventory_instance_id?: string | null
+          notes?: string | null
+          order_id?: string | null
+          owner_id?: string
+          product_id?: string | null
+          source_reminder_id?: string | null
+          status?: string
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_tasks_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_goods_reception_id_fkey"
+            columns: ["goods_reception_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_inventory_instance_id_fkey"
+            columns: ["inventory_instance_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_source_reminder_fkey"
+            columns: ["source_reminder_id"]
+            isOneToOne: false
+            referencedRelation: "reminders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_aliases: {
         Row: {
@@ -2594,6 +2800,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          deleted_at: string | null
           email: string
           id: string
           last_seen_at: string | null
@@ -2604,6 +2811,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           email: string
           id: string
           last_seen_at?: string | null
@@ -2614,6 +2822,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           email?: string
           id?: string
           last_seen_at?: string | null
@@ -2783,6 +2992,321 @@ export type Database = {
             columns: ["delivery_method_id"]
             isOneToOne: false
             referencedRelation: "delivery_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminder_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          id: string
+          reminder_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          reminder_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          reminder_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_events_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "reminders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminder_notifications: {
+        Row: {
+          id: string
+          kind: string
+          recipients: number
+          reminder_id: string
+          sent_at: string
+          slot_at: string
+          step: number
+        }
+        Insert: {
+          id?: string
+          kind: string
+          recipients?: number
+          reminder_id: string
+          sent_at?: string
+          slot_at: string
+          step?: number
+        }
+        Update: {
+          id?: string
+          kind?: string
+          recipients?: number
+          reminder_id?: string
+          sent_at?: string
+          slot_at?: string
+          step?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_notifications_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "reminders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminder_participants: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          reminder_id: string
+          user_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          reminder_id: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          reminder_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_participants_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "reminders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminders: {
+        Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          completed_by: string | null
+          converted_at: string | null
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          due_at: string
+          goods_reception_id: string | null
+          id: string
+          incident_id: string | null
+          inventory_instance_id: string | null
+          is_shared: boolean
+          next_at: string | null
+          notes: string | null
+          notify_before_minutes: number | null
+          order_id: string | null
+          personal_task_id: string | null
+          product_id: string | null
+          recurrence: string
+          recurrence_anchor: string | null
+          snoozed_until: string | null
+          status: string
+          task_id: string | null
+          timezone: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          converted_at?: string | null
+          created_at?: string
+          created_by: string
+          customer_id?: string | null
+          due_at: string
+          goods_reception_id?: string | null
+          id?: string
+          incident_id?: string | null
+          inventory_instance_id?: string | null
+          is_shared?: boolean
+          next_at?: string | null
+          notes?: string | null
+          notify_before_minutes?: number | null
+          order_id?: string | null
+          personal_task_id?: string | null
+          product_id?: string | null
+          recurrence?: string
+          recurrence_anchor?: string | null
+          snoozed_until?: string | null
+          status?: string
+          task_id?: string | null
+          timezone?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          converted_at?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          due_at?: string
+          goods_reception_id?: string | null
+          id?: string
+          incident_id?: string | null
+          inventory_instance_id?: string | null
+          is_shared?: boolean
+          next_at?: string | null
+          notes?: string | null
+          notify_before_minutes?: number | null
+          order_id?: string | null
+          personal_task_id?: string | null
+          product_id?: string | null
+          recurrence?: string
+          recurrence_anchor?: string | null
+          snoozed_until?: string | null
+          status?: string
+          task_id?: string | null
+          timezone?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "reminders_goods_reception_id_fkey"
+            columns: ["goods_reception_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_inventory_instance_id_fkey"
+            columns: ["inventory_instance_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "reminders_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_personal_task_id_fkey"
+            columns: ["personal_task_id"]
+            isOneToOne: false
+            referencedRelation: "personal_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "reminders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -3090,6 +3614,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "task_occurrences_blocked_by_fkey"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_occurrences_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_occurrences_skipped_by_fkey"
+            columns: ["skipped_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "task_occurrences_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
@@ -3153,6 +3698,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3265,6 +3817,7 @@ export type Database = {
       }
     }
     Functions: {
+      admin_delete_user: { Args: { p_user_id: string }; Returns: undefined }
       block_occurrence: {
         Args: { p_occurrence_id: string; p_reason: string }
         Returns: {
@@ -3295,10 +3848,19 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      can_use_reminders: { Args: never; Returns: boolean }
       can_view_incident:
         | { Args: { p_order_id: string }; Returns: boolean }
         | {
             Args: { p_goods_reception_id: string; p_order_id: string }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_created_by: string
+              p_goods_reception_id: string
+              p_order_id: string
+            }
             Returns: boolean
           }
       can_write_goods_reception: {
@@ -3367,9 +3929,13 @@ export type Database = {
           order_date: string
           order_type: Database["public"]["Enums"]["order_type"]
           preparation_date: string
+          ready_at: string | null
+          ready_by: string | null
           recurring_template_id: string | null
           reference: number
           replaces_incident_id: string | null
+          shipped_at: string | null
+          shipped_by: string | null
           status: Database["public"]["Enums"]["order_status"]
           updated_at: string
           updated_by: string | null
@@ -3444,6 +4010,10 @@ export type Database = {
         Args: { p_instance_id: string }
         Returns: boolean
       }
+      inventory_item_set_done: {
+        Args: { p_done: boolean; p_item_id: string }
+        Returns: undefined
+      }
       inventory_reopen: {
         Args: { p_instance_id: string }
         Returns: {
@@ -3473,6 +4043,8 @@ export type Database = {
       inventory_resolve_item: {
         Args: { p_item_id: string; p_note: string }
         Returns: {
+          counted_at: string | null
+          counted_by: string | null
           created_at: string
           difference: number | null
           digital_quantity: number | null
@@ -3522,6 +4094,8 @@ export type Database = {
       inventory_set_digital: {
         Args: { p_item_id: string; p_value: number }
         Returns: {
+          counted_at: string | null
+          counted_by: string | null
           created_at: string
           difference: number | null
           digital_quantity: number | null
@@ -3546,6 +4120,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      inventory_sync_brand: { Args: { p_brand_id: string }; Returns: undefined }
       inventory_sync_instance_status: {
         Args: { p_instance_id: string }
         Returns: undefined
@@ -3557,6 +4132,27 @@ export type Database = {
         Returns: boolean
       }
       is_goods_reception_assignee: { Args: never; Returns: boolean }
+      is_reminder_participant: {
+        Args: { p_reminder: string }
+        Returns: boolean
+      }
+      list_reminders: {
+        Args: {
+          p_creator?: string
+          p_from?: string
+          p_limit?: number
+          p_link_type?: string
+          p_offset?: number
+          p_query?: string
+          p_scope?: string
+          p_to?: string
+          p_view: string
+        }
+        Returns: {
+          id: string
+          total: number
+        }[]
+      }
       next_goods_reception_report_version: {
         Args: { p_month: string }
         Returns: number
@@ -3565,10 +4161,55 @@ export type Database = {
         Args: { p_month: string }
         Returns: number
       }
+      order_is_prepared: { Args: { p_order_id: string }; Returns: boolean }
+      order_set_ready: {
+        Args: { p_order_id: string; p_ready: boolean }
+        Returns: undefined
+      }
+      order_set_shipped: {
+        Args: { p_order_ids: string[]; p_shipped: boolean }
+        Returns: number
+      }
       preparation_date_for: {
         Args: { p_delivery_date: string; p_lead_days: number }
         Returns: string
       }
+      reminder_attention_count: { Args: never; Returns: number }
+      reminder_cancel: { Args: { p_id: string }; Returns: undefined }
+      reminder_complete: {
+        Args: { p_id: string; p_next_due_at: string }
+        Returns: undefined
+      }
+      reminder_convert: { Args: { p_id: string }; Returns: string }
+      reminder_guard: { Args: never; Returns: string }
+      reminder_participant_candidates: {
+        Args: never
+        Returns: {
+          email: string
+          id: string
+          name: string
+        }[]
+      }
+      reminder_save: {
+        Args: {
+          p_due_at: string
+          p_id: string
+          p_link_id: string
+          p_link_type: string
+          p_notes: string
+          p_notify_before: number
+          p_participants: string[]
+          p_recurrence: string
+          p_timezone: string
+          p_title: string
+        }
+        Returns: string
+      }
+      reminder_snooze: {
+        Args: { p_id: string; p_until: string }
+        Returns: undefined
+      }
+      reminders_eligible: { Args: { p_user: string }; Returns: boolean }
       reopen_occurrence: {
         Args: { p_occurrence_id: string }
         Returns: {
@@ -3603,6 +4244,16 @@ export type Database = {
         Args: { r: Database["public"]["Enums"]["user_role"] }
         Returns: number
       }
+      set_line_shortfall: {
+        Args: {
+          p_code: string
+          p_incident_description?: string
+          p_note: string
+          p_order_line_id: string
+          p_report_incident?: boolean
+        }
+        Returns: Json
+      }
       set_line_shortfall_reason: {
         Args: { p_order_line_id: string; p_reason: string }
         Returns: {
@@ -3614,6 +4265,8 @@ export type Database = {
           ordered_quantity: number
           position: number
           product_id: string
+          shortfall_code: string | null
+          shortfall_incident_id: string | null
           shortfall_reason: string | null
           source_text: string | null
           updated_at: string

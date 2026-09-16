@@ -26,6 +26,7 @@ import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
 import { NoteBlock, NoteChip } from '@/components/ui/note';
 import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
+import { ShortfallSummary } from './shortfall';
 
 /**
  * One order, at its own address.
@@ -241,7 +242,7 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
  */
 function DetailLine({ line }: { line: OrderLine }) {
   const { t, locale } = useI18n();
-  const p = lineProgress(line.ordered_quantity, line.allocations, line.shortfall_reason);
+  const p = lineProgress(line.ordered_quantity, line.allocations, line);
 
   const proposed = line.generated_quantity === null ? null : toQuantity(line.generated_quantity);
   const diverged = proposed !== null && proposed !== toQuantity(line.ordered_quantity);
@@ -265,7 +266,7 @@ function DetailLine({ line }: { line: OrderLine }) {
             </p>
           )}
         </div>
-        <StatusChip domain="line" status={p.status} />
+        {p.notSent ? <Badge tone="warn">{t('prep.statusNotSent')}</Badge> : <StatusChip domain="line" status={p.status} />}
       </div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[12.5px]">
@@ -319,11 +320,7 @@ function DetailLine({ line }: { line: OrderLine }) {
         </ul>
       )}
 
-      {line.shortfall_reason && (
-        <p className="mt-2 rounded-md bg-surface-2 px-2 py-1 text-[12px] text-muted">
-          <span className="font-medium">{t('prep.shortfallReason')}:</span> {line.shortfall_reason}
-        </p>
-      )}
+      <ShortfallSummary line={line} className="mt-2" />
     </li>
   );
 }

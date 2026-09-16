@@ -37,7 +37,8 @@ const ORDER_SELECT = `
   shipped_by_profile:profiles!orders_shipped_by_fkey ( name, email ),
   delivery_method:delivery_methods ( id, slug, name, sort_order, is_active ),
   lines:order_lines (
-    id, order_id, product_id, ordered_quantity, generated_quantity, note, source_text, shortfall_reason, position,
+    id, order_id, product_id, ordered_quantity, generated_quantity, note, source_text, shortfall_code, shortfall_reason, position,
+    shortfall_incident:incidents!order_lines_shortfall_incident_id_fkey ( id, incident_number ),
     product:products ( id, code, name, family, presentation, category, notes, units_per_box, brand_id, needs_review, is_active, brand:brands ( id, name, sort_order, is_active ) ),
     allocations:lot_allocations (
       id, order_line_id, lot_number, quantity, note, created_by, created_at, updated_at,
@@ -69,6 +70,7 @@ function withProgress(orders: Order[]): OrderWithProgress[] {
     progress: orderProgress(
       (o.lines ?? []).map((l) => ({
         ordered_quantity: l.ordered_quantity,
+        shortfall_code: l.shortfall_code,
         shortfall_reason: l.shortfall_reason,
         allocations: l.allocations ?? [],
       })),

@@ -203,7 +203,7 @@ export interface OrderReport {
   /** Units ordered and prepared across every counted line. */
   totalOrdered: number;
   totalPrepared: number;
-  /** Lines where less was prepared than ordered. */
+  /** Lines where less was prepared than ordered, including products left out with a reason. */
   shortLines: number;
   /** Of those, the ones with no explanation recorded. */
   unexplainedShortLines: number;
@@ -306,7 +306,7 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
       const progress = lineProgress(
         line.ordered_quantity,
         line.allocations ?? [],
-        line.shortfall_reason,
+        line,
       );
       const ordered = progress.ordered;
       const prepared = progress.allocated;
@@ -315,7 +315,7 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
       cust.ordered += ordered;
       day.ordered += ordered;
 
-      if (progress.status === 'partial') {
+      if (progress.status === 'partial' || progress.notSent) {
         shortLines++;
         if (progress.needsReason) unexplainedShortLines++;
       }
