@@ -87,8 +87,14 @@ export function OrderLineEditor({
     }
     const nextHasProduct = !isLast && Boolean(lines[i + 1]?.product_id);
     requestAnimationFrame(() => {
-      if (nextHasProduct) quantityRefs.current[i + 1]?.select();
-      else productRefs.current[i + 1]?.focus();
+      if (nextHasProduct) {
+        // select() alone does not move focus in every browser.
+        const next = quantityRefs.current[i + 1];
+        next?.focus();
+        next?.select();
+      } else {
+        productRefs.current[i + 1]?.focus();
+      }
     });
   }
 

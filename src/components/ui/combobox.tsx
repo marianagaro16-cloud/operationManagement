@@ -90,6 +90,12 @@ export function Combobox<T>({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  // Whether the person has moved through the list with the arrow keys since
+  // it opened or the query last changed. Without a query or that, the
+  // highlighted option is only the list's first item, not a choice. Hover
+  // does not count: a list can open under a resting pointer, and pointer
+  // users choose by clicking.
+  const [navigated, setNavigated] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -110,6 +116,7 @@ export function Combobox<T>({
 
   useEffect(() => {
     setActiveIndex(0);
+    setNavigated(false);
   }, [query, open]);
 
   // Keep the highlighted option in view during keyboard navigation.
@@ -150,6 +157,7 @@ export function Combobox<T>({
       e.preventDefault();
       if (!open) { setOpen(true); return; }
       if (filtered.length === 0) return;
+      setNavigated(true);
       setActiveIndex((i) => {
         const next = e.key === 'ArrowDown' ? i + 1 : i - 1;
         // Wrap, so the list is a loop rather than a dead end.
@@ -158,12 +166,14 @@ export function Combobox<T>({
       return;
     }
     if (e.key === 'Enter') {
-      // Opened on a selection and nothing typed: Enter keeps what is there.
-      // The list is unfiltered then, so the highlighted option is simply the
-      // first item, and committing it would silently replace the selection.
-      if (open && !query.trim() && selected) {
+      // Nothing typed and nothing picked from the list: Enter is not a
+      // choice. The list is unfiltered then, so the highlighted option is
+      // just the first item — committing it replaced a line's product when
+      // Enter was pressed twice in quick succession. With a selection, Enter
+      // keeps it (and moves on); without one, it does nothing.
+      if (open && !query.trim() && !navigated) {
         e.preventDefault();
-        commit(selected);
+        if (selected) commit(selected);
         return;
       }
       if (open && filtered[activeIndex]) {
