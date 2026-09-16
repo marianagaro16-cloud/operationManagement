@@ -246,6 +246,22 @@ export function narrowToProduct<T extends Order>(orders: T[], productId: string)
 }
 
 /**
+ * Keep only the lines of one brand, and only the orders that carry it.
+ *
+ * Trims lines for the same reason narrowToProduct does. 'none' keeps the
+ * products nobody has classified — the Lot Tracker's convention — so the
+ * brand filters together still cover every line.
+ */
+export function narrowToBrand<T extends Order>(orders: T[], brand: string): T[] {
+  return orders.flatMap((o) => {
+    const lines = (o.lines ?? []).filter((l) =>
+      brand === 'none' ? !l.product?.brand_id : l.product?.brand_id === brand,
+    );
+    return lines.length > 0 ? [{ ...o, lines }] : [];
+  });
+}
+
+/**
  * Aggregate a set of orders into a report.
  *
  * Cancelled orders are excluded from every quantity and from the product and

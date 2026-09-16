@@ -1,4 +1,4 @@
-import { getCustomers, getOrdersByDelivery, getOrdersByPreparation, getProducts } from '@/server/orders';
+import { getBrands, getCustomers, getOrdersByDelivery, getOrdersByPreparation, getProducts } from '@/server/orders';
 import { computePreparationReport } from '@/domain/orders/preparation-report';
 import { PreparationReportView } from '@/components/reports/preparation-report-view';
 import { getOccurrencesInRange, getUsers } from '@/server/data';
@@ -9,6 +9,7 @@ import { computeStats } from '@/domain/stats';
 import {
   computeOrderReport,
   customRange,
+  narrowToBrand,
   narrowToProduct,
   periodRange,
   type ReportPeriod,
@@ -46,6 +47,7 @@ export default async function ReportsPage({
     to?: string;
     customer?: string;
     product?: string;
+    brand?: string;
   };
 }) {
   const tab: ReportTab = TABS.includes(searchParams.tab as ReportTab)
@@ -107,15 +109,19 @@ export default async function ReportsPage({
   // to nothing rather than reaching PostgREST as a malformed uuid.
   const customerId = isUuid(searchParams.customer) ? searchParams.customer : undefined;
   const productId = isUuid(searchParams.product) ? searchParams.product : undefined;
+  // A brand id, or 'none' for products nobody has classified.
+  const brandId = searchParams.brand === 'none' || isUuid(searchParams.brand) ? searchParams.brand : undefined;
 
   // Reuses the existing order query — no reporting tables, no duplicated data.
-  // Inactive customers and products are offered too: a report looks backwards.
-  const [found, customers, products] = await Promise.all([
+  // Inactive customers, products and brands are offered too: a report looks backwards.
+  const [found, customers, products, brands] = await Promise.all([
     getOrdersByDelivery({ from: range.start, to: range.end, customerId }),
     getCustomers(true),
     getProducts(true),
+    getBrands(true),
   ]);
-  const orders = productId ? narrowToProduct(found, productId) : found;
+  const byBrand = brandId ? narrowToBrand(found, brandId) : found;
+  const orders = productId ? narrowToProduct(byBrand, productId) : byBrand;
 
   return (
     <OrderReportView
@@ -123,7 +129,8 @@ export default async function ReportsPage({
       anchor={anchor}
       customers={customers}
       products={products}
-      filters={{ customerId, productId }}
+      brands={brands}
+      filters={{ customerId, productId, brandId }}
     />
   );
 }

@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Download } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
-import { Badge, Card, CardBody, EmptyState } from '@/components/ui/primitives';
+import { Badge, Card, CardBody, EmptyState, Select } from '@/components/ui/primitives';
 import { Combobox } from '@/components/ui/combobox';
 import { ReportShell, reportHref } from '@/components/reports/report-shell';
 import { productReportToCsv, type OrderReport } from '@/domain/orders/reporting';
-import { productLabel, type Customer, type Product } from '@/types/orders';
+import { productLabel, type Brand, type Customer, type Product } from '@/types/orders';
 
 /**
  * Order report — the Orders tab of /admin/reports.
@@ -29,22 +29,41 @@ export function OrderReportView({
   anchor,
   customers,
   products,
+  brands,
   filters,
 }: {
   report: OrderReport;
   anchor: string;
   customers: Customer[];
   products: Product[];
-  /** Narrowing applied to the whole report, carried in the URL. */
-  filters: { customerId?: string; productId?: string };
+  brands: Brand[];
+  /** Narrowing applied to the whole report, carried in the URL. brandId may be 'none'. */
+  filters: { customerId?: string; productId?: string; brandId?: string };
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
   const { range } = report;
 
-  const urlFilters = { customer: filters.customerId, product: filters.productId };
+  const urlFilters = { customer: filters.customerId, product: filters.productId, brand: filters.brandId };
   const setFilter = (key: 'customer' | 'product', value: string | null) =>
     router.push(reportHref('orders', range, anchor, undefined, { ...urlFilters, [key]: value ?? undefined }));
+
+  // The product picker offers only the chosen brand's products.
+  const inBrand = (p: Product, brand: string | undefined) =>
+    !brand || (brand === 'none' ? !p.brand_id : p.brand_id === brand);
+  const brandProducts = products.filter((p) => inBrand(p, filters.brandId));
+
+  // A product of another brand would narrow the report to nothing, so it is
+  // dropped when the brand changes.
+  function setBrand(value: string) {
+    const brand = value || undefined;
+    const product = products.find((p) => p.id === filters.productId);
+    router.push(reportHref('orders', range, anchor, undefined, {
+      ...urlFilters,
+      brand,
+      product: product && inBrand(product, brand) ? product.id : undefined,
+    }));
+  }
 
   function downloadCsv() {
     // Built in the browser from data already on the page — no round trip.
@@ -88,7 +107,7 @@ export function OrderReportView({
     >
       {/* Outside the empty state, so a filter that matches nothing can still
           be seen and cleared. Clearing a field means "all". */}
-      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
         <Combobox
           items={customers}
           value={filters.customerId ?? null}
@@ -99,8 +118,21 @@ export function OrderReportView({
           placeholder={t('orders.allCustomers')}
           emptyMessage={t('orders.noCustomersFound')}
         />
+        {/* 'none' is a real choice, as in the Lot Tracker: products nobody
+            has classified are otherwise unreachable from a brand filter. */}
+        <Select
+          value={filters.brandId ?? ''}
+          onChange={(e) => setBrand(e.target.value)}
+          aria-label={t('master.brand')}
+        >
+          <option value="">{t('master.allBrands')}</option>
+          {brands.map((b) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+          <option value="none">{t('master.noBrand')}</option>
+        </Select>
         <Combobox
-          items={products}
+          items={brandProducts}
           value={filters.productId ?? null}
           onChange={(id) => setFilter('product', id)}
           getKey={(p) => p.id}
@@ -220,9 +252,18 @@ export function OrderReportView({
                       {report.byBrand.map((b) => (
                         <tr key={b.brandId ?? 'unclassified'}>
                           <td className="max-w-[260px] truncate px-3 py-2">
-                            {b.name ?? (
-                              <span className="italic text-subtle">{t('master.noBrand')}</span>
-                            )}
+                            {/* Narrows the whole report to this brand. */}
+                            <Link
+                              href={reportHref('orders', range, anchor, undefined, {
+                                customer: filters.customerId,
+                                brand: b.brandId ?? 'none',
+                              })}
+                              className="transition-colors hover:text-accent hover:underline"
+                            >
+                              {b.name ?? (
+                                <span className="italic text-subtle">{t('master.noBrand')}</span>
+                              )}
+                            </Link>
                           </td>
                           <td className="px-2 py-2 text-right tabular">{b.products}</td>
                           <td className="px-2 py-2 text-right tabular">{b.lines}</td>

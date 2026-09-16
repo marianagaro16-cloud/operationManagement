@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   computeOrderReport,
+  narrowToBrand,
   narrowToProduct,
   periodRange,
   shiftPeriod,
@@ -562,6 +563,26 @@ describe('period labels', () => {
     const label = periodLabel(customRange('2026-12-20', '2027-01-10'), 'en');
     expect(label).toContain('2026');
     expect(label).toContain('2027');
+  });
+});
+
+describe('narrowToBrand', () => {
+  const orders = [
+    order({ lines: [branded(line('p1', '01', 'Chorizo', 4), 'b1', 'Del Barrio'), line('p2', '02', 'Queso', 7)] }),
+    order({ lines: [branded(line('p3', '03', 'Tortilla', 3), 'b2', 'Masamor')] }),
+  ];
+
+  it('keeps only that brand\'s lines, and only the orders that carry it', () => {
+    const report = computeOrderReport(narrowToBrand(orders, 'b1'), SEP);
+    expect(report.orders).toBe(1);
+    expect(report.totalOrdered).toBe(4);
+    expect(report.byProduct.map((p) => p.productId)).toEqual(['p1']);
+  });
+
+  it("'none' keeps the unclassified products", () => {
+    const report = computeOrderReport(narrowToBrand(orders, 'none'), SEP);
+    expect(report.byProduct.map((p) => p.productId)).toEqual(['p2']);
+    expect(report.totalOrdered).toBe(7);
   });
 });
 
