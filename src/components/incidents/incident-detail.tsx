@@ -353,9 +353,17 @@ function StatusControls({
   const { t } = useI18n();
   const [resolution, setResolution] = useState(incident.resolution_notes ?? '');
 
+  const hasNotes = Boolean(resolution.trim());
+
+  /*
+   * Offered as if a resolution were written, so Resolved shows (disabled)
+   * until it is. Computing this from the notes themselves hid both the button
+   * AND the notes box that enables it, so no incident could ever be resolved,
+   * and therefore none could be closed.
+   */
   const options = availableTransitions(incident.status, {
     canClose,
-    hasResolutionNotes: Boolean(resolution.trim()),
+    hasResolutionNotes: true,
   });
 
   if (options.length === 0) return null;
@@ -385,7 +393,7 @@ function StatusControls({
             key={to}
             size="sm"
             variant={to === 'closed' ? 'success' : 'secondary'}
-            disabled={pending}
+            disabled={pending || (to === 'resolved' && !hasNotes)}
             onClick={() =>
               onRun(() =>
                 updateIncident(incident.id, {
