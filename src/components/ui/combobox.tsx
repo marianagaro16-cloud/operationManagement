@@ -96,6 +96,16 @@ export function Combobox<T>({
   // does not count: a list can open under a resting pointer, and pointer
   // users choose by clicking.
   const [navigated, setNavigated] = useState(false);
+  /**
+   * Opened on a selection and not edited yet: the field holds the selected
+   * label, cursor at the end, rather than going blank for searching. The
+   * label is not a search — the list stays unfiltered and Enter keeps the
+   * selection — until the person changes the text.
+   */
+  const [showingSelection, setShowingSelection] = useState(false);
+  // The clear button refocuses the field after clearing, when `selected` in
+  // this render is still the value being cleared.
+  const skipSelectionOnFocus = useRef(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -109,9 +119,10 @@ export function Combobox<T>({
   // Empty query shows everything, so the field is browsable without typing.
   // The matching itself lives in lib/search, where it is unit-tested against
   // the real customer and product strings.
+  const searchQuery = showingSelection ? '' : query;
   const filtered = useMemo(
-    () => filterByQuery(items, query, getSearchText),
-    [items, query, getSearchText],
+    () => filterByQuery(items, searchQuery, getSearchText),
+    [items, searchQuery, getSearchText],
   );
 
   useEffect(() => {
@@ -133,6 +144,7 @@ export function Combobox<T>({
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         setOpen(false);
         setQuery('');
+        setShowingSelection(false);
       }
     };
     document.addEventListener('pointerdown', onPointerDown);
@@ -146,10 +158,25 @@ export function Combobox<T>({
     onChange(key);
     setOpen(false);
     setQuery('');
+    setShowingSelection(false);
     // Blur only when nobody is taking the focus onward. Blurring first and
     // letting the caller refocus makes the mobile keyboard close and reopen.
     if (onCommitted) onCommitted(key);
     else inputRef.current?.blur();
+  }
+
+  function onFocus() {
+    setOpen(true);
+    if (!selected || skipSelectionOnFocus.current) return;
+    // Keep the selection in the field, cursor after it, so arriving here —
+    // by Enter from the previous line or a tap — never looks like it was lost.
+    const label = getLabel(selected);
+    setQuery(label);
+    setShowingSelection(true);
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (el && document.activeElement === el) el.setSelectionRange(label.length, label.length);
+    });
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -171,7 +198,7 @@ export function Combobox<T>({
       // just the first item — committing it replaced a line's product when
       // Enter was pressed twice in quick succession. With a selection, Enter
       // keeps it (and moves on); without one, it does nothing.
-      if (open && !query.trim() && !navigated) {
+      if (open && !navigated && (showingSelection || !query.trim())) {
         e.preventDefault();
         if (selected) commit(selected);
         return;
@@ -188,12 +215,14 @@ export function Combobox<T>({
         e.stopPropagation(); // do not also close the surrounding dialog
         setOpen(false);
         setQuery('');
+        setShowingSelection(false);
       }
       return;
     }
     if (e.key === 'Tab') {
       setOpen(false);
       setQuery('');
+      setShowingSelection(false);
     }
   }
 
@@ -220,8 +249,8 @@ export function Combobox<T>({
           // Open with nothing typed, the selection stays readable as the
           // placeholder rather than the field looking emptied.
           placeholder={selected ? getLabel(selected) : (placeholder ?? t('common.search'))}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
+          onChange={(e) => { setQuery(e.target.value); setShowingSelection(false); setOpen(true); }}
+          onFocus={onFocus}
           onKeyDown={onKeyDown}
           className={cn(
             'w-full rounded-lg border border-border bg-surface py-2 pl-3 pr-14 text-sm text-fg',
@@ -236,7 +265,13 @@ export function Combobox<T>({
               type="button"
               tabIndex={-1}
               aria-label={t('common.cancel')}
-              onClick={() => { onChange(null); setQuery(''); inputRef.current?.focus(); }}
+              onClick={() => {
+                onChange(null);
+                setQuery('');
+                skipSelectionOnFocus.current = true;
+                inputRef.current?.focus();
+                skipSelectionOnFocus.current = false;
+              }}
               className="rounded p-1 text-subtle transition-colors hover:text-fg"
             >
               <X className="h-3.5 w-3.5" aria-hidden />
