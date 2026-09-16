@@ -158,6 +158,14 @@ export function Combobox<T>({
       return;
     }
     if (e.key === 'Enter') {
+      // Opened on a selection and nothing typed: Enter keeps what is there.
+      // The list is unfiltered then, so the highlighted option is simply the
+      // first item, and committing it would silently replace the selection.
+      if (open && !query.trim() && selected) {
+        e.preventDefault();
+        commit(selected);
+        return;
+      }
       if (open && filtered[activeIndex]) {
         e.preventDefault();
         commit(filtered[activeIndex]);
@@ -199,7 +207,9 @@ export function Combobox<T>({
           autoComplete="off"
           disabled={disabled}
           value={displayValue}
-          placeholder={selected ? undefined : (placeholder ?? t('common.search'))}
+          // Open with nothing typed, the selection stays readable as the
+          // placeholder rather than the field looking emptied.
+          placeholder={selected ? getLabel(selected) : (placeholder ?? t('common.search'))}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}

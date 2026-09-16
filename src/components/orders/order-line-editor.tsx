@@ -66,8 +66,11 @@ export function OrderLineEditor({
    * Enter on the quantity finishes the line.
    *
    * On the last line it appends the next one and focuses it; on an earlier
-   * line it moves to the next line's product, so a correction made halfway up
-   * the order carries on down rather than jumping to the end.
+   * line it moves down, so a correction made halfway up the order carries on
+   * down rather than jumping to the end. A next line that already has its
+   * product gets its quantity focused, not its selector: focusing the
+   * selector opens it for searching, which blanked the product out of view
+   * and let a second Enter swap it for the first match in the list.
    *
    * The new field is focused after paint — React has not rendered the row at
    * the moment the handler runs, so there is nothing to focus yet.
@@ -82,7 +85,11 @@ export function OrderLineEditor({
       if (!lines[i].product_id || !(toQuantity(lines[i].ordered_quantity) > 0)) return;
       addLine();
     }
-    requestAnimationFrame(() => productRefs.current[i + 1]?.focus());
+    const nextHasProduct = !isLast && Boolean(lines[i + 1]?.product_id);
+    requestAnimationFrame(() => {
+      if (nextHasProduct) quantityRefs.current[i + 1]?.select();
+      else productRefs.current[i + 1]?.focus();
+    });
   }
 
   return (
