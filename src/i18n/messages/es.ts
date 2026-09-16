@@ -95,7 +95,7 @@ export const es: Messages = {
     extraBannerTitleOne: '1 actividad adicional también vence hoy',
     extraBannerBody: 'Además de la lista diaria, hoy hay trabajo {kinds} programado.',
     extraBannerCta: 'Ver actividades adicionales',
-    extraSectionTitle: 'Actividades recurrentes adicionales de hoy',
+    extraSectionTitle: 'También para hoy',
     dayClear: 'Día completo',
     streamTasks: 'Tareas',
     streamPrepare: 'Por preparar',
