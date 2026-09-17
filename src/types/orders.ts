@@ -112,6 +112,13 @@ export interface Product {
   /** True while that weight was read from the name and nobody has confirmed it. */
   net_weight_suggested: boolean;
   /**
+   * Weight in kg of one unit as ordered, packaging included. Never below the
+   * net weight. This is what order screens total. NULL means unknown.
+   */
+  gross_weight_kg: number | string | null;
+  /** True while that weight is a copy of the net weight nobody has confirmed. */
+  gross_weight_suggested: boolean;
+  /**
    * Which of our brands this is sold under. NULL means nobody has classified
    * it yet — never inferred from the name, which is stored verbatim.
    */

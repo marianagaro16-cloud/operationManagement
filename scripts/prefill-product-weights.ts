@@ -6,7 +6,9 @@
  *
  * Uses suggestNetWeightKg() — the same rule the product dialog offers — and
  * marks each value net_weight_suggested, so Manage -> Products shows it as
- * "to review" until somebody saves the product.
+ * "to review" until somebody ticks "Confirm net weight" and saves. The
+ * database copies each new net weight into the empty gross weight, also
+ * marked to review.
  *
  * Never overwrites: a product that already has a weight, suggested or
  * confirmed, is left exactly as it is. Safe to run again after new products

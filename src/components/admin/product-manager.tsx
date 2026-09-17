@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, Pencil, Plus, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
@@ -24,7 +24,9 @@ import { productLabel, type Brand, type Customer, type Product } from '@/types/o
  * `name` is stored exactly as imported and is never parsed — nothing is
  * inferred from it into category, size or packaging. The one exception is a
  * net weight SUGGESTION: offered in the dialog, or pre-filled by a script and
- * marked "to review", and never final until a person saves the product.
+ * marked "to review". The gross weight starts as a copy of the net, also "to
+ * review". Each suggested weight is final only when its own "Confirm" tick is
+ * saved — saving the product for another reason confirms nothing.
  *
  * Products absent from the master file are deactivated, never deleted, so
  * historical order lines keep resolving.
@@ -64,8 +66,8 @@ export function ProductManager({
   const reviewCount = products.filter((p) => p.needs_review).length;
   // Active products only: an inactive product is never ordered, so its
   // weight is nobody's work.
-  const weightSuggestedCount = products.filter((p) => p.is_active && p.net_weight_suggested).length;
-  const noWeightCount = products.filter((p) => p.is_active && p.net_weight_kg === null).length;
+  const weightSuggestedCount = products.filter((p) => p.is_active && hasSuggestedWeight(p)).length;
+  const noWeightCount = products.filter((p) => p.is_active && hasMissingWeight(p)).length;
 
   // The shared matcher, so this screen agrees with the order form's product
   // picker: accent-folded, and terms are ANDed so "tortilla 1kg" narrows
@@ -81,8 +83,8 @@ export function ProductManager({
                 : p.brand_id === brandFilter,
           )
           .filter((p) =>
-            weightFilter === 'suggested' ? p.net_weight_suggested
-              : weightFilter === 'missing' ? p.net_weight_kg === null
+            weightFilter === 'suggested' ? hasSuggestedWeight(p)
+              : weightFilter === 'missing' ? hasMissingWeight(p)
                 : true,
           ),
         query,
@@ -194,20 +196,7 @@ export function ProductManager({
                     Absent rather than "—" when unclassified: a badge that
                     says nothing still costs a column on a phone. */}
                 {p.brand && <Badge tone="neutral">{p.brand.name}</Badge>}
-                {p.net_weight_kg === null ? (
-                  p.is_active && <Badge tone="neutral" className="shrink-0 whitespace-nowrap">{t('master.noWeight')}</Badge>
-                ) : p.net_weight_suggested ? (
-                  // Just the number on a phone, where the row has no room for
-                  // words; the warn tone and the filter chip say "to review".
-                  <Badge tone="warn" className="shrink-0 whitespace-nowrap" title={t('master.weightSuggestedHint')}>
-                    <span className="sm:hidden">{Number(p.net_weight_kg)} kg</span>
-                    <span className="hidden sm:inline">{t('master.weightSuggested', { kg: Number(p.net_weight_kg) })}</span>
-                  </Badge>
-                ) : (
-                  <span className="hidden shrink-0 text-[12px] tabular text-muted sm:inline">
-                    {Number(p.net_weight_kg)} kg
-                  </span>
-                )}
+                <ProductWeights product={p} />
                 {p.needs_review && (
                   <Badge tone="warn" title={p.notes ?? undefined}>
                     <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
@@ -289,9 +278,20 @@ function ProductDialog({
       ? ''
       : String(Number(product.net_weight_kg)),
   );
+  const [grossWeight, setGrossWeight] = useState(
+    product?.gross_weight_kg === null || product?.gross_weight_kg === undefined
+      ? ''
+      : String(Number(product.gross_weight_kg)),
+  );
+  // A suggested weight starts unconfirmed. Typing another value is a person
+  // deciding it, so it ticks the box; they can still untick it.
+  const [netConfirmed, setNetConfirmed] = useState(false);
+  const [grossConfirmed, setGrossConfirmed] = useState(false);
   // Offered only while the field is empty, and only when the name says it
   // unambiguously — the same rule the pre-fill used.
   const suggestedWeight = netWeight.trim() ? null : suggestNetWeightKg(name, product?.family, product?.presentation);
+  const grossBelowNet =
+    netWeight.trim() !== '' && grossWeight.trim() !== '' && Number(grossWeight) < Number(netWeight);
   const [active, setActive] = useState(product?.is_active ?? true);
   const [needsReview, setNeedsReview] = useState(product?.needs_review ?? false);
   const [error, setError] = useState<string | null>(null);
@@ -314,13 +314,22 @@ function ProductDialog({
           // a real answer — the importer asks rather than assuming.
           units_per_box: unitsPerBox.trim() ? Number(unitsPerBox) : null,
           net_weight_kg: netWeight.trim() ? Number(netWeight) : null,
+          net_weight_suggested: Boolean(product?.net_weight_suggested) && !netConfirmed,
+          // Left empty next to a net weight, the database copies the net in,
+          // marked to review.
+          gross_weight_kg: grossWeight.trim() ? Number(grossWeight) : null,
+          gross_weight_suggested: Boolean(product?.gross_weight_suggested) && !grossConfirmed,
           is_active: active,
           needs_review: needsReview,
         },
         product?.id,
       );
       if (!res.ok) {
-        setError(res.error.includes('products_code_active_key') ? t('master.codeInUse') : res.error);
+        setError(
+          res.error.includes('products_code_active_key') ? t('master.codeInUse')
+            : res.error === 'gross_below_net' ? t('master.grossBelowNet', { net: Number(netWeight) })
+              : res.error,
+        );
         return;
       }
       onSaved();
@@ -335,7 +344,7 @@ function ProductDialog({
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
-          <Button variant="primary" onClick={submit} loading={pending} disabled={!name.trim()}>
+          <Button variant="primary" onClick={submit} loading={pending} disabled={!name.trim() || grossBelowNet}>
             {t('common.save')}
           </Button>
         </>
@@ -386,33 +395,47 @@ function ProductDialog({
           />
         </Field>
 
-        <Field
+        <WeightField
+          id="p-weight"
           label={t('master.netWeight')}
           hint={t('master.netWeightHint')}
-          htmlFor="p-weight"
+          value={netWeight}
+          onChange={(v) => { setNetWeight(v); setNetConfirmed(true); }}
+          review={product?.net_weight_suggested ? {
+            note: t('master.weightSuggestedHint'),
+            confirmLabel: t('master.confirmNetWeight'),
+            confirmed: netConfirmed,
+            onConfirmedChange: setNetConfirmed,
+          } : null}
         >
-          <Input
-            id="p-weight"
-            type="number"
-            min="0"
-            step="any"
-            inputMode="decimal"
-            value={netWeight}
-            onChange={(e) => setNetWeight(e.target.value)}
-          />
-          {product?.net_weight_suggested && netWeight === String(Number(product.net_weight_kg)) && (
-            <p className="mt-1 text-[12px] text-warn">{t('master.weightSuggestedHint')}</p>
-          )}
           {suggestedWeight !== null && (
             <button
               type="button"
-              onClick={() => setNetWeight(String(suggestedWeight))}
+              onClick={() => { setNetWeight(String(suggestedWeight)); setNetConfirmed(true); }}
               className="mt-1 text-[12px] font-medium text-accent hover:underline"
             >
               {t('master.useWeightSuggestion', { kg: suggestedWeight })}
             </button>
           )}
-        </Field>
+        </WeightField>
+
+        <WeightField
+          id="p-gross"
+          label={t('master.grossWeight')}
+          hint={t('master.grossWeightHint')}
+          value={grossWeight}
+          onChange={(v) => { setGrossWeight(v); setGrossConfirmed(true); }}
+          review={product?.gross_weight_suggested ? {
+            note: t('master.grossSuggestedHint'),
+            confirmLabel: t('master.confirmGrossWeight'),
+            confirmed: grossConfirmed,
+            onConfirmedChange: setGrossConfirmed,
+          } : null}
+        >
+          {grossBelowNet && (
+            <p className="mt-1 text-[12px] text-late">{t('master.grossBelowNet', { net: Number(netWeight) })}</p>
+          )}
+        </WeightField>
 
         <Field label={t('master.notes')} htmlFor="p-notes">
           <Textarea id="p-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
@@ -445,6 +468,107 @@ function ProductDialog({
         {error && <ErrorState message={error} />}
       </div>
     </Dialog>
+  );
+}
+
+function hasSuggestedWeight(p: Product): boolean {
+  return p.net_weight_suggested || p.gross_weight_suggested;
+}
+
+function hasMissingWeight(p: Product): boolean {
+  return p.net_weight_kg === null || p.gross_weight_kg === null;
+}
+
+/**
+ * A product's two weights in its list row.
+ *
+ * On a phone there is no room for two numbers, so only what needs doing
+ * shows: "No weight" or "Check weight". Wider screens show both weights, a
+ * suggested one tinted to review.
+ */
+function ProductWeights({ product: p }: { product: Product }) {
+  const { t } = useI18n();
+  if (!p.is_active && hasMissingWeight(p)) return null;
+  const weight = (kind: 'net' | 'gross') => {
+    const kg = kind === 'net' ? p.net_weight_kg : p.gross_weight_kg;
+    const suggested = kind === 'net' ? p.net_weight_suggested : p.gross_weight_suggested;
+    const label = kind === 'net' ? 'master.netShort' : 'master.grossShort';
+    if (kg === null) {
+      return (
+        <Badge tone="neutral" className="whitespace-nowrap">
+          {t(kind === 'net' ? 'master.noNetWeight' : 'master.noGrossWeight')}
+        </Badge>
+      );
+    }
+    return suggested ? (
+      <Badge tone="warn" className="whitespace-nowrap" title={t('master.weightToReview')}>
+        {t(label, { kg: Number(kg) })}
+      </Badge>
+    ) : (
+      <span className="whitespace-nowrap text-[12px] tabular text-muted">{t(label, { kg: Number(kg) })}</span>
+    );
+  };
+  return (
+    <>
+      <span className="shrink-0 sm:hidden">
+        {hasMissingWeight(p) ? (
+          <Badge tone="neutral" className="whitespace-nowrap">{t('master.noWeight')}</Badge>
+        ) : hasSuggestedWeight(p) ? (
+          <Badge tone="warn" className="whitespace-nowrap">{t('master.weightToReview')}</Badge>
+        ) : null}
+      </span>
+      <span className="hidden shrink-0 items-center gap-1.5 sm:inline-flex">
+        {weight('net')}
+        {weight('gross')}
+      </span>
+    </>
+  );
+}
+
+/**
+ * A weight input, with its "to review" state when the value is a suggestion:
+ * a note saying where it came from and its own Confirm tick.
+ */
+function WeightField({
+  id,
+  label,
+  hint,
+  value,
+  onChange,
+  review,
+  children,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  value: string;
+  onChange: (value: string) => void;
+  review: { note: string; confirmLabel: string; confirmed: boolean; onConfirmedChange: (v: boolean) => void } | null;
+  children?: ReactNode;
+}) {
+  return (
+    <Field label={label} hint={hint} htmlFor={id}>
+      <Input
+        id={id}
+        type="number"
+        min="0"
+        step="any"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {review && value.trim() !== '' && (
+        <div className="mt-1.5 rounded-md border border-warn/30 bg-warn/[0.07] px-2.5 py-2">
+          {!review.confirmed && <p className="mb-1.5 text-[12px] text-warn">{review.note}</p>}
+          <Checkbox
+            label={review.confirmLabel}
+            checked={review.confirmed}
+            onChange={(e) => review.onConfirmedChange(e.target.checked)}
+          />
+        </div>
+      )}
+      {children}
+    </Field>
   );
 }
 

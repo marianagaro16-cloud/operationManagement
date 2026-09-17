@@ -1,6 +1,6 @@
 /**
- * Net weight: reading a suggestion out of a product's name, and adding up an
- * order.
+ * Product weights: reading a net weight suggestion out of a product's name,
+ * and adding up an order.
  *
  * A product's weight is the NET weight of one unit as it is ordered — one
  * package of "1.75kg Fresco" is 1.75 kg; a product sold as "Caja 6kg" is 6 kg.
@@ -10,6 +10,10 @@
  *
  * Volumes count as weight at 1 L = 1 kg. That is an approximation, which is
  * why every suggestion is marked for review until somebody confirms it.
+ *
+ * Each product also has a GROSS weight (`products.gross_weight_kg`), packaging
+ * included, never below the net. The order screens total the gross weight;
+ * the orders report totals the net.
  */
 
 /** One weight or volume written in a product's text, e.g. "1.75kg", "370 ml", "5 Liter". */
@@ -52,26 +56,32 @@ export function roundKg(kg: number): number {
   return Math.round(kg * 1000) / 1000;
 }
 
+export type WeightKind = 'net' | 'gross';
+
 export interface WeighableLine {
   ordered_quantity: number | string | null;
-  product: { net_weight_kg: number | string | null } | null;
+  product: { net_weight_kg?: number | string | null; gross_weight_kg?: number | string | null } | null;
 }
 
 export interface OrderWeight {
   /** Sum over the lines whose product has a weight. */
   kg: number;
-  /** Lines left out of that sum because their product has no weight yet. */
+  /** Lines left out of that sum because their product has no weight of that kind yet. */
   linesWithoutWeight: number;
 }
 
-/** Net weight of an order on its ORDERED quantities. */
-export function orderWeight(lines: WeighableLine[]): OrderWeight {
+/**
+ * Net or gross weight of an order on its ORDERED quantities. A product
+ * without that kind of weight is left out and counted, never filled in from
+ * the other kind.
+ */
+export function orderWeight(lines: WeighableLine[], kind: WeightKind): OrderWeight {
   let kg = 0;
   let linesWithoutWeight = 0;
   for (const line of lines) {
     const qty = Number(line.ordered_quantity ?? 0);
     if (!(qty > 0)) continue;
-    const weight = line.product?.net_weight_kg;
+    const weight = kind === 'gross' ? line.product?.gross_weight_kg : line.product?.net_weight_kg;
     if (weight === null || weight === undefined || weight === '') {
       linesWithoutWeight++;
       continue;

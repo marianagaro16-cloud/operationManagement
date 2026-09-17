@@ -55,7 +55,7 @@ describe('orderWeight', () => {
     expect(orderWeight([
       { ordered_quantity: 9, product: { net_weight_kg: 1.75 } },
       { ordered_quantity: '4', product: { net_weight_kg: '0.37' } },
-    ])).toEqual({ kg: 17.23, linesWithoutWeight: 0 });
+    ], 'net')).toEqual({ kg: 17.23, linesWithoutWeight: 0 });
   });
 
   it('keeps a partial total and counts the lines it could not weigh', () => {
@@ -63,14 +63,21 @@ describe('orderWeight', () => {
       { ordered_quantity: 2, product: { net_weight_kg: 6 } },
       { ordered_quantity: 3, product: { net_weight_kg: null } },
       { ordered_quantity: 1, product: null },
-    ])).toEqual({ kg: 12, linesWithoutWeight: 2 });
+    ], 'net')).toEqual({ kg: 12, linesWithoutWeight: 2 });
+  });
+
+  it('totals the gross weight without falling back to the net', () => {
+    expect(orderWeight([
+      { ordered_quantity: 2, product: { net_weight_kg: 6, gross_weight_kg: 6.4 } },
+      { ordered_quantity: 3, product: { net_weight_kg: 1, gross_weight_kg: null } },
+    ], 'gross')).toEqual({ kg: 12.8, linesWithoutWeight: 1 });
   });
 
   it('ignores lines with nothing ordered', () => {
     expect(orderWeight([
       { ordered_quantity: 0, product: { net_weight_kg: null } },
       { ordered_quantity: null, product: { net_weight_kg: 5 } },
-    ])).toEqual({ kg: 0, linesWithoutWeight: 0 });
+    ], 'net')).toEqual({ kg: 0, linesWithoutWeight: 0 });
   });
 });
 

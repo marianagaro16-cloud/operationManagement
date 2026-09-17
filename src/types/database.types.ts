@@ -2754,6 +2754,8 @@ export type Database = {
           needs_review: boolean
           net_weight_kg: number | null
           net_weight_suggested: boolean
+          gross_weight_kg: number | null
+          gross_weight_suggested: boolean
           notes: string | null
           presentation: string
           units_per_box: number | null
@@ -2771,6 +2773,8 @@ export type Database = {
           needs_review?: boolean
           net_weight_kg?: number | null
           net_weight_suggested?: boolean
+          gross_weight_kg?: number | null
+          gross_weight_suggested?: boolean
           notes?: string | null
           presentation: string
           units_per_box?: number | null
@@ -2788,6 +2792,8 @@ export type Database = {
           needs_review?: boolean
           net_weight_kg?: number | null
           net_weight_suggested?: boolean
+          gross_weight_kg?: number | null
+          gross_weight_suggested?: boolean
           notes?: string | null
           presentation?: string
           units_per_box?: number | null

@@ -7,7 +7,7 @@ import { formatKg, orderWeight } from '@/domain/orders/weight';
 import type { OrderLine } from '@/types/orders';
 
 /**
- * Net weight of an order on its ordered quantities.
+ * Gross weight of an order (packaging included) on its ordered quantities.
  *
  * A partial total is still shown when some products have no weight yet, with
  * how many were left out beside it — never a number that pretends to be whole.
@@ -22,7 +22,7 @@ export function OrderWeight({
   className?: string;
 }) {
   const { t } = useI18n();
-  const weight = orderWeight(lines);
+  const weight = orderWeight(lines, 'gross');
   return (
     <span className={cn('inline-flex items-center gap-1 tabular', className)}>
       {icon && <Weight className="h-3 w-3 shrink-0" aria-hidden />}

@@ -27,6 +27,7 @@ function fail(error: unknown): { ok: false; error: string } {
   if (message.includes('order_shipped_locked')) return { ok: false, error: 'order_shipped_locked' };
   if (message.includes('order_not_confirmed')) return { ok: false, error: 'order_not_confirmed' };
   if (message.includes('line_not_short')) return { ok: false, error: 'line_not_short' };
+  if (message.includes('products_gross_not_below_net')) return { ok: false, error: 'gross_below_net' };
   if (message.includes('row-level security')) return { ok: false, error: 'not_authorized' };
   return { ok: false, error: message };
 }
@@ -438,6 +439,19 @@ const productSchema = z.object({
   units_per_box: z.number().positive().nullable().optional(),
   /** Net kg of one unit as ordered. NULL means unknown. */
   net_weight_kg: z.number().positive().nullable().optional(),
+  /**
+   * Still "to review" after this save. A suggested weight is only confirmed
+   * by its own tick in the dialog, never by saving the product for another
+   * reason.
+   */
+  net_weight_suggested: z.boolean().optional(),
+  /**
+   * Gross kg of one unit as ordered, packaging included; never below the net.
+   * Left empty while a net weight exists, the database copies the net in and
+   * marks it to review.
+   */
+  gross_weight_kg: z.number().positive().nullable().optional(),
+  gross_weight_suggested: z.boolean().optional(),
   /** One of our brands, or null while the product is unclassified. */
   brand_id: z.string().uuid().nullable().optional(),
   is_active: z.boolean(),
@@ -450,16 +464,18 @@ export async function saveProduct(
 ): Promise<ActionResult> {
   const parsed = productSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'invalid_product' };
+  const { net_weight_kg: net = null, gross_weight_kg: gross = null } = parsed.data;
+  if (net !== null && gross !== null && gross < net) return { ok: false, error: 'gross_below_net' };
   const supabase = createClient();
   // An omitted units_per_box means "not stated"; an explicit null means "no
   // reliable conversion exists". Both store NULL, which is the honest value.
   const row = {
     ...parsed.data,
     units_per_box: parsed.data.units_per_box ?? null,
-    net_weight_kg: parsed.data.net_weight_kg ?? null,
-    // A person saved the product with the weight in front of them: whatever
-    // is there now is theirs, no longer a suggestion read from the name.
-    net_weight_suggested: false,
+    net_weight_kg: net,
+    net_weight_suggested: net !== null && (parsed.data.net_weight_suggested ?? false),
+    gross_weight_kg: gross,
+    gross_weight_suggested: gross !== null && (parsed.data.gross_weight_suggested ?? false),
     brand_id: parsed.data.brand_id ?? null,
   };
   const { error } = id
