@@ -6,7 +6,7 @@ import { Minus, Plus } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/primitives';
-import { formatKg } from '@/domain/orders/weight';
+import { boxCount, formatKg } from '@/domain/orders/weight';
 import { setOrderBoxQuantity } from '@/server/order-actions';
 import type { BoxType, OrderWithProgress } from '@/types/orders';
 import { useOrderError } from './order-fulfilment';
@@ -55,6 +55,8 @@ export function OrderBoxesEditor({ order }: { order: OrderWithProgress }) {
   );
   const unused = boxTypes.filter((bt) => !boxes.some((b) => b.box_type_id === bt.id));
   const locked = Boolean(order.shipped_at) || order.status === 'cancelled';
+  // A Ready order keeps at least one box, so its last one cannot be taken away.
+  const lastBox = Boolean(order.ready_at) && boxCount(boxes) === 1;
 
   // Nothing to show: no box types exist yet, and none were recorded before.
   if (boxTypes.length === 0 && boxes.length === 0) return null;
@@ -89,7 +91,7 @@ export function OrderBoxesEditor({ order }: { order: OrderWithProgress }) {
                   size="icon"
                   variant="secondary"
                   onClick={() => set(b.box_type_id, b.quantity - 1)}
-                  disabled={pending}
+                  disabled={pending || lastBox}
                   aria-label={t('orders.fewerBoxes', { name: b.box_type.name })}
                 >
                   <Minus className="h-3.5 w-3.5" aria-hidden />
