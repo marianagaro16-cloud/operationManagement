@@ -214,6 +214,9 @@ function CustomerDialog({
   const typeLabel = useCustomerTypeLabel();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // A new customer must be classified. An existing one without a type can
+  // still be edited and saved as it is.
+  const typeRequired = !customer;
 
   function submit() {
     setError(null);
@@ -240,7 +243,7 @@ function CustomerDialog({
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
-          <Button variant="primary" onClick={submit} loading={pending} disabled={!companyName.trim()}>
+          <Button variant="primary" onClick={submit} loading={pending} disabled={!companyName.trim() || (typeRequired && !typeId)}>
             {t('common.save')}
           </Button>
         </>
@@ -259,11 +262,12 @@ function CustomerDialog({
           <Input id="c-addition" value={addition} onChange={(e) => setAddition(e.target.value)} />
         </Field>
 
-        {/* Optional on purpose. A new customer whose segment is not yet
-            decided is recorded as unclassified rather than guessed at. */}
-        <Field label={t('master.customerTypeLabel')} htmlFor="c-type">
+        <Field label={t('master.customerTypeLabel')} required={typeRequired} htmlFor="c-type">
           <Select id="c-type" value={typeId} onChange={(e) => setTypeId(e.target.value)}>
-            <option value="">{t('master.typeNone')}</option>
+            {/* On a new customer the empty option only prompts a choice. */}
+            <option value="" disabled={typeRequired}>
+              {typeRequired ? t('master.chooseType') : t('master.typeNone')}
+            </option>
             {customerTypes
               .filter((ct) => ct.is_active || ct.id === customer?.customer_type_id)
               .map((ct) => (

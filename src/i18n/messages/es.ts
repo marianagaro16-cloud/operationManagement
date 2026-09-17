@@ -1049,6 +1049,7 @@ export const es: Messages = {
     weekly: 'semanal',
     customerTypeLabel: 'Tipo de cliente',
     typeAll: 'Todos los tipos',
+    chooseType: 'Elige un tipo',
     typeNone: 'Sin tipo',
     typeNoneCount: 'Sin tipo ({count})',
     // Keyed by the customer_types.slug column. A segment added later with no

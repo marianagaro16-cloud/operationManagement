@@ -1071,6 +1071,7 @@ export const en = {
     weekly: 'weekly',
     customerTypeLabel: 'Customer type',
     typeAll: 'All types',
+    chooseType: 'Choose a type',
     typeNone: 'No type',
     typeNoneCount: 'No type ({count})',
     // Keyed by the customer_types.slug column. A segment added later with no

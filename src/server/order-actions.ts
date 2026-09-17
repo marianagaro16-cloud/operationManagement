@@ -357,7 +357,8 @@ const customerSchema = z.object({
   // Kept separate from the company name on purpose; never merged away.
   company_name_addition: z.string().trim().nullable(),
   /** Commercial segment, or null while unclassified. Optional so an older
-   *  caller that never sent it does not silently wipe an existing one. */
+   *  caller that never sent it does not silently wipe an existing one.
+   *  Required when creating a customer: see saveCustomer. */
   customer_type_id: z.string().uuid().nullable().optional(),
   is_active: z.boolean(),
 });
@@ -368,6 +369,9 @@ export async function saveCustomer(
 ): Promise<ActionResult> {
   const parsed = customerSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'name_required' };
+  // A new customer is created classified. Existing customers without a type
+  // can still be saved, so this applies to inserts only.
+  if (!id && !parsed.data.customer_type_id) return { ok: false, error: 'customer_type_required' };
   const supabase = createClient();
   // `name` is a generated column — derived by Postgres, never written here.
   const row = {
