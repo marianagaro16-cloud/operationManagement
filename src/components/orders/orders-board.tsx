@@ -159,7 +159,7 @@ export function OrdersBoard({
         <p className="mb-3 text-[13px] font-medium capitalize">{formatDate(today, 'weekday')}</p>
       )}
 
-      {visibleCount > 0 && tab !== 'shipped' && (
+      {visibleCount > 0 && (
         <div className="mb-3 flex justify-end gap-1.5">
           <Button size="sm" variant="ghost" onClick={() => setBulk({ expanded: true })}>
             <ChevronsUpDown className="h-3.5 w-3.5" aria-hidden />
@@ -182,7 +182,7 @@ export function OrdersBoard({
         />
       )}
       {tab === 'ready' && <ReadyTab orders={ready} canManage={canManage} bulk={bulk} showsBacklog={date === today} />}
-      {tab === 'shipped' && <ShippedTab orders={shipped} canManage={canManage} />}
+      {tab === 'shipped' && <ShippedTab orders={shipped} canManage={canManage} bulk={bulk} />}
     </BoxTypesProvider>
   );
 }
@@ -487,10 +487,11 @@ function ReadyTab({
 
 /* -------------------------------- shipped ------------------------------- */
 
-function ShippedTab({ orders, canManage }: { orders: OrderWithProgress[]; canManage: boolean }) {
+function ShippedTab({ orders, canManage, bulk }: { orders: OrderWithProgress[]; canManage: boolean; bulk: BulkToggle }) {
   const { t } = useI18n();
   const groups = useMemo(() => byMethod(orders), [orders]);
-  // Shipped work is a record: every card starts folded.
+  // Shipped work is a record: every card starts folded, until Expand all or
+  // Collapse all is pressed.
   const folded = useMemo<BulkToggle>(() => ({ expanded: false }), []);
 
   if (orders.length === 0) {
@@ -510,7 +511,7 @@ function ShippedTab({ orders, canManage }: { orders: OrderWithProgress[]; canMan
             {group.orders.map((order) => (
               <div key={order.id}>
                 <p className="mb-1 text-[13.5px] font-medium text-muted">{order.customer.name}</p>
-                <OrderPreparationCard order={order} canManage={canManage} bulk={folded} />
+                <OrderPreparationCard order={order} canManage={canManage} bulk={bulk ?? folded} />
               </div>
             ))}
           </div>

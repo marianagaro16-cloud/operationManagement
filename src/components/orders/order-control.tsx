@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useTransition, type ReactNode } from 'react';
+import { useEffect, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AlertTriangle, ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Pencil, Plus, Search, X } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,7 @@ import { UrgencyBadge } from './urgency-badge';
 import { NoteBlock, NoteChip } from '@/components/ui/note';
 import { OrderStageChip } from './order-fulfilment';
 import { OrderWeight } from './order-weight';
+import type { BulkToggle } from './preparation-view';
 
 /**
  * Order Control — replaces the monthly "Control de pedidos" workbook.
@@ -88,6 +89,8 @@ export function OrderControl({
   // One dialog for the whole list, exactly as the editor is — not one per card.
   const [reporting, setReporting] = useState<OrderWithProgress | null>(null);
   const [draftQuery, setDraftQuery] = useState(filters.query ?? '');
+  // The last Expand all / Collapse all press; each card starts open.
+  const [bulk, setBulk] = useState<BulkToggle>(null);
 
   const anchor = DateTime.fromISO(`${month}-01`, { zone: BUSINESS_TZ });
   const shiftMonth = (delta: number) => anchor.plus({ months: delta }).toFormat('yyyy-MM');
@@ -368,6 +371,19 @@ export function OrderControl({
         )}
       </div>
 
+      {orders.length > 0 && (
+        <div className="mb-3 flex justify-end gap-1.5">
+          <Button size="sm" variant="ghost" onClick={() => setBulk({ expanded: true })}>
+            <ChevronsUpDown className="h-3.5 w-3.5" aria-hidden />
+            {t('prep.expandAll')}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setBulk({ expanded: false })}>
+            <ChevronsDownUp className="h-3.5 w-3.5" aria-hidden />
+            {t('prep.collapseAll')}
+          </Button>
+        </div>
+      )}
+
       {orders.length === 0 ? (
         <EmptyState title={t('orders.noOrders')} body={t('orders.noOrdersBody')} />
       ) : (
@@ -387,6 +403,7 @@ export function OrderControl({
                           key={order.id}
                           order={order}
                           canManage={canManage}
+                          bulk={bulk}
                           onEdit={() => setEditing(order)}
                           onReportIncident={
                             canReportIncident ? () => setReporting(order) : undefined
@@ -437,11 +454,14 @@ export function OrderControl({
 function OrderCard({
   order,
   canManage,
+  bulk,
   onEdit,
   onReportIncident,
 }: {
   order: OrderWithProgress;
   canManage: boolean;
+  /** The last Expand all / Collapse all press, applied when it changes. */
+  bulk: BulkToggle;
   onEdit: () => void;
   /** Absent when the viewer may not report one, which removes the button. */
   onReportIncident?: () => void;
@@ -452,9 +472,34 @@ function OrderCard({
 
   const cancelled = order.status === 'cancelled';
 
+  // Open by default, as the book always showed its products. Folding keeps
+  // the header — reference, badges, weight — and the order note.
+  const [expanded, setExpanded] = useState(true);
+  useEffect(() => {
+    if (bulk) setExpanded(bulk.expanded);
+  }, [bulk]);
+
   return (
     <Card className={cn(cancelled && 'opacity-60')}>
-      <div className="flex flex-wrap items-center gap-2 border-b border-border px-3.5 py-2">
+      <div
+        className={cn(
+          'flex cursor-pointer flex-wrap items-center gap-2 px-3.5 py-2',
+          (expanded || order.note) && 'border-b border-border',
+        )}
+        // The whole header toggles, except the links and buttons inside it.
+        onClick={(e) => {
+          if (!(e.target as HTMLElement).closest('a, button, input, label')) setExpanded((v) => !v);
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-label={expanded ? t('prep.collapse') : t('prep.expand')}
+          className="-ml-1.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+        >
+          <ChevronDown className={cn('h-4 w-4 transition-transform', !expanded && '-rotate-90')} aria-hidden />
+        </button>
         {/* The reference is the order's address, not a caption. */}
         <Link
           href={`/orders/${order.id}`}
@@ -526,9 +571,10 @@ function OrderCard({
       </div>
 
       {order.note && (
-        <NoteBlock className="border-b border-border px-3.5 py-1.5">{order.note}</NoteBlock>
+        <NoteBlock className={cn('px-3.5 py-1.5', expanded && 'border-b border-border')}>{order.note}</NoteBlock>
       )}
 
+      {expanded && (
       <ul className="divide-y divide-border">
         {order.lines.map((line) => {
           const p = lineProgress(line.ordered_quantity, line.allocations, line);
@@ -569,6 +615,7 @@ function OrderCard({
           );
         })}
       </ul>
+      )}
     </Card>
   );
 }
