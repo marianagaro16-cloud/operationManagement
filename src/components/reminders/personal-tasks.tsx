@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bell, CalendarDays, Check, CheckCircle2, ChevronDown, Pencil, Plus, RotateCcw, SlidersHorizontal, Sparkles, Target, XCircle } from 'lucide-react';
 import { DateTime } from 'luxon';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Card, EmptyState, ErrorState, Field, Input, Progress, Textarea } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { daysFromToday, isOnDay, personalTaskPhase } from '@/domain/reminders/schedule';
+import { daysFromToday, isOnDay, isOpenPersonalTask, personalTaskPhase, type PersonalTaskStatus } from '@/domain/reminders/schedule';
 import { LINK_COLUMN, LINK_TYPES, type LinkType } from '@/domain/reminders/links';
 import { savePersonalTask, setPersonalTaskStatus } from '@/server/reminder-actions';
 import type { PersonalTask } from '@/types/reminders';
@@ -287,8 +287,25 @@ export function TaskRow({
   const router = useRouter();
   const dueLabel = useDueLabel();
   const [done, setDone] = useState(false);
+  const [status, setStatus] = useState<PersonalTaskStatus>(task.status);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+
+  // A refresh that brings a new status wins over the local one.
+  useEffect(() => setStatus(task.status), [task.status]);
+
+  /** Pending <-> In progress from the chip; Completed goes through the tick. */
+  function changeStatus(next: PersonalTaskStatus) {
+    if (next === 'completed') { complete(); return; }
+    const previous = status;
+    setStatus(next);
+    setError(null);
+    startTransition(async () => {
+      const res = await setPersonalTaskStatus(task.id, next);
+      if (!res.ok) { setStatus(previous); setError(t(reminderErrorKey(res.error))); return; }
+      router.refresh();
+    });
+  }
 
   function complete() {
     if (done) return;
@@ -313,14 +330,20 @@ export function TaskRow({
           aria-label={t('ptask.complete')}
           className={cn(
             'mt-px flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200',
+            'relative',
             done
               ? 'scale-110 border-done bg-done text-white'
-              : group === 'overdue'
-                ? 'border-late/50 text-transparent hover:border-done hover:bg-done/10 hover:text-done'
-                : 'border-border text-transparent hover:border-done hover:bg-done/10 hover:text-done',
+              : status === 'in_progress'
+                ? 'border-accent text-transparent hover:border-done hover:bg-done/10 hover:text-done'
+                : group === 'overdue'
+                  ? 'border-late/50 text-transparent hover:border-done hover:bg-done/10 hover:text-done'
+                  : 'border-border text-transparent hover:border-done hover:bg-done/10 hover:text-done',
           )}
         >
           <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+          {status === 'in_progress' && !done && (
+            <span className="pointer-events-none absolute inset-[3px] rounded-full bg-accent transition-opacity [button:hover>&]:opacity-0" aria-hidden />
+          )}
         </button>
 
         <div className="min-w-0 flex-1">
@@ -366,15 +389,62 @@ export function TaskRow({
           {error && <div className="mt-2"><ErrorState message={error} /></div>}
         </div>
 
+        <StatusChip status={done ? 'completed' : status} onChange={changeStatus} disabled={done} />
+
         <button
           onClick={onEdit}
           aria-label={t('ptask.edit')}
-          className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-subtle transition-colors hover:bg-surface-2 hover:text-fg sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+          className="-ml-1 -mr-1 hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg text-subtle transition-colors hover:bg-surface-2 hover:text-fg sm:flex sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
         >
           <Pencil className="h-3.5 w-3.5" aria-hidden />
         </button>
       </div>
     </li>
+  );
+}
+
+const STATUS_OPTIONS: { value: PersonalTaskStatus; label: MessageKey }[] = [
+  { value: 'open', label: 'ptask.statusOpen' },
+  { value: 'in_progress', label: 'ptask.statusInProgress' },
+  { value: 'completed', label: 'ptask.completed' },
+];
+
+/**
+ * The status as a chip that is also its own picker.
+ *
+ * A native select under a styled label: on a phone that opens the system's
+ * own picker, which is bigger and more familiar than any menu drawn here.
+ */
+function StatusChip({
+  status,
+  onChange,
+  disabled,
+}: {
+  status: PersonalTaskStatus;
+  onChange: (next: PersonalTaskStatus) => void;
+  disabled?: boolean;
+}) {
+  const { t } = useI18n();
+  return (
+    <span className="relative mt-px inline-flex shrink-0 items-center">
+      <select
+        value={status}
+        disabled={disabled}
+        aria-label={t('ptask.statusLabel')}
+        onChange={(e) => onChange(e.target.value as PersonalTaskStatus)}
+        className={cn(
+          'h-6 cursor-pointer appearance-none rounded-full border py-0 pl-2 pr-5 text-[11.5px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-default',
+          status === 'in_progress' ? 'border-accent/25 bg-accent/10 text-accent'
+          : status === 'completed' ? 'border-done/25 bg-done/10 text-done'
+          : 'border-border bg-surface-2 text-muted hover:text-fg',
+        )}
+      >
+        {STATUS_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>{t(o.label)}</option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-1.5 h-3 w-3 opacity-70" aria-hidden />
+    </span>
   );
 }
 
@@ -501,7 +571,7 @@ export function PersonalTaskDialog({
         <Field label={t('ptask.fieldNotes')} htmlFor="pt-notes">
           <Textarea id="pt-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} />
         </Field>
-        {task?.status === 'open' && (
+        {task && isOpenPersonalTask(task.status) && (
           <button
             type="button"
             onClick={cancelTask}

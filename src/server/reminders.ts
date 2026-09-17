@@ -159,7 +159,7 @@ export async function getPersonalTasks(): Promise<{ open: PersonalTask[]; closed
     supabase
       .from('personal_tasks')
       .select(PERSONAL_TASK_SELECT)
-      .eq('status', 'open')
+      .in('status', ['open', 'in_progress'])
       .order('due_date', { ascending: true, nullsFirst: false })
       .order('due_time', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true })
@@ -167,7 +167,7 @@ export async function getPersonalTasks(): Promise<{ open: PersonalTask[]; closed
     supabase
       .from('personal_tasks')
       .select(PERSONAL_TASK_SELECT)
-      .neq('status', 'open')
+      .in('status', ['completed', 'cancelled'])
       .order('updated_at', { ascending: false })
       .limit(50),
   ]);

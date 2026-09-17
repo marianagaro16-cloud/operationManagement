@@ -6,12 +6,14 @@ import { createClient } from '@/lib/supabase/server';
 import { LINK_COLUMN, LINK_TYPES, type LinkType } from '@/domain/reminders/links';
 import {
   NOTIFY_BEFORE,
+  PERSONAL_TASK_STATUSES,
   RECURRENCES,
   advanceAfterCompletion,
   isValidTimezone,
   localToUtc,
   snoozeUntil,
   SNOOZE_PRESETS,
+  type PersonalTaskStatus,
 } from '@/domain/reminders/schedule';
 import { getViewer } from './data';
 import type { ActionResult } from './actions';
@@ -257,10 +259,10 @@ export async function savePersonalTask(input: SavePersonalTaskInput): Promise<Ac
 
 export async function setPersonalTaskStatus(
   id: string,
-  status: 'open' | 'completed' | 'cancelled',
+  status: PersonalTaskStatus,
 ): Promise<ActionResult> {
   if (!(await requireAccess())) return { ok: false, error: 'not_authorized' };
-  if (!['open', 'completed', 'cancelled'].includes(status)) return { ok: false, error: 'unknown' };
+  if (!(PERSONAL_TASK_STATUSES as readonly string[]).includes(status)) return { ok: false, error: 'unknown' };
 
   const now = new Date().toISOString();
   const supabase = createClient();

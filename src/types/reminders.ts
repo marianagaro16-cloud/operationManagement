@@ -1,5 +1,5 @@
 import type { LinkedRecords } from '@/domain/reminders/links';
-import type { Recurrence, ReminderStatus } from '@/domain/reminders/schedule';
+import type { PersonalTaskStatus, Recurrence, ReminderStatus } from '@/domain/reminders/schedule';
 
 export interface ReminderPerson {
   id: string;
@@ -57,7 +57,7 @@ export interface PersonalTask extends LinkedRecords {
   notes: string | null;
   due_date: string | null;
   due_time: string | null;
-  status: 'open' | 'completed' | 'cancelled';
+  status: PersonalTaskStatus;
   source_reminder_id: string | null;
   completed_at: string | null;
   cancelled_at: string | null;

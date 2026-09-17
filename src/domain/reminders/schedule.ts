@@ -167,15 +167,26 @@ export function reminderPhase(
   return next.hasSame(now, 'day') ? 'today' : 'upcoming';
 }
 
+/**
+ * A personal task's status. 'in_progress' is still open: it is due, it counts
+ * toward what is left for today, and ticking it off completes it.
+ */
+export const PERSONAL_TASK_STATUSES = ['open', 'in_progress', 'completed', 'cancelled'] as const;
+export type PersonalTaskStatus = (typeof PERSONAL_TASK_STATUSES)[number];
+
+export function isOpenPersonalTask(status: PersonalTaskStatus): boolean {
+  return status === 'open' || status === 'in_progress';
+}
+
 /** Personal task equivalent, where the time of day is optional. */
 export function personalTaskPhase(
-  status: 'open' | 'completed' | 'cancelled',
+  status: PersonalTaskStatus,
   dueDate: string | null,
   dueTime: string | null,
   nowIso: string,
   zone: string = BUSINESS_TZ,
 ): 'overdue' | 'today' | 'upcoming' | 'undated' | 'completed' | 'cancelled' {
-  if (status !== 'open') return status;
+  if (status === 'completed' || status === 'cancelled') return status;
   if (!dueDate) return 'undated';
   const now = DateTime.fromISO(nowIso).setZone(zone);
   const today = now.toISODate()!;

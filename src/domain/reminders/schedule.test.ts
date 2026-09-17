@@ -157,6 +157,9 @@ describe('phase', () => {
     expect(personalTaskPhase('open', '2026-09-15', '15:00', now, Z)).toBe('today');
     expect(personalTaskPhase('open', '2026-09-16', null, now, Z)).toBe('upcoming');
     expect(personalTaskPhase('completed', '2026-09-14', null, now, Z)).toBe('completed');
+    // In progress is still open work, judged by its date like any other.
+    expect(personalTaskPhase('in_progress', '2026-09-14', null, now, Z)).toBe('overdue');
+    expect(personalTaskPhase('in_progress', null, null, now, Z)).toBe('undated');
   });
 });
 
