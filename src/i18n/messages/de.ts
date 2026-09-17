@@ -1785,6 +1785,17 @@ export const de: Messages = {
     viewAll: 'Alle persönlichen Aufgaben',
     badge: 'Persönliche Aufgabe',
   },
+  online: {
+    title: 'Online',
+    subtitle: 'Wer die App gerade geöffnet hat und auf welcher Seite. Aktualisiert sich selbst.',
+    onlineNow: 'Online ({count})',
+    offline: 'Nicht online ({count})',
+    since: 'seit {time}',
+    lastSeen: 'Zuletzt gesehen {when}',
+    neverSeen: 'Noch nicht gesehen',
+    nobody: 'Niemand ist online',
+    nobodyBody: 'Eine Person erscheint hier, sobald sie die App öffnet.',
+  },
   language: {
     label: 'Sprache',
     en: 'English',

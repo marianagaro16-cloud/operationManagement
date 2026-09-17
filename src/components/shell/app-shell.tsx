@@ -9,6 +9,7 @@ import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { LanguageSelector } from './language-selector';
 import { SignOutButton } from './sign-out-button';
+import { PresenceBeacon } from './presence-beacon';
 import { atLeast, can, type Permission, type Role } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 
@@ -146,6 +147,8 @@ export function AppShell({
 
   return (
     <div className="min-h-dvh bg-bg">
+      <PresenceBeacon />
+
       {/* ---------------- header ---------------- */}
       <header
         className={cn(

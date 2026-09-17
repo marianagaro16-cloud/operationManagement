@@ -38,6 +38,7 @@
     "verify:import": "node scripts/verify-import.mjs",
     "verify:incidents": "node scripts/verify-incidents.mjs",
     "verify:reception": "node scripts/verify-goods-reception.mjs",
+    "verify:presence": "node scripts/verify-presence.mjs",
     "perf": "node scripts/perf-baseline.mjs"
   },
   "dependencies": {

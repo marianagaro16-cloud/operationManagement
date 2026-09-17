@@ -1817,6 +1817,17 @@ export const en = {
     viewAll: 'All personal tasks',
     badge: 'Personal task',
   },
+  online: {
+    title: 'Online now',
+    subtitle: 'Who has the app open right now, and on which screen. Updates on its own.',
+    onlineNow: 'Online ({count})',
+    offline: 'Not online ({count})',
+    since: 'since {time}',
+    lastSeen: 'Last seen {when}',
+    neverSeen: 'Not seen yet',
+    nobody: 'Nobody is online',
+    nobodyBody: 'Someone appears here as soon as they open the app.',
+  },
   language: {
     label: 'Language',
     en: 'English',

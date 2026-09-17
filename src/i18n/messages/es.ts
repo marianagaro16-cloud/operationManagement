@@ -1785,6 +1785,17 @@ export const es: Messages = {
     viewAll: 'Todas las tareas personales',
     badge: 'Tarea personal',
   },
+  online: {
+    title: 'En línea',
+    subtitle: 'Quién tiene la app abierta ahora mismo y en qué pantalla. Se actualiza sola.',
+    onlineNow: 'En línea ({count})',
+    offline: 'Sin conexión ({count})',
+    since: 'desde las {time}',
+    lastSeen: 'Última vez {when}',
+    neverSeen: 'Aún no visto',
+    nobody: 'Nadie está en línea',
+    nobodyBody: 'Una persona aparece aquí en cuanto abre la app.',
+  },
   language: {
     label: 'Idioma',
     en: 'English',
