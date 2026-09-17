@@ -109,8 +109,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     screens: [
       { href: '/admin/users', label: 'nav.users', permission: 'users.manage' },
       // Who has the app open right now. Beside the accounts because it is about
-      // the same people, and admin-only for the same reason.
-      { href: '/admin/online', label: 'online.title', permission: 'users.manage' },
+      // the same people.
+      { href: '/admin/online', label: 'online.title', permission: 'team.view_online' },
       // The only screen in this section a non-admin can open. It sits beside
       // the accounts because that is what it addresses — people, not
       // configuration — and a Power User who holds nothing else here reaches

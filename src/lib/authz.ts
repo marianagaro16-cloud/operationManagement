@@ -66,6 +66,10 @@ export const PERMISSIONS = [
   // management, not system control — a Power User holds it.
   'notifications.send',
 
+  // See who has the app open right now. A Manager holds it by default; not
+  // account administration, so it is delegable.
+  'team.view_online',
+
   // Goods Reception. NOTE what is absent: there is no key for "may register a
   // delivery". That authority comes from goods_reception_assignees, because
   // role_permissions carries a CHECK constraint allowing only 'manager' and

@@ -6,7 +6,7 @@
  * Checks the half that lives in Postgres:
  *
  *   - an approved user's check-in records where they are
- *   - only an admin can read anybody's presence — not a manager, not the user
+ *   - an admin and a manager can read presence — not a power user, not the user
  *   - nobody can write a presence row directly, only through touch_presence()
  *   - a pending account never shows up as using the app
  *   - a check-in after a gap starts a new stretch; a steady one does not
@@ -62,6 +62,7 @@ const rowOf = async (id) =>
 async function main() {
   const A = await makeUser('admin');
   const M = await makeUser('manager');
+  const P = await makeUser('power_user');
   const U = await makeUser('user');
   const Pending = await makeUser('user', 'pending');
 
@@ -76,16 +77,18 @@ async function main() {
   check('a later check-in moves them', second?.path === '/inventory', second?.path);
   check('a steady check-in keeps the stretch start', second?.started_at === first?.started_at);
 
-  console.log('\n=== 2. Only an admin sees it ===');
+  console.log('\n=== 2. Admin and Manager see it, nobody else ===');
   const asAdmin = await A.client.from('user_presence').select('user_id').eq('user_id', U.id);
   check('admin reads a presence row', (asAdmin.data ?? []).length === 1, asAdmin.error?.message);
-  const asManager = await M.client.from('user_presence').select('user_id');
-  check('manager reads nothing', !asManager.error && (asManager.data ?? []).length === 0);
+  const asManager = await M.client.from('user_presence').select('user_id').eq('user_id', U.id);
+  check('manager reads a presence row', (asManager.data ?? []).length === 1, asManager.error?.message);
+  const asPower = await P.client.from('user_presence').select('user_id');
+  check('power user reads nothing', !asPower.error && (asPower.data ?? []).length === 0);
   const asUser = await U.client.from('user_presence').select('user_id');
   check('a user cannot read even their own row', !asUser.error && (asUser.data ?? []).length === 0);
 
   console.log('\n=== 3. Nobody writes it directly ===');
-  const ins = await M.client.from('user_presence').insert({ user_id: M.id, path: '/x' });
+  const ins = await P.client.from('user_presence').insert({ user_id: P.id, path: '/x' });
   check('direct insert is refused', Boolean(ins.error));
   await U.client.from('user_presence').update({ path: '/forged' }).eq('user_id', U.id);
   check('direct update changes nothing', (await rowOf(U.id))?.path === '/inventory');

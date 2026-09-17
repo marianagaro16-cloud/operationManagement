@@ -6,12 +6,12 @@ import { OnlineUsers } from '@/components/admin/online-users';
 export const dynamic = 'force-dynamic';
 
 /**
- * Who is using the app right now. Admin-only, like the account list beside it:
- * where somebody is working is not every manager's business.
+ * Who is using the app right now. Admin always; Manager by default, through
+ * the permission matrix.
  */
 export default async function AdminOnlinePage() {
   const viewer = await getViewer();
-  if (!viewer?.can('users.manage')) redirect('/admin');
+  if (!viewer?.can('team.view_online')) redirect('/admin');
 
   const [users, presence] = await Promise.all([getUsers(), getPresence()]);
 
