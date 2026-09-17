@@ -1788,6 +1788,7 @@ export const es: Messages = {
     widgetTitle: 'Mis tareas personales',
     widgetDue: '{count} pendientes',
     widgetNothing: 'No hay tareas personales pendientes',
+    widgetMore: '+{count} más',
     viewAll: 'Todas las tareas personales',
     today: 'Hoy',
     tomorrow: 'Mañana',

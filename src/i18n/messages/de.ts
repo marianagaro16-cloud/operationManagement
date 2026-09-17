@@ -1788,6 +1788,7 @@ export const de: Messages = {
     widgetTitle: 'Meine persönlichen Aufgaben',
     widgetDue: '{count} fällig',
     widgetNothing: 'Keine persönlichen Aufgaben fällig',
+    widgetMore: '+{count} weitere',
     viewAll: 'Alle persönlichen Aufgaben',
     today: 'Heute',
     tomorrow: 'Morgen',

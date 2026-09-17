@@ -32,7 +32,7 @@ export default async function DashboardPage() {
     // The forward view lives on the inventory screen.
     getInventoryDashboard(1),
     usesReminders ? getDashboardReminders() : null,
-    usesReminders ? getPersonalTasks().then((r) => r.open) : null,
+    usesReminders ? getPersonalTasks() : null,
   ]);
 
   const countsToday = [...inventory.overdue, ...inventory.dueToday];

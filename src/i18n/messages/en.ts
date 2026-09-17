@@ -1820,6 +1820,7 @@ export const en = {
     widgetTitle: 'My personal tasks',
     widgetDue: '{count} due',
     widgetNothing: 'No personal tasks due',
+    widgetMore: '+{count} more',
     viewAll: 'All personal tasks',
     today: 'Today',
     tomorrow: 'Tomorrow',

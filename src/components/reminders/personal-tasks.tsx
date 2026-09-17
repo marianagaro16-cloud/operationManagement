@@ -18,7 +18,7 @@ import { savePersonalTask, setPersonalTaskStatus } from '@/server/reminder-actio
 import type { PersonalTask } from '@/types/reminders';
 import { LinkChip, reminderErrorKey } from './reminder-bits';
 
-type Group = 'overdue' | 'today' | 'upcoming' | 'undated';
+export type Group = 'overdue' | 'today' | 'upcoming' | 'undated';
 
 const GROUPS: { key: Group; label: MessageKey; dot: string }[] = [
   { key: 'overdue', label: 'ptask.groupOverdue', dot: 'bg-late' },
@@ -169,8 +169,20 @@ export function PersonalTaskList({
   );
 }
 
-/** One line at the top: type, Enter, done. It lands on today, like the dialog's default. */
-function QuickAdd({ today, onDetails }: { today: string; onDetails: (title: string) => void }) {
+/**
+ * One line: type, Enter, done. It lands on today, like the dialog's default.
+ * `compact` is the dashboard card's version — flatter, since it sits inside a
+ * card rather than on the page.
+ */
+export function QuickAdd({
+  today,
+  onDetails,
+  compact = false,
+}: {
+  today: string;
+  onDetails: (title: string) => void;
+  compact?: boolean;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const [title, setTitle] = useState('');
@@ -193,7 +205,12 @@ function QuickAdd({ today, onDetails }: { today: string; onDetails: (title: stri
     <>
       <form
         onSubmit={(e) => { e.preventDefault(); add(); }}
-        className="flex items-center gap-2 rounded-xl border border-border bg-surface py-1.5 pl-3.5 pr-1.5 shadow-card transition-colors focus-within:border-accent/50"
+        className={cn(
+          'flex items-center gap-2 border transition-colors focus-within:border-accent/50',
+          compact
+            ? 'rounded-lg border-transparent bg-surface-2/70 py-0.5 pl-3 pr-1 focus-within:bg-surface'
+            : 'rounded-xl border-border bg-surface py-1.5 pl-3.5 pr-1.5 shadow-card',
+        )}
       >
         <Plus className="h-4 w-4 shrink-0 text-accent" aria-hidden />
         <input
@@ -203,7 +220,10 @@ function QuickAdd({ today, onDetails }: { today: string; onDetails: (title: stri
           aria-label={t('ptask.newTitle')}
           maxLength={200}
           disabled={pending}
-          className="h-9 min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-subtle"
+          className={cn(
+            'min-w-0 flex-1 bg-transparent outline-none placeholder:text-subtle',
+            compact ? 'h-8 text-[13px]' : 'h-9 text-[14px]',
+          )}
         />
         <Button
           type="button"
@@ -215,7 +235,7 @@ function QuickAdd({ today, onDetails }: { today: string; onDetails: (title: stri
           aria-label={t('ptask.details')}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
-          <span className="hidden sm:inline">{t('ptask.details')}</span>
+          {!compact && <span className="hidden sm:inline">{t('ptask.details')}</span>}
         </Button>
         {title.trim() && (
           <Button type="submit" size="sm" variant="primary" loading={pending}>
@@ -249,16 +269,19 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function TaskRow({
+export function TaskRow({
   task,
   group,
   today,
   onEdit,
+  compact = false,
 }: {
   task: PersonalTask;
   group: Group;
   today: string;
   onEdit: () => void;
+  /** Dashboard card: tighter, and notes left for the full page. */
+  compact?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -284,7 +307,7 @@ function TaskRow({
 
   return (
     <li className={cn('group transition-opacity duration-300', done && 'opacity-60')}>
-      <div className="flex items-start gap-3 px-3.5 py-3">
+      <div className={cn('flex items-start gap-3 px-3.5', compact ? 'py-2' : 'py-3')}>
         <button
           onClick={complete}
           aria-label={t('ptask.complete')}
@@ -304,19 +327,20 @@ function TaskRow({
           <button onClick={onEdit} className="block w-full text-left">
             <p
               className={cn(
-                'text-[14px] font-medium leading-snug transition-colors',
+                'font-medium leading-snug transition-colors',
+                compact ? 'text-[13.5px]' : 'text-[14px]',
                 done && 'text-muted line-through',
               )}
             >
               {task.title}
             </p>
-            {task.notes && (
+            {task.notes && !compact && (
               <p className="mt-0.5 line-clamp-2 whitespace-pre-wrap text-[12.5px] text-muted">{task.notes}</p>
             )}
           </button>
 
           {(label || task.source_reminder_id || currentLink(task)) && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', compact ? 'mt-1' : 'mt-1.5')}>
               {label && (
                 <span
                   className={cn(
@@ -401,7 +425,7 @@ function currentLink(task: PersonalTask | null): { type: LinkType; id: string } 
   return null;
 }
 
-function PersonalTaskDialog({
+export function PersonalTaskDialog({
   task,
   initialTitle,
   onClose,

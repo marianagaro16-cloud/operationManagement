@@ -1,14 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, ListTodo } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, ChevronRight, ListTodo, Sparkles } from 'lucide-react';
+import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
-import { Card } from '@/components/ui/primitives';
-import { personalTaskPhase } from '@/domain/reminders/schedule';
+import { BUSINESS_TZ } from '@/lib/datetime';
+import { Card, Progress } from '@/components/ui/primitives';
+import { isOnDay, personalTaskPhase } from '@/domain/reminders/schedule';
 import type { PersonalTask, Reminder } from '@/types/reminders';
 import { QuickReminderButton } from './reminder-actions';
 import { useFormatMoment } from './reminder-bits';
+import { PersonalTaskDialog, QuickAdd, TaskRow } from './personal-tasks';
+
+/** Rows the dashboard card shows before it hands over to the full page. */
+const CARD_ROWS = 5;
 
 /**
  * My reminders and my personal tasks, on the dashboard.
@@ -25,15 +32,11 @@ export function ReminderWidgets({
 }: {
   viewerId: string;
   reminders: { overdue: Reminder[]; overdueTotal: number; today: Reminder[]; upcoming: Reminder[] };
-  tasks: PersonalTask[];
+  tasks: { open: PersonalTask[]; closed: PersonalTask[] };
   nowIso: string;
 }) {
-  const { t, formatDate } = useI18n();
+  const { t } = useI18n();
   const format = useFormatMoment();
-
-  const dueTasks = tasks
-    .map((task) => ({ task, phase: personalTaskPhase(task.status, task.due_date, task.due_time, nowIso) }))
-    .filter(({ phase }) => phase === 'overdue' || phase === 'today');
 
   const reminderRows = [
     ...reminders.overdue.map((r) => ({ r, late: true })),
@@ -82,35 +85,106 @@ export function ReminderWidgets({
         )}
       </Card>
 
-      <Card className="px-3.5 py-3">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <Link href="/reminders/tasks" className="flex items-center gap-1.5 text-[13.5px] font-semibold hover:underline">
-            <ListTodo className="h-4 w-4 text-muted" aria-hidden />
-            {t('ptask.widgetTitle')}
-            {dueTasks.length > 0 && (
-              <span className="rounded-full bg-accent/15 px-1.5 text-[11px] font-medium tabular text-accent">
-                {t('ptask.widgetDue', { count: dueTasks.length })}
+      <PersonalTasksCard open={tasks.open} closed={tasks.closed} nowIso={nowIso} />
+    </div>
+  );
+}
+
+/**
+ * The full page's checklist, in a card: tick what is due now, add a line for
+ * today, and see today's progress. Only what is overdue or due today is
+ * listed — anything later waits on the full page, which the header opens.
+ */
+function PersonalTasksCard({
+  open,
+  closed,
+  nowIso,
+}: {
+  open: PersonalTask[];
+  closed: PersonalTask[];
+  nowIso: string;
+}) {
+  const { t } = useI18n();
+  const [editing, setEditing] = useState<PersonalTask | null>(null);
+  const [creating, setCreating] = useState<string | null>(null);
+
+  const today = DateTime.fromISO(nowIso).setZone(BUSINESS_TZ).toISODate()!;
+
+  const due = open
+    .map((task) => ({ task, phase: personalTaskPhase(task.status, task.due_date, task.due_time, nowIso) }))
+    .filter((x): x is { task: PersonalTask; phase: 'overdue' | 'today' } => x.phase === 'overdue' || x.phase === 'today')
+    // Overdue first; the query already orders each by date and time.
+    .sort((a, b) => (a.phase === b.phase ? 0 : a.phase === 'overdue' ? -1 : 1));
+  const doneToday = closed.filter((c) => c.status === 'completed' && isOnDay(c.completed_at, today)).length;
+  const hidden = due.length - CARD_ROWS;
+
+  return (
+    <Card className="flex flex-col overflow-hidden">
+      <div className="px-3.5 pt-3">
+        <div className="flex items-center justify-between gap-2">
+          <Link href="/reminders/tasks" className="flex min-w-0 items-center gap-1.5 text-[13.5px] font-semibold hover:underline">
+            <ListTodo className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+            <span className="truncate">{t('ptask.widgetTitle')}</span>
+            {due.length > 0 && (
+              <span className="shrink-0 rounded-full bg-accent/15 px-1.5 text-[11px] font-medium tabular text-accent">
+                {t('ptask.widgetDue', { count: due.length })}
               </span>
             )}
           </Link>
+          <Link
+            href="/reminders/tasks"
+            aria-label={t('ptask.viewAll')}
+            className="-mr-1.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-subtle transition-colors hover:bg-surface-2 hover:text-fg"
+          >
+            <ChevronRight className="h-4 w-4" aria-hidden />
+          </Link>
         </div>
-        {dueTasks.length === 0 ? (
-          <p className="py-2 text-[12.5px] text-muted">{t('ptask.widgetNothing')}</p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {dueTasks.slice(0, 6).map(({ task, phase }) => (
-              <li key={task.id}>
-                <Link href="/reminders/tasks" className="flex items-baseline justify-between gap-3 py-1.5 text-[13px] hover:text-accent">
-                  <span className="min-w-0 truncate">{task.title}</span>
-                  <span className={cn('shrink-0 text-[12px] tabular', phase === 'overdue' ? 'font-semibold text-late' : 'text-muted')}>
-                    {phase === 'overdue' ? formatDate(task.due_date!, 'short') : task.due_time?.slice(0, 5) ?? ''}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+
+        {due.length + doneToday > 0 && (
+          <div className="mt-2 flex items-center gap-2.5">
+            <div className="flex-1">
+              <Progress value={doneToday} total={doneToday + due.length} />
+            </div>
+            <span className="shrink-0 text-[11.5px] tabular text-muted">
+              {t('ptask.heroDone', { count: doneToday })}
+            </span>
+          </div>
         )}
-      </Card>
-    </div>
+
+        <div className="my-2.5">
+          <QuickAdd compact today={today} onDetails={(title) => setCreating(title)} />
+        </div>
+      </div>
+
+      {due.length === 0 ? (
+        <p className="flex items-center gap-2 border-t border-border px-3.5 py-3 text-[12.5px] text-muted">
+          {doneToday > 0 && <Sparkles className="h-4 w-4 text-done" aria-hidden />}
+          {doneToday > 0 ? t('ptask.heroAllDone') : t('ptask.widgetNothing')}
+        </p>
+      ) : (
+        <ul className="divide-y divide-border border-t border-border">
+          {due.slice(0, CARD_ROWS).map(({ task, phase }) => (
+            <TaskRow key={task.id} compact task={task} group={phase} today={today} onEdit={() => setEditing(task)} />
+          ))}
+        </ul>
+      )}
+
+      {hidden > 0 && (
+        <Link
+          href="/reminders/tasks"
+          className="border-t border-border px-3.5 py-2 text-[12.5px] font-medium text-muted transition-colors hover:bg-surface-2/60 hover:text-accent"
+        >
+          {t('ptask.widgetMore', { count: hidden })}
+        </Link>
+      )}
+
+      {(creating !== null || editing) && (
+        <PersonalTaskDialog
+          task={editing}
+          initialTitle={creating ?? ''}
+          onClose={() => { setCreating(null); setEditing(null); }}
+        />
+      )}
+    </Card>
   );
 }
