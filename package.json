@@ -39,6 +39,7 @@
     "verify:incidents": "node scripts/verify-incidents.mjs",
     "verify:reception": "node scripts/verify-goods-reception.mjs",
     "verify:presence": "node scripts/verify-presence.mjs",
+    "verify:inbox": "node scripts/verify-inbox.mjs",
     "perf": "node scripts/perf-baseline.mjs"
   },
   "dependencies": {

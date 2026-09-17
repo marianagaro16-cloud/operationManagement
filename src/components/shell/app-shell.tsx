@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { LanguageSelector } from './language-selector';
 import { SignOutButton } from './sign-out-button';
 import { PresenceBeacon } from './presence-beacon';
+import { InboxLink } from './inbox-link';
 import { atLeast, can, type Permission, type Role } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 
@@ -21,12 +22,15 @@ export function AppShell({
   profile,
   caps,
   reminderAttention = 0,
+  inboxUnread = 0,
   children,
 }: {
   profile: Profile;
   caps: Permission[];
   /** Reminders due or overdue for this viewer; drawn as a count on the nav entry. */
   reminderAttention?: number;
+  /** Unread notifications; drawn as a count on the inbox icon in the header. */
+  inboxUnread?: number;
   children: ReactNode;
 }) {
   const { t, formatDate } = useI18n();
@@ -143,7 +147,7 @@ export function AppShell({
   // those carry their own title and back link in the content).
   const sectionLabel =
     nav.find(({ href }) => active(href))?.label ??
-    (pathname === '/settings' ? t('nav.settings') : t('common.appName'));
+    (pathname === '/settings' ? t('nav.settings') : pathname === '/inbox' ? t('inbox.title') : t('common.appName'));
 
   return (
     <div className="min-h-dvh bg-bg">
@@ -180,6 +184,10 @@ export function AppShell({
           <div className="hidden sm:block">
             <LanguageSelector />
           </div>
+
+          {/* The inbox, beside settings on every screen: a count nobody can
+              see without opening a menu is a count nobody reads. */}
+          <InboxLink initialUnread={inboxUnread} active={pathname === '/inbox'} />
 
           {/* Always-visible route to notifications. A link in a menu that has
               to be opened first is a link nobody finds on a phone. */}

@@ -11,6 +11,11 @@ import { createAdminClient } from '@/lib/supabase/server';
  *
  * Node runtime only — the encryption `web-push` performs is unavailable on
  * the Edge runtime.
+ *
+ * Every send* function also files the notification in each recipient's inbox
+ * (`notification_inbox`), whether or not a device was reached. That is what
+ * lets somebody read a notification again after swiping it away — and read it
+ * at all if they never enabled push.
  */
 
 export interface PushPayload {
@@ -108,8 +113,30 @@ async function deliver(subs: SubscriptionRow[], payload: PushPayload): Promise<n
   return delivered.length;
 }
 
+/**
+ * File a notification in each recipient's inbox.
+ *
+ * Best effort, like the push itself: a failed write is swallowed so it can
+ * never stop the delivery or the action that caused it. A payload with no tag
+ * gets a unique one, so it is its own entry rather than replacing another.
+ */
+async function recordInbox(userIds: string[], payload: PushPayload): Promise<void> {
+  if (userIds.length === 0) return;
+  const admin = createAdminClient();
+  const { error } = await admin.rpc('record_inbox_notification', {
+    p_user_ids: userIds,
+    p_tag: payload.tag ?? `untagged-${crypto.randomUUID()}`,
+    p_title: payload.title,
+    p_body: payload.body,
+    p_url: payload.url ?? null,
+    p_level: payload.level ?? null,
+  });
+  if (error) console.error('inbox: record failed', error.message);
+}
+
 /** Send to one user's devices. */
 export async function sendToUser(userId: string, payload: PushPayload): Promise<number> {
+  await recordInbox([userId], payload);
   const admin = createAdminClient();
   const { data } = await admin
     .from('push_subscriptions')
@@ -127,6 +154,7 @@ export async function sendToUser(userId: string, payload: PushPayload): Promise<
  */
 export async function sendToUsers(userIds: string[], payload: PushPayload): Promise<number> {
   if (userIds.length === 0) return 0;
+  await recordInbox(userIds, payload);
   const admin = createAdminClient();
   const { data } = await admin
     .from('push_subscriptions')
@@ -201,6 +229,7 @@ export async function sendToApprovedUsers(payload: PushPayload): Promise<number>
 
   const ids = (approved ?? []).map((p) => p.id);
   if (ids.length === 0) return 0;
+  await recordInbox(ids, payload);
 
   const { data } = await admin
     .from('push_subscriptions')

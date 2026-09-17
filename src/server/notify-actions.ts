@@ -16,8 +16,9 @@ import type { ActionResult } from './actions';
  *
  * Everywhere else the database decides: a mutation routes through RLS or a
  * SECURITY DEFINER function, and the server action is a validated transport
- * that could be bypassed without consequence. There is no row here to protect
- * — nothing is written — and delivery has to run as the service role, because
+ * that could be bypassed without consequence. The only row written is the
+ * recipients' inbox entry, filed by the service role, and delivery has to run
+ * as the service role too, because
  * RLS hides push endpoints from everyone but the person who owns the device.
  * So the two rules the feature has are enforced HERE, before the service-role
  * client is touched at all, and nowhere else:
@@ -105,7 +106,8 @@ export async function sendDirectNotification(
     // the second silently replacing the first — which is what a shared tag
     // does, and is right for an escalating order but wrong for a message.
     tag: `direct-${crypto.randomUUID()}`,
-    url: '/dashboard',
+    // The message itself is the content, and the inbox is where it lives.
+    url: '/inbox',
   });
 
   return {

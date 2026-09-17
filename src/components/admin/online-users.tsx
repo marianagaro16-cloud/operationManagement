@@ -5,6 +5,7 @@ import { useI18n, type MessageKey } from '@/i18n';
 import { createClient } from '@/lib/supabase/client';
 import { displayName, initials } from '@/lib/utils';
 import { BUSINESS_TZ } from '@/lib/datetime';
+import { formatAgo } from '@/lib/relative-time';
 import { Badge, Card, EmptyState } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { areaFor, isOnline, type PresenceArea, type PresenceRow } from '@/domain/presence';
@@ -87,15 +88,7 @@ export function OnlineUsers({
     .sort((a, b) => (b.seen?.last_seen_at ?? '').localeCompare(a.seen?.last_seen_at ?? ''));
 
   const time = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', timeZone: BUSINESS_TZ });
-  const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
-
-  const ago = (iso: string) => {
-    const minutes = Math.round((Date.parse(iso) - now) / 60_000);
-    if (minutes > -60) return relative.format(Math.min(minutes, -1), 'minute');
-    const hours = Math.round(minutes / 60);
-    if (hours > -24) return relative.format(hours, 'hour');
-    return relative.format(Math.round(hours / 24), 'day');
-  };
+  const ago = (iso: string) => formatAgo(iso, now, locale);
 
   const screenLabel = (path: string | null) => {
     const area = areaFor(path);
