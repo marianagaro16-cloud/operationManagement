@@ -2752,6 +2752,8 @@ export type Database = {
           is_active: boolean
           name: string | null
           needs_review: boolean
+          net_weight_kg: number | null
+          net_weight_suggested: boolean
           notes: string | null
           presentation: string
           units_per_box: number | null
@@ -2767,6 +2769,8 @@ export type Database = {
           is_active?: boolean
           name?: string | null
           needs_review?: boolean
+          net_weight_kg?: number | null
+          net_weight_suggested?: boolean
           notes?: string | null
           presentation: string
           units_per_box?: number | null
@@ -2782,6 +2786,8 @@ export type Database = {
           is_active?: boolean
           name?: string | null
           needs_review?: boolean
+          net_weight_kg?: number | null
+          net_weight_suggested?: boolean
           notes?: string | null
           presentation?: string
           units_per_box?: number | null

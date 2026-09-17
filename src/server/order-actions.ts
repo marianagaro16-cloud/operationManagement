@@ -432,6 +432,8 @@ const productSchema = z.object({
    * a meaningful answer, not a missing one.
    */
   units_per_box: z.number().positive().nullable().optional(),
+  /** Net kg of one unit as ordered. NULL means unknown. */
+  net_weight_kg: z.number().positive().nullable().optional(),
   /** One of our brands, or null while the product is unclassified. */
   brand_id: z.string().uuid().nullable().optional(),
   is_active: z.boolean(),
@@ -450,6 +452,10 @@ export async function saveProduct(
   const row = {
     ...parsed.data,
     units_per_box: parsed.data.units_per_box ?? null,
+    net_weight_kg: parsed.data.net_weight_kg ?? null,
+    // A person saved the product with the weight in front of them: whatever
+    // is there now is theirs, no longer a suggestion read from the name.
+    net_weight_suggested: false,
     brand_id: parsed.data.brand_id ?? null,
   };
   const { error } = id

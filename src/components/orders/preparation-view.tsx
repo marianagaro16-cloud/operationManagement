@@ -25,6 +25,7 @@ import { OrderTypeBadge } from '@/components/orders/order-type-badge';
 import { saveLotAllocation, deleteLotAllocation } from '@/server/order-actions';
 import { ShortfallEditor, ShortfallSummary } from './shortfall';
 import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
+import { OrderWeight } from './order-weight';
 import { orderStage, stageWeight } from '@/domain/orders/stage';
 
 /*
@@ -203,6 +204,7 @@ export function OrderPreparationCard({
             deliveryTime={order.delivery_time}
             isComplete={Boolean(order.ready_at)}
           />
+          <OrderWeight lines={order.lines} icon className="text-[12px] text-muted" />
           <span className="text-[12px] text-muted">
             {t('orders.deliveryOn', { date: formatDate(order.delivery_date, 'short') })}
           </span>

@@ -27,6 +27,7 @@ import { UrgencyBadge } from './urgency-badge';
 import { NoteBlock, NoteChip } from '@/components/ui/note';
 import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
 import { ShortfallSummary } from './shortfall';
+import { OrderWeight } from './order-weight';
 
 /**
  * One order, at its own address.
@@ -188,6 +189,10 @@ export function OrderDetail({
                 ? displayName(order.creator)
                 : order.generated_from_template_id ? t('orders.fromTemplate') : '—'}
             </span>
+          </Fact>
+
+          <Fact label={t('orders.totalWeight')}>
+            <OrderWeight lines={order.lines} className="font-medium" />
           </Fact>
         </dl>
 

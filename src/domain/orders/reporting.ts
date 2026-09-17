@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon';
 import { BUSINESS_TZ, parseBusinessDate, toBusinessDate, type BusinessDate } from '@/lib/datetime';
 import { lineProgress, toQuantity } from './progress';
+import { roundKg } from './weight';
 import { productLabel, type Order } from '@/types/orders';
 
 /**
@@ -203,6 +204,13 @@ export interface OrderReport {
   /** Units ordered and prepared across every counted line. */
   totalOrdered: number;
   totalPrepared: number;
+  /**
+   * Net kg of the units ordered, on exactly the lines totalOrdered counts.
+   * Partial while some products have no weight: see productsWithoutWeight.
+   */
+  totalWeightKg: number;
+  /** Distinct products on counted lines that have no weight yet, so are left out of totalWeightKg. */
+  productsWithoutWeight: number;
   /** Lines where less was prepared than ordered, including products left out with a reason. */
   shortLines: number;
   /** Of those, the ones with no explanation recorded. */
@@ -282,6 +290,8 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
   let totalPrepared = 0;
   let shortLines = 0;
   let unexplainedShortLines = 0;
+  let totalWeightKg = 0;
+  const unweighed = new Set<string>();
 
   for (const order of counted) {
     // --- per order ---
@@ -328,6 +338,12 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
       const prepared = progress.allocated;
       totalOrdered += ordered;
       totalPrepared += prepared;
+      const kg = line.product?.net_weight_kg;
+      if (kg === null || kg === undefined || kg === '') {
+        if (ordered > 0) unweighed.add(line.product_id);
+      } else {
+        totalWeightKg += ordered * Number(kg);
+      }
       cust.ordered += ordered;
       day.ordered += ordered;
 
@@ -443,6 +459,8 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
     lines,
     totalOrdered: round3(totalOrdered),
     totalPrepared: round3(totalPrepared),
+    totalWeightKg: roundKg(totalWeightKg),
+    productsWithoutWeight: unweighed.size,
     shortLines,
     unexplainedShortLines,
     fulfilmentRate:

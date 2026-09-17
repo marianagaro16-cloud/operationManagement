@@ -24,6 +24,7 @@ import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
 import { NoteBlock, NoteChip } from '@/components/ui/note';
 import { OrderStageChip } from './order-fulfilment';
+import { OrderWeight } from './order-weight';
 
 /**
  * Order Control — replaces the monthly "Control de pedidos" workbook.
@@ -489,6 +490,7 @@ function OrderCard({
               isComplete={Boolean(order.ready_at)}
             />
           )}
+          <OrderWeight lines={order.lines} icon className="text-[11.5px] text-muted" />
           {/* Delivery date leads here; preparation date is exposed alongside —
               and links to the day it lands on, which the route has always
               accepted as a parameter and nothing ever pointed at. */}

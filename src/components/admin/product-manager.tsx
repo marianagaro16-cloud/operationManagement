@@ -14,6 +14,7 @@ import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { saveProduct } from '@/server/order-actions';
 import { addProductAlias, deleteProductAlias } from '@/server/import-actions';
 import type { ProductAliasRow } from '@/server/order-import';
+import { suggestNetWeightKg } from '@/domain/orders/weight';
 import { productLabel, type Brand, type Customer, type Product } from '@/types/orders';
 
 /**
@@ -21,7 +22,9 @@ import { productLabel, type Brand, type Customer, type Product } from '@/types/o
  *
  * `code` is the business identifier and is unique among ACTIVE products.
  * `name` is stored exactly as imported and is never parsed — nothing is
- * inferred from it into category, weight, size or packaging.
+ * inferred from it into category, size or packaging. The one exception is a
+ * net weight SUGGESTION: offered in the dialog, or pre-filled by a script and
+ * marked "to review", and never final until a person saves the product.
  *
  * Products absent from the master file are deactivated, never deleted, so
  * historical order lines keep resolving.
@@ -55,9 +58,14 @@ export function ProductManager({
   const [query, setQuery] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [brandFilter, setBrandFilter] = useState('');
+  const [weightFilter, setWeightFilter] = useState<'' | 'suggested' | 'missing'>('');
 
   const inactiveCount = products.filter((p) => !p.is_active).length;
   const reviewCount = products.filter((p) => p.needs_review).length;
+  // Active products only: an inactive product is never ordered, so its
+  // weight is nobody's work.
+  const weightSuggestedCount = products.filter((p) => p.is_active && p.net_weight_suggested).length;
+  const noWeightCount = products.filter((p) => p.is_active && p.net_weight_kg === null).length;
 
   // The shared matcher, so this screen agrees with the order form's product
   // picker: accent-folded, and terms are ANDed so "tortilla 1kg" narrows
@@ -71,13 +79,18 @@ export function ProductManager({
             brandFilter === '' ? true
               : brandFilter === 'none' ? p.brand_id === null
                 : p.brand_id === brandFilter,
+          )
+          .filter((p) =>
+            weightFilter === 'suggested' ? p.net_weight_suggested
+              : weightFilter === 'missing' ? p.net_weight_kg === null
+                : true,
           ),
         query,
         // Searchable by code, name and BRAND, which is how people actually
         // look — "masamor" should find the Masamor range.
         (p) => `${p.code ?? ''} ${p.name ?? ''} ${p.family} ${p.brand?.name ?? ''}`,
       ),
-    [products, query, showInactive, brandFilter],
+    [products, query, showInactive, brandFilter, weightFilter],
   );
 
   return (
@@ -137,6 +150,22 @@ export function ProductManager({
             {t('master.reviewCount', { count: reviewCount })}
           </span>
         )}
+        {/* Weights still to check, and weights nobody has entered: each one
+            narrows the list to exactly that work. */}
+        {weightSuggestedCount > 0 && (
+          <WeightFilterChip
+            active={weightFilter === 'suggested'}
+            onClick={() => setWeightFilter((f) => (f === 'suggested' ? '' : 'suggested'))}
+            label={t('master.weightSuggestedCount', { count: weightSuggestedCount })}
+          />
+        )}
+        {noWeightCount > 0 && (
+          <WeightFilterChip
+            active={weightFilter === 'missing'}
+            onClick={() => setWeightFilter((f) => (f === 'missing' ? '' : 'missing'))}
+            label={t('master.noWeightCount', { count: noWeightCount })}
+          />
+        )}
         <span className="text-[12px] text-subtle">
           {t('master.showingCount', { shown: visible.length, total: products.length })}
         </span>
@@ -165,6 +194,20 @@ export function ProductManager({
                     Absent rather than "—" when unclassified: a badge that
                     says nothing still costs a column on a phone. */}
                 {p.brand && <Badge tone="neutral">{p.brand.name}</Badge>}
+                {p.net_weight_kg === null ? (
+                  p.is_active && <Badge tone="neutral" className="shrink-0 whitespace-nowrap">{t('master.noWeight')}</Badge>
+                ) : p.net_weight_suggested ? (
+                  // Just the number on a phone, where the row has no room for
+                  // words; the warn tone and the filter chip say "to review".
+                  <Badge tone="warn" className="shrink-0 whitespace-nowrap" title={t('master.weightSuggestedHint')}>
+                    <span className="sm:hidden">{Number(p.net_weight_kg)} kg</span>
+                    <span className="hidden sm:inline">{t('master.weightSuggested', { kg: Number(p.net_weight_kg) })}</span>
+                  </Badge>
+                ) : (
+                  <span className="hidden shrink-0 text-[12px] tabular text-muted sm:inline">
+                    {Number(p.net_weight_kg)} kg
+                  </span>
+                )}
                 {p.needs_review && (
                   <Badge tone="warn" title={p.notes ?? undefined}>
                     <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
@@ -241,6 +284,14 @@ function ProductDialog({
       ? ''
       : String(product.units_per_box),
   );
+  const [netWeight, setNetWeight] = useState(
+    product?.net_weight_kg === null || product?.net_weight_kg === undefined
+      ? ''
+      : String(Number(product.net_weight_kg)),
+  );
+  // Offered only while the field is empty, and only when the name says it
+  // unambiguously — the same rule the pre-fill used.
+  const suggestedWeight = netWeight.trim() ? null : suggestNetWeightKg(name, product?.family, product?.presentation);
   const [active, setActive] = useState(product?.is_active ?? true);
   const [needsReview, setNeedsReview] = useState(product?.needs_review ?? false);
   const [error, setError] = useState<string | null>(null);
@@ -262,6 +313,7 @@ function ProductDialog({
           // An empty field is NULL, which says "no reliable conversion" and is
           // a real answer — the importer asks rather than assuming.
           units_per_box: unitsPerBox.trim() ? Number(unitsPerBox) : null,
+          net_weight_kg: netWeight.trim() ? Number(netWeight) : null,
           is_active: active,
           needs_review: needsReview,
         },
@@ -334,6 +386,34 @@ function ProductDialog({
           />
         </Field>
 
+        <Field
+          label={t('master.netWeight')}
+          hint={t('master.netWeightHint')}
+          htmlFor="p-weight"
+        >
+          <Input
+            id="p-weight"
+            type="number"
+            min="0"
+            step="any"
+            inputMode="decimal"
+            value={netWeight}
+            onChange={(e) => setNetWeight(e.target.value)}
+          />
+          {product?.net_weight_suggested && netWeight === String(Number(product.net_weight_kg)) && (
+            <p className="mt-1 text-[12px] text-warn">{t('master.weightSuggestedHint')}</p>
+          )}
+          {suggestedWeight !== null && (
+            <button
+              type="button"
+              onClick={() => setNetWeight(String(suggestedWeight))}
+              className="mt-1 text-[12px] font-medium text-accent hover:underline"
+            >
+              {t('master.useWeightSuggestion', { kg: suggestedWeight })}
+            </button>
+          )}
+        </Field>
+
         <Field label={t('master.notes')} htmlFor="p-notes">
           <Textarea id="p-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </Field>
@@ -365,6 +445,23 @@ function ProductDialog({
         {error && <ErrorState message={error} />}
       </div>
     </Dialog>
+  );
+}
+
+function WeightFilterChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors',
+        active
+          ? 'border-accent bg-accent/10 text-accent'
+          : 'border-border bg-surface text-muted hover:text-fg',
+      )}
+    >
+      {label}
+    </button>
   );
 }
 

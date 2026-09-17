@@ -39,7 +39,7 @@ const ORDER_SELECT = `
   lines:order_lines (
     id, order_id, product_id, ordered_quantity, generated_quantity, note, source_text, shortfall_code, shortfall_reason, position,
     shortfall_incident:incidents!order_lines_shortfall_incident_id_fkey ( id, incident_number ),
-    product:products ( id, code, name, family, presentation, category, notes, units_per_box, brand_id, needs_review, is_active, brand:brands ( id, name, sort_order, is_active ) ),
+    product:products ( id, code, name, family, presentation, category, notes, units_per_box, net_weight_kg, net_weight_suggested, brand_id, needs_review, is_active, brand:brands ( id, name, sort_order, is_active ) ),
     allocations:lot_allocations (
       id, order_line_id, lot_number, quantity, note, created_by, created_at, updated_at,
       author:profiles!lot_allocations_created_by_fkey ( name, email )
@@ -374,7 +374,7 @@ export async function getRecurringTemplates(): Promise<RecurringTemplate[]> {
       *, customer:customers!inner ( id, company_name, company_name_addition, name, is_active, created_at, updated_at ),
       lines:recurring_order_template_lines (
         id, product_id, default_quantity,
-        product:products ( id, code, name, family, presentation, category, notes, units_per_box, brand_id, needs_review, is_active, brand:brands ( id, name, sort_order, is_active ) )
+        product:products ( id, code, name, family, presentation, category, notes, units_per_box, net_weight_kg, net_weight_suggested, brand_id, needs_review, is_active, brand:brands ( id, name, sort_order, is_active ) )
       )
     `)
     .order('delivery_weekday')

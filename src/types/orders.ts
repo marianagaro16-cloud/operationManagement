@@ -105,6 +105,13 @@ export interface Product {
    */
   units_per_box: number | string | null;
   /**
+   * Net weight in kg of one unit as ordered (volumes at 1 L = 1 kg). NULL
+   * means nobody knows yet. numeric(12,3), so it can arrive as a string.
+   */
+  net_weight_kg: number | string | null;
+  /** True while that weight was read from the name and nobody has confirmed it. */
+  net_weight_suggested: boolean;
+  /**
    * Which of our brands this is sold under. NULL means nobody has classified
    * it yet — never inferred from the name, which is stored verbatim.
    */

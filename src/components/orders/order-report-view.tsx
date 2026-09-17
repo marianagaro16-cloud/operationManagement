@@ -9,6 +9,7 @@ import { Badge, Card, CardBody, EmptyState, Select } from '@/components/ui/primi
 import { Combobox } from '@/components/ui/combobox';
 import { ReportShell, reportHref } from '@/components/reports/report-shell';
 import { productReportToCsv, type OrderReport } from '@/domain/orders/reporting';
+import { formatKg } from '@/domain/orders/weight';
 import { productLabel, type Brand, type Customer, type Product } from '@/types/orders';
 
 /**
@@ -76,10 +77,18 @@ export function OrderReportView({
     URL.revokeObjectURL(url);
   }
 
-  const tiles = [
+  const tiles: { label: string; value: string | number; tone?: string; note?: string }[] = [
     { label: t('report.orders'), value: report.orders },
     { label: t('report.customers'), value: report.customersServed },
     { label: t('report.unitsOrdered'), value: report.totalOrdered },
+    {
+      label: t('report.totalWeight'),
+      value: formatKg(report.totalWeightKg),
+      // Partial while products have no weight, and says so.
+      note: report.productsWithoutWeight > 0
+        ? t('report.productsWithoutWeight', { count: report.productsWithoutWeight })
+        : undefined,
+    },
     {
       label: t('report.fulfilment'),
       value: `${report.fulfilmentRate}%`,
@@ -148,12 +157,13 @@ export function OrderReportView({
       ) : (
         <div className="space-y-5">
           {/* Headline */}
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
             {tiles.map((tile) => (
               <Card key={tile.label}>
                 <CardBody className="pt-3.5">
                   <p className="text-[11.5px] text-muted">{tile.label}</p>
                   <p className={cn('mt-0.5 text-xl font-semibold tabular', tile.tone)}>{tile.value}</p>
+                  {tile.note && <p className="mt-0.5 text-[11.5px] text-warn">{tile.note}</p>}
                 </CardBody>
               </Card>
             ))}

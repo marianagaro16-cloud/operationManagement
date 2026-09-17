@@ -144,6 +144,21 @@ describe('headline numbers', () => {
     expect(r.byProduct[0].ordered).toBe(10);
   });
 
+  it('weighs the units ordered on the same lines, and counts products it could not weigh', () => {
+    const weighed = (l: NonNullable<Order['lines']>[number], kg: number | string | null) =>
+      ({ ...l, product: { ...l.product, net_weight_kg: kg } }) as NonNullable<Order['lines']>[number];
+    const r = computeOrderReport(
+      [
+        order({ lines: [weighed(line('p1', '0001', 'Tortillas', 10), 1.75), weighed(line('p2', '0002', 'Salsa', 4), null)] }),
+        order({ order_type: 'sample', lines: [weighed(line('p3', '0003', 'Mezcal', 2), '0.7'), weighed(line('p2', '0002', 'Salsa', 1), null)] }),
+        order({ status: 'cancelled', lines: [weighed(line('p1', '0001', 'Tortillas', 99), 1.75)] }),
+      ],
+      SEP,
+    );
+    expect(r.totalWeightKg).toBe(18.9); // 10 × 1.75 + 2 × 0.7; the cancelled order is not weighed
+    expect(r.productsWithoutWeight).toBe(1); // Salsa, on two orders
+  });
+
   it('separates drafts and samples without hiding them', () => {
     const r = computeOrderReport(
       [
