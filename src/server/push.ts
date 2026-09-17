@@ -117,8 +117,9 @@ async function deliver(subs: SubscriptionRow[], payload: PushPayload): Promise<n
  * File a notification in each recipient's inbox.
  *
  * Best effort, like the push itself: a failed write is swallowed so it can
- * never stop the delivery or the action that caused it. A payload with no tag
- * gets a unique one, so it is its own entry rather than replacing another.
+ * never stop the delivery or the action that caused it. Every notification is
+ * its own entry; only an exact repeat (same tag, title and body — a scheduler
+ * retry) is collapsed. A payload with no tag gets a unique one.
  */
 async function recordInbox(userIds: string[], payload: PushPayload): Promise<void> {
   if (userIds.length === 0) return;

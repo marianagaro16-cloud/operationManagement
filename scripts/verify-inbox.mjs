@@ -8,8 +8,9 @@
  *   - a sent notification is filed for each approved recipient, and only them
  *   - a person reads their own inbox and nobody else's, admins included
  *   - only the server (service role) can file a notification
- *   - the same tag replaces an entry; the same TEXT again changes nothing, so
- *     a scheduler retry never duplicates or re-marks an entry unread
+ *   - every notification is kept, even one sharing a tag with an earlier one;
+ *     an exact repeat changes nothing, so a scheduler retry never duplicates
+ *     or re-marks an entry unread
  *   - marking read only ever touches the caller's own entries
  *
  * Every read runs as a real signed-in user through the anon key. Throwaway
@@ -98,9 +99,10 @@ async function main() {
   check('nor insert directly', Boolean(ins.error));
   check('so nothing was added', (await entriesOf(V.id)).length === 1);
 
-  console.log('\n=== 4. Tags replace, identical text does not ===');
+  console.log('\n=== 4. Nothing disappears; an exact repeat is not duplicated ===');
   const [before] = await entriesOf(U.id);
   await U.client.rpc('mark_inbox_read', { p_ids: [before.id] });
+  check('a read entry is still there', (await entriesOf(U.id)).length === 1);
   await file([U.id], tag, 'Order 12', 'Due in 2 hours');
   const again = await entriesOf(U.id);
   check('a retry with the same text keeps it read', again[0].read_at !== null);
@@ -108,11 +110,11 @@ async function main() {
 
   await file([U.id], tag, 'Order 12', 'Overdue', { level: 'overdue' });
   const after = await entriesOf(U.id);
-  check('an escalation replaces the same entry', after.length === 1 && after[0].body === 'Overdue' && after[0].level === 'overdue');
-  check('and marks it unread again', after[0].read_at === null);
+  check('an escalation is a new entry', after.length === 2 && after.some((e) => e.body === 'Overdue' && e.read_at === null));
+  check('and the earlier one is kept, still read', after.some((e) => e.body === 'Due in 2 hours' && e.read_at !== null));
 
   await file([U.id], `${tag}-other`, 'Message', 'Come to the cold store');
-  check('a different tag is its own entry', (await entriesOf(U.id)).length === 2);
+  check('a different tag is its own entry', (await entriesOf(U.id)).length === 3);
 
   console.log('\n=== 5. Marking read ===');
   const vEntry = (await entriesOf(V.id))[0];
