@@ -3,6 +3,8 @@ import {
   advanceAfterCompletion,
   localToUtc,
   nextOccurrence,
+  daysFromToday,
+  isOnDay,
   personalTaskPhase,
   reminderPhase,
   snoozeUntil,
@@ -155,5 +157,25 @@ describe('phase', () => {
     expect(personalTaskPhase('open', '2026-09-15', '15:00', now, Z)).toBe('today');
     expect(personalTaskPhase('open', '2026-09-16', null, now, Z)).toBe('upcoming');
     expect(personalTaskPhase('completed', '2026-09-14', null, now, Z)).toBe('completed');
+  });
+});
+
+describe('personal task days', () => {
+  it('counts calendar days from today', () => {
+    expect(daysFromToday('2026-09-17', '2026-09-17')).toBe(0);
+    expect(daysFromToday('2026-09-18', '2026-09-17')).toBe(1);
+    expect(daysFromToday('2026-09-16', '2026-09-17')).toBe(-1);
+    expect(daysFromToday('2026-10-01', '2026-09-17')).toBe(14);
+  });
+
+  it('is not thrown by a DST change in between', () => {
+    expect(daysFromToday('2026-10-26', '2026-10-24')).toBe(2);
+  });
+
+  it('places an instant on the business day, not the UTC one', () => {
+    // 23:30 UTC on the 16th is already the 17th in Zurich.
+    expect(isOnDay('2026-09-16T23:30:00Z', '2026-09-17', 'Europe/Zurich')).toBe(true);
+    expect(isOnDay('2026-09-16T21:30:00Z', '2026-09-17', 'Europe/Zurich')).toBe(false);
+    expect(isOnDay(null, '2026-09-17')).toBe(false);
   });
 });

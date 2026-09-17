@@ -187,3 +187,19 @@ export function personalTaskPhase(
   }
   return 'today';
 }
+
+/**
+ * Whole calendar days from `today` to `date`, both `YYYY-MM-DD` in the same
+ * zone: 0 is today, 1 tomorrow, -1 yesterday. Plain dates, so a DST change in
+ * between cannot turn one day into 0.96 of one.
+ */
+export function daysFromToday(date: string, today: string): number {
+  const at = (d: string) => Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, Number(d.slice(8, 10)));
+  return Math.round((at(date) - at(today)) / 86_400_000);
+}
+
+/** Did this instant fall on `today` in the given zone? */
+export function isOnDay(instantIso: string | null, today: string, zone: string = BUSINESS_TZ): boolean {
+  if (!instantIso) return false;
+  return DateTime.fromISO(instantIso).setZone(zone).toISODate() === today;
+}
