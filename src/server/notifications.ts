@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import type { Role } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 
 /**
@@ -7,17 +8,17 @@ import type { Profile } from '@/types/database';
  *
  * Who may be sent one, and which of them a push would actually reach.
  *
- * That second question is the whole reason this file exists. Delivery is
- * push-only: no row is written, so a message to somebody who never enabled
- * notifications is not delayed or queued, it is simply gone. The sender has
- * to be able to see that BEFORE sending, not infer it from a delivery count
- * afterwards.
+ * That second question is the whole reason this file exists. A message to
+ * somebody who never enabled notifications still lands in their inbox, but
+ * nothing pops up until they next open the app — so the sender has to be able
+ * to see that BEFORE sending, not infer it from a delivery count afterwards.
  */
 
 export interface NotifiableUser {
   id: string;
   name: string | null;
   email: string;
+  role: Role;
   /**
    * Has at least one live push subscription.
    *
@@ -33,23 +34,24 @@ export interface NotifiableUser {
 /**
  * The people a direct notification may be addressed to.
  *
- * Only the 'user' role, and only approved accounts. The rule is repeated in
- * `sendDirectNotification`, which is the one that matters — this list shapes
- * the picker, the action is what refuses.
+ * Every approved account except the sender, whatever its role. The rule is
+ * repeated in `sendDirectNotification`, which is the one that matters — this
+ * list shapes the picker, the action is what refuses.
  */
-export async function getNotifiableUsers(): Promise<NotifiableUser[]> {
+export async function getNotifiableUsers(senderId: string): Promise<NotifiableUser[]> {
   const supabase = createClient();
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, name, email')
-    .eq('role', 'user')
+    .select('id, name, email, role')
     .eq('status', 'approved')
+    .is('deleted_at', null)
+    .neq('id', senderId)
     .order('name', { nullsFirst: false });
 
   if (error) throw new Error(error.message);
 
-  const users = (data ?? []) as Pick<Profile, 'id' | 'name' | 'email'>[];
+  const users = (data ?? []) as Pick<Profile, 'id' | 'name' | 'email' | 'role'>[];
   if (users.length === 0) return [];
 
   const reachable = await reachableUserIds(users.map((u) => u.id));

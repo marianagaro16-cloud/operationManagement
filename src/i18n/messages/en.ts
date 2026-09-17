@@ -1426,7 +1426,11 @@ export const en = {
     reachedNobody: 'No device was reached. The message is in their inbox and they will see it next time they open the app.',
     notReached: 'No device registered: {names}',
     noUsers: 'No one to notify',
-    noUsersBody: 'Direct notifications go to approved accounts with the User role. There are none yet.',
+    noUsersBody: 'There is nobody else with an approved account yet.',
+    groupFloor: 'Users',
+    groupFloorHint: 'Stays on their screen until they press OK',
+    groupOffice: 'Admins, managers and power users',
+    groupOfficeHint: 'Arrives as a normal notification, without OK',
     error: {
       invalid_message: 'The message is empty or too long.',
       invalid_recipient: 'One of the people selected can no longer be notified. Reload the screen and try again.',

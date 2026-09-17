@@ -1394,7 +1394,11 @@ export const de: Messages = {
     reachedNobody: 'Kein Gerät wurde erreicht. Die Nachricht liegt in ihrem Posteingang und sie sehen sie beim nächsten Öffnen der App.',
     notReached: 'Kein Gerät registriert: {names}',
     noUsers: 'Niemand zu benachrichtigen',
-    noUsersBody: 'Direkte Benachrichtigungen gehen an freigegebene Konten mit der Rolle Benutzer. Es gibt noch keine.',
+    noUsersBody: 'Es gibt noch niemand anderen mit einem freigegebenen Konto.',
+    groupFloor: 'Benutzer',
+    groupFloorHint: 'Bleibt auf dem Bildschirm, bis OK gedrückt wird',
+    groupOffice: 'Administratoren, Leitung und erweiterte Benutzer',
+    groupOfficeHint: 'Kommt als normale Benachrichtigung an, ohne OK',
     error: {
       invalid_message: 'Die Nachricht ist leer oder zu lang.',
       invalid_recipient: 'Eine der ausgewählten Personen kann nicht mehr benachrichtigt werden. Lade die Seite neu und versuche es erneut.',

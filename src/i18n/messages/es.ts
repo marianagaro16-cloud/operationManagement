@@ -1394,7 +1394,11 @@ export const es: Messages = {
     reachedNobody: 'No se alcanzó ningún dispositivo. El mensaje está en su bandeja de entrada y lo verán la próxima vez que abran la app.',
     notReached: 'Sin dispositivo registrado: {names}',
     noUsers: 'No hay a quién notificar',
-    noUsersBody: 'Las notificaciones directas van a cuentas aprobadas con el rol Usuario. Todavía no hay ninguna.',
+    noUsersBody: 'Todavía no hay nadie más con una cuenta aprobada.',
+    groupFloor: 'Usuarios',
+    groupFloorHint: 'Se queda en su pantalla hasta que pulsen OK',
+    groupOffice: 'Administradores, responsables y usuarios avanzados',
+    groupOfficeHint: 'Llega como una notificación normal, sin OK',
     error: {
       invalid_message: 'El mensaje está vacío o es demasiado largo.',
       invalid_recipient: 'Alguna de las personas seleccionadas ya no puede recibir notificaciones. Recarga la pantalla e inténtalo de nuevo.',

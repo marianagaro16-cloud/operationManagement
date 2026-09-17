@@ -17,7 +17,7 @@ export default async function AdminNotificationsPage() {
   const viewer = await getViewer();
   if (!viewer?.can('notifications.send')) redirect('/admin');
 
-  const users = await getNotifiableUsers();
+  const users = await getNotifiableUsers(viewer.profile.id);
 
   return <NotificationSender users={users} />;
 }

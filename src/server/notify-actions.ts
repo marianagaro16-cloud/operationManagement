@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { displayName } from '@/lib/utils';
 import { getViewer } from './data';
 import { reachableUserIds } from './notifications';
+import { planDirectSend } from '@/domain/direct-messages';
 import { isPushConfigured, sendToUsers } from './push';
 import type { ActionResult } from './actions';
 
@@ -18,14 +19,15 @@ import type { ActionResult } from './actions';
  * SECURITY DEFINER function, and the server action is a validated transport
  * that could be bypassed without consequence. The only row written is the
  * recipients' inbox entry, filed by the service role, and delivery has to run
- * as the service role too, because
- * RLS hides push endpoints from everyone but the person who owns the device.
+ * as the service role too, because RLS hides push endpoints from everyone but
+ * the person who owns the device.
  * So the two rules the feature has are enforced HERE, before the service-role
  * client is touched at all, and nowhere else:
  *
  *   1. the sender holds `notifications.send`, read from their own session
  *      rather than from anything the client sent;
- *   2. every recipient is an approved account whose role is 'user'.
+ *   2. every recipient is an approved account other than the sender — any
+ *      role: down to the floor, and sideways or up (see direct-messages.ts).
  *
  * Neither is re-checked downstream. Do not move either one into the caller.
  */
@@ -72,43 +74,46 @@ export async function sendDirectNotification(
   const requested = [...new Set(parsed.data.recipient_ids)];
   const admin = createAdminClient();
 
-  // Re-read the recipients rather than trusting the ids that arrived. The
-  // role filter is the rule "downward only" — a forged request naming a
-  // manager finds no matching row and is refused below.
+  // Re-read the recipients rather than trusting the ids that arrived: a
+  // forged request naming a pending, deactivated or deleted account finds no
+  // matching row and is refused below.
   const { data: rows, error } = await admin
     .from('profiles')
-    .select('id, name, email')
+    .select('id, name, email, role')
     .in('id', requested)
-    .eq('role', 'user')
-    .eq('status', 'approved');
+    .eq('status', 'approved')
+    .is('deleted_at', null);
 
   if (error) return { ok: false, error: error.message };
 
-  const recipients = (rows ?? []) as { id: string; name: string | null; email: string }[];
+  const recipients = (rows ?? []) as { id: string; name: string | null; email: string; role: string }[];
 
-  // All or nothing. A partial send would leave the sender believing everyone
-  // named was told, which for a fire-and-forget message is worse than an
-  // error they can act on.
-  if (recipients.length !== requested.length) {
-    return { ok: false, error: 'invalid_recipient' };
-  }
+  // All or nothing, and never to yourself — see planDirectSend.
+  const plan = planDirectSend(requested, recipients, viewer.profile.id);
+  if (!plan.ok) return { ok: false, error: plan.error };
 
   const reachable = await reachableUserIds(requested);
 
-  const delivered = await sendToUsers(requested, {
+  const payload = {
     // The sender's name IS the title. A message with no attributable author
     // is one nobody acts on, and the alternative — a separate subject field —
     // is one more thing to fill in for a two-line instruction.
     title: displayName(viewer.profile),
     body: parsed.data.message,
-    requireOk: true,
     // Unique per send, so two messages from the same person stack instead of
     // the second silently replacing the first — which is what a shared tag
     // does, and is right for an escalating order but wrong for a message.
     tag: `direct-${crypto.randomUUID()}`,
     // The message itself is the content, and the inbox is where it lives.
     url: '/inbox',
-  });
+  };
+
+  // Users wait for OK; colleagues get an ordinary notification.
+  const [toFloor, toOffice] = await Promise.all([
+    plan.floor.length ? sendToUsers(plan.floor, { ...payload, requireOk: true }) : 0,
+    plan.office.length ? sendToUsers(plan.office, payload) : 0,
+  ]);
+  const delivered = toFloor + toOffice;
 
   return {
     ok: true,

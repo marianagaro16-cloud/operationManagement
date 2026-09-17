@@ -17,6 +17,15 @@ import {
 } from '@/components/ui/primitives';
 import { sendDirectNotification, type SendOutcome } from '@/server/notify-actions';
 import type { NotifiableUser } from '@/server/notifications';
+import { requiresOk } from '@/domain/direct-messages';
+import type { Role } from '@/lib/authz';
+
+const ROLE_LABEL: Record<Role, MessageKey> = {
+  admin: 'roles.admin',
+  manager: 'roles.manager',
+  power_user: 'roles.powerUser',
+  user: 'roles.user',
+};
 
 /** Matches MAX_MESSAGE in the action, which is what actually refuses. */
 const MAX_MESSAGE = 400;
@@ -42,12 +51,18 @@ const KNOWN_ERRORS = [
  * Deliberately one message field and a list of people. There is no subject
  * line — the notification is titled with the sender's name, which is the only
  * thing a recipient needs in order to know whether to act on it — and no
- * scheduling, no template and no history, because none is stored.
+ * scheduling and no template.
  *
- * What the screen DOES insist on saying is who cannot be reached. Delivery is
- * push-only, so a message to somebody with notifications switched off is not
- * queued anywhere; it is discarded. Marking those people before the send, and
- * naming them again after it, is what stops "I told them" from being false.
+ * People come in two groups, because the message arrives differently: for a
+ * User it stays on screen until OK, for everyone else it is an ordinary
+ * notification. Each group says so, and each has its own Select all — the
+ * common case is still "tell the whole floor", which must not quietly include
+ * every admin.
+ *
+ * What the screen DOES insist on saying is who has no device registered. The
+ * message waits in their inbox, but nothing pops up until they open the app;
+ * marking them before the send, and naming them again after it, is what stops
+ * "I told them" from being false.
  */
 export function NotificationSender({ users }: { users: NotifiableUser[] }) {
   const { t } = useI18n();
@@ -57,7 +72,8 @@ export function NotificationSender({ users }: { users: NotifiableUser[] }) {
   const [outcome, setOutcome] = useState<SendOutcome | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const reachableCount = users.filter((u) => u.reachable).length;
+  const floor = users.filter((u) => requiresOk(u.role));
+  const office = users.filter((u) => !requiresOk(u.role));
   const text = message.trim();
   const canSend = selected.size > 0 && text.length > 0 && text.length <= MAX_MESSAGE;
 
@@ -73,11 +89,67 @@ export function NotificationSender({ users }: { users: NotifiableUser[] }) {
     setOutcome(null);
   }
 
-  /** Everyone, or nobody — the common case is "tell the whole floor". */
-  function toggleAll() {
-    setSelected((prev) => (prev.size === users.length ? new Set() : new Set(users.map((u) => u.id))));
+  /** Everyone in one group, or nobody in it; the other group is left alone. */
+  function toggleGroup(group: NotifiableUser[]) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const all = group.every((u) => next.has(u.id));
+      for (const u of group) {
+        if (all) next.delete(u.id);
+        else next.add(u.id);
+      }
+      return next;
+    });
     setOutcome(null);
   }
+
+  const group = (people: NotifiableUser[], title: MessageKey, hint: MessageKey) => {
+    if (people.length === 0) return null;
+    const reachableCount = people.filter((u) => u.reachable).length;
+    const allSelected = people.every((u) => selected.has(u.id));
+    return (
+      <Card className="overflow-hidden">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
+          <div className="min-w-0">
+            <p className="text-[13.5px] font-semibold">{t(title)}</p>
+            <p className="mt-0.5 text-[12px] text-muted">
+              {t(hint)} · {t('notify.reachableCount', { reachable: reachableCount, total: people.length })}
+            </p>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => toggleGroup(people)} disabled={pending}>
+            {allSelected ? t('notify.selectNone') : t('notify.selectAll')}
+          </Button>
+        </div>
+
+        <ul className="divide-y divide-border">
+          {people.map((u) => (
+            <li key={u.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+              <Checkbox
+                label={displayName(u)}
+                checked={selected.has(u.id)}
+                disabled={pending}
+                onChange={(e) => toggle(u.id, e.target.checked)}
+              />
+              <div className="flex shrink-0 items-center gap-1.5">
+                {!requiresOk(u.role) && <Badge>{t(ROLE_LABEL[u.role])}</Badge>}
+                {u.reachable ? (
+                  <Badge tone="done">
+                    <BellRing className="h-3 w-3" aria-hidden />
+                    {t('notify.reachable')}
+                  </Badge>
+                ) : (
+                  <Badge tone="warn" title={t('notify.unreachableHint')}>
+                    <BellOff className="h-3 w-3" aria-hidden />
+                    {t('notify.unreachable')}
+                  </Badge>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    );
+  };
 
   function send() {
     startTransition(async () => {
@@ -170,43 +242,8 @@ export function NotificationSender({ users }: { users: NotifiableUser[] }) {
           </p>
         </Card>
 
-        <Card className="overflow-hidden">
-          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-            <div className="min-w-0">
-              <p className="text-[13.5px] font-semibold">{t('notify.recipients')}</p>
-              <p className="mt-0.5 text-[12px] text-muted">
-                {t('notify.reachableCount', { reachable: reachableCount, total: users.length })}
-              </p>
-            </div>
-            <Button size="sm" variant="ghost" onClick={toggleAll} disabled={pending}>
-              {selected.size === users.length ? t('notify.selectNone') : t('notify.selectAll')}
-            </Button>
-          </div>
-
-          <ul className="divide-y divide-border">
-            {users.map((u) => (
-              <li key={u.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <Checkbox
-                  label={displayName(u)}
-                  checked={selected.has(u.id)}
-                  disabled={pending}
-                  onChange={(e) => toggle(u.id, e.target.checked)}
-                />
-                {u.reachable ? (
-                  <Badge tone="done" className="shrink-0">
-                    <BellRing className="h-3 w-3" aria-hidden />
-                    {t('notify.reachable')}
-                  </Badge>
-                ) : (
-                  <Badge tone="warn" className="shrink-0" title={t('notify.unreachableHint')}>
-                    <BellOff className="h-3 w-3" aria-hidden />
-                    {t('notify.unreachable')}
-                  </Badge>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
+        {group(floor, 'notify.groupFloor', 'notify.groupFloorHint')}
+        {group(office, 'notify.groupOffice', 'notify.groupOfficeHint')}
 
         <div className="flex items-center justify-between gap-3">
           <p className="text-[12.5px] text-muted">
