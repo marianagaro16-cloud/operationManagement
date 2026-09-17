@@ -4,7 +4,6 @@ import { useEffect, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Pencil, Plus, Search, X } from 'lucide-react';
-import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,9 +13,9 @@ import { StatusChip } from '@/components/ui/status-chip';
 import { OrderTypeBadge } from '@/components/orders/order-type-badge';
 import { PageHeader } from '@/components/shell/app-shell';
 import { lineProgress, toQuantity } from '@/domain/orders/progress';
-import { isBeforeGoLive } from '@/domain/orders/config';
-import { customRange, periodLabel } from '@/domain/orders/reporting';
-import { BUSINESS_TZ } from '@/lib/datetime';
+import { ORDERS_GO_LIVE } from '@/domain/orders/config';
+import { periodLabel, periodRange, shiftCustomRange, shiftPeriod, type PeriodRange } from '@/domain/orders/reporting';
+import { businessToday } from '@/lib/datetime';
 import { productLabel, type Brand, type Customer, type DeliveryMethod, type OrderWithProgress, type Product } from '@/types/orders';
 import { IncidentDialog, orderContextFrom } from '@/components/incidents/incident-dialog';
 import type { IncidentCategory, IncidentType } from '@/types/incidents';
@@ -26,6 +25,10 @@ import { NoteBlock, NoteChip } from '@/components/ui/note';
 import { OrderStageChip } from './order-fulfilment';
 import { OrderWeight } from './order-weight';
 import type { BulkToggle } from './preparation-view';
+
+/** The periods the book can show, as in the reports minus Year. */
+const BOOK_PERIODS = ['day', 'week', 'month', 'custom'] as const;
+type BookPeriod = (typeof BOOK_PERIODS)[number];
 
 /**
  * Order Control — replaces the monthly "Control de pedidos" workbook.
@@ -43,7 +46,8 @@ export function OrderControl({
   products,
   deliveryMethods,
   brands,
-  month,
+  range,
+  anchor,
   filters,
   canManage,
   currentUserName,
@@ -58,7 +62,10 @@ export function OrderControl({
   products: Product[];
   deliveryMethods: DeliveryMethod[];
   brands: Brand[];
-  month: string;
+  /** The delivery dates shown: a day, a week, a month or a range. */
+  range: PeriodRange;
+  /** A date inside the period, which the arrows and period buttons move from. */
+  anchor: string;
   filters: {
     customerId?: string;
     deliveryMethodId?: string;
@@ -67,9 +74,6 @@ export function OrderControl({
     brandId?: string;
     /** Free text. When set, the search spans every month, not just this one. */
     query?: string;
-    /** Delivery-date range. When set, it replaces the month. */
-    from?: string;
-    to?: string;
   };
   canManage: boolean;
   /** Named in the new-order dialog as the person creating it. */
@@ -81,9 +85,9 @@ export function OrderControl({
 }) {
   const { t, formatDate, locale } = useI18n();
   const router = useRouter();
-  const hasRange = Boolean(filters.from && filters.to);
-  const [draftFrom, setDraftFrom] = useState(filters.from ?? '');
-  const [draftTo, setDraftTo] = useState(filters.to ?? '');
+  const hasRange = range.kind === 'custom';
+  const [draftFrom, setDraftFrom] = useState(range.start);
+  const [draftTo, setDraftTo] = useState(range.end);
   const [editing, setEditing] = useState<OrderWithProgress | null>(null);
   const [creating, setCreating] = useState(false);
   // One dialog for the whole list, exactly as the editor is — not one per card.
@@ -92,8 +96,44 @@ export function OrderControl({
   // The last Expand all / Collapse all press; each card starts open.
   const [bulk, setBulk] = useState<BulkToggle>(null);
 
-  const anchor = DateTime.fromISO(`${month}-01`, { zone: BUSINESS_TZ });
-  const shiftMonth = (delta: number) => anchor.plus({ months: delta }).toFormat('yyyy-MM');
+  /**
+   * A link to the book for a period, keeping the filters unless told not to.
+   * Custom ranges carry from/to; the other periods carry a date inside them.
+   */
+  const bookHref = (
+    next: { period: BookPeriod; date?: string; from?: string; to?: string },
+    keepFilters = true,
+  ) => {
+    const params = new URLSearchParams();
+    params.set('tab', 'all');
+    params.set('period', next.period);
+    if (next.period === 'custom') {
+      params.set('from', next.from ?? range.start);
+      params.set('to', next.to ?? range.end);
+    } else {
+      params.set('date', next.date ?? anchor);
+    }
+    if (keepFilters) {
+      if (filters.customerId) params.set('customer', filters.customerId);
+      if (filters.deliveryMethodId) params.set('method', filters.deliveryMethodId);
+      if (filters.status) params.set('status', filters.status);
+      if (filters.brandId) params.set('brand', filters.brandId);
+      if (filters.query) params.set('q', filters.query);
+    }
+    return `/orders?${params.toString()}`;
+  };
+
+  // The arrows move by the period itself; a range slides by its own length.
+  const stepHref = (delta: number) => {
+    if (hasRange) {
+      const r = shiftCustomRange(range, delta);
+      return { href: bookHref({ period: 'custom', from: r.start, to: r.end }), end: r.end };
+    }
+    const date = shiftPeriod(range.kind, anchor, delta);
+    return { href: bookHref({ period: range.kind as BookPeriod, date }), end: periodRange(range.kind, date).end };
+  };
+  const prev = stepHref(-1);
+  const next = stepHref(1);
 
   // DAY -> CUSTOMER -> orders. Orders are never merged: two orders from one
   // customer on one day stay distinct rows for traceability.
@@ -107,36 +147,21 @@ export function OrderControl({
   }
 
   const setFilter = (key: string, value: string) => {
-    const params = new URLSearchParams();
-    params.set('tab', 'all');
-    params.set('month', month);
-    if (filters.customerId) params.set('customer', filters.customerId);
-    if (filters.deliveryMethodId) params.set('method', filters.deliveryMethodId);
-    if (filters.status) params.set('status', filters.status);
-    if (filters.brandId) params.set('brand', filters.brandId);
-    if (filters.query) params.set('q', filters.query);
-    if (filters.from && filters.to) {
-      params.set('from', filters.from);
-      params.set('to', filters.to);
-    }
-    if (value) params.set(key, value);
-    else params.delete(key);
-    // The range is one filter with two ends: removing it removes both.
-    if (key === 'range') {
-      params.delete('from');
-      params.delete('to');
+    // Removing the range chip goes back to the book's default: today.
+    const base = key === 'range'
+      ? bookHref({ period: 'day', date: businessToday() })
+      : bookHref(hasRange ? { period: 'custom' } : { period: range.kind as BookPeriod });
+    const params = new URLSearchParams(base.split('?')[1]);
+    if (key !== 'range') {
+      if (value) params.set(key, value);
+      else params.delete(key);
     }
     router.push(`/orders?${params.toString()}`);
   };
 
   const applyRange = () => {
     if (!draftFrom || !draftTo) return;
-    const params = new URLSearchParams(window.location.search);
-    params.set('tab', 'all');
-    params.set('month', month);
-    params.set('from', draftFrom);
-    params.set('to', draftTo);
-    router.push(`/orders?${params.toString()}`);
+    router.push(bookHref({ period: 'custom', from: draftFrom, to: draftTo }));
   };
 
   // What is currently narrowing the list, as removable chips.
@@ -151,7 +176,7 @@ export function OrderControl({
     },
     hasRange && {
       key: 'range',
-      label: periodLabel(customRange(filters.from!, filters.to!), locale),
+      label: periodLabel(range, locale),
     },
     filters.customerId && {
       key: 'customer',
@@ -221,6 +246,25 @@ export function OrderControl({
           />
         </form>
 
+        {/* Day, week, month or range — the same periods as the reports. */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {BOOK_PERIODS.map((p) => (
+            <Link
+              key={p}
+              href={p === 'custom' ? bookHref({ period: 'custom', from: range.start, to: range.end }) : bookHref({ period: p })}
+              aria-current={range.kind === p ? 'true' : undefined}
+              className={cn(
+                'rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors',
+                range.kind === p
+                  ? 'border-accent bg-accent/10 text-accent'
+                  : 'border-border bg-surface text-muted hover:text-fg',
+              )}
+            >
+              {t(`report.period${p[0].toUpperCase()}${p.slice(1)}` as 'report.periodDay')}
+            </Link>
+          ))}
+        </div>
+
         {filters.query && !hasRange && (
           <p className="text-[12px] text-muted">
             {t('orders.searchAcrossMonths', { count: orders.length })}
@@ -228,37 +272,36 @@ export function OrderControl({
         )}
 
         <div className="flex flex-wrap items-center gap-1">
-          {/* Months before go-live hold no data — that history lives in Excel,
-              so navigating there would look like data loss. */}
-          {isBeforeGoLive(shiftMonth(-1)) ? (
+          {/* Periods before go-live hold no data — that history lives in
+              Excel, so navigating there would look like data loss. */}
+          {prev.end < ORDERS_GO_LIVE ? (
             <span className="inline-flex h-9 w-9 items-center justify-center text-subtle opacity-40">
               <ChevronLeft className="h-4 w-4" aria-hidden />
             </span>
           ) : (
             <Link
-              href={`/orders?tab=all&month=${shiftMonth(-1)}`}
+              href={prev.href}
               aria-label={t('calendar.prev')}
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden />
             </Link>
           )}
-          {/* With a range chosen the month is not what is on screen, so the
-              label says the range. The arrows go back to plain months. */}
           <span className="min-w-[150px] text-center text-[14px] font-semibold capitalize">
-            {hasRange
-              ? periodLabel(customRange(filters.from!, filters.to!), locale)
-              : formatDate(`${month}-01`, 'monthYear')}
+            {periodLabel(range, locale)}
           </span>
           <Link
-            href={`/orders?tab=all&month=${shiftMonth(1)}`}
+            href={next.href}
             aria-label={t('calendar.next')}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
           >
             <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
 
-          {/* Delivery-date range, for spans that are not a calendar month. */}
+        </div>
+
+        {/* Delivery-date range, for spans that are not a day, week or month. */}
+        {hasRange && (
           <form
             onSubmit={(e) => { e.preventDefault(); applyRange(); }}
             className="ml-auto flex flex-wrap items-center gap-1.5"
@@ -282,7 +325,7 @@ export function OrderControl({
               {t('report.apply')}
             </Button>
           </form>
-        </div>
+        )}
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {/* Searchable: 216 customers is far too many to scroll. An empty
@@ -361,7 +404,7 @@ export function OrderControl({
               </button>
             ))}
             <Link
-              href={`/orders?tab=all&month=${month}`}
+              href={bookHref(hasRange ? { period: 'custom' } : { period: range.kind as BookPeriod }, false)}
               onClick={() => { setDraftQuery(''); setDraftFrom(''); setDraftTo(''); }}
               className="px-1.5 py-1 text-[12px] font-medium text-muted transition-colors hover:text-fg"
             >

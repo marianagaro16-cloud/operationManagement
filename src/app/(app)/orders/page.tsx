@@ -2,8 +2,7 @@ import { DateTime } from 'luxon';
 import { getBoxTypes, getBrands, getCustomers, getDeliveryMethods, getOrdersBoard, getOrdersByDelivery, getProducts } from '@/server/orders';
 import { getIncidentCategories, getIncidentTypes } from '@/server/incidents';
 import { getViewer } from '@/server/data';
-import { monthRange } from '@/domain/orders/scheduling';
-import { customRange } from '@/domain/orders/reporting';
+import { customRange, periodRange, type PeriodRange } from '@/domain/orders/reporting';
 import { ORDERS_GO_LIVE } from '@/domain/orders/config';
 import { BUSINESS_TZ, addDays, businessToday } from '@/lib/datetime';
 import { filterByQuery } from '@/lib/search';
@@ -33,6 +32,8 @@ export default async function OrdersPage({
     tab?: string;
     date?: string;
     mode?: string;
+    /** All tab: day | week | month | custom. */
+    period?: string;
   };
 }) {
   // The month is only a filter over a single orders table — never a separate
@@ -52,7 +53,7 @@ export default async function OrdersPage({
    * link, an old bookmark) opens All for someone who may see it.
    */
   const hasBookFilters = Boolean(
-    searchParams.month || searchParams.customer || searchParams.method || searchParams.status
+    searchParams.month || searchParams.period || searchParams.customer || searchParams.method || searchParams.status
     || searchParams.brand || searchParams.q || searchParams.from || searchParams.to,
   );
   const requested = searchParams.tab as OrdersTab | undefined;
@@ -87,24 +88,37 @@ export default async function OrdersPage({
 
   const query = (searchParams.q ?? '').trim();
 
-  // An explicit delivery-date range, when both ends are given. Reversed ends
-  // are swapped and an over-long span is clamped, by the same rule the reports
-  // use. With one end missing the range is half-typed and ignored.
-  const dateRange =
-    isDate(searchParams.from) && isDate(searchParams.to)
+  /*
+   * Which delivery dates the book shows: a day, a Monday-to-Sunday week, a
+   * month, or a range — the same periods as the reports. Opens on today.
+   *
+   * A range needs both ends; reversed ends are swapped and an over-long span
+   * clamped, by the reports' rule. Links from before the period buttons
+   * (`month=2026-09`, or `from`/`to` alone) still open what they meant.
+   */
+  const today = businessToday();
+  const anchor = isDate(searchParams.date) ? searchParams.date : today;
+  const period = searchParams.period;
+  const bookRange: PeriodRange =
+    (period === 'custom' || !period) && isDate(searchParams.from) && isDate(searchParams.to)
       ? customRange(searchParams.from, searchParams.to)
-      : null;
+      : period === 'day' || period === 'week' || period === 'month'
+        ? periodRange(period, anchor)
+        : !period && searchParams.month && /^\d{4}-\d{2}$/.test(searchParams.month)
+          ? periodRange('month', `${month}-01`)
+          : periodRange('day', today);
+  const dateRange = bookRange.kind === 'custom' ? bookRange : null;
 
-  // A text search that only looked inside the open month would be a worse
+  // A text search that only looked inside the open period would be a worse
   // version of the Excel it replaced: finding an order from three months ago
   // meant stepping month by month with the customer filter reapplied. The
-  // month is just a range over one table, so a query simply widens the range —
+  // period is just a range over one table, so a query simply widens the range —
   // unless a date range was chosen, which is then what the search looks in.
   const { start, end } = dateRange
     ? dateRange
     : query
-      ? { start: ORDERS_GO_LIVE, end: addDays(businessToday(), SEARCH_HORIZON_DAYS) }
-      : monthRange(month);
+      ? { start: ORDERS_GO_LIVE, end: addDays(today, SEARCH_HORIZON_DAYS) }
+      : bookRange;
 
   const canReportIncident = viewer.can('incidents.manage');
 
@@ -166,15 +180,14 @@ export default async function OrdersPage({
       products={products}
       deliveryMethods={deliveryMethods}
       brands={brands}
-      month={month}
+      range={bookRange}
+      anchor={bookRange.kind === 'custom' ? bookRange.start : anchor}
       filters={{
         customerId: searchParams.customer,
         deliveryMethodId: searchParams.method,
         status: searchParams.status,
         brandId,
         query,
-        from: dateRange?.start,
-        to: dateRange?.end,
       }}
       canManage
       currentUserName={displayName(viewer.profile)}
