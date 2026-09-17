@@ -26,6 +26,7 @@ import { saveLotAllocation, deleteLotAllocation } from '@/server/order-actions';
 import { ShortfallEditor, ShortfallSummary } from './shortfall';
 import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
 import { OrderWeight } from './order-weight';
+import { OrderBoxesEditor, useBoxTypes } from './order-boxes';
 import { orderStage, stageWeight } from '@/domain/orders/stage';
 
 /*
@@ -103,6 +104,8 @@ export function OrderPreparationCard({
   const { t, formatDate } = useI18n();
   // Computed once by the query layer; see OrderWithProgress.
   const progress = order.progress;
+  // Boxes are required for Ready once there are box types to choose from.
+  const boxesRequired = (useBoxTypes()?.length ?? 0) > 0;
 
   // Who is working on it: everyone who recorded a lot, in the order they
   // started. Read from the allocations themselves, which carry their author,
@@ -204,7 +207,7 @@ export function OrderPreparationCard({
             deliveryTime={order.delivery_time}
             isComplete={Boolean(order.ready_at)}
           />
-          <OrderWeight lines={order.lines} icon className="text-[12px] text-muted" />
+          <OrderWeight order={order} icon showBoxes className="text-[12px] text-muted" />
           <span className="text-[12px] text-muted">
             {t('orders.deliveryOn', { date: formatDate(order.delivery_date, 'short') })}
           </span>
@@ -247,9 +250,12 @@ export function OrderPreparationCard({
         </div>
       ))}
 
+      {/* The boxes it is packed in: recorded here, until it ships. */}
+      {expanded && !order.shipped_at && <OrderBoxesEditor order={order} />}
+
       {/* Ready and Shipped, always reachable — folded or open. */}
       <div className="border-t border-border px-3.5 py-2">
-        <OrderFulfilment order={order} />
+        <OrderFulfilment order={order} boxesRequired={boxesRequired} />
       </div>
     </Card>
   );

@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getCustomers, getDeliveryMethods, getOrder, getProducts } from '@/server/orders';
+import { getBoxTypes, getCustomers, getDeliveryMethods, getOrder, getProducts } from '@/server/orders';
 import { getIncidentCategories, getIncidentsForOrder, getIncidentTypes } from '@/server/incidents';
 import { getViewer } from '@/server/data';
 import { OrderDetail } from '@/components/orders/order-detail';
@@ -39,10 +39,11 @@ export default async function OrderDetailPage({ params }: { params: { id: string
 
   // The incident panel. Its own vocabulary is only fetched for somebody who
   // can actually raise one — a read-only viewer sees the list and no form.
-  const [incidents, categories, types] = await Promise.all([
+  const [incidents, categories, types, boxTypes] = await Promise.all([
     getIncidentsForOrder(order.id),
     canReportIncident ? getIncidentCategories() : Promise.resolve([]),
     canReportIncident ? getIncidentTypes() : Promise.resolve([]),
+    getBoxTypes(),
   ]);
 
   /**
@@ -65,6 +66,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
         products={products}
         deliveryMethods={deliveryMethods}
         canManage={canManage}
+        boxesRequired={boxTypes.length > 0}
         // Beside Edit, because reporting an incident is a thing you do TO
         // this order and that is where a person looks for it.
         headerAction={

@@ -10,6 +10,7 @@ import { BUSINESS_TZ } from '@/lib/datetime';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import { orderStage } from '@/domain/orders/stage';
+import { boxCount } from '@/domain/orders/weight';
 import { setOrderReady, setOrdersShipped } from '@/server/order-actions';
 import type { OrderWithProgress } from '@/types/orders';
 
@@ -30,6 +31,8 @@ const ERROR_KEY: Record<string, MessageKey> = {
   order_ready_locked: 'orders.errReadyLocked',
   order_shipped_locked: 'orders.errShippedLocked',
   not_authorized: 'orders.errFulfilmentNotAuthorized',
+  order_needs_boxes: 'orders.errNeedsBoxes',
+  box_type_inactive: 'orders.errBoxTypeInactive',
 };
 
 export function useOrderError() {
@@ -48,7 +51,19 @@ export function useOrderError() {
  * recorded, or short with a reason); before that the button is there but
  * disabled, and says what is missing, so nobody wonders where it went.
  */
-export function OrderFulfilment({ order, className }: { order: OrderWithProgress; className?: string }) {
+export function OrderFulfilment({
+  order,
+  className,
+  boxesRequired = false,
+  boxesOnThisScreen = true,
+}: {
+  order: OrderWithProgress;
+  className?: string;
+  /** Ready needs at least one box — true once box types exist. */
+  boxesRequired?: boolean;
+  /** False on the order's own page, where boxes are not recorded: the hint then says where they are. */
+  boxesOnThisScreen?: boolean;
+}) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const translate = useOrderError();
@@ -73,6 +88,12 @@ export function OrderFulfilment({ order, className }: { order: OrderWithProgress
 
   const ready = Boolean(order.ready_at);
   const shipped = Boolean(order.shipped_at);
+  const needsBoxes = boxesRequired && boxCount(order.boxes) === 0;
+  const readyHint = !order.progress.isPrepared
+    ? t('orders.readyNeedsPrepared')
+    : needsBoxes
+      ? t(boxesOnThisScreen ? 'orders.readyNeedsBoxes' : 'orders.readyNeedsBoxesElsewhere')
+      : null;
 
   return (
     <div className={cn('space-y-1.5', className)}>
@@ -107,14 +128,12 @@ export function OrderFulfilment({ order, className }: { order: OrderWithProgress
               variant="success"
               onClick={() => run(() => setOrderReady(order.id, true))}
               loading={pending}
-              disabled={!order.progress.isPrepared}
+              disabled={readyHint !== null}
             >
               <Check className="h-3.5 w-3.5" aria-hidden />
               {t('orders.markReady')}
             </Button>
-            {!order.progress.isPrepared && (
-              <span className="text-[11.5px] text-subtle">{t('orders.readyNeedsPrepared')}</span>
-            )}
+            {readyHint && <span className="text-[11.5px] text-subtle">{readyHint}</span>}
           </>
         )}
 

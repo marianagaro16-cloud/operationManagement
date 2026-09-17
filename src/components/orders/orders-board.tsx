@@ -22,6 +22,8 @@ import {
   type BulkToggle,
 } from './preparation-view';
 import { useOrderError } from './order-fulfilment';
+import { BoxTypesProvider } from './order-boxes';
+import type { BoxType } from '@/types/orders';
 
 export type OrdersTab = 'to_prepare' | 'ready' | 'shipped' | 'all';
 export type OrdersMode = 'preparation' | 'delivery';
@@ -123,6 +125,7 @@ export function OrdersBoard({
   ready,
   shipped,
   openDays,
+  boxTypes,
 }: {
   tab: Exclude<OrdersTab, 'all'>;
   date: string;
@@ -134,6 +137,8 @@ export function OrdersBoard({
   ready: OrderWithProgress[];
   shipped: OrderWithProgress[];
   openDays: string[];
+  /** Active box types, for recording boxes on the cards. */
+  boxTypes: BoxType[];
 }) {
   const { t, formatDate } = useI18n();
   const [bulk, setBulk] = useState<BulkToggle>(null);
@@ -142,7 +147,7 @@ export function OrdersBoard({
   const visibleCount = tab === 'to_prepare' ? counts.to_prepare : tab === 'ready' ? counts.ready : counts.shipped;
 
   return (
-    <>
+    <BoxTypesProvider boxTypes={boxTypes}>
       <PageHeader title={t('orders.title')} subtitle={t('orders.boardSubtitle')} />
 
       <OrdersTabs active={tab} counts={counts} canManage={canManage} date={canManage ? date : undefined} mode={mode} />
@@ -178,7 +183,7 @@ export function OrdersBoard({
       )}
       {tab === 'ready' && <ReadyTab orders={ready} canManage={canManage} bulk={bulk} showsBacklog={date === today} />}
       {tab === 'shipped' && <ShippedTab orders={shipped} canManage={canManage} />}
-    </>
+    </BoxTypesProvider>
   );
 }
 

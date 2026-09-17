@@ -490,7 +490,7 @@ function OrderCard({
               isComplete={Boolean(order.ready_at)}
             />
           )}
-          <OrderWeight lines={order.lines} icon className="text-[11.5px] text-muted" />
+          <OrderWeight order={order} icon showBoxes className="text-[11.5px] text-muted" />
           {/* Delivery date leads here; preparation date is exposed alongside —
               and links to the day it lands on, which the route has always
               accepted as a parameter and nothing ever pointed at. */}

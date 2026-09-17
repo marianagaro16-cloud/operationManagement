@@ -53,6 +53,7 @@ export function OrderDetail({
   deliveryMethods,
   canManage,
   headerAction,
+  boxesRequired = false,
 }: {
   order: OrderWithProgress;
   customers: Customer[];
@@ -68,6 +69,8 @@ export function OrderDetail({
    * only need to meet at one button.
    */
   headerAction?: ReactNode;
+  /** Ready needs boxes (box types exist). They are recorded on the order card, not here. */
+  boxesRequired?: boolean;
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
@@ -147,7 +150,7 @@ export function OrderDetail({
         </div>
 
         {/* Ready and Shipped: who, when, and the buttons to move it on. */}
-        <OrderFulfilment order={order} className="mt-3" />
+        <OrderFulfilment order={order} className="mt-3" boxesRequired={boxesRequired} boxesOnThisScreen={false} />
 
         <dl className="mt-3 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
           <Fact label={t('orders.customer')}>
@@ -192,7 +195,7 @@ export function OrderDetail({
           </Fact>
 
           <Fact label={t('orders.totalWeight')}>
-            <OrderWeight lines={order.lines} className="font-medium" />
+            <OrderWeight order={order} breakdown className="font-medium" />
           </Fact>
         </dl>
 

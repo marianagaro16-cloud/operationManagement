@@ -91,6 +91,21 @@ export function orderWeight(lines: WeighableLine[], kind: WeightKind): OrderWeig
   return { kg: roundKg(kg), linesWithoutWeight };
 }
 
+export interface WeighableBox {
+  quantity: number | string;
+  box_type: { empty_weight_kg: number | string } | null;
+}
+
+/** Empty weight of the boxes an order is packed in. */
+export function boxesWeightKg(boxes: WeighableBox[] | undefined): number {
+  return roundKg((boxes ?? []).reduce((kg, b) => kg + Number(b.quantity) * Number(b.box_type?.empty_weight_kg ?? 0), 0));
+}
+
+/** How many boxes, of every type together. */
+export function boxCount(boxes: { quantity: number | string }[] | undefined): number {
+  return (boxes ?? []).reduce((n, b) => n + Number(b.quantity), 0);
+}
+
 /** How a weight is shown everywhere: kg with one decimal, e.g. "48.5 kg". */
 export function formatKg(kg: number): string {
   return `${kg.toFixed(1)} kg`;

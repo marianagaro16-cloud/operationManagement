@@ -6,6 +6,7 @@ import { OVERDUE_LOOKBACK_DAYS } from '@/domain/buckets';
 import { addDays, BUSINESS_TZ, type BusinessDate } from '@/lib/datetime';
 import { DateTime } from 'luxon';
 import type {
+  BoxType,
   Brand,
   Customer,
   CustomerSpecification,
@@ -44,6 +45,10 @@ const ORDER_SELECT = `
       id, order_line_id, lot_number, quantity, note, created_by, created_at, updated_at,
       author:profiles!lot_allocations_created_by_fkey ( name, email )
     )
+  ),
+  boxes:order_boxes (
+    id, order_id, box_type_id, quantity,
+    box_type:box_types ( id, name, empty_weight_kg, length_cm, width_cm, height_cm, sort_order, is_active )
   )
 `;
 
@@ -355,6 +360,15 @@ export async function getBrands(includeInactive = false): Promise<Brand[]> {
   const { data, error } = await q;
   if (error) throw new Error(error.message);
   return (data ?? []) as Brand[];
+}
+
+export async function getBoxTypes(includeInactive = false): Promise<BoxType[]> {
+  const supabase = createClient();
+  let q = supabase.from('box_types').select('*').order('sort_order').order('name');
+  if (!includeInactive) q = q.eq('is_active', true);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as BoxType[];
 }
 
 export async function getDeliveryMethods(includeInactive = false): Promise<DeliveryMethod[]> {

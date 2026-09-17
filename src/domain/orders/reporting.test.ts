@@ -159,6 +159,23 @@ describe('headline numbers', () => {
     expect(r.productsWithoutWeight).toBe(1); // Salsa, on two orders
   });
 
+  it('counts the boxes of counted orders, in total and per type', () => {
+    const box = (id: string, name: string, quantity: number) => ({ box_type_id: id, quantity, box_type: { name } });
+    const r = computeOrderReport(
+      [
+        order({ lines: [line('p1', '0001', 'Tortillas', 1)], boxes: [box('b1', 'Grande', 2), box('b2', 'Pequeña', 1)] } as never),
+        order({ lines: [line('p1', '0001', 'Tortillas', 1)], boxes: [box('b2', 'Pequeña', 4)] } as never),
+        order({ status: 'cancelled', lines: [line('p1', '0001', 'Tortillas', 1)], boxes: [box('b1', 'Grande', 9)] } as never),
+      ],
+      SEP,
+    );
+    expect(r.totalBoxes).toBe(7);
+    expect(r.byBoxType).toEqual([
+      { boxTypeId: 'b2', name: 'Pequeña', boxes: 5 },
+      { boxTypeId: 'b1', name: 'Grande', boxes: 2 },
+    ]);
+  });
+
   it('separates drafts and samples without hiding them', () => {
     const r = computeOrderReport(
       [

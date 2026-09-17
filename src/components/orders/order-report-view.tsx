@@ -89,6 +89,11 @@ export function OrderReportView({
         ? t('report.productsWithoutWeight', { count: report.productsWithoutWeight })
         : undefined,
     },
+    // Boxes belong to a whole order, so they cannot be split by brand or
+    // product: shown only when the report is not narrowed to one.
+    ...(filters.brandId || filters.productId
+      ? []
+      : [{ label: t('report.boxes'), value: report.totalBoxes }]),
     {
       label: t('report.fulfilment'),
       value: `${report.fulfilmentRate}%`,
@@ -157,7 +162,7 @@ export function OrderReportView({
       ) : (
         <div className="space-y-5">
           {/* Headline */}
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
             {tiles.map((tile) => (
               <Card key={tile.label}>
                 <CardBody className="pt-3.5">
@@ -395,6 +400,21 @@ export function OrderReportView({
           )}
 
           {/* Delivery methods */}
+          {!filters.brandId && !filters.productId && report.byBoxType.length > 0 && (
+            <section>
+              <h2 className="mb-2 text-[13px] font-semibold">{t('report.byBoxType')}</h2>
+              <Card>
+                <CardBody className="flex flex-wrap gap-x-4 gap-y-1 pt-3.5 text-[13px]">
+                  {report.byBoxType.map((b) => (
+                    <span key={b.boxTypeId} className="text-muted">
+                      {b.name}: <span className="font-medium tabular text-fg">{b.boxes}</span>
+                    </span>
+                  ))}
+                </CardBody>
+              </Card>
+            </section>
+          )}
+
           {report.byDeliveryMethod.length > 0 && (
             <section>
               <h2 className="mb-2 text-[13px] font-semibold">{t('orders.deliveryMethod')}</h2>

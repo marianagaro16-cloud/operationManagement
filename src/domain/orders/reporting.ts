@@ -160,6 +160,12 @@ export interface CustomerLine {
   ordered: number;
 }
 
+export interface BoxTypeLine {
+  boxTypeId: string;
+  name: string;
+  boxes: number;
+}
+
 export interface CountLine {
   key: string;
   label: string;
@@ -211,6 +217,10 @@ export interface OrderReport {
   totalWeightKg: number;
   /** Distinct products on counted lines that have no weight yet, so are left out of totalWeightKg. */
   productsWithoutWeight: number;
+  /** Boxes the counted orders were packed in, all types together. */
+  totalBoxes: number;
+  /** Boxes per box type, most used first. */
+  byBoxType: BoxTypeLine[];
   /** Lines where less was prepared than ordered, including products left out with a reason. */
   shortLines: number;
   /** Of those, the ones with no explanation recorded. */
@@ -291,6 +301,8 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
   let shortLines = 0;
   let unexplainedShortLines = 0;
   let totalWeightKg = 0;
+  let totalBoxes = 0;
+  const boxTypes = new Map<string, BoxTypeLine>();
   const unweighed = new Set<string>();
 
   for (const order of counted) {
@@ -320,6 +332,13 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
       ordered: 0,
     };
     day.orders++;
+
+    for (const box of order.boxes ?? []) {
+      totalBoxes += box.quantity;
+      const line = boxTypes.get(box.box_type_id) ?? { boxTypeId: box.box_type_id, name: box.box_type?.name ?? '—', boxes: 0 };
+      line.boxes += box.quantity;
+      boxTypes.set(box.box_type_id, line);
+    }
 
     // --- per line ---
     for (const line of order.lines ?? []) {
@@ -461,6 +480,8 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
     totalPrepared: round3(totalPrepared),
     totalWeightKg: roundKg(totalWeightKg),
     productsWithoutWeight: unweighed.size,
+    totalBoxes,
+    byBoxType: [...boxTypes.values()].sort((a, b) => b.boxes - a.boxes || a.name.localeCompare(b.name)),
     shortLines,
     unexplainedShortLines,
     fulfilmentRate:

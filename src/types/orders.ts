@@ -78,6 +78,31 @@ export interface DeliveryMethod {
   is_active: boolean;
 }
 
+/**
+ * A kind of box the warehouse packs orders in. Its empty weight is added to
+ * an order's gross weight. Sizes are the outside measurements in cm, and may
+ * be unknown. numeric columns can arrive from Postgres as strings.
+ */
+export interface BoxType {
+  id: string;
+  name: string;
+  empty_weight_kg: number | string;
+  length_cm: number | string | null;
+  width_cm: number | string | null;
+  height_cm: number | string | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+/** How many boxes of one type an order uses. Written only by order_set_box_quantity(). */
+export interface OrderBox {
+  id: string;
+  order_id: string;
+  box_type_id: string;
+  quantity: number;
+  box_type: BoxType;
+}
+
 /** One of our own brands. Proper nouns, so never translated. */
 export interface Brand {
   id: string;
@@ -219,6 +244,8 @@ export interface Order {
   customer: Customer;
   delivery_method: DeliveryMethod | null;
   lines: OrderLine[];
+  /** Boxes recorded while preparing. Absent where a query did not load them. */
+  boxes?: OrderBox[];
 }
 
 /**

@@ -39,6 +39,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      box_types: {
+        Row: {
+          created_at: string
+          empty_weight_kg: number
+          height_cm: number | null
+          id: string
+          is_active: boolean
+          length_cm: number | null
+          name: string
+          sort_order: number
+          updated_at: string
+          width_cm: number | null
+        }
+        Insert: {
+          created_at?: string
+          empty_weight_kg: number
+          height_cm?: number | null
+          id?: string
+          is_active?: boolean
+          length_cm?: number | null
+          name: string
+          sort_order?: number
+          updated_at?: string
+          width_cm?: number | null
+        }
+        Update: {
+          created_at?: string
+          empty_weight_kg?: number
+          height_cm?: number | null
+          id?: string
+          is_active?: boolean
+          length_cm?: number | null
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          width_cm?: number | null
+        }
+        Relationships: []
+      }
       brands: {
         Row: {
           created_at: string
@@ -2100,6 +2139,53 @@ export type Database = {
           },
         ]
       }
+      notification_inbox: {
+        Row: {
+          body: string
+          created_at: string
+          dedupe_key: string | null
+          id: string
+          level: string | null
+          read_at: string | null
+          tag: string
+          title: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          dedupe_key?: string | null
+          id?: string
+          level?: string | null
+          read_at?: string | null
+          tag: string
+          title: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          dedupe_key?: string | null
+          id?: string
+          level?: string | null
+          read_at?: string | null
+          tag?: string
+          title?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_inbox_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_audit_log: {
         Row: {
           action: string
@@ -2145,6 +2231,75 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_boxes: {
+        Row: {
+          box_type_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          order_id: string
+          quantity: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          box_type_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          order_id: string
+          quantity: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          box_type_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          order_id?: string
+          quantity?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_boxes_box_type_id_fkey"
+            columns: ["box_type_id"]
+            isOneToOne: false
+            referencedRelation: "box_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_boxes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_boxes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "order_boxes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_boxes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2748,14 +2903,14 @@ export type Database = {
           code: string | null
           created_at: string
           family: string
+          gross_weight_kg: number | null
+          gross_weight_suggested: boolean
           id: string
           is_active: boolean
           name: string | null
           needs_review: boolean
           net_weight_kg: number | null
           net_weight_suggested: boolean
-          gross_weight_kg: number | null
-          gross_weight_suggested: boolean
           notes: string | null
           presentation: string
           units_per_box: number | null
@@ -2767,14 +2922,14 @@ export type Database = {
           code?: string | null
           created_at?: string
           family: string
+          gross_weight_kg?: number | null
+          gross_weight_suggested?: boolean
           id?: string
           is_active?: boolean
           name?: string | null
           needs_review?: boolean
           net_weight_kg?: number | null
           net_weight_suggested?: boolean
-          gross_weight_kg?: number | null
-          gross_weight_suggested?: boolean
           notes?: string | null
           presentation: string
           units_per_box?: number | null
@@ -2786,14 +2941,14 @@ export type Database = {
           code?: string | null
           created_at?: string
           family?: string
+          gross_weight_kg?: number | null
+          gross_weight_suggested?: boolean
           id?: string
           is_active?: boolean
           name?: string | null
           needs_review?: boolean
           net_weight_kg?: number | null
           net_weight_suggested?: boolean
-          gross_weight_kg?: number | null
-          gross_weight_suggested?: boolean
           notes?: string | null
           presentation?: string
           units_per_box?: number | null
@@ -3773,6 +3928,35 @@ export type Database = {
           },
         ]
       }
+      user_presence: {
+        Row: {
+          last_seen_at: string
+          path: string | null
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          last_seen_at?: string
+          path?: string | null
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          last_seen_at?: string
+          path?: string | null
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_presence_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       lot_allocation_search: {
@@ -4169,6 +4353,7 @@ export type Database = {
           total: number
         }[]
       }
+      mark_inbox_read: { Args: { p_ids?: string[] }; Returns: undefined }
       next_goods_reception_report_version: {
         Args: { p_month: string }
         Returns: number
@@ -4178,6 +4363,10 @@ export type Database = {
         Returns: number
       }
       order_is_prepared: { Args: { p_order_id: string }; Returns: boolean }
+      order_set_box_quantity: {
+        Args: { p_box_type_id: string; p_order_id: string; p_quantity: number }
+        Returns: undefined
+      }
       order_set_ready: {
         Args: { p_order_id: string; p_ready: boolean }
         Returns: undefined
@@ -4189,6 +4378,17 @@ export type Database = {
       preparation_date_for: {
         Args: { p_delivery_date: string; p_lead_days: number }
         Returns: string
+      }
+      record_inbox_notification: {
+        Args: {
+          p_body: string
+          p_level: string
+          p_tag: string
+          p_title: string
+          p_url: string
+          p_user_ids: string[]
+        }
+        Returns: undefined
       }
       reminder_attention_count: { Args: never; Returns: number }
       reminder_cancel: { Args: { p_id: string }; Returns: undefined }
@@ -4326,6 +4526,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      touch_presence: { Args: { p_path: string }; Returns: undefined }
     }
     Enums: {
       goods_reception_condition:

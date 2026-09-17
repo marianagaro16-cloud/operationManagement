@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatKg, orderWeight, suggestNetWeightKg } from './weight';
+import { boxCount, boxesWeightKg, formatKg, orderWeight, suggestNetWeightKg } from './weight';
 
 describe('suggestNetWeightKg', () => {
   it('reads kilos and grams, with a dot or a comma', () => {
@@ -78,6 +78,23 @@ describe('orderWeight', () => {
       { ordered_quantity: 0, product: { net_weight_kg: null } },
       { ordered_quantity: null, product: { net_weight_kg: 5 } },
     ], 'net')).toEqual({ kg: 0, linesWithoutWeight: 0 });
+  });
+});
+
+describe('boxes', () => {
+  const boxes = [
+    { quantity: 2, box_type: { empty_weight_kg: '0.800' } },
+    { quantity: 1, box_type: { empty_weight_kg: 0.35 } },
+  ];
+
+  it('adds up the empty weight of every box', () => {
+    expect(boxesWeightKg(boxes)).toBe(1.95);
+    expect(boxesWeightKg(undefined)).toBe(0);
+  });
+
+  it('counts boxes of every type together', () => {
+    expect(boxCount(boxes)).toBe(3);
+    expect(boxCount([])).toBe(0);
   });
 });
 

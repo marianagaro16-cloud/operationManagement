@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { getBrands, getCustomers, getDeliveryMethods, getOrdersBoard, getOrdersByDelivery, getProducts } from '@/server/orders';
+import { getBoxTypes, getBrands, getCustomers, getDeliveryMethods, getOrdersBoard, getOrdersByDelivery, getProducts } from '@/server/orders';
 import { getIncidentCategories, getIncidentTypes } from '@/server/incidents';
 import { getViewer } from '@/server/data';
 import { monthRange } from '@/domain/orders/scheduling';
@@ -67,7 +67,7 @@ export default async function OrdersPage({
     // between days and key the day on delivery instead of preparation.
     const date = canManage && isDate(searchParams.date) ? searchParams.date : today;
     const mode: OrdersMode = canManage && searchParams.mode === 'delivery' ? 'delivery' : 'preparation';
-    const board = await getOrdersBoard(date, mode, date === today);
+    const [board, boxTypes] = await Promise.all([getOrdersBoard(date, mode, date === today), getBoxTypes()]);
     return (
       <OrdersBoard
         tab={tab}
@@ -80,6 +80,7 @@ export default async function OrdersPage({
         ready={board.ready}
         shipped={board.shipped}
         openDays={board.openDays}
+        boxTypes={boxTypes}
       />
     );
   }

@@ -241,6 +241,25 @@ export async function setOrderReady(orderId: string, ready: boolean): Promise<Ac
   return { ok: true, data: undefined };
 }
 
+/**
+ * How many boxes of one type an order uses; 0 removes that type. Anyone who
+ * prepares may record them, until the order is Shipped — the database checks.
+ */
+export async function setOrderBoxQuantity(orderId: string, boxTypeId: string, quantity: number): Promise<ActionResult> {
+  if (!parsedUuid(orderId) || !parsedUuid(boxTypeId) || !Number.isInteger(quantity) || quantity < 0 || quantity > 999) {
+    return { ok: false, error: 'invalid_box_quantity' };
+  }
+  const supabase = createClient();
+  const { error } = await supabase.rpc('order_set_box_quantity', {
+    p_order_id: orderId,
+    p_box_type_id: boxTypeId,
+    p_quantity: quantity,
+  });
+  if (error) return fulfilmentFail(error);
+  revalidateOrders();
+  return { ok: true, data: undefined };
+}
+
 /** One order or many — the day's DHL orders in one press. All or nothing. */
 export async function setOrdersShipped(orderIds: string[], shipped: boolean): Promise<ActionResult<{ changed: number }>> {
   if (orderIds.length === 0) return { ok: true, data: { changed: 0 } };
@@ -256,6 +275,7 @@ function fulfilmentFail(error: unknown): { ok: false; error: string } {
   const codes = [
     'order_not_prepared', 'order_not_confirmed', 'order_already_shipped', 'order_not_ready',
     'order_ready_locked', 'order_shipped_locked', 'order_not_found', 'too_many_orders', 'not_authorized',
+    'order_needs_boxes', 'box_type_inactive', 'invalid_box_quantity',
   ];
   const code = codes.find((c) => message.includes(c));
   return { ok: false, error: code ?? message };
@@ -524,6 +544,33 @@ export async function saveDeliveryMethod(
     : await supabase.from('delivery_methods').insert(row);
   if (error) return fail(error);
   revalidatePath('/admin/delivery-methods');
+  return { ok: true, data: undefined };
+}
+
+const boxTypeSchema = z.object({
+  name: z.string().trim().min(1),
+  /** Weight of the empty box, added to an order's gross weight per box. */
+  empty_weight_kg: z.number().min(0),
+  /** Outside size in cm; each may be unknown. */
+  length_cm: z.number().positive().nullable(),
+  width_cm: z.number().positive().nullable(),
+  height_cm: z.number().positive().nullable(),
+  is_active: z.boolean(),
+});
+
+export async function saveBoxType(
+  input: z.infer<typeof boxTypeSchema>,
+  id?: string,
+): Promise<ActionResult> {
+  const parsed = boxTypeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'invalid_box_type' };
+  const supabase = createClient();
+  const { error } = id
+    ? await supabase.from('box_types').update(parsed.data).eq('id', id)
+    : await supabase.from('box_types').insert(parsed.data);
+  if (error) return fail(error);
+  revalidatePath('/admin/box-types');
+  revalidateOrders();
   return { ok: true, data: undefined };
 }
 
