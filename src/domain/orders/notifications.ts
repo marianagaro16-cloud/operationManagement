@@ -14,8 +14,13 @@ import { compareUrgency, deliveryUrgency, formatDeliveryTime, type UrgencyLevel 
  *  - cancelled orders never notify
  */
 
-/** Levels worth interrupting someone for. 'soon' deliberately is not. */
-export const NOTIFY_LEVELS: UrgencyLevel[] = ['warning', 'critical', 'overdue'];
+/**
+ * Levels worth interrupting someone for. 'soon' and 'warning' deliberately are
+ * not: the team asked for pushes only when an order is urgent, so a steady
+ * trickle of "Envío próximo" does not dilute the ones that matter. Warning
+ * orders still show in the app, just without a push.
+ */
+export const NOTIFY_LEVELS: UrgencyLevel[] = ['critical', 'overdue'];
 
 export interface NotifiableOrder {
   /** Set once the order is confirmed as prepared; ready orders do not alert. */
@@ -38,7 +43,7 @@ export interface PendingNotification {
   orderId: string;
   reference: number;
   customerName: string;
-  level: Exclude<UrgencyLevel, 'soon' | 'none'>;
+  level: Exclude<UrgencyLevel, 'warning' | 'soon' | 'none'>;
   deliveryTime: string | null;
   openLines: number;
   title: string;
@@ -117,7 +122,6 @@ function notificationTitle(level: PendingNotification['level'], customer: string
   switch (level) {
     case 'overdue':  return `Pedido atrasado — ${customer}`;
     case 'critical': return `Urgente — ${customer}`;
-    case 'warning':  return `Envío próximo — ${customer}`;
   }
 }
 

@@ -23,10 +23,8 @@ function order(over: Partial<NotifiableOrder> = {}): NotifiableOrder {
 const none = new Set<string>();
 
 describe('what gets notified', () => {
-  it('notifies unfinished work inside the warning window', () => {
-    const out = selectNotifications([order()], none, at('2026-09-10T09:00'));
-    expect(out).toHaveLength(1);
-    expect(out[0].level).toBe('warning');
+  it('does not notify at "warning" — "Envío próximo" is not pushed, only urgent', () => {
+    expect(selectNotifications([order()], none, at('2026-09-10T09:00'))).toEqual([]);
   });
 
   it('escalates to critical and overdue', () => {
@@ -77,16 +75,16 @@ describe('deduplication', () => {
 
   it('DOES send when the order escalates to a worse level', () => {
     const o = order();
-    // Warning was already sent; it is now critical, which is new information.
-    const sent = new Set([`${o.id}:warning`]);
-    const out = selectNotifications([o], sent, at('2026-09-10T13:00'));
+    // Critical was already sent; it is now overdue, which is new information.
+    const sent = new Set([`${o.id}:critical`]);
+    const out = selectNotifications([o], sent, at('2026-09-10T15:00'));
     expect(out).toHaveLength(1);
-    expect(out[0].level).toBe('critical');
+    expect(out[0].level).toBe('overdue');
   });
 
   it('is silent once every level has fired', () => {
     const o = order();
-    const sent = new Set([`${o.id}:warning`, `${o.id}:critical`, `${o.id}:overdue`]);
+    const sent = new Set([`${o.id}:critical`, `${o.id}:overdue`]);
     expect(selectNotifications([o], sent, at('2026-09-10T15:00'))).toEqual([]);
   });
 });
@@ -97,7 +95,7 @@ describe('ordering and content', () => {
     const crit = order({ delivery_time: '13:00' });
     const late = order({ delivery_time: '10:00' });
     const out = selectNotifications([warn, crit, late], none, at('2026-09-10T12:00'));
-    expect(out.map((n) => n.level)).toEqual(['overdue', 'critical', 'warning']);
+    expect(out.map((n) => n.level)).toEqual(['overdue', 'critical']);
   });
 
   it('names the customer and states what is left', () => {
@@ -120,12 +118,9 @@ describe('ordering and content', () => {
 });
 
 describe('orders with no committed hour', () => {
-  it('notifies on the delivery day itself', () => {
+  it('does not push on the delivery day itself — that is only a warning', () => {
     const o = order({ delivery_time: null });
-    const out = selectNotifications([o], none, at('2026-09-10T08:00'));
-    expect(out).toHaveLength(1);
-    expect(out[0].level).toBe('warning');
-    expect(out[0].deliveryTime).toBeNull();
+    expect(selectNotifications([o], none, at('2026-09-10T08:00'))).toEqual([]);
   });
 
   it('notifies as overdue the day after, on the Zurich boundary', () => {

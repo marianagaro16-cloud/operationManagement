@@ -17,8 +17,8 @@ export const dynamic = 'force-dynamic';
  *
  * Idempotent: each (order, level) is recorded in order_notifications with a
  * UNIQUE constraint, so running this every 15 minutes — or twice at once —
- * never re-sends the same alert. An order escalating warning -> critical ->
- * overdue produces exactly three notifications over its lifetime.
+ * never re-sends the same alert. An order escalating critical -> overdue
+ * produces exactly two notifications over its lifetime.
  *
  * Vercel Cron cannot run more often than daily on the Hobby plan, so for a
  * useful cadence point an external scheduler at this endpoint. See the README.
