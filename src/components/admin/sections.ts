@@ -61,6 +61,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       { href: '/admin/transporters', label: 'gr.transportersTitle', permission: 'goods_reception.manage_config' },
       { href: '/admin/products', label: 'master.productsTitle', permission: 'products.manage' },
       { href: '/admin/brands', label: 'master.brandsTitle', permission: 'products.manage' },
+      { href: '/admin/product-categories', label: 'master.categoriesTitle', permission: 'products.manage' },
       { href: '/admin/delivery-methods', label: 'master.methodsTitle', permission: 'orders.manage_config' },
       { href: '/admin/box-types', label: 'master.boxTypesTitle', permission: 'orders.manage_config' },
       { href: '/admin/incident-types', label: 'incident.typesTitle', permission: 'incidents.manage_config' },

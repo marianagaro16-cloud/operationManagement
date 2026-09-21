@@ -15,7 +15,14 @@ import { saveProduct } from '@/server/order-actions';
 import { addProductAlias, deleteProductAlias } from '@/server/import-actions';
 import type { ProductAliasRow } from '@/server/order-import';
 import { suggestNetWeightKg } from '@/domain/orders/weight';
-import { productLabel, type Brand, type Customer, type Product } from '@/types/orders';
+import {
+  productLabel,
+  type Brand,
+  type Customer,
+  type Product,
+  type ProductCategory,
+  type ProductSubcategory,
+} from '@/types/orders';
 
 /**
  * Product master.
@@ -44,12 +51,16 @@ export function ProductManager({
   aliases,
   customers,
   brands,
+  categories,
+  subcategories,
   reminderViewerId,
 }: {
   products: Product[];
   aliases: ProductAliasRow[];
   customers: Customer[];
   brands: Brand[];
+  categories: ProductCategory[];
+  subcategories: ProductSubcategory[];
   /** Null when the viewer cannot use reminders; the row button then renders nothing. */
   reminderViewerId: string | null;
 }) {
@@ -60,6 +71,9 @@ export function ProductManager({
   const [query, setQuery] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [brandFilter, setBrandFilter] = useState('');
+  // A category id, or 'none' — how somebody works through the products
+  // that still need classifying.
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [weightFilter, setWeightFilter] = useState<'' | 'suggested' | 'missing'>('');
 
   const inactiveCount = products.filter((p) => !p.is_active).length;
@@ -83,6 +97,11 @@ export function ProductManager({
                 : p.brand_id === brandFilter,
           )
           .filter((p) =>
+            categoryFilter === '' ? true
+              : categoryFilter === 'none' ? p.category_id === null
+                : p.category_id === categoryFilter,
+          )
+          .filter((p) =>
             weightFilter === 'suggested' ? hasSuggestedWeight(p)
               : weightFilter === 'missing' ? hasMissingWeight(p)
                 : true,
@@ -92,7 +111,7 @@ export function ProductManager({
         // look — "masamor" should find the Masamor range.
         (p) => `${p.code ?? ''} ${p.name ?? ''} ${p.family} ${p.brand?.name ?? ''}`,
       ),
-    [products, query, showInactive, brandFilter, weightFilter],
+    [products, query, showInactive, brandFilter, categoryFilter, weightFilter],
   );
 
   return (
@@ -130,6 +149,18 @@ export function ProductManager({
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
           <option value="none">{t('master.noBrand')}</option>
+        </Select>
+        <Select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          aria-label={t('master.category')}
+          className="max-w-[12rem]"
+        >
+          <option value="">{t('master.allCategories')}</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+          <option value="none">{t('master.noCategory')}</option>
         </Select>
 
         {inactiveCount > 0 && (
@@ -196,6 +227,11 @@ export function ProductManager({
                     Absent rather than "—" when unclassified: a badge that
                     says nothing still costs a column on a phone. */}
                 {p.brand && <Badge tone="neutral">{p.brand.name}</Badge>}
+                {p.category_id && (
+                  <Badge tone="neutral" className="hidden sm:inline-flex">
+                    {classificationLabel(p, categories, subcategories)}
+                  </Badge>
+                )}
                 <ProductWeights product={p} />
                 {p.needs_review && (
                   <Badge tone="warn" title={p.notes ?? undefined}>
@@ -236,6 +272,8 @@ export function ProductManager({
           aliases={editing ? aliases.filter((a) => a.product_id === editing.id) : []}
           customers={customers}
           brands={brands}
+          categories={categories}
+          subcategories={subcategories}
           onClose={() => { setCreating(false); setEditing(null); }}
           onSaved={() => { setCreating(false); setEditing(null); router.refresh(); }}
           onAliasChanged={() => router.refresh()}
@@ -250,6 +288,8 @@ function ProductDialog({
   aliases,
   customers,
   brands,
+  categories,
+  subcategories,
   onClose,
   onSaved,
   onAliasChanged,
@@ -258,6 +298,8 @@ function ProductDialog({
   aliases: ProductAliasRow[];
   customers: Customer[];
   brands: Brand[];
+  categories: ProductCategory[];
+  subcategories: ProductSubcategory[];
   onClose: () => void;
   onSaved: () => void;
   onAliasChanged: () => void;
@@ -265,7 +307,14 @@ function ProductDialog({
   const { t } = useI18n();
   const [code, setCode] = useState(product?.code ?? '');
   const [name, setName] = useState(product?.name ?? '');
-  const [category, setCategory] = useState(product?.category ?? '');
+  const [categoryId, setCategoryId] = useState(product?.category_id ?? '');
+  const [subcategoryId, setSubcategoryId] = useState(product?.subcategory_id ?? '');
+  // Active ones, plus whatever this product already names so a retired
+  // category still shows on its own product.
+  const categoryOptions = categories.filter((c) => c.is_active || c.id === product?.category_id);
+  const subcategoryOptions = subcategories.filter(
+    (s) => s.category_id === categoryId && (s.is_active || s.id === product?.subcategory_id),
+  );
   const [brandId, setBrandId] = useState(product?.brand_id ?? '');
   const [notes, setNotes] = useState(product?.notes ?? '');
   const [unitsPerBox, setUnitsPerBox] = useState(
@@ -307,8 +356,11 @@ function ProductDialog({
           // Legacy structured fields are preserved as-is, never re-derived.
           family: product?.family ?? name.trim(),
           presentation: product?.presentation ?? '—',
-          category: category.trim() || null,
+          // Legacy free-text category, kept as it was.
+          category: product?.category ?? null,
           brand_id: brandId || null,
+          category_id: categoryId || null,
+          subcategory_id: categoryId ? subcategoryId || null : null,
           notes: notes.trim() || null,
           // An empty field is NULL, which says "no reliable conversion" and is
           // a real answer — the importer asks rather than assuming.
@@ -375,9 +427,33 @@ function ProductDialog({
           </Select>
         </Field>
 
-        <Field label={t('master.category')} htmlFor="p-cat">
-          <Input id="p-cat" value={category} onChange={(e) => setCategory(e.target.value)} />
-        </Field>
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+          <Field label={t('master.category')} hint={t('master.categoryHint')} htmlFor="p-cat">
+            <Select
+              id="p-cat"
+              value={categoryId}
+              onChange={(e) => { setCategoryId(e.target.value); setSubcategoryId(''); }}
+            >
+              <option value="">{t('master.noCategory')}</option>
+              {categoryOptions.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label={t('master.subcategory')} htmlFor="p-subcat">
+            <Select
+              id="p-subcat"
+              value={subcategoryId}
+              onChange={(e) => setSubcategoryId(e.target.value)}
+              disabled={!categoryId}
+            >
+              <option value="">{t('master.noSubcategory')}</option>
+              {subcategoryOptions.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </Select>
+          </Field>
+        </div>
 
         <Field
           label={t('master.unitsPerBox')}
@@ -469,6 +545,17 @@ function ProductDialog({
       </div>
     </Dialog>
   );
+}
+
+/** "Tortilla · Ø14 Gelb", or just the category when there is no subcategory. */
+function classificationLabel(
+  p: Product,
+  categories: ProductCategory[],
+  subcategories: ProductSubcategory[],
+): string {
+  const category = categories.find((c) => c.id === p.category_id)?.name ?? '';
+  const sub = subcategories.find((s) => s.id === p.subcategory_id)?.name;
+  return sub ? `${category} · ${sub}` : category;
 }
 
 function hasSuggestedWeight(p: Product): boolean {

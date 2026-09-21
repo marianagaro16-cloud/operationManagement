@@ -1,16 +1,62 @@
 'use client';
 
+import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Download } from 'lucide-react';
+import { ChevronDown, ChevronsDownUp, ChevronsUpDown, Download } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { Badge, Card, CardBody, EmptyState, Select } from '@/components/ui/primitives';
 import { Combobox } from '@/components/ui/combobox';
 import { ReportShell, reportHref } from '@/components/reports/report-shell';
-import { productReportToCsv, type OrderReport } from '@/domain/orders/reporting';
+import {
+  PRODUCT_GROUPINGS,
+  productReportToCsv,
+  type OrderReport,
+  type ProductGroup,
+  type ProductGrouping,
+  type ProductLine,
+} from '@/domain/orders/reporting';
 import { formatKg } from '@/domain/orders/weight';
 import { productLabel, type Brand, type Customer, type Product } from '@/types/orders';
+
+const GROUPING_LABEL = {
+  none: 'report.groupNone',
+  category: 'master.category',
+  subcategory: 'master.subcategory',
+} as const;
+
+/** One product's row in the product table; indented under a group. */
+function ProductRow({ p, indent = false }: { p: ProductLine; indent?: boolean }) {
+  return (
+    <tr>
+      <td className={cn('py-2 pr-3 tabular text-subtle', indent ? 'pl-8' : 'pl-3')}>{p.code ?? '—'}</td>
+      <td className="max-w-[280px] truncate px-2 py-2" title={p.name}>{p.name}</td>
+      <QuantityCells line={p} />
+    </tr>
+  );
+}
+
+/** Ordered, prepared, remaining and customers — the same four for a product and a group. */
+function QuantityCells({
+  line,
+  strong = false,
+}: {
+  line: Pick<ProductLine, 'ordered' | 'prepared' | 'missing' | 'customers'>;
+  strong?: boolean;
+}) {
+  return (
+    <>
+      <td className={cn('px-2 py-2 text-right tabular', strong ? 'font-semibold' : 'font-medium')}>{line.ordered}</td>
+      <td className="px-2 py-2 text-right tabular text-muted">{line.prepared}</td>
+      <td className={cn('px-2 py-2 text-right tabular', line.missing > 0 ? 'text-warn' : 'text-subtle')}>
+        {line.missing || '—'}
+      </td>
+      <td className="px-3 py-2 text-right tabular text-muted">{line.customers}</td>
+    </>
+  );
+}
 
 /**
  * Order report — the Orders tab of /admin/reports.
@@ -32,6 +78,7 @@ export function OrderReportView({
   products,
   brands,
   filters,
+  grouping,
 }: {
   report: OrderReport;
   anchor: string;
@@ -40,12 +87,19 @@ export function OrderReportView({
   brands: Brand[];
   /** Narrowing applied to the whole report, carried in the URL. brandId may be 'none'. */
   filters: { customerId?: string; productId?: string; brandId?: string };
+  /** How the product table is grouped, carried in the URL so it survives period changes. */
+  grouping: ProductGrouping;
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
   const { range } = report;
 
-  const urlFilters = { customer: filters.customerId, product: filters.productId, brand: filters.brandId };
+  const urlFilters = {
+    customer: filters.customerId,
+    product: filters.productId,
+    brand: filters.brandId,
+    group: grouping === 'none' ? undefined : grouping,
+  };
   const setFilter = (key: 'customer' | 'product', value: string | null) =>
     router.push(reportHref('orders', range, anchor, undefined, { ...urlFilters, [key]: value ?? undefined }));
 
@@ -66,9 +120,36 @@ export function OrderReportView({
     }));
   }
 
+  const groups = grouping === 'category' ? report.byCategory
+    : grouping === 'subcategory' ? report.bySubcategory
+      : null;
+  // Open by default: only the groups somebody folded are remembered.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const toggleGroup = (key: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  function setGrouping(value: ProductGrouping) {
+    setCollapsed(new Set());
+    router.push(reportHref('orders', range, anchor, undefined, {
+      ...urlFilters,
+      group: value === 'none' ? undefined : value,
+    }));
+  }
+
+  function groupLabel(g: ProductGroup): string {
+    if (!g.category) return t('report.unclassified');
+    if (grouping === 'category') return g.category;
+    return `${g.category} · ${g.subcategory ?? t('master.noSubcategory')}`;
+  }
+
   function downloadCsv() {
     // Built in the browser from data already on the page — no round trip.
-    const blob = new Blob([productReportToCsv(report)], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob([productReportToCsv(report, grouping)], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -208,7 +289,33 @@ export function OrderReportView({
 
           {/* Products — the main table */}
           <section>
-            <h2 className="mb-2 text-[13px] font-semibold">{t('report.byProduct')}</h2>
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <h2 className="text-[13px] font-semibold">{t('report.byProduct')}</h2>
+              <label className="ml-auto flex items-center gap-1.5 text-[12.5px] text-muted">
+                {t('report.groupBy')}
+                <Select
+                  value={grouping}
+                  onChange={(e) => setGrouping(e.target.value as ProductGrouping)}
+                  className="h-8 w-auto py-0 text-[13px]"
+                >
+                  {PRODUCT_GROUPINGS.map((g) => (
+                    <option key={g} value={g}>{t(GROUPING_LABEL[g])}</option>
+                  ))}
+                </Select>
+              </label>
+              {groups && groups.length > 0 && (
+                <>
+                  <Button size="sm" variant="ghost" onClick={() => setCollapsed(new Set())}>
+                    <ChevronsUpDown className="h-3.5 w-3.5" aria-hidden />
+                    {t('prep.expandAll')}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setCollapsed(new Set(groups.map((g) => g.key)))}>
+                    <ChevronsDownUp className="h-3.5 w-3.5" aria-hidden />
+                    {t('prep.collapseAll')}
+                  </Button>
+                </>
+              )}
+            </div>
             {report.byProduct.length === 0 ? (
               <EmptyState title={t('stats.noData')} />
             ) : (
@@ -226,18 +333,38 @@ export function OrderReportView({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {report.byProduct.map((p) => (
-                        <tr key={p.productId}>
-                          <td className="px-3 py-2 tabular text-subtle">{p.code ?? '—'}</td>
-                          <td className="max-w-[280px] truncate px-2 py-2" title={p.name}>{p.name}</td>
-                          <td className="px-2 py-2 text-right font-medium tabular">{p.ordered}</td>
-                          <td className="px-2 py-2 text-right tabular text-muted">{p.prepared}</td>
-                          <td className={cn('px-2 py-2 text-right tabular', p.missing > 0 ? 'text-warn' : 'text-subtle')}>
-                            {p.missing || '—'}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular text-muted">{p.customers}</td>
-                        </tr>
-                      ))}
+                      {groups
+                        ? groups.map((g) => {
+                          const open = !collapsed.has(g.key);
+                          return (
+                            <Fragment key={g.key}>
+                              <tr className="bg-surface-2/60">
+                                <td colSpan={2} className="px-3 py-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleGroup(g.key)}
+                                    aria-expanded={open}
+                                    className="flex w-full min-w-0 items-center gap-1.5 text-left font-semibold"
+                                  >
+                                    <ChevronDown
+                                      className={cn('h-4 w-4 shrink-0 text-muted transition-transform', !open && '-rotate-90')}
+                                      aria-hidden
+                                    />
+                                    <span className={cn('truncate', !g.category && 'italic text-muted')}>{groupLabel(g)}</span>
+                                    <span className="shrink-0 text-[11.5px] font-normal text-subtle">
+                                      {g.products.length === 1
+                                        ? t('report.productCountOne')
+                                        : t('report.productCount', { count: g.products.length })}
+                                    </span>
+                                  </button>
+                                </td>
+                                <QuantityCells line={g} strong />
+                              </tr>
+                              {open && g.products.map((p) => <ProductRow key={p.productId} p={p} indent />)}
+                            </Fragment>
+                          );
+                        })
+                        : report.byProduct.map((p) => <ProductRow key={p.productId} p={p} />)}
                     </tbody>
                   </table>
                 </div>
@@ -272,6 +399,7 @@ export function OrderReportView({
                               href={reportHref('orders', range, anchor, undefined, {
                                 customer: filters.customerId,
                                 brand: b.brandId ?? 'none',
+                                group: urlFilters.group,
                               })}
                               className="transition-colors hover:text-accent hover:underline"
                             >

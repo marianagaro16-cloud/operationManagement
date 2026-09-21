@@ -111,6 +111,26 @@ export interface Brand {
   is_active: boolean;
 }
 
+/**
+ * What kind of product this is — Tortilla, Totopos. Typed by the business,
+ * never read from the product name, and not translated.
+ */
+export interface ProductCategory {
+  id: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
+/** A group within one category — Ø14 Gelb, Blau. */
+export interface ProductSubcategory {
+  id: string;
+  category_id: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
 export interface Product {
   id: string;
   code: string | null;
@@ -149,6 +169,12 @@ export interface Product {
    */
   brand_id: string | null;
   brand?: Brand | null;
+  /**
+   * Category and subcategory, which the order report groups by. NULL means
+   * not yet classified. The subcategory always belongs to the category.
+   */
+  category_id: string | null;
+  subcategory_id: string | null;
   needs_review: boolean;
   is_active: boolean;
 }

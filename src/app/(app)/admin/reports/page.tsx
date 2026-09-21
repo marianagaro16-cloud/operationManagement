@@ -1,4 +1,12 @@
-import { getBrands, getCustomers, getOrdersByDelivery, getOrdersByPreparation, getProducts } from '@/server/orders';
+import {
+  getBrands,
+  getCustomers,
+  getOrdersByDelivery,
+  getOrdersByPreparation,
+  getProductCategories,
+  getProducts,
+  getProductSubcategories,
+} from '@/server/orders';
 import { computePreparationReport } from '@/domain/orders/preparation-report';
 import { PreparationReportView } from '@/components/reports/preparation-report-view';
 import { getOccurrencesInRange, getUsers } from '@/server/data';
@@ -12,6 +20,8 @@ import {
   narrowToBrand,
   narrowToProduct,
   periodRange,
+  PRODUCT_GROUPINGS,
+  type ProductGrouping,
   type ReportPeriod,
 } from '@/domain/orders/reporting';
 import { OrderReportView } from '@/components/orders/order-report-view';
@@ -48,6 +58,7 @@ export default async function ReportsPage({
     customer?: string;
     product?: string;
     brand?: string;
+    group?: string;
   };
 }) {
   const tab: ReportTab = TABS.includes(searchParams.tab as ReportTab)
@@ -114,23 +125,31 @@ export default async function ReportsPage({
 
   // Reuses the existing order query — no reporting tables, no duplicated data.
   // Inactive customers, products and brands are offered too: a report looks backwards.
-  const [found, customers, products, brands] = await Promise.all([
+  const grouping: ProductGrouping = PRODUCT_GROUPINGS.includes(searchParams.group as ProductGrouping)
+    ? (searchParams.group as ProductGrouping)
+    : 'none';
+
+  const [found, customers, products, brands, categories, subcategories] = await Promise.all([
     getOrdersByDelivery({ from: range.start, to: range.end, customerId }),
     getCustomers(true),
     getProducts(true),
     getBrands(true),
+    // Inactive too: last year's orders may name a retired category.
+    getProductCategories(true),
+    getProductSubcategories(true),
   ]);
   const byBrand = brandId ? narrowToBrand(found, brandId) : found;
   const orders = productId ? narrowToProduct(byBrand, productId) : byBrand;
 
   return (
     <OrderReportView
-      report={computeOrderReport(orders, range)}
+      report={computeOrderReport(orders, range, { categories, subcategories })}
       anchor={anchor}
       customers={customers}
       products={products}
       brands={brands}
       filters={{ customerId, productId, brandId }}
+      grouping={grouping}
     />
   );
 }

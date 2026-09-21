@@ -460,8 +460,8 @@ describe('CSV export', () => {
     );
     const csv = productReportToCsv(r);
     const rows = csv.split('\n');
-    expect(rows[0]).toBe('code;product;brand;ordered;prepared;missing;lines;customers');
-    expect(rows[1]).toBe('0001;Tortillas 1kg;Masamor;10;8;2;1;1');
+    expect(rows[0]).toBe('category;subcategory;code;product;brand;ordered;prepared;missing;lines;customers');
+    expect(rows[1]).toBe(';;0001;Tortillas 1kg;Masamor;10;8;2;1;1');
   });
 
   it('leaves the brand column empty rather than absent for an unclassified product', () => {
@@ -470,7 +470,7 @@ describe('CSV export', () => {
       SEP,
     );
     const rows = productReportToCsv(r).split(String.fromCharCode(10));
-    expect(rows[1]).toBe('0001;Tortillas 1kg;;10;8;2;1;1');
+    expect(rows[1]).toBe(';;0001;Tortillas 1kg;;10;8;2;1;1');
   });
 
   it('quotes a product name containing the separator', () => {
@@ -479,6 +479,115 @@ describe('CSV export', () => {
       SEP,
     );
     expect(productReportToCsv(r).split('\n')[1]).toContain('"Tortillas; grandes"');
+  });
+});
+
+/* --------------------------- product grouping --------------------------- */
+
+describe('product grouping', () => {
+  const taxonomy = {
+    categories: [
+      { id: 'tort', name: 'Tortilla', sort_order: 10, is_active: true },
+      { id: 'toto', name: 'Totopos', sort_order: 20, is_active: true },
+    ],
+    subcategories: [
+      { id: 'd14', category_id: 'tort', name: 'Ø14 Gelb', sort_order: 100, is_active: true },
+      { id: 'd6', category_id: 'tort', name: 'Ø6 Gelb', sort_order: 100, is_active: true },
+      { id: 'blau', category_id: 'toto', name: 'Blau', sort_order: 100, is_active: true },
+    ],
+  };
+
+  /** A line whose product is classified, where the report reads it from. */
+  const classified = (
+    l: NonNullable<Order['lines']>[number],
+    categoryId: string | null,
+    subcategoryId: string | null,
+  ) =>
+    ({
+      ...l,
+      product: {
+        ...(l as unknown as { product: Record<string, unknown> }).product,
+        category_id: categoryId,
+        subcategory_id: subcategoryId,
+      },
+    }) as unknown as NonNullable<Order['lines']>[number];
+
+  const orders = () => [
+    order({
+      customer_id: 'c1',
+      lines: [
+        classified(line('p1', '0001', 'Tortilla 0.5kg Ø14', 10, [10]), 'tort', 'd14'),
+        classified(line('p2', '0002', 'Tortilla 1kg Ø14', 4, [2]), 'tort', 'd14'),
+        classified(line('p3', '0003', 'Tortilla 1kg Ø6', 3, [3]), 'tort', 'd6'),
+        classified(line('p4', '0004', 'Totopos Blau 1kg', 5, [5]), 'toto', 'blau'),
+        line('p5', '0005', 'Salsa', 2, [2]),
+      ],
+    }),
+    order({
+      customer_id: 'c2',
+      lines: [classified(line('p1', '0001', 'Tortilla 0.5kg Ø14', 6, [6]), 'tort', 'd14')],
+    }),
+  ];
+
+  it('adds units up by subcategory, in taxonomy order with unclassified last', () => {
+    const r = computeOrderReport(orders(), SEP, taxonomy);
+    expect(r.bySubcategory.map((g) => [g.category, g.subcategory, g.ordered])).toEqual([
+      // "Ø6" before "Ø14": names compare numerically.
+      ['Tortilla', 'Ø6 Gelb', 3],
+      ['Tortilla', 'Ø14 Gelb', 20],
+      ['Totopos', 'Blau', 5],
+      [null, null, 2],
+    ]);
+  });
+
+  it('adds units up by category', () => {
+    const r = computeOrderReport(orders(), SEP, taxonomy);
+    expect(r.byCategory.map((g) => [g.category, g.ordered, g.products.length])).toEqual([
+      ['Tortilla', 23, 3],
+      ['Totopos', 5, 1],
+      [null, 2, 1],
+    ]);
+  });
+
+  it('counts distinct customers per group and sums what each product is missing', () => {
+    const d14 = computeOrderReport(orders(), SEP, taxonomy).bySubcategory[1];
+    expect(d14.customers).toBe(2);
+    expect(d14.missing).toBe(2);
+    expect(d14.lines).toBe(3);
+    // Most sold first inside the group.
+    expect(d14.products.map((p) => p.productId)).toEqual(['p1', 'p2']);
+  });
+
+  it('still adds up to the period total', () => {
+    const r = computeOrderReport(orders(), SEP, taxonomy);
+    const sum = (gs: { ordered: number }[]) => gs.reduce((n, g) => n + g.ordered, 0);
+    expect(sum(r.byCategory)).toBe(r.totalOrdered);
+    expect(sum(r.bySubcategory)).toBe(r.totalOrdered);
+  });
+
+  it('puts products with a category but no subcategory in their own group', () => {
+    const r = computeOrderReport(
+      [order({ lines: [classified(line('p1', '0001', 'Tortilla', 1), 'tort', null)] })],
+      SEP,
+      taxonomy,
+    );
+    expect(r.bySubcategory.map((g) => [g.category, g.subcategory])).toEqual([['Tortilla', null]]);
+  });
+
+  it('ignores a subcategory that belongs to another category', () => {
+    const r = computeOrderReport(
+      [order({ lines: [classified(line('p1', '0001', 'Tortilla', 1), 'tort', 'blau')] })],
+      SEP,
+      taxonomy,
+    );
+    expect(r.byProduct[0]).toMatchObject({ category: 'Tortilla', subcategory: null });
+  });
+
+  it('exports each group total followed by its products', () => {
+    const r = computeOrderReport(orders(), SEP, taxonomy);
+    const rows = productReportToCsv(r, 'category').split('\n');
+    expect(rows[1]).toBe('Tortilla;;;;;23;21;2;4;2');
+    expect(rows[2]).toBe('Tortilla;Ø14 Gelb;0001;Tortilla 0.5kg Ø14;;16;16;0;2;2');
   });
 });
 

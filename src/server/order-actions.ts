@@ -474,6 +474,9 @@ const productSchema = z.object({
   gross_weight_suggested: z.boolean().optional(),
   /** One of our brands, or null while the product is unclassified. */
   brand_id: z.string().uuid().nullable().optional(),
+  /** Category and a subcategory of it, or null while unclassified. */
+  category_id: z.string().uuid().nullable().optional(),
+  subcategory_id: z.string().uuid().nullable().optional(),
   is_active: z.boolean(),
   needs_review: z.boolean(),
 });
@@ -497,6 +500,10 @@ export async function saveProduct(
     gross_weight_kg: gross,
     gross_weight_suggested: gross !== null && (parsed.data.gross_weight_suggested ?? false),
     brand_id: parsed.data.brand_id ?? null,
+    category_id: parsed.data.category_id ?? null,
+    // No subcategory without its category; the database refuses one that
+    // belongs to another.
+    subcategory_id: parsed.data.category_id ? parsed.data.subcategory_id ?? null : null,
   };
   const { error } = id
     ? await supabase.from('products').update(row).eq('id', id)
@@ -526,6 +533,51 @@ export async function saveBrand(
     : await supabase.from('brands').insert(row);
   if (error) return fail(error);
   revalidatePath('/admin/brands');
+  revalidatePath('/admin/products');
+  return { ok: true, data: undefined };
+}
+
+/**
+ * A product category. Never deleted, like a brand: products reference it
+ * with ON DELETE RESTRICT, so retiring one is clearing is_active.
+ */
+export async function saveProductCategory(
+  name: string,
+  isActive: boolean,
+  id?: string,
+): Promise<ActionResult> {
+  if (!name.trim()) return { ok: false, error: 'name_required' };
+  const supabase = createClient();
+  const row = { name: name.trim(), is_active: isActive };
+  const { error } = id
+    ? await supabase.from('product_categories').update(row).eq('id', id)
+    : await supabase.from('product_categories').insert(row);
+  if (error) return fail(error);
+  revalidatePath('/admin/product-categories');
+  revalidatePath('/admin/products');
+  return { ok: true, data: undefined };
+}
+
+/**
+ * A subcategory. Its category is fixed once created: moving it would move
+ * every product that names it into another category behind their backs.
+ */
+export async function saveProductSubcategory(
+  input: { category_id: string; name: string; is_active: boolean },
+  id?: string,
+): Promise<ActionResult> {
+  if (!input.name.trim()) return { ok: false, error: 'name_required' };
+  const supabase = createClient();
+  const { error } = id
+    ? await supabase
+      .from('product_subcategories')
+      .update({ name: input.name.trim(), is_active: input.is_active })
+      .eq('id', id)
+    : await supabase
+      .from('product_subcategories')
+      .insert({ category_id: input.category_id, name: input.name.trim(), is_active: input.is_active });
+  if (error) return fail(error);
+  revalidatePath('/admin/product-categories');
   revalidatePath('/admin/products');
   return { ok: true, data: undefined };
 }

@@ -15,6 +15,8 @@ import type {
   Order,
   OrderWithProgress,
   Product,
+  ProductCategory,
+  ProductSubcategory,
   RecurringTemplate,
   SpecificationType,
 } from '@/types/orders';
@@ -40,7 +42,7 @@ const ORDER_SELECT = `
   lines:order_lines (
     id, order_id, product_id, ordered_quantity, generated_quantity, note, source_text, shortfall_code, shortfall_reason, position,
     shortfall_incident:incidents!order_lines_shortfall_incident_id_fkey ( id, incident_number ),
-    product:products ( id, code, name, family, presentation, category, notes, units_per_box, net_weight_kg, net_weight_suggested, gross_weight_kg, gross_weight_suggested, brand_id, needs_review, is_active, brand:brands ( id, name, sort_order, is_active ) ),
+    product:products ( id, code, name, family, presentation, category, notes, units_per_box, net_weight_kg, net_weight_suggested, gross_weight_kg, gross_weight_suggested, brand_id, category_id, subcategory_id, needs_review, is_active, brand:brands ( id, name, sort_order, is_active ) ),
     allocations:lot_allocations (
       id, order_line_id, lot_number, quantity, note, created_by, created_at, updated_at,
       author:profiles!lot_allocations_created_by_fkey ( name, email )
@@ -362,6 +364,26 @@ export async function getBrands(includeInactive = false): Promise<Brand[]> {
   return (data ?? []) as Brand[];
 }
 
+/** Product categories, in their own order. A handful, so always fetched whole. */
+export async function getProductCategories(includeInactive = false): Promise<ProductCategory[]> {
+  const supabase = createClient();
+  let q = supabase.from('product_categories').select('*').order('sort_order').order('name');
+  if (!includeInactive) q = q.eq('is_active', true);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ProductCategory[];
+}
+
+/** Subcategories of every category; callers pick by category_id. */
+export async function getProductSubcategories(includeInactive = false): Promise<ProductSubcategory[]> {
+  const supabase = createClient();
+  let q = supabase.from('product_subcategories').select('*').order('sort_order').order('name');
+  if (!includeInactive) q = q.eq('is_active', true);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ProductSubcategory[];
+}
+
 export async function getBoxTypes(includeInactive = false): Promise<BoxType[]> {
   const supabase = createClient();
   let q = supabase.from('box_types').select('*').order('sort_order').order('name');
@@ -388,7 +410,7 @@ export async function getRecurringTemplates(): Promise<RecurringTemplate[]> {
       *, customer:customers!inner ( id, company_name, company_name_addition, name, is_active, created_at, updated_at ),
       lines:recurring_order_template_lines (
         id, product_id, default_quantity,
-        product:products ( id, code, name, family, presentation, category, notes, units_per_box, net_weight_kg, net_weight_suggested, gross_weight_kg, gross_weight_suggested, brand_id, needs_review, is_active, brand:brands ( id, name, sort_order, is_active ) )
+        product:products ( id, code, name, family, presentation, category, notes, units_per_box, net_weight_kg, net_weight_suggested, gross_weight_kg, gross_weight_suggested, brand_id, category_id, subcategory_id, needs_review, is_active, brand:brands ( id, name, sort_order, is_active ) )
       )
     `)
     .order('delivery_weekday')

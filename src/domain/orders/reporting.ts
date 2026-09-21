@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import { BUSINESS_TZ, parseBusinessDate, toBusinessDate, type BusinessDate } from '@/lib/datetime';
 import { lineProgress, toQuantity } from './progress';
 import { roundKg } from './weight';
-import { productLabel, type Order } from '@/types/orders';
+import { productLabel, type Order, type ProductCategory, type ProductSubcategory } from '@/types/orders';
 
 /**
  * Order reporting.
@@ -140,6 +140,11 @@ export interface ProductLine {
   name: string;
   /** The brand this product sells under, or null if nobody classified it. */
   brand: string | null;
+  /** Category and subcategory, ids and names; null while unclassified. */
+  categoryId: string | null;
+  category: string | null;
+  subcategoryId: string | null;
+  subcategory: string | null;
   /** Units customers asked for. */
   ordered: number;
   /** Units actually allocated to lots. */
@@ -150,6 +155,47 @@ export interface ProductLine {
   lines: number;
   /** How many distinct customers bought it. */
   customers: number;
+}
+
+/**
+ * How the product table is grouped: not at all, by category (all tortillas),
+ * or by subcategory within its category (Ø14 Gelb tortillas).
+ */
+export type ProductGrouping = 'none' | 'category' | 'subcategory';
+
+export const PRODUCT_GROUPINGS: ProductGrouping[] = ['none', 'category', 'subcategory'];
+
+/**
+ * Several products added up.
+ *
+ * In units, as the business chose — a 0.5 kg and a 1 kg pack of Ø14
+ * tortillas are two units. Products nobody has classified form their own
+ * group rather than being dropped, so the groups still add up to the
+ * period's total.
+ */
+export interface ProductGroup {
+  /** Stable React/CSV key. */
+  key: string;
+  categoryId: string | null;
+  /** Null for the unclassified group. */
+  category: string | null;
+  subcategoryId: string | null;
+  /** Null when grouping by category, or for products with no subcategory. */
+  subcategory: string | null;
+  ordered: number;
+  prepared: number;
+  /** Sum of each product's missing units: one product over-prepared does not cover another's shortage. */
+  missing: number;
+  lines: number;
+  /** Distinct customers across the group, not the sum of each product's. */
+  customers: number;
+  products: ProductLine[];
+}
+
+/** The category and subcategory lists, so the report can name and order groups. */
+export interface ProductTaxonomy {
+  categories: ProductCategory[];
+  subcategories: ProductSubcategory[];
 }
 
 export interface CustomerLine {
@@ -229,6 +275,10 @@ export interface OrderReport {
   fulfilmentRate: number;
 
   byProduct: ProductLine[];
+  /** byProduct grouped by category. */
+  byCategory: ProductGroup[];
+  /** byProduct grouped by subcategory, within its category. */
+  bySubcategory: ProductGroup[];
   /**
    * Units and orders per brand.
    *
@@ -286,7 +336,13 @@ export function narrowToBrand<T extends Order>(orders: T[], brand: string): T[] 
  * customer breakdowns — they were not sold — but are still counted, because
  * "we cancelled six orders this month" is itself worth seeing.
  */
-export function computeOrderReport(orders: Order[], range: PeriodRange): OrderReport {
+export function computeOrderReport(
+  orders: Order[],
+  range: PeriodRange,
+  taxonomy: ProductTaxonomy = { categories: [], subcategories: [] },
+): OrderReport {
+  const categoryById = new Map(taxonomy.categories.map((c) => [c.id, c]));
+  const subcategoryById = new Map(taxonomy.subcategories.map((s) => [s.id, s]));
   const counted = orders.filter((o) => o.status !== 'cancelled');
 
   const products = new Map<string, ProductLine & { customerIds: Set<string> }>();
@@ -380,6 +436,9 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
         // screen that showed it.
         name: line.product ? productLabel(line.product) : '—',
         brand: line.product?.brand?.name ?? null,
+        // An id the taxonomy does not know reads as unclassified rather than
+        // as a group with no name.
+        ...classification(line.product?.category_id, line.product?.subcategory_id, categoryById, subcategoryById),
         ordered: 0,
         prepared: 0,
         missing: 0,
@@ -415,16 +474,20 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
     days.set(order.delivery_date, day);
   }
 
-  const byProduct: ProductLine[] = [...products.values()]
+  const withCustomers = [...products.values()]
     .map(({ customerIds, ...p }) => ({
-      ...p,
-      ordered: round3(p.ordered),
-      prepared: round3(p.prepared),
-      missing: round3(Math.max(0, p.ordered - p.prepared)),
-      customers: customerIds.size,
+      line: {
+        ...p,
+        ordered: round3(p.ordered),
+        prepared: round3(p.prepared),
+        missing: round3(Math.max(0, p.ordered - p.prepared)),
+        customers: customerIds.size,
+      },
+      customerIds,
     }))
     // Most sold first: that is the question this table exists to answer.
-    .sort((a, b) => b.ordered - a.ordered || a.name.localeCompare(b.name));
+    .sort((a, b) => b.line.ordered - a.line.ordered || a.line.name.localeCompare(b.line.name));
+  const byProduct: ProductLine[] = withCustomers.map((p) => p.line);
 
   const byCustomer = [...customers.values()]
     .map((c) => ({ ...c, ordered: round3(c.ordered) }))
@@ -487,6 +550,8 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
     fulfilmentRate:
       totalOrdered === 0 ? 0 : Math.round((totalPrepared / totalOrdered) * 100),
     byProduct,
+    byCategory: groupProducts(withCustomers, 'category', categoryById, subcategoryById),
+    bySubcategory: groupProducts(withCustomers, 'subcategory', categoryById, subcategoryById),
     byBrand: [...brands.values()]
       .map(({ productIds, ...b }) => ({ ...b, products: productIds.size }))
       // Most volume first; the unclassified row sorts with the rest rather
@@ -497,6 +562,86 @@ export function computeOrderReport(orders: Order[], range: PeriodRange): OrderRe
     byDay,
     byMonth,
   };
+}
+
+/** A product's category and subcategory, by id and name. */
+function classification(
+  categoryId: string | null | undefined,
+  subcategoryId: string | null | undefined,
+  categoryById: Map<string, ProductCategory>,
+  subcategoryById: Map<string, ProductSubcategory>,
+): Pick<ProductLine, 'categoryId' | 'category' | 'subcategoryId' | 'subcategory'> {
+  const category = categoryId ? categoryById.get(categoryId) : undefined;
+  const sub = subcategoryId ? subcategoryById.get(subcategoryId) : undefined;
+  // A subcategory only counts under its own category.
+  const subcategory = category && sub?.category_id === category.id ? sub : undefined;
+  return {
+    categoryId: category?.id ?? null,
+    category: category?.name ?? null,
+    subcategoryId: subcategory?.id ?? null,
+    subcategory: subcategory?.name ?? null,
+  };
+}
+
+/** Numeric-aware, so "Ø6" sorts before "Ø14". */
+const byName = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+
+/**
+ * Add products up into groups, in the taxonomy's own order (sort_order, then
+ * name) rather than by volume, so Ø10 always sits next to Ø12. Products keep
+ * their most-sold-first order inside a group. Unclassified comes last, and
+ * so does "no subcategory" within a category.
+ */
+function groupProducts(
+  entries: { line: ProductLine; customerIds: Set<string> }[],
+  level: 'category' | 'subcategory',
+  categoryById: Map<string, ProductCategory>,
+  subcategoryById: Map<string, ProductSubcategory>,
+): ProductGroup[] {
+  const groups = new Map<string, ProductGroup & { customerIds: Set<string> }>();
+  for (const { line, customerIds } of entries) {
+    const subcategoryId = level === 'subcategory' ? line.subcategoryId : null;
+    const key = `${line.categoryId ?? 'none'}/${subcategoryId ?? 'none'}`;
+    const g = groups.get(key) ?? {
+      key,
+      categoryId: line.categoryId,
+      category: line.category,
+      subcategoryId,
+      subcategory: level === 'subcategory' ? line.subcategory : null,
+      ordered: 0,
+      prepared: 0,
+      missing: 0,
+      lines: 0,
+      customers: 0,
+      products: [],
+      customerIds: new Set<string>(),
+    };
+    g.ordered += line.ordered;
+    g.prepared += line.prepared;
+    g.missing += line.missing;
+    g.lines += line.lines;
+    for (const c of customerIds) g.customerIds.add(c);
+    g.products.push(line);
+    groups.set(key, g);
+  }
+
+  // A missing category or subcategory sorts after every real one.
+  type Rank = { absent: number; order: number; name: string };
+  const rank = (item: { sort_order: number; name: string } | undefined): Rank =>
+    item ? { absent: 0, order: item.sort_order, name: item.name } : { absent: 1, order: 0, name: '' };
+  const compare = (a: Rank, b: Rank) => a.absent - b.absent || a.order - b.order || byName(a.name, b.name);
+
+  return [...groups.values()]
+    .sort((a, b) =>
+      compare(rank(categoryById.get(a.categoryId ?? '')), rank(categoryById.get(b.categoryId ?? '')))
+      || compare(rank(subcategoryById.get(a.subcategoryId ?? '')), rank(subcategoryById.get(b.subcategoryId ?? ''))))
+    .map(({ customerIds, ...g }) => ({
+      ...g,
+      ordered: round3(g.ordered),
+      prepared: round3(g.prepared),
+      missing: round3(g.missing),
+      customers: customerIds.size,
+    }));
 }
 
 /** Human label for a period, e.g. "31 Aug – 6 Sep 2026". */
@@ -520,19 +665,33 @@ export function periodLabel(range: PeriodRange, locale: string): string {
   }
 }
 
-/** Rows for a CSV export, so the numbers can leave the app. */
-export function productReportToCsv(report: OrderReport): string {
-  // Brand sits next to the name because this file is opened in Excel and
-  // pivoted: a column there is worth more than another table on the screen.
-  const header = ['code', 'product', 'brand', 'ordered', 'prepared', 'missing', 'lines', 'customers'];
+/**
+ * Rows for a CSV export, so the numbers can leave the app.
+ *
+ * Ungrouped, one row per product. Grouped, the file follows the screen: each
+ * group's total row (code and product empty) followed by its products, so it
+ * reads as the report does and still filters in Excel.
+ */
+export function productReportToCsv(report: OrderReport, grouping: ProductGrouping = 'none'): string {
+  // Brand and classification sit next to the name because this file is
+  // opened in Excel and pivoted: a column there is worth more than another
+  // table on the screen.
+  const header = ['category', 'subcategory', 'code', 'product', 'brand', 'ordered', 'prepared', 'missing', 'lines', 'customers'];
   const escape = (v: string | number) => {
     const s = String(v);
     return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const rows = report.byProduct.map((p) =>
-    [p.code ?? '', p.name, p.brand ?? '', p.ordered, p.prepared, p.missing, p.lines, p.customers]
-      .map(escape)
-      .join(';'),
-  );
+  const row = (cells: (string | number)[]) => cells.map(escape).join(';');
+  const productRow = (p: ProductLine) =>
+    row([p.category ?? '', p.subcategory ?? '', p.code ?? '', p.name, p.brand ?? '',
+      p.ordered, p.prepared, p.missing, p.lines, p.customers]);
+
+  const rows =
+    grouping === 'none'
+      ? report.byProduct.map(productRow)
+      : (grouping === 'category' ? report.byCategory : report.bySubcategory).flatMap((g) => [
+        row([g.category ?? '', g.subcategory ?? '', '', '', '', g.ordered, g.prepared, g.missing, g.lines, g.customers]),
+        ...g.products.map(productRow),
+      ]);
   return [header.join(';'), ...rows].join('\n');
 }

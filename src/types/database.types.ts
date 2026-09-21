@@ -2896,10 +2896,76 @@ export type Database = {
           },
         ]
       }
+      product_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_subcategories: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_subcategories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           brand_id: string | null
           category: string | null
+          category_id: string | null
           code: string | null
           created_at: string
           family: string
@@ -2913,12 +2979,14 @@ export type Database = {
           net_weight_suggested: boolean
           notes: string | null
           presentation: string
+          subcategory_id: string | null
           units_per_box: number | null
           updated_at: string
         }
         Insert: {
           brand_id?: string | null
           category?: string | null
+          category_id?: string | null
           code?: string | null
           created_at?: string
           family: string
@@ -2932,12 +3000,14 @@ export type Database = {
           net_weight_suggested?: boolean
           notes?: string | null
           presentation: string
+          subcategory_id?: string | null
           units_per_box?: number | null
           updated_at?: string
         }
         Update: {
           brand_id?: string | null
           category?: string | null
+          category_id?: string | null
           code?: string | null
           created_at?: string
           family?: string
@@ -2951,6 +3021,7 @@ export type Database = {
           net_weight_suggested?: boolean
           notes?: string | null
           presentation?: string
+          subcategory_id?: string | null
           units_per_box?: number | null
           updated_at?: string
         }
@@ -2961,6 +3032,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "brands"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_subcategory_fkey"
+            columns: ["subcategory_id", "category_id"]
+            isOneToOne: false
+            referencedRelation: "product_subcategories"
+            referencedColumns: ["id", "category_id"]
           },
         ]
       }
