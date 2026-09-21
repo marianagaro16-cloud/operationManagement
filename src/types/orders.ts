@@ -112,23 +112,38 @@ export interface Brand {
 }
 
 /**
- * What kind of product this is — Tortilla, Totopos. Typed by the business,
- * never read from the product name, and not translated.
+ * What kind of product this is — Blue tortilla, Mezcal. Typed by the
+ * business, never read from the product name. `name` is English and the
+ * fallback; the other two are optional translations.
  */
 export interface ProductCategory {
   id: string;
   name: string;
+  name_es: string | null;
+  name_de: string | null;
   sort_order: number;
   is_active: boolean;
 }
 
-/** A group within one category — Ø14 Gelb, Blau. */
+/** A group within one category — Ø14. Named in three languages, like its category. */
 export interface ProductSubcategory {
   id: string;
   category_id: string;
   name: string;
+  name_es: string | null;
+  name_de: string | null;
   sort_order: number;
   is_active: boolean;
+}
+
+/** A category or subcategory name in the viewer's language, English when untranslated. */
+export function localizedName(
+  row: { name: string; name_es?: string | null; name_de?: string | null },
+  locale: string,
+): string {
+  if (locale === 'es') return row.name_es || row.name;
+  if (locale === 'de') return row.name_de || row.name;
+  return row.name;
 }
 
 export interface Product {

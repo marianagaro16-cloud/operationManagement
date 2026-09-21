@@ -564,6 +564,32 @@ export function computeOrderReport(
   };
 }
 
+/**
+ * The same report with category and subcategory names swapped for another
+ * language's.
+ *
+ * The report is computed on the server, which does not follow a language
+ * switch made in the browser, so the screen renames by id instead of
+ * recomputing. Order is untouched: groups sort by sort_order first.
+ */
+export function renameClassification(
+  report: OrderReport,
+  name: { category: (id: string) => string | undefined; subcategory: (id: string) => string | undefined },
+): OrderReport {
+  const rename = <T extends Pick<ProductLine, 'categoryId' | 'category' | 'subcategoryId' | 'subcategory'>>(x: T): T => ({
+    ...x,
+    category: x.categoryId ? name.category(x.categoryId) ?? x.category : x.category,
+    subcategory: x.subcategoryId ? name.subcategory(x.subcategoryId) ?? x.subcategory : x.subcategory,
+  });
+  const renameGroup = (g: ProductGroup): ProductGroup => ({ ...rename(g), products: g.products.map(rename) });
+  return {
+    ...report,
+    byProduct: report.byProduct.map(rename),
+    byCategory: report.byCategory.map(renameGroup),
+    bySubcategory: report.bySubcategory.map(renameGroup),
+  };
+}
+
 /** A product's category and subcategory, by id and name. */
 function classification(
   categoryId: string | null | undefined,

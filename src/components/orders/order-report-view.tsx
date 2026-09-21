@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, ChevronsDownUp, ChevronsUpDown, Download } from 'lucide-react';
@@ -13,13 +13,22 @@ import { ReportShell, reportHref } from '@/components/reports/report-shell';
 import {
   PRODUCT_GROUPINGS,
   productReportToCsv,
+  renameClassification,
   type OrderReport,
   type ProductGroup,
   type ProductGrouping,
   type ProductLine,
 } from '@/domain/orders/reporting';
 import { formatKg } from '@/domain/orders/weight';
-import { productLabel, type Brand, type Customer, type Product } from '@/types/orders';
+import {
+  localizedName,
+  productLabel,
+  type Brand,
+  type Customer,
+  type Product,
+  type ProductCategory,
+  type ProductSubcategory,
+} from '@/types/orders';
 
 const GROUPING_LABEL = {
   none: 'report.groupNone',
@@ -72,13 +81,15 @@ function QuantityCells({
  * incompatible copy. They are now in ReportShell and shared by all three tabs.
  */
 export function OrderReportView({
-  report,
+  report: computed,
   anchor,
   customers,
   products,
   brands,
   filters,
   grouping,
+  categories,
+  subcategories,
 }: {
   report: OrderReport;
   anchor: string;
@@ -89,9 +100,17 @@ export function OrderReportView({
   filters: { customerId?: string; productId?: string; brandId?: string };
   /** How the product table is grouped, carried in the URL so it survives period changes. */
   grouping: ProductGrouping;
+  /** To name categories in the viewer's language, which can change after the server render. */
+  categories: ProductCategory[];
+  subcategories: ProductSubcategory[];
 }) {
-  const { t, formatDate } = useI18n();
+  const { t, formatDate, locale } = useI18n();
   const router = useRouter();
+  const report = useMemo(() => {
+    const category = new Map(categories.map((c) => [c.id, localizedName(c, locale)]));
+    const subcategory = new Map(subcategories.map((c) => [c.id, localizedName(c, locale)]));
+    return renameClassification(computed, { category: (id) => category.get(id), subcategory: (id) => subcategory.get(id) });
+  }, [computed, categories, subcategories, locale]);
   const { range } = report;
 
   const urlFilters = {

@@ -101,7 +101,7 @@ export function MasterDataManager({
   );
 }
 
-export function RowDialog({
+function RowDialog({
   row,
   save,
   withSlug,

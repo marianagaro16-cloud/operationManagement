@@ -16,6 +16,7 @@ import { addProductAlias, deleteProductAlias } from '@/server/import-actions';
 import type { ProductAliasRow } from '@/server/order-import';
 import { suggestNetWeightKg } from '@/domain/orders/weight';
 import {
+  localizedName,
   productLabel,
   type Brand,
   type Customer,
@@ -64,7 +65,7 @@ export function ProductManager({
   /** Null when the viewer cannot use reminders; the row button then renders nothing. */
   reminderViewerId: string | null;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
@@ -158,7 +159,7 @@ export function ProductManager({
         >
           <option value="">{t('master.allCategories')}</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+            <option key={c.id} value={c.id}>{localizedName(c, locale)}</option>
           ))}
           <option value="none">{t('master.noCategory')}</option>
         </Select>
@@ -229,7 +230,7 @@ export function ProductManager({
                 {p.brand && <Badge tone="neutral">{p.brand.name}</Badge>}
                 {p.category_id && (
                   <Badge tone="neutral" className="hidden sm:inline-flex">
-                    {classificationLabel(p, categories, subcategories)}
+                    {classificationLabel(p, categories, subcategories, locale)}
                   </Badge>
                 )}
                 <ProductWeights product={p} />
@@ -304,7 +305,7 @@ function ProductDialog({
   onSaved: () => void;
   onAliasChanged: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [code, setCode] = useState(product?.code ?? '');
   const [name, setName] = useState(product?.name ?? '');
   const [categoryId, setCategoryId] = useState(product?.category_id ?? '');
@@ -436,7 +437,7 @@ function ProductDialog({
             >
               <option value="">{t('master.noCategory')}</option>
               {categoryOptions.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>{localizedName(c, locale)}</option>
               ))}
             </Select>
           </Field>
@@ -449,7 +450,7 @@ function ProductDialog({
             >
               <option value="">{t('master.noSubcategory')}</option>
               {subcategoryOptions.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+                <option key={s.id} value={s.id}>{localizedName(s, locale)}</option>
               ))}
             </Select>
           </Field>
@@ -552,9 +553,12 @@ function classificationLabel(
   p: Product,
   categories: ProductCategory[],
   subcategories: ProductSubcategory[],
+  locale: string,
 ): string {
-  const category = categories.find((c) => c.id === p.category_id)?.name ?? '';
-  const sub = subcategories.find((s) => s.id === p.subcategory_id)?.name;
+  const c = categories.find((x) => x.id === p.category_id);
+  const s = subcategories.find((x) => x.id === p.subcategory_id);
+  const category = c ? localizedName(c, locale) : '';
+  const sub = s ? localizedName(s, locale) : null;
   return sub ? `${category} · ${sub}` : category;
 }
 

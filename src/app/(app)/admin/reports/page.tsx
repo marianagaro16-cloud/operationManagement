@@ -150,6 +150,8 @@ export default async function ReportsPage({
       brands={brands}
       filters={{ customerId, productId, brandId }}
       grouping={grouping}
+      categories={categories}
+      subcategories={subcategories}
     />
   );
 }

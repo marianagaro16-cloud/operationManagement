@@ -1044,6 +1044,9 @@ export const de: Messages = {
     stillOpen: '{count} Produkte offen',
   },
   master: {
+    noTranslation: '—',
+    categoryNameInUse: 'Es gibt bereits eine mit diesem englischen Namen',
+    englishNameHint: 'Pflichtfeld. Wird in jeder Sprache ohne eigenen Namen angezeigt.',
     categoriesTitle: 'Kategorien',
     categoriesSubtitle: 'Welche Art Produkt jedes ist. Der Bestellbericht gruppiert danach.',
     newCategory: 'Neue Kategorie',

@@ -1044,6 +1044,9 @@ export const es: Messages = {
     stillOpen: '{count} productos pendientes',
   },
   master: {
+    noTranslation: '—',
+    categoryNameInUse: 'Ya existe otra con este nombre en inglés',
+    englishNameHint: 'Obligatorio. Se muestra en los idiomas que no tengan nombre propio.',
     categoriesTitle: 'Categorías',
     categoriesSubtitle: 'Qué tipo de producto es cada uno. El informe de pedidos agrupa por ellas.',
     newCategory: 'Nueva categoría',

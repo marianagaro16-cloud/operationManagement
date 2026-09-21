@@ -6,13 +6,14 @@ import {
   periodRange,
   shiftPeriod,
   productReportToCsv,
+  renameClassification,
   customRange,
   shiftCustomRange,
   periodLabel,
   MAX_CUSTOM_DAYS,
   type ReportPeriod,
 } from './reporting';
-import type { Order } from '@/types/orders';
+import { localizedName, type Order } from '@/types/orders';
 
 /** Runs under TZ=America/New_York; every date below is a Zurich business date. */
 
@@ -487,13 +488,13 @@ describe('CSV export', () => {
 describe('product grouping', () => {
   const taxonomy = {
     categories: [
-      { id: 'tort', name: 'Tortilla', sort_order: 10, is_active: true },
-      { id: 'toto', name: 'Totopos', sort_order: 20, is_active: true },
+      { id: 'tort', name: 'Tortilla', name_es: null, name_de: null, sort_order: 10, is_active: true },
+      { id: 'toto', name: 'Totopos', name_es: null, name_de: null, sort_order: 20, is_active: true },
     ],
     subcategories: [
-      { id: 'd14', category_id: 'tort', name: 'Ø14 Gelb', sort_order: 100, is_active: true },
-      { id: 'd6', category_id: 'tort', name: 'Ø6 Gelb', sort_order: 100, is_active: true },
-      { id: 'blau', category_id: 'toto', name: 'Blau', sort_order: 100, is_active: true },
+      { id: 'd14', category_id: 'tort', name: 'Ø14 Gelb', name_es: null, name_de: null, sort_order: 100, is_active: true },
+      { id: 'd6', category_id: 'tort', name: 'Ø6 Gelb', name_es: null, name_de: null, sort_order: 100, is_active: true },
+      { id: 'blau', category_id: 'toto', name: 'Blau', name_es: null, name_de: null, sort_order: 100, is_active: true },
     ],
   };
 
@@ -588,6 +589,30 @@ describe('product grouping', () => {
     const rows = productReportToCsv(r, 'category').split('\n');
     expect(rows[1]).toBe('Tortilla;;;;;23;21;2;4;2');
     expect(rows[2]).toBe('Tortilla;Ø14 Gelb;0001;Tortilla 0.5kg Ø14;;16;16;0;2;2');
+  });
+
+  it('renames categories into another language without reordering', () => {
+    const names: Record<string, string> = { tort: 'Tortilla amarilla', d14: 'Ø14 amarilla' };
+    const r = renameClassification(computeOrderReport(orders(), SEP, taxonomy), {
+      category: (id) => names[id],
+      subcategory: (id) => names[id],
+    });
+    // Ø6 has no translation here, so it keeps its name.
+    expect(r.bySubcategory.map((g) => [g.category, g.subcategory])).toEqual([
+      ['Tortilla amarilla', 'Ø6 Gelb'],
+      ['Tortilla amarilla', 'Ø14 amarilla'],
+      ['Totopos', 'Blau'],
+      [null, null],
+    ]);
+    expect(r.bySubcategory[1].products[0]).toMatchObject({ category: 'Tortilla amarilla', subcategory: 'Ø14 amarilla' });
+    expect(productReportToCsv(r, 'category').split('\n')[1]).toBe('Tortilla amarilla;;;;;23;21;2;4;2');
+  });
+
+  it("names a category in the viewer's language, English when untranslated", () => {
+    const c = { name: 'Blue tortilla', name_es: 'Tortilla azul', name_de: null };
+    expect(localizedName(c, 'es')).toBe('Tortilla azul');
+    expect(localizedName(c, 'de')).toBe('Blue tortilla');
+    expect(localizedName(c, 'en')).toBe('Blue tortilla');
   });
 });
 

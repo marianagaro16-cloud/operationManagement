@@ -2902,6 +2902,8 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          name_de: string | null
+          name_es: string | null
           sort_order: number
           updated_at: string
         }
@@ -2910,6 +2912,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          name_de?: string | null
+          name_es?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -2918,6 +2922,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          name_de?: string | null
+          name_es?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -2930,6 +2936,8 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          name_de: string | null
+          name_es: string | null
           sort_order: number
           updated_at: string
         }
@@ -2939,6 +2947,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          name_de?: string | null
+          name_es?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -2948,6 +2958,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          name_de?: string | null
+          name_es?: string | null
           sort_order?: number
           updated_at?: string
         }

@@ -537,18 +537,29 @@ export async function saveBrand(
   return { ok: true, data: undefined };
 }
 
+/** English (required, the fallback) plus optional Spanish and German. */
+type CategoryNames = { name: string; name_es: string; name_de: string };
+
+/** Trimmed, with an empty translation stored as NULL so the English shows instead. */
+function categoryNames(input: CategoryNames) {
+  return {
+    name: input.name.trim(),
+    name_es: input.name_es.trim() || null,
+    name_de: input.name_de.trim() || null,
+  };
+}
+
 /**
  * A product category. Never deleted, like a brand: products reference it
  * with ON DELETE RESTRICT, so retiring one is clearing is_active.
  */
 export async function saveProductCategory(
-  name: string,
-  isActive: boolean,
+  input: CategoryNames & { is_active: boolean },
   id?: string,
 ): Promise<ActionResult> {
-  if (!name.trim()) return { ok: false, error: 'name_required' };
+  if (!input.name.trim()) return { ok: false, error: 'name_required' };
   const supabase = createClient();
-  const row = { name: name.trim(), is_active: isActive };
+  const row = { ...categoryNames(input), is_active: input.is_active };
   const { error } = id
     ? await supabase.from('product_categories').update(row).eq('id', id)
     : await supabase.from('product_categories').insert(row);
@@ -563,19 +574,15 @@ export async function saveProductCategory(
  * every product that names it into another category behind their backs.
  */
 export async function saveProductSubcategory(
-  input: { category_id: string; name: string; is_active: boolean },
+  input: CategoryNames & { category_id: string; is_active: boolean },
   id?: string,
 ): Promise<ActionResult> {
   if (!input.name.trim()) return { ok: false, error: 'name_required' };
   const supabase = createClient();
+  const row = { ...categoryNames(input), is_active: input.is_active };
   const { error } = id
-    ? await supabase
-      .from('product_subcategories')
-      .update({ name: input.name.trim(), is_active: input.is_active })
-      .eq('id', id)
-    : await supabase
-      .from('product_subcategories')
-      .insert({ category_id: input.category_id, name: input.name.trim(), is_active: input.is_active });
+    ? await supabase.from('product_subcategories').update(row).eq('id', id)
+    : await supabase.from('product_subcategories').insert({ ...row, category_id: input.category_id });
   if (error) return fail(error);
   revalidatePath('/admin/product-categories');
   revalidatePath('/admin/products');

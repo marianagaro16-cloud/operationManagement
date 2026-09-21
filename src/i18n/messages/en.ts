@@ -1066,6 +1066,9 @@ export const en = {
     stillOpen: '{count} products open',
   },
   master: {
+    noTranslation: '—',
+    categoryNameInUse: 'Another one already has this English name',
+    englishNameHint: 'Required. Shown in any language that has no name of its own.',
     categoriesTitle: 'Categories',
     categoriesSubtitle: 'What kind of product each one is. The order report groups by these.',
     newCategory: 'New category',
