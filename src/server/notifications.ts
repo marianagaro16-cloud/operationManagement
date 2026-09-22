@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import type { Role, Team } from '@/lib/authz';
+import type { Role } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 
 /**
@@ -38,18 +38,16 @@ export interface NotifiableUser {
  * repeated in `sendDirectNotification`, which is the one that matters — this
  * list shapes the picker, the action is what refuses.
  */
-export async function getNotifiableUsers(senderId: string, team: Team | null = null): Promise<NotifiableUser[]> {
+export async function getNotifiableUsers(senderId: string): Promise<NotifiableUser[]> {
   const supabase = createClient();
 
-  let query = supabase
+  const { data, error } = await supabase
     .from('profiles')
     .select('id, name, email, role')
     .eq('status', 'approved')
     .is('deleted_at', null)
-    .neq('id', senderId);
-  // A sender confined to a team is offered that team only; the send checks it again.
-  if (team) query = query.eq('team', team);
-  const { data, error } = await query.order('name', { nullsFirst: false });
+    .neq('id', senderId)
+    .order('name', { nullsFirst: false });
 
   if (error) throw new Error(error.message);
 

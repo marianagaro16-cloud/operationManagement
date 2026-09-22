@@ -1384,7 +1384,7 @@ export const es: Messages = {
     teamProduction: 'Producción',
     teamOperations: 'Operaciones',
     teamHint: 'Un Usuario ve solo las actividades de su equipo. El Encargado de producción siempre es de Producción.',
-    productionManagerNote: 'El Encargado de producción solo actúa sobre las personas, actividades e incidencias de Producción, y ve los pedidos sin poder cambiarlos.',
+    productionManagerNote: 'El Encargado de producción solo gestiona las incidencias de Producción, y ve los pedidos sin poder cambiarlos.',
     admin: 'Administrador',
     manager: 'Responsable',
     powerUser: 'Usuario avanzado',
@@ -1489,7 +1489,6 @@ export const es: Messages = {
       invalid_recipient: 'Alguna de las personas seleccionadas ya no puede recibir notificaciones. Recarga la pantalla e inténtalo de nuevo.',
       not_authorized: 'No tienes permiso para enviar notificaciones.',
       push_not_configured: 'Las notificaciones push no están configuradas en este despliegue.',
-      not_your_team: 'Solo puedes escribir a personas de tu equipo.',
     },
   },
   gr: {

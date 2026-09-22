@@ -1416,7 +1416,7 @@ export const en = {
     teamProduction: 'Production',
     teamOperations: 'Operations',
     teamHint: 'A User only sees their team\'s tasks. A Production manager is always on Production.',
-    productionManagerNote: 'A Production manager only acts on Production\'s people, tasks and incidents, and sees orders without being able to change them.',
+    productionManagerNote: 'A Production manager only manages Production\'s incidents, and sees orders without being able to change them.',
     admin: 'Admin',
     manager: 'Manager',
     powerUser: 'Power user',
@@ -1521,7 +1521,6 @@ export const en = {
       invalid_recipient: 'One of the people selected can no longer be notified. Reload the screen and try again.',
       not_authorized: 'You do not have permission to send notifications.',
       push_not_configured: 'Push notifications are not configured on this deployment.',
-      not_your_team: 'You can only message people on your team.',
     },
   },
   gr: {

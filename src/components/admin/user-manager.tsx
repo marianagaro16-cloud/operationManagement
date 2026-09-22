@@ -29,7 +29,8 @@ const ROLE_TONE = {
 } as const;
 
 /*
- * The team only narrows a User or a Production manager (see teamScope()).
+ * The team narrows a User's tasks and a Production manager's incidents
+ * (see teamScope() and incidentScope()).
  * Admin, Manager and Power User see everything, so asking for theirs would
  * be asking for a value that changes nothing.
  */

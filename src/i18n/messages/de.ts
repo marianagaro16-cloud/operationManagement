@@ -1384,7 +1384,7 @@ export const de: Messages = {
     teamProduction: 'Produktion',
     teamOperations: 'Operations',
     teamHint: 'Ein Benutzer sieht nur die Aufgaben seines Teams. Ein Produktionsleiter gehört immer zur Produktion.',
-    productionManagerNote: 'Ein Produktionsleiter handelt nur bei Personen, Aufgaben und Vorfällen der Produktion und sieht Bestellungen, ohne sie ändern zu können.',
+    productionManagerNote: 'Ein Produktionsleiter bearbeitet nur Vorfälle der Produktion und sieht Bestellungen, ohne sie ändern zu können.',
     admin: 'Administrator',
     manager: 'Leitung',
     powerUser: 'Erweiterter Benutzer',
@@ -1489,7 +1489,6 @@ export const de: Messages = {
       invalid_recipient: 'Eine der ausgewählten Personen kann nicht mehr benachrichtigt werden. Lade die Seite neu und versuche es erneut.',
       not_authorized: 'Du hast keine Berechtigung, Benachrichtigungen zu senden.',
       push_not_configured: 'Push-Benachrichtigungen sind in dieser Umgebung nicht konfiguriert.',
-      not_your_team: 'Du kannst nur Personen aus deinem Team benachrichtigen.',
     },
   },
   gr: {

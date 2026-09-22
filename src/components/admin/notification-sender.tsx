@@ -43,7 +43,6 @@ const KNOWN_ERRORS = [
   'invalid_message',
   'invalid_recipient',
   'not_authorized',
-  'not_your_team',
   'push_not_configured',
 ] as const;
 

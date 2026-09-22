@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { ordersReadOnly } from '@/lib/authz';
 import { getViewer } from '@/server/data';
 import { getLotDetail, getLotHistory } from '@/server/lot-tracker';
 import { getIncidentsForLot } from '@/server/incidents';
@@ -16,7 +17,8 @@ export const dynamic = 'force-dynamic';
  */
 export default async function LotDetailPage({ params }: { params: { lot: string } }) {
   const viewer = await getViewer();
-  if (!viewer?.can('orders.manage')) redirect('/dashboard');
+  // Searching lots changes nothing, so a read-only order viewer may too.
+  if (!viewer || !(viewer.can('orders.manage') || ordersReadOnly(viewer.role))) redirect('/dashboard');
 
   const lotNumber = decodeURIComponent(params.lot);
 

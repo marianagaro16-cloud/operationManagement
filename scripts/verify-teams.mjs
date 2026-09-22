@@ -8,14 +8,15 @@
  * path a browser takes.
  *
  *   - a production manager's team is forced to Producción
- *   - tasks: each team sees only its own; resolving another team's task by id
- *     is refused; the production manager manages Producción's only
+ *   - tasks: a plain user sees only their team's, and resolving another
+ *     team's task by id is refused; the production manager, like a Power
+ *     User, sees and manages every team's
  *   - incidents: the production manager reads all, edits Producción's, and
  *     cannot move one to Operaciones; corrective actions take their
  *     incident's team
  *   - orders are read-only for the production manager, lots included, while a
  *     plain user still records lots
- *   - inventory: the production manager assigns Producción people only
+ *   - inventory: the production manager assigns people of either team
  *
  * Throwaway zz- accounts and fixtures are created and removed; nothing
  * pre-existing is changed.
@@ -117,16 +118,16 @@ async function main() {
   check('a Producción user sees their task', await sees(PROD, prodTask.occ));
   check('a Producción user does NOT see an Operaciones task', !(await sees(PROD, opsTask.occ)));
   check('the production manager sees Producción tasks', await sees(PM, prodTask.occ));
-  check('the production manager does NOT see Operaciones tasks', !(await sees(PM, opsTask.occ)));
+  check('the production manager sees Operaciones tasks too', await sees(PM, opsTask.occ));
   const opsReadsTask = await OPS.client.from('tasks').select('id').eq('id', prodTask.task);
   check('the task definition itself is hidden from the other team', denied(opsReadsTask));
 
   const byId = await OPS.client.rpc('complete_occurrence', { p_occurrence_id: prodTask.occ });
   check('completing another team\'s task by its id is refused', errorOf(byId).includes('not_your_team'), errorOf(byId));
-  const pmOps = await PM.client.rpc('complete_occurrence', { p_occurrence_id: opsTask.occ });
-  check('the production manager cannot complete an Operaciones task', Boolean(pmOps.error), errorOf(pmOps));
   const pmMove = await PM.client.from('task_occurrences').update({ due_date_override: today }).eq('id', opsTask.occ).select('id');
-  check('the production manager cannot reschedule an Operaciones task', denied(pmMove));
+  check('the production manager can reschedule an Operaciones task', !pmMove.error && pmMove.data.length === 1, errorOf(pmMove));
+  const pmOps = await PM.client.rpc('complete_occurrence', { p_occurrence_id: opsTask.occ });
+  check('...and complete one', !pmOps.error, errorOf(pmOps));
   const pmAssign = await PM.client.from('task_occurrences').update({ assignee_id: PROD.id }).eq('id', prodTask.occ).select('id');
   check('the production manager can assign a Producción task', !pmAssign.error && pmAssign.data.length === 1, errorOf(pmAssign));
   const prodDone = await PROD.client.rpc('complete_occurrence', { p_occurrence_id: prodTask.occ });
@@ -208,15 +209,15 @@ async function main() {
   const { data: after } = await admin.from('orders').select('ready_at').eq('id', order.id).single();
   check('...and it really is not Ready', after.ready_at === null);
 
-  console.log('\n=== 5. Inventory assignments stay within the team ===');
+  console.log('\n=== 5. Inventory assignments: either team ===');
   const { data: instance } = await admin.from('inventory_instances').select('id').order('inventory_date', { ascending: false }).limit(1).single();
   if (instance) {
     const pmOpsAssign = await PM.client.from('inventory_assignments').insert({ instance_id: instance.id, user_id: OPS.id, assigned_by: PM.id }).select('id');
     if (pmOpsAssign.data?.[0]) created.assignments.push(pmOpsAssign.data[0].id);
-    check('the production manager cannot assign an Operaciones person', errorOf(pmOpsAssign).includes('not_your_team'), errorOf(pmOpsAssign));
+    check('the production manager can assign an Operaciones person', !pmOpsAssign.error, errorOf(pmOpsAssign));
     const pmProdAssign = await PM.client.from('inventory_assignments').insert({ instance_id: instance.id, user_id: PROD.id, assigned_by: PM.id }).select('id');
     if (pmProdAssign.data?.[0]) created.assignments.push(pmProdAssign.data[0].id);
-    check('...but can assign a Producción person', !pmProdAssign.error, errorOf(pmProdAssign));
+    check('...and a Producción person', !pmProdAssign.error, errorOf(pmProdAssign));
   } else {
     console.log('  SKIP  no inventory to assign on');
   }

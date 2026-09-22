@@ -11,7 +11,7 @@ import { LanguageSelector } from './language-selector';
 import { SignOutButton } from './sign-out-button';
 import { PresenceBeacon } from './presence-beacon';
 import { InboxLink } from './inbox-link';
-import { atLeast, can, type Permission, type Role } from '@/lib/authz';
+import { atLeast, can, ordersReadOnly, type Permission, type Role } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 
 /**
@@ -71,7 +71,9 @@ export function AppShell({
     // definitions themselves. A person on the floor works lot control and
     // inventory; the order book is not theirs to browse, so it follows the
     // capability rather than being shown to everyone.
-    ...(can(role, held, 'orders.manage')
+    // A read-only order viewer (the production manager) traces lots too:
+    // the screen only searches and exports.
+    ...(can(role, held, 'orders.manage') || ordersReadOnly(role)
       ? [
           // Traceability sits beside the order book, not inside Inventory:
           // it answers a question about ORDERS — where a lot was used — and

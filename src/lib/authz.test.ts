@@ -8,6 +8,7 @@ import {
   atLeast,
   can,
   isConfigurable,
+  incidentScope,
   isRole,
   ordersReadOnly,
   permissionKey,
@@ -82,9 +83,16 @@ describe('admin-only capabilities', () => {
 });
 
 describe('team scope', () => {
-  it('confines a user and a production manager to their team', () => {
+  it("confines a plain user's tasks to their team, and nobody else's", () => {
     expect(teamScope('user', 'operations')).toBe('operations');
-    expect(teamScope('production_manager', 'production')).toBe('production');
+    expect(teamScope('production_manager', 'production')).toBeNull();
+  });
+
+  it('confines the incidents a production manager manages to their team', () => {
+    expect(incidentScope('production_manager', 'production')).toBe('production');
+    for (const role of ['admin', 'manager', 'power_user', 'user'] as const) {
+      expect(incidentScope(role, 'production')).toBeNull();
+    }
   });
 
   it('leaves admin, manager and power user unscoped whatever their team', () => {

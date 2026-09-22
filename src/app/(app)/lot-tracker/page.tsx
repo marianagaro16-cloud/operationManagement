@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getUsers, getViewer } from '@/server/data';
+import { ordersReadOnly } from '@/lib/authz';
 import { searchLotAllocations, type LotSort } from '@/server/lot-tracker';
 import { getBrands } from '@/server/orders';
 import { LotTrackerView } from '@/components/orders/lot-tracker-view';
@@ -44,7 +45,8 @@ export default async function LotTrackerPage({
   // reachable by URL, and the query layer checks the same capability again on
   // every call — see canUseLotTracker.
   const viewer = await getViewer();
-  if (!viewer?.can('orders.manage')) redirect('/dashboard');
+  // Searching lots changes nothing, so a read-only order viewer may too.
+  if (!viewer || !(viewer.can('orders.manage') || ordersReadOnly(viewer.role))) redirect('/dashboard');
 
   const page = Math.max(Number(searchParams.page) || 1, 1);
   const sort = SORTS.includes(searchParams.sort as LotSort)

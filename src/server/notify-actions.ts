@@ -6,7 +6,6 @@ import { displayName } from '@/lib/utils';
 import { getViewer } from './data';
 import { reachableUserIds } from './notifications';
 import { planDirectSend } from '@/domain/direct-messages';
-import { teamScope, type Team } from '@/lib/authz';
 import { isPushConfigured, sendToUsers } from './push';
 import type { ActionResult } from './actions';
 
@@ -28,9 +27,7 @@ import type { ActionResult } from './actions';
  *   1. the sender holds `notifications.send`, read from their own session
  *      rather than from anything the client sent;
  *   2. every recipient is an approved account other than the sender — any
- *      role: down to the floor, and sideways or up (see direct-messages.ts);
- *   3. a sender confined to a team (the production manager) writes to that
- *      team only.
+ *      role: down to the floor, and sideways or up (see direct-messages.ts).
  *
  * Neither is re-checked downstream. Do not move either one into the caller.
  */
@@ -82,17 +79,14 @@ export async function sendDirectNotification(
   // matching row and is refused below.
   const { data: rows, error } = await admin
     .from('profiles')
-    .select('id, name, email, role, team')
+    .select('id, name, email, role')
     .in('id', requested)
     .eq('status', 'approved')
     .is('deleted_at', null);
 
   if (error) return { ok: false, error: error.message };
 
-  const recipients = (rows ?? []) as { id: string; name: string | null; email: string; role: string; team: Team }[];
-
-  const scope = teamScope(viewer.role, viewer.profile.team);
-  if (scope && recipients.some((r) => r.team !== scope)) return { ok: false, error: 'not_your_team' };
+  const recipients = (rows ?? []) as { id: string; name: string | null; email: string; role: string }[];
 
   // All or nothing, and never to yourself — see planDirectSend.
   const plan = planDirectSend(requested, recipients, viewer.profile.id);

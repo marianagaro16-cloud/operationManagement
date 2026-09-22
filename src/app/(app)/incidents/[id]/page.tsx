@@ -4,7 +4,7 @@ import { getUsers, getViewer } from '@/server/data';
 import { getIncident } from '@/server/incidents';
 import { getCustomers, getDeliveryMethods, getProducts } from '@/server/orders';
 import { IncidentDetail } from '@/components/incidents/incident-detail';
-import { canUseReminders, ordersReadOnly, teamScope } from '@/lib/authz';
+import { canUseReminders, incidentScope, ordersReadOnly } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +25,7 @@ export default async function IncidentPage({ params }: { params: { id: string } 
 
   // A production manager reads every incident but manages only their team's;
   // the update policies say the same in the database.
-  const scope = teamScope(viewer.role, viewer.profile.team);
+  const scope = incidentScope(viewer.role, viewer.profile.team);
   const canManage = viewer.can('incidents.manage') && (scope === null || incident.team === scope);
 
   /*
@@ -36,10 +36,7 @@ export default async function IncidentPage({ params }: { params: { id: string } 
    */
   const [users, customers, products, deliveryMethods] = canManage
     ? await Promise.all([
-        // Corrective actions go to people in the viewer's scope only.
-        getUsers().then((all) =>
-          all.filter((u) => u.status === 'approved' && (scope === null || u.team === scope)),
-        ),
+        getUsers().then((all) => all.filter((u) => u.status === 'approved')),
         getCustomers(),
         getProducts(),
         getDeliveryMethods(),

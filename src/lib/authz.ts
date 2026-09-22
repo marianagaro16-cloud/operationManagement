@@ -146,15 +146,24 @@ export function canUseReminders(viewer: { profile: { status: string } } | null |
 }
 
 /**
- * The team a role is confined to, or null when it sees everything.
+ * The team whose tasks a role sees, or null when it sees every team's.
  *
- * Mirrors team_scope() in SQL, which is what enforces it: a User sees only
- * their team's tasks, and a Production manager sees and manages only their
- * team's tasks, incidents and people. Admin, Manager and Power User are
- * unscoped.
+ * Mirrors team_scope() in SQL, which is what enforces it: only a plain User
+ * is confined — to their own team's tasks. Everyone else, the Production
+ * manager included, works with every team's tasks and people.
  */
 export function teamScope(role: Role, team: Team): Team | null {
-  return role === 'user' || role === 'production_manager' ? team : null;
+  return role === 'user' ? team : null;
+}
+
+/**
+ * The team whose incidents a role may manage, or null for every team's.
+ *
+ * Mirrors incident_scope() in SQL: a Production manager reads every
+ * incident but manages Producción's only.
+ */
+export function incidentScope(role: Role, team: Team): Team | null {
+  return role === 'production_manager' ? team : null;
 }
 
 /**

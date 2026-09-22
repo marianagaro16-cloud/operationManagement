@@ -4260,9 +4260,17 @@ export type Database = {
       }
       get_viewer: { Args: never; Returns: Json }
       has_permission: { Args: { p_key: string }; Returns: boolean }
+      in_incident_scope: {
+        Args: { p_team: Database["public"]["Enums"]["team"] }
+        Returns: boolean
+      }
       in_team_scope: {
         Args: { p_team: Database["public"]["Enums"]["team"] }
         Returns: boolean
+      }
+      incident_scope: {
+        Args: never
+        Returns: Database["public"]["Enums"]["team"]
       }
       inventory_can_edit: { Args: { p_instance_id: string }; Returns: boolean }
       inventory_complete: {
