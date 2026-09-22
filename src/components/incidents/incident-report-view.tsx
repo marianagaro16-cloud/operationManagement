@@ -9,7 +9,7 @@ import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, EmptyState, ErrorState, Input } from '@/components/ui/primitives';
-import { PageHeader } from '@/components/shell/app-shell';
+import { ReportHeader } from '@/components/reports/report-shell';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { vocabularyKey } from '@/domain/incidents/vocabulary';
 import { DEFAULT_THRESHOLDS } from '@/domain/incidents/patterns';
@@ -72,7 +72,7 @@ export function IncidentReportView({
           back to it — the nav tab was the only route out. */}
       {!isLive && (
         <Link
-          href="/admin/incident-reports"
+          href="/admin/reports?tab=incidents"
           className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg"
         >
           <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
@@ -80,15 +80,15 @@ export function IncidentReportView({
         </Link>
       )}
 
-      <PageHeader
-        title={t('ireport.title')}
-        subtitle={t('ireport.subtitle')}
+      <ReportHeader
+        tab="incidents"
         action={
-          <a href={`/admin/incident-reports/export?month=${month}${snapshot ? `&snapshot=${snapshot.id}` : ''}`}>
+          <a href={`/admin/reports/incidents/export?month=${month}${snapshot ? `&snapshot=${snapshot.id}` : ''}`}>
             <Button variant="secondary" size="sm">{t('ireport.exportCsv')}</Button>
           </a>
         }
       />
+      <p className="-mt-2 mb-3 text-[12.5px] text-muted">{t('ireport.subtitle')}</p>
 
       {/* Which document this is. Never implicit. */}
       <div
@@ -117,7 +117,7 @@ export function IncidentReportView({
       {/* Month navigation, only on the live report — a saved one IS its month. */}
       {isLive && (
         <div className="mb-4 flex items-center gap-1.5">
-          <Link href={`/admin/incident-reports?month=${shift(-1)}`}>
+          <Link href={`/admin/reports?tab=incidents&month=${shift(-1)}`}>
             <Button size="icon" variant="secondary" aria-label={t('incident.previousPage')}>
               <ChevronLeft className="h-4 w-4" aria-hidden />
             </Button>
@@ -125,7 +125,7 @@ export function IncidentReportView({
           <span className="min-w-32 text-center text-[13px] font-medium capitalize">
             {formatDate(`${month}-01`, 'monthYear')}
           </span>
-          <Link href={`/admin/incident-reports?month=${shift(1)}`}>
+          <Link href={`/admin/reports?tab=incidents&month=${shift(1)}`}>
             <Button size="icon" variant="secondary" aria-label={t('incident.nextPage')}>
               <ChevronRight className="h-4 w-4" aria-hidden />
             </Button>
@@ -332,7 +332,7 @@ export function IncidentReportView({
                 {snapshots.map((snap) => (
                   <li key={snap.id}>
                     <Link
-                      href={`/admin/incident-reports/${snap.id}`}
+                      href={`/admin/reports/incidents/${snap.id}`}
                       className="flex items-center gap-3 py-2 transition-colors hover:text-accent"
                     >
                       <span className="min-w-0 flex-1 truncate text-[13px] font-medium capitalize">

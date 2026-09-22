@@ -47,7 +47,7 @@ function mapError(error: unknown): { ok: false; error: string } {
 function revalidateIncidents(id?: string) {
   revalidatePath('/incidents');
   if (id) revalidatePath(`/incidents/${id}`);
-  revalidatePath('/admin/incident-reports');
+  revalidatePath('/admin/reports');
 }
 
 async function requireManage() {
@@ -633,7 +633,7 @@ export async function generateReportSnapshot(
     .single();
 
   if (error) return mapError(error);
-  revalidatePath('/admin/incident-reports');
+  revalidatePath('/admin/reports');
   return { ok: true, data: data as { id: string; version: number } };
 }
 

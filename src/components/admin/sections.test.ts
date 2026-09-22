@@ -29,7 +29,8 @@ describe('every screen is reachable and declared once', () => {
     for (const section of ADMIN_SECTIONS) {
       for (const screen of section.screens) {
         if (screen.permission === null) continue;
-        expect(PERMISSIONS).toContain(screen.permission);
+        const keys = typeof screen.permission === 'string' ? [screen.permission] : screen.permission;
+        for (const key of keys) expect(PERMISSIONS).toContain(key);
       }
     }
   });
@@ -52,12 +53,13 @@ describe('resolving a path to its section', () => {
 
   it('places the review screens', () => {
     expect(sectionFor('/admin/reports')?.slug).toBe('review');
-    expect(sectionFor('/admin/incident-reports')?.slug).toBe('review');
+    expect(sectionFor('/admin/history')?.slug).toBe('review');
   });
 
   it('resolves a CHILD route to its parent screen section', () => {
     // A saved report has its own page; it must keep the Review tabs.
-    expect(sectionFor('/admin/incident-reports/abc-123')?.slug).toBe('review');
+    expect(sectionFor('/admin/reports/incidents/abc-123')?.slug).toBe('review');
+    expect(sectionFor('/admin/reports/reception/abc-123')?.slug).toBe('review');
     // An inventory template detail lives under /admin/inventory/[templateId].
     expect(sectionFor('/admin/inventory/some-template-id')?.slug).toBe('work');
   });
@@ -106,6 +108,12 @@ describe('what a viewer is shown', () => {
     const onlyStatistics = new Set<Permission>(['reports.view']);
     const [review] = visibleSections('manager', onlyStatistics);
     expect(sectionEntry(review.screens)).toBe('/admin/reports');
+  });
+
+  it('opens Informes for whoever holds the incident log without the reports', () => {
+    const incidentsOnly = new Set<Permission>(['incidents.view_all']);
+    const [review] = visibleSections('manager', incidentsOnly);
+    expect(review.screens.map((s) => s.href)).toEqual(['/admin/reports']);
   });
 
   it('falls back to the hub rather than a broken link', () => {

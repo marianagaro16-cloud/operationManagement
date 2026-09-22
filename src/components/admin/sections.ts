@@ -22,8 +22,11 @@ export type SectionSlug = 'master-data' | 'work' | 'review' | 'system';
 export interface AdminScreen {
   href: string;
   label: MessageKey;
-  /** Null means every role that reached the admin layout may see it. */
-  permission: Permission | null;
+  /**
+   * Null means every role that reached the admin layout may see it; a list
+   * means any ONE of them opens it (Informes: reports or the incident log).
+   */
+  permission: Permission | readonly Permission[] | null;
 }
 
 export interface AdminSection {
@@ -92,9 +95,10 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     label: 'nav.sectionReview',
     description: 'nav.sectionReviewBody',
     screens: [
-      { href: '/admin/reports', label: 'report.title', permission: 'reports.view' },
-      { href: '/admin/incident-reports', label: 'ireport.title', permission: 'incidents.view_all' },
-      { href: '/admin/goods-reception-reports', label: 'gr.reportsTitle', permission: 'reports.view' },
+      // Every report, one screen: orders, preparation, activities,
+      // inventories, incidents and receiving are its tabs. Incidents and
+      // receiving used to be entries of their own beside it.
+      { href: '/admin/reports', label: 'report.title', permission: ['reports.view', 'incidents.view_all'] },
       // No Statistics entry. Task statistics ARE the Tasks tab of
       // /admin/reports — the separate screen was merged there because the two
       // computed their own period bounds and disagreed about what a month
@@ -130,7 +134,12 @@ export function visibleScreens(
   role: Role,
   caps: ReadonlySet<Permission>,
 ): AdminScreen[] {
-  return section.screens.filter((s) => s.permission === null || can(role, caps, s.permission));
+  return section.screens.filter((s) =>
+    s.permission === null
+    || (typeof s.permission === 'string'
+      ? can(role, caps, s.permission)
+      : s.permission.some((p) => can(role, caps, p))),
+  );
 }
 
 /** Sections with at least one screen for this viewer. An empty card is noise. */

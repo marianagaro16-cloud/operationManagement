@@ -37,10 +37,8 @@ import { REPORT_TABS, type ReportTab } from './report-tabs';
 export type { ReportTab };
 
 /**
- * Which tabs this viewer gets. Set once by the page for the whole screen, so
- * the four report views need not each carry it: a production manager sees
- * Orders and Inventory, not Preparation (Operaciones' work) or Activities
- * (every team's tasks).
+ * Which tabs this viewer gets — allowedReportTabs(). Set once by the page for
+ * the whole screen, so the report views need not each carry it.
  */
 const ReportTabsContext = createContext<ReportTab[]>(REPORT_TABS);
 
@@ -74,6 +72,66 @@ export function reportHref(
   return `/admin/reports?${params.toString()}`;
 }
 
+/**
+ * The Informes title and its tabs, without the period controls.
+ *
+ * ReportShell draws it above its period selector. The Incidents and
+ * Reception tabs draw it on its own: they are monthly and keep their saved
+ * versions, so they bring their own month controls.
+ */
+export function ReportHeader({
+  tab,
+  hrefFor = (item) => `/admin/reports?tab=${item}`,
+  action,
+}: {
+  tab: ReportTab;
+  /** Where each tab links; by default it opens on that tab's own default period. */
+  hrefFor?: (tab: ReportTab) => string;
+  /** Beside the title, e.g. the incident report's Export CSV. */
+  action?: ReactNode;
+}) {
+  const { t } = useI18n();
+  const tabs = useContext(ReportTabsContext);
+  return (
+    <>
+      <PageHeader title={t('report.title')} subtitle={t('report.subtitle')} action={action} />
+      <nav className="-mx-4 mb-4 overflow-x-auto px-4">
+        <ul className="flex min-w-max gap-1 border-b border-border pb-px">
+          {tabs.map((item) => (
+            <li key={item}>
+              <Link
+                href={hrefFor(item)}
+                className={cn(
+                  'inline-block whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium transition-colors',
+                  tab === item
+                    ? 'border-accent text-fg'
+                    : 'border-transparent text-muted hover:text-fg',
+                )}
+              >
+                {t(`report.tab${item[0].toUpperCase()}${item.slice(1)}` as 'report.tabOrders')}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </>
+  );
+}
+
+/** Back from a saved report to its tab. */
+export function BackToReports({ tab }: { tab: ReportTab }) {
+  const { t } = useI18n();
+  return (
+    <Link
+      href={`/admin/reports?tab=${tab}`}
+      className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg"
+    >
+      <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+      {t('report.backToReports')}
+    </Link>
+  );
+}
+
 export function ReportShell({
   tab,
   range,
@@ -96,7 +154,6 @@ export function ReportShell({
   children: ReactNode;
 }) {
   const { t, locale } = useI18n();
-  const tabs = useContext(ReportTabsContext);
   const [from, setFrom] = useState(range.start);
   const [to, setTo] = useState(range.end);
   const isCustom = range.kind === 'custom';
@@ -113,28 +170,8 @@ export function ReportShell({
 
   return (
     <>
-      <PageHeader title={t('report.title')} subtitle={t('report.subtitle')} />
-
-      {/* Which module. Switching tabs preserves the period below. */}
-      <nav className="-mx-4 mb-4 overflow-x-auto px-4">
-        <ul className="flex min-w-max gap-1 border-b border-border pb-px">
-          {tabs.map((item) => (
-            <li key={item}>
-              <Link
-                href={reportHref(item, range, anchor)}
-                className={cn(
-                  'inline-block whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium transition-colors',
-                  tab === item
-                    ? 'border-accent text-fg'
-                    : 'border-transparent text-muted hover:text-fg',
-                )}
-              >
-                {t(`report.tab${item[0].toUpperCase()}${item.slice(1)}` as 'report.tabOrders')}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      {/* Switching tabs preserves the period below. */}
+      <ReportHeader tab={tab} hrefFor={(item) => reportHref(item, range, anchor)} />
 
       {/* Period type */}
       <div className="mb-3 flex flex-wrap items-center gap-1.5">

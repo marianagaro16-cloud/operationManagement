@@ -28,9 +28,18 @@ import { OrderReportView } from '@/components/orders/order-report-view';
 import { StatsView } from '@/components/admin/stats-view';
 import { InventoryReportView } from '@/components/reports/inventory-report-view';
 import { ReportTabsProvider } from '@/components/reports/report-shell';
-import { REPORT_TABS, type ReportTab } from '@/components/reports/report-tabs';
-import { ordersReadOnly, teamScope } from '@/lib/authz';
+import { allowedReportTabs, type ReportTab } from '@/components/reports/report-tabs';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { DateTime } from 'luxon';
+import { getLiveReport, getReportSnapshots } from '@/server/incidents';
+import { IncidentReportView } from '@/components/incidents/incident-report-view';
+import { buildLiveReceptionReport, getReceptionReportSnapshots } from '@/server/goods-reception';
+import { ReceptionReports } from '@/components/admin/reception-reports';
+import { monthRange } from '@/domain/orders/scheduling';
+import { BUSINESS_TZ } from '@/lib/datetime';
+import { LOCALE_COOKIE, resolveLocale } from '@/i18n/config';
+import type { Viewer } from '@/server/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,12 +48,15 @@ const PERIODS: ReportPeriod[] = ['day', 'week', 'month', 'year', 'custom'];
 const isDate = (v: string | undefined): v is string => /^\d{4}-\d{2}-\d{2}$/.test(v ?? '');
 
 /**
- * Reporting, for all three modules.
+ * Informes: every report, one tab each.
  *
- * ONE period model — periodRange() — drives every tab. /admin/statistics used
+ * ONE period model — periodRange() — drives the period tabs. /admin/statistics used
  * to be a separate screen computing its own bounds inline, so the two could
  * disagree about what a month was; and the inventory report existed in
  * server/inventory.ts with no screen at all.
+ *
+ * Incidents and Reception are monthly and keep saved versions, so they bring
+ * their own month controls; they used to be screens of their own.
  *
  * Only the tab's own data is fetched: opening Tasks does not query orders.
  */
@@ -52,21 +64,12 @@ export default async function ReportsPage({ searchParams }: { searchParams: Repo
   const viewer = await getViewer();
   if (!viewer) redirect('/dashboard');
 
-  /*
-   * Preparation is Operaciones' work, and Activities adds up every team's
-   * tasks: neither is for a viewer who only reads orders or is confined to
-   * a team. RLS would already narrow Activities to their team; hiding the
-   * tab says so instead of showing a partial number as if it were whole.
-   */
-  const tabs = REPORT_TABS.filter(
-    (tab) =>
-      !(tab === 'preparation' && ordersReadOnly(viewer.role))
-      && !(tab === 'tasks' && teamScope(viewer.role, viewer.profile.team) !== null),
-  );
+  const tabs = allowedReportTabs(viewer);
+  if (tabs.length === 0) redirect('/admin');
 
   return (
     <ReportTabsProvider tabs={tabs}>
-      {await ReportTabContent({ searchParams, tabs })}
+      {await ReportTabContent({ searchParams, tabs, viewer })}
     </ReportTabsProvider>
   );
 }
@@ -81,28 +84,26 @@ interface ReportSearchParams {
   product?: string;
   brand?: string;
   group?: string;
+  /** Incidents tab: YYYY-MM. */
+  month?: string;
 }
 
 async function ReportTabContent({
   searchParams,
   tabs,
+  viewer,
 }: {
   tabs: ReportTab[];
-  searchParams: {
-    tab?: string;
-    period?: string;
-    date?: string;
-    from?: string;
-    to?: string;
-    customer?: string;
-    product?: string;
-    brand?: string;
-    group?: string;
-  };
+  searchParams: ReportSearchParams;
+  viewer: Viewer;
 }) {
+  // The first tab this viewer has, when the URL names none or one of another's.
   const tab: ReportTab = tabs.includes(searchParams.tab as ReportTab)
     ? (searchParams.tab as ReportTab)
-    : 'orders';
+    : tabs[0];
+
+  if (tab === 'incidents') return incidentsTab(searchParams.month, viewer);
+  if (tab === 'reception') return receptionTab(viewer);
 
   const period: ReportPeriod = PERIODS.includes(searchParams.period as ReportPeriod)
     ? (searchParams.period as ReportPeriod)
@@ -191,6 +192,66 @@ async function ReportTabContent({
       grouping={grouping}
       categories={categories}
       subcategories={subcategories}
+    />
+  );
+}
+
+/**
+ * The live incident report for a month, beside the saved ones.
+ *
+ * "Live" is honest about itself: it is recomputed on every visit and moves as
+ * incidents are edited. Freezing it is a deliberate act with a button, and
+ * what that button stores is exactly this payload — §42.
+ */
+async function incidentsTab(monthParam: string | undefined, viewer: Viewer) {
+  const month = /^\d{4}-\d{2}$/.test(monthParam ?? '')
+    ? (monthParam as string)
+    : DateTime.fromISO(businessToday(), { zone: BUSINESS_TZ }).toFormat('yyyy-MM');
+  const { start, end } = monthRange(month);
+
+  const [payload, snapshots] = await Promise.all([getLiveReport(month, start, end), getReportSnapshots()]);
+
+  // The most recent saved report from an EARLIER month, for the comparison.
+  // A saved report of the same month is not a comparison, it is this month.
+  const previous = snapshots.find((s) => s.period_month < `${month}-01`);
+
+  return (
+    <IncidentReportView
+      payload={payload}
+      month={month}
+      previous={previous}
+      snapshots={snapshots}
+      canGenerate={viewer.can('incidents.manage')}
+    />
+  );
+}
+
+/**
+ * The live reception month, computed by the SAME domain function a snapshot
+ * freezes, so the block at the top and the document generated from it can
+ * never disagree.
+ */
+async function receptionTab(viewer: Viewer) {
+  const month = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', timeZone: 'Europe/Zurich' })
+    .format(new Date())
+    .slice(0, 7);
+
+  // The label for rows with no supplier recorded, in the viewer's language:
+  // the domain layer takes it as an argument rather than importing a dictionary.
+  const locale = resolveLocale(cookies().get(LOCALE_COOKIE)?.value);
+  const unrecorded = locale === 'es' ? 'Sin registrar' : locale === 'de' ? 'Nicht erfasst' : 'Not recorded';
+
+  const [live, snapshots] = await Promise.all([
+    buildLiveReceptionReport(month, unrecorded),
+    getReceptionReportSnapshots(),
+  ]);
+
+  return (
+    <ReceptionReports
+      liveMonth={month}
+      livePayload={live.payload}
+      snapshots={snapshots}
+      canGenerate={viewer.can('reports.view')}
     />
   );
 }

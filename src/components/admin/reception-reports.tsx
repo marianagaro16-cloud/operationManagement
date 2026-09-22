@@ -7,7 +7,7 @@ import { FileText, Plus } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { PageHeader } from '@/components/shell/app-shell';
+import { ReportHeader } from '@/components/reports/report-shell';
 import { Badge, Card, EmptyState, ErrorState, Field, Input } from '@/components/ui/primitives';
 import { generateReceptionReport } from '@/server/goods-reception-actions';
 import type { ReceptionReportPayload } from '@/domain/goods-reception/report';
@@ -66,7 +66,8 @@ export function ReceptionReports({
 
   return (
     <>
-      <PageHeader title={t('gr.reportsTitle')} subtitle={t('gr.reportsSubtitle')} />
+      <ReportHeader tab="reception" />
+      <p className="-mt-2 mb-3 text-[12.5px] text-muted">{t('gr.reportsSubtitle')}</p>
 
       {error && <div className="mb-3"><ErrorState message={error} /></div>}
 
@@ -109,7 +110,7 @@ export function ReceptionReports({
           <ul className="space-y-1.5">
             {snapshots.map((snapshot) => (
               <li key={snapshot.id}>
-                <Link href={`/admin/goods-reception-reports/${snapshot.id}`} className="block">
+                <Link href={`/admin/reports/reception/${snapshot.id}`} className="block">
                   <Card className="p-3 transition-colors hover:border-accent/40 hover:bg-surface-2/40">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">

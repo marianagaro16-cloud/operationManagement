@@ -738,6 +738,6 @@ export async function generateReceptionReport(
 
   if (error) return mapError(error);
 
-  revalidatePath('/admin/goods-reception-reports');
+  revalidatePath('/admin/reports');
   return { ok: true, data: (data as { id: string }).id };
 }
