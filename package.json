@@ -34,6 +34,7 @@
     "inventory:seed": "tsx scripts/import-inventory.ts seed",
     "verify:inventory": "node scripts/verify-inventory.mjs",
     "verify:roles": "node scripts/verify-roles.mjs",
+    "verify:teams": "node scripts/verify-teams.mjs",
     "verify:tasks": "node scripts/verify-tasks.mjs",
     "verify:import": "node scripts/verify-import.mjs",
     "verify:incidents": "node scripts/verify-incidents.mjs",

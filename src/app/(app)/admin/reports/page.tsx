@@ -9,7 +9,7 @@ import {
 } from '@/server/orders';
 import { computePreparationReport } from '@/domain/orders/preparation-report';
 import { PreparationReportView } from '@/components/reports/preparation-report-view';
-import { getOccurrencesInRange, getUsers } from '@/server/data';
+import { getOccurrencesInRange, getUsers, getViewer } from '@/server/data';
 import { getInventoryReport } from '@/server/inventory';
 import { businessToday } from '@/lib/datetime';
 import { displayName } from '@/lib/utils';
@@ -27,12 +27,14 @@ import {
 import { OrderReportView } from '@/components/orders/order-report-view';
 import { StatsView } from '@/components/admin/stats-view';
 import { InventoryReportView } from '@/components/reports/inventory-report-view';
-import type { ReportTab } from '@/components/reports/report-shell';
+import { ReportTabsProvider } from '@/components/reports/report-shell';
+import { REPORT_TABS, type ReportTab } from '@/components/reports/report-tabs';
+import { ordersReadOnly, teamScope } from '@/lib/authz';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 const PERIODS: ReportPeriod[] = ['day', 'week', 'month', 'year', 'custom'];
-const TABS: ReportTab[] = ['orders', 'preparation', 'tasks', 'inventory'];
 
 const isDate = (v: string | undefined): v is string => /^\d{4}-\d{2}-\d{2}$/.test(v ?? '');
 
@@ -46,9 +48,46 @@ const isDate = (v: string | undefined): v is string => /^\d{4}-\d{2}-\d{2}$/.tes
  *
  * Only the tab's own data is fetched: opening Tasks does not query orders.
  */
-export default async function ReportsPage({
+export default async function ReportsPage({ searchParams }: { searchParams: ReportSearchParams }) {
+  const viewer = await getViewer();
+  if (!viewer) redirect('/dashboard');
+
+  /*
+   * Preparation is Operaciones' work, and Activities adds up every team's
+   * tasks: neither is for a viewer who only reads orders or is confined to
+   * a team. RLS would already narrow Activities to their team; hiding the
+   * tab says so instead of showing a partial number as if it were whole.
+   */
+  const tabs = REPORT_TABS.filter(
+    (tab) =>
+      !(tab === 'preparation' && ordersReadOnly(viewer.role))
+      && !(tab === 'tasks' && teamScope(viewer.role, viewer.profile.team) !== null),
+  );
+
+  return (
+    <ReportTabsProvider tabs={tabs}>
+      {await ReportTabContent({ searchParams, tabs })}
+    </ReportTabsProvider>
+  );
+}
+
+interface ReportSearchParams {
+  tab?: string;
+  period?: string;
+  date?: string;
+  from?: string;
+  to?: string;
+  customer?: string;
+  product?: string;
+  brand?: string;
+  group?: string;
+}
+
+async function ReportTabContent({
   searchParams,
+  tabs,
 }: {
+  tabs: ReportTab[];
   searchParams: {
     tab?: string;
     period?: string;
@@ -61,7 +100,7 @@ export default async function ReportsPage({
     group?: string;
   };
 }) {
-  const tab: ReportTab = TABS.includes(searchParams.tab as ReportTab)
+  const tab: ReportTab = tabs.includes(searchParams.tab as ReportTab)
     ? (searchParams.tab as ReportTab)
     : 'orders';
 

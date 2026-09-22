@@ -7,7 +7,7 @@
  * the first push.
  */
 import type { Frequency, OccurrenceStatus, ScheduleConfig } from '@/domain/recurrence/types';
-import type { Role } from '@/lib/authz';
+import type { Role, Team } from '@/lib/authz';
 
 /**
  * The role vocabulary lives in `@/lib/authz`, so the hierarchy, the capability
@@ -16,6 +16,7 @@ import type { Role } from '@/lib/authz';
  */
 export type UserRole = Role;
 export type UserStatus = 'pending' | 'approved' | 'rejected' | 'deactivated';
+export type { Team };
 
 export interface Profile {
   id: string;
@@ -23,6 +24,8 @@ export interface Profile {
   name: string | null;
   role: UserRole;
   status: UserStatus;
+  /** Producción or Operaciones. Scopes what a user or production manager sees and manages. */
+  team: Team;
   last_seen_at: string | null;
   /** Set when an admin deleted the user; such profiles only survive for history. */
   deleted_at: string | null;
@@ -50,6 +53,8 @@ export interface Task {
   translations: Record<string, { title?: string | null; description?: string | null }> | null;
   is_skippable: boolean;
   is_active: boolean;
+  /** Whose work it is. Users see only their team's; corrective actions take their incident's. */
+  team: Team;
   created_by: string | null;
   created_at: string;
   updated_at: string;

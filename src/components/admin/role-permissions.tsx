@@ -10,6 +10,12 @@ import { setRolePermission } from '@/server/permission-actions';
 import { CONFIGURABLE_ROLES, permissionKey, type ConfigurableRole, type Permission } from '@/lib/authz';
 import type { MessageKey } from '@/i18n';
 
+const ROLE_LABEL: Record<ConfigurableRole, MessageKey> = {
+  manager: 'roles.manager',
+  power_user: 'roles.powerUser',
+  production_manager: 'roles.productionManager',
+};
+
 interface Row {
   key: Permission;
   module: string;
@@ -19,7 +25,7 @@ interface Row {
 /**
  * The role/permission matrix.
  *
- * Rows are capabilities grouped by module; the two columns are the only roles
+ * Rows are capabilities grouped by module; the columns are the only roles
  * whose permissions are configurable. ADMIN has no column because it always
  * holds everything, and USER has none because it is the floor — a plain user's
  * access comes from being assigned work, not from this grid.
@@ -42,10 +48,9 @@ export function RolePermissions({
 
   // Optimistic local state: a matrix of 15 rows would otherwise flash on every
   // toggle while the server round-trips.
-  const [held, setHeld] = useState<Record<ConfigurableRole, Set<Permission>>>({
-    manager: new Set(matrix.manager),
-    power_user: new Set(matrix.power_user),
-  });
+  const [held, setHeld] = useState<Record<ConfigurableRole, Set<Permission>>>(
+    () => Object.fromEntries(CONFIGURABLE_ROLES.map((r) => [r, new Set(matrix[r])])) as Record<ConfigurableRole, Set<Permission>>,
+  );
 
   function toggle(role: ConfigurableRole, permission: Permission, enabled: boolean) {
     setHeld((prev) => {
@@ -74,8 +79,7 @@ export function RolePermissions({
   }
 
   const modules = [...new Set(catalog.map((c) => c.module))];
-  const roleLabel = (r: ConfigurableRole) =>
-    r === 'manager' ? t('roles.manager') : t('roles.powerUser');
+  const roleLabel = (r: ConfigurableRole) => t(ROLE_LABEL[r]);
 
   // Permission keys carry dots, which `t()` reads as nesting — so the
   // dictionary holds them flattened to camelCase.
@@ -91,7 +95,7 @@ export function RolePermissions({
       <Card className="overflow-hidden">
         {/* Scrolls inside itself rather than pushing the page sideways. */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[34rem] border-collapse text-[13px]">
+          <table className="w-full min-w-[42rem] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="px-3.5 py-2.5 font-semibold">{t('roles.capability')}</th>
@@ -106,7 +110,7 @@ export function RolePermissions({
             {modules.map((mod) => (
               <tbody key={mod}>
                 <tr className="border-b border-border bg-bg">
-                  <td colSpan={3} className="px-3.5 py-1.5 text-[11.5px] font-semibold uppercase tracking-wide text-subtle">
+                  <td colSpan={CONFIGURABLE_ROLES.length + 1} className="px-3.5 py-1.5 text-[11.5px] font-semibold uppercase tracking-wide text-subtle">
                     {t(`roles.module.${mod}` as MessageKey)}
                   </td>
                 </tr>
@@ -132,7 +136,7 @@ export function RolePermissions({
                         </td>
                       ))
                     ) : (
-                      <td colSpan={2} className="px-3.5 py-2.5 text-center">
+                      <td colSpan={CONFIGURABLE_ROLES.length} className="px-3.5 py-2.5 text-center">
                         <Badge tone="neutral">
                           <Lock className="mr-1 inline h-3 w-3" aria-hidden />
                           {t('roles.adminOnly')}
@@ -148,6 +152,7 @@ export function RolePermissions({
       </Card>
 
       <p className="mt-3 text-[12px] leading-relaxed text-muted">{t('roles.matrixNote')}</p>
+      <p className="mt-1.5 text-[12px] leading-relaxed text-muted">{t('roles.productionManagerNote')}</p>
     </>
   );
 }

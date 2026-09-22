@@ -29,6 +29,7 @@ import { OrderDialog } from '@/components/orders/order-dialog';
 import { productLabel, type Customer, type DeliveryMethod, type Product } from '@/types/orders';
 import type { Incident } from '@/types/incidents';
 import type { Profile } from '@/types/database';
+import { TEAMS, type Team } from '@/lib/authz';
 import { NoteChip } from '@/components/ui/note';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { categoryLabel, typeLabel } from './incident-list';
@@ -53,6 +54,9 @@ export function IncidentDetail({
   products,
   deliveryMethods,
   canManage,
+  otherTeam,
+  canReplace,
+  canChangeTeam,
   canClose,
   reminderViewerId,
   currentUserName,
@@ -65,6 +69,12 @@ export function IncidentDetail({
   products: Product[];
   deliveryMethods: DeliveryMethod[];
   canManage: boolean;
+  /** Read-only because the incident is another team's, not for want of a permission. */
+  otherTeam: boolean;
+  /** May raise and remove replacement orders — false where orders are read-only. */
+  canReplace: boolean;
+  /** May move the incident to the other team. */
+  canChangeTeam: boolean;
   canClose: boolean;
   /** Null when the viewer cannot use reminders; the button then renders nothing. */
   reminderViewerId: string | null;
@@ -106,7 +116,10 @@ export function IncidentDetail({
       />
 
       {!canManage && (
-        <ReadOnlyNotice title={t('incident.readOnly')} reason={t('incident.readOnlyBody')} />
+        <ReadOnlyNotice
+          title={t('incident.readOnly')}
+          reason={t(otherTeam ? 'incident.readOnlyOtherTeam' : 'incident.readOnlyBody')}
+        />
       )}
       {error && <div className="mb-3"><ErrorState message={error} /></div>}
 
@@ -117,6 +130,25 @@ export function IncidentDetail({
             <div className="flex flex-wrap items-center gap-2">
               <StatusChip domain="severity" status={incident.severity} />
               <StatusChip domain="incident" status={incident.status} />
+              {canChangeTeam ? (
+                <Select
+                  aria-label={t('incident.teamLabel')}
+                  className="h-7 w-auto py-0 text-[12px]"
+                  value={incident.team}
+                  disabled={pending}
+                  onChange={(e) => run(() => updateIncident(incident.id, { team: e.target.value as Team }))}
+                >
+                  {TEAMS.map((team) => (
+                    <option key={team} value={team}>
+                      {team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations')}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Badge tone="neutral">
+                  {incident.team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations')}
+                </Badge>
+              )}
               <span className="text-[12.5px] text-muted">
                 {t('incident.detected')} {formatDate(incident.detected_at.slice(0, 10))}
               </span>
@@ -233,7 +265,7 @@ export function IncidentDetail({
           customers={customers}
           products={products}
           deliveryMethods={deliveryMethods}
-          canManage={canManage}
+          canManage={canReplace}
           currentUserName={currentUserName}
           pending={pending}
           onRun={run}

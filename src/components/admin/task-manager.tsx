@@ -14,9 +14,15 @@ import { ScheduleEditor, defaultConfigFor } from './schedule-editor';
 import { saveTask, setTaskActive, type TaskInput } from '@/server/actions';
 import { resolveScheduleConfig } from '@/domain/recurrence/engine';
 import { FREQUENCIES, type Frequency, type ScheduleConfig } from '@/domain/recurrence/types';
+import { TEAMS, type Team } from '@/lib/authz';
 import type { Category, Task } from '@/types/database';
 
 type TaskRow = Task & { category: Category | null };
+
+function useTeamLabel() {
+  const { t } = useI18n();
+  return (team: Team) => (team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations'));
+}
 
 const EMPTY: TaskInput = {
   title: '',
@@ -27,6 +33,7 @@ const EMPTY: TaskInput = {
   schedule_config: { kind: 'daily' },
   is_skippable: false,
   is_active: true,
+  team: 'operations',
 };
 
 export function TaskManager({
@@ -40,6 +47,7 @@ export function TaskManager({
   reminderViewerId: string | null;
 }) {
   const { t } = useI18n();
+  const teamLabel = useTeamLabel();
   const router = useRouter();
   const params = useSearchParams();
 
@@ -152,7 +160,8 @@ export function TaskManager({
                             {task.title}
                           </p>
                           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11.5px] text-muted">
-                            {task.category && <span>{task.category.name}</span>}
+                            <span>{teamLabel(task.team)}</span>
+                            {task.category && <span>· {task.category.name}</span>}
                             {task.is_skippable && <span>· {t('task.skip')}</span>}
                             {!configured && task.is_active && (
                               <span className="inline-flex items-center gap-1 text-warn">
@@ -247,6 +256,7 @@ function TaskDialog({
   onSaved: () => void;
 }) {
   const { t } = useI18n();
+  const teamLabel = useTeamLabel();
   const [form, setForm] = useState<TaskInput>(
     task
       ? {
@@ -258,6 +268,7 @@ function TaskDialog({
           schedule_config: task.schedule_config,
           is_skippable: task.is_skippable,
           is_active: task.is_active,
+          team: task.team,
         }
       : EMPTY,
   );
@@ -340,6 +351,19 @@ function TaskDialog({
             ))}
           </div>
         </div>
+
+        {/* Whose work this is: a User sees only their own team's tasks. */}
+        <Field label={t('task.teamLabel')} hint={t('roles.teamHint')} htmlFor="task-team">
+          <Select
+            id="task-team"
+            value={form.team}
+            onChange={(e) => setForm({ ...form, team: e.target.value as Team })}
+          >
+            {TEAMS.map((team) => (
+              <option key={team} value={team}>{teamLabel(team)}</option>
+            ))}
+          </Select>
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('admin.taskCategory')} htmlFor="task-cat">

@@ -103,6 +103,8 @@ export const de: Messages = {
     todayProgress: 'Aufgaben {done} / {total}',
   },
   task: {
+    notYourTeam: 'Diese Aufgabe gehört zu einem anderen Team',
+    teamLabel: 'Team',
     complete: 'Erledigen',
     completing: 'Wird erledigt…',
     completed: 'Erledigt',
@@ -431,6 +433,9 @@ export const de: Messages = {
     noInventoriesBody: 'Wähle einen anderen Zeitraum.',
   },
   orders: {
+    readOnlyNote: 'Nur lesen: Vorbereitung, Chargen und Versand erledigt Operations.',
+    dayTotals: 'Tagestotal pro Produkt',
+    ordersReadOnly: 'Bestellungen sind für deine Rolle nur lesbar',
     chooseDeliveryMethod: 'Versandart wählen',
     searchCustomer: 'Kunde suchen…',
     searchProduct: 'Code oder Produkt suchen…',
@@ -662,6 +667,7 @@ export const de: Messages = {
     tplErrSave: 'Die Vorlage konnte nicht gespeichert werden.',
   },
   incident: {
+    teamLabel: 'Team',
     title: 'Vorfälle',
     subtitle: 'Was schiefging, warum, und was wir dagegen getan haben',
     navLabel: 'Vorfälle',
@@ -670,6 +676,7 @@ export const de: Messages = {
     noneBody: 'Zu diesen Filtern wurde nichts gemeldet.',
     readOnly: 'Sie können diesen Vorfall ansehen, aber nicht ändern',
     readOnlyBody: 'Das Bearbeiten eines Vorfalls benötigt die Berechtigung Vorfälle verwalten. Fragen Sie eine Administratorin, wenn Sie sie brauchen.',
+    readOnlyOtherTeam: 'Dieser Vorfall gehört zu einem anderen Team: Sie können ihn lesen, bearbeitet wird er von diesem Team.',
 
     detected: 'Festgestellt',
 
@@ -1372,6 +1379,12 @@ export const de: Messages = {
     digitalIsManual: 'Von einer Administratorin erfasst, nicht aus einem System gelesen',
   },
   roles: {
+    productionManager: 'Produktionsleiter',
+    team: 'Team',
+    teamProduction: 'Produktion',
+    teamOperations: 'Operations',
+    teamHint: 'Ein Benutzer sieht nur die Aufgaben seines Teams. Ein Produktionsleiter gehört immer zur Produktion.',
+    productionManagerNote: 'Ein Produktionsleiter handelt nur bei Personen, Aufgaben und Vorfällen der Produktion und sieht Bestellungen, ohne sie ändern zu können.',
     admin: 'Administrator',
     manager: 'Leitung',
     powerUser: 'Erweiterter Benutzer',
@@ -1379,7 +1392,7 @@ export const de: Messages = {
     changeRole: 'Rolle ändern',
     lastAdmin: 'Das ist der letzte Administrator. Bitte zuerst jemanden anderen befördern.',
     matrixTitle: 'Rollen und Berechtigungen',
-    matrixSubtitle: 'Was Leitung und erweiterte Benutzer dürfen',
+    matrixSubtitle: 'Was ein Verantwortlicher, ein Power-User und ein Produktionsleiter tun dürfen',
     capability: 'Berechtigung',
     adminOnly: 'Nur Administrator',
     matrixNote:
@@ -1476,6 +1489,7 @@ export const de: Messages = {
       invalid_recipient: 'Eine der ausgewählten Personen kann nicht mehr benachrichtigt werden. Lade die Seite neu und versuche es erneut.',
       not_authorized: 'Du hast keine Berechtigung, Benachrichtigungen zu senden.',
       push_not_configured: 'Push-Benachrichtigungen sind in dieser Umgebung nicht konfiguriert.',
+      not_your_team: 'Du kannst nur Personen aus deinem Team benachrichtigen.',
     },
   },
   gr: {

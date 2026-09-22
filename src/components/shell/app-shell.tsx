@@ -77,14 +77,16 @@ export function AppShell({
           // it answers a question about ORDERS — where a lot was used — and
           // its one call to action is to open the order and fix it there.
           { href: '/lot-tracker', label: t('lot.title'), icon: ScanSearch, primary: false },
-          // Incidents belong with the order book: every one of them is about a
-          // delivery, and the report they feed is read next to the order
-          // reports. Behind the same capability for the same reason — a person
-          // on the floor works lot control, and the complaint log is not their
-          // screen. They still reach an incident on an order they prepared,
-          // from that order's own page, which is where they would look.
-          { href: '/incidents', label: t('incident.navLabel'), icon: AlertTriangle, primary: false },
         ]
+      : []),
+    // Incidents belong with the order book: every one of them is about a
+    // delivery, and the report they feed is read next to the order reports.
+    // A person on the floor works lot control, and the complaint log is not
+    // their screen — they reach an incident on an order they prepared from
+    // that order's own page. Whoever manages incidents without managing
+    // orders (the production manager) still needs the log itself.
+    ...(can(role, held, 'orders.manage') || can(role, held, 'incidents.manage')
+      ? [{ href: '/incidents', label: t('incident.navLabel'), icon: AlertTriangle, primary: false }]
       : []),
     // Goods Reception is a MAIN section, never a corner of Orders: a supplier
     // delivery has no customer order behind it and often no order at all.

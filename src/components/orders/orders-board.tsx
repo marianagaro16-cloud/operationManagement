@@ -4,12 +4,12 @@ import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  AlertTriangle, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Truck,
+  AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Truck,
 } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { EmptyState, ErrorState } from '@/components/ui/primitives';
+import { Card, EmptyState, ErrorState } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { weekDays } from '@/domain/orders/scheduling';
 import { orderStage, stageWeight } from '@/domain/orders/stage';
@@ -23,6 +23,8 @@ import {
 } from './preparation-view';
 import { useOrderError } from './order-fulfilment';
 import { BoxTypesProvider } from './order-boxes';
+import { OrdersReadOnlyProvider, useOrdersReadOnly } from './orders-read-only';
+import { dayTotals, type DayTotal } from '@/domain/orders/day-totals';
 import type { BoxType } from '@/types/orders';
 
 export type OrdersTab = 'to_prepare' | 'ready' | 'shipped' | 'all';
@@ -32,7 +34,7 @@ export type OrdersMode = 'preparation' | 'delivery';
 export function ordersHref(tab: OrdersTab, date?: string, mode?: OrdersMode, extra = ''): string {
   const params = new URLSearchParams({ tab });
   if (date) params.set('date', date);
-  if (mode && mode !== 'preparation') params.set('mode', mode);
+  if (mode) params.set('mode', mode);
   const qs = params.toString();
   return `/orders?${qs}${extra}`;
 }
@@ -54,18 +56,19 @@ const TAB_KEY: Record<OrdersTab, MessageKey> = {
 export function OrdersTabs({
   active,
   counts,
-  canManage,
+  withAll,
   date,
   mode,
 }: {
   active: OrdersTab;
   counts?: Partial<Record<OrdersTab, number>>;
-  canManage: boolean;
+  /** The All tab: the order book, for whoever may browse every order. */
+  withAll: boolean;
   date?: string;
   mode?: OrdersMode;
 }) {
   const { t } = useI18n();
-  const tabs: OrdersTab[] = canManage ? ['to_prepare', 'ready', 'shipped', 'all'] : ['to_prepare', 'ready', 'shipped'];
+  const tabs: OrdersTab[] = withAll ? ['to_prepare', 'ready', 'shipped', 'all'] : ['to_prepare', 'ready', 'shipped'];
   return (
     <nav className="-mx-4 mb-4 overflow-x-auto px-4">
       <ul className="flex min-w-max gap-1 border-b border-border pb-px">
@@ -113,6 +116,9 @@ export function OrdersTabs({
  * every ready order that has not left, whatever its date. Managers can move
  * between days and switch the day between preparation and delivery date, and
  * have the monthly order book as the All tab.
+ *
+ * A read-only viewer (the production manager) browses like a manager but
+ * changes nothing, and gets the day's totals per product on top.
  */
 export function OrdersBoard({
   tab,
@@ -120,6 +126,8 @@ export function OrdersBoard({
   today,
   mode,
   canManage,
+  canBrowse,
+  readOnly,
   toPrepare,
   carriedOver,
   ready,
@@ -132,6 +140,10 @@ export function OrdersBoard({
   today: string;
   mode: OrdersMode;
   canManage: boolean;
+  /** May move between days and open the order book. */
+  canBrowse: boolean;
+  /** Sees orders without being able to change them. */
+  readOnly: boolean;
   toPrepare: OrderWithProgress[];
   carriedOver: OrderWithProgress[];
   ready: OrderWithProgress[];
@@ -147,16 +159,30 @@ export function OrdersBoard({
   const visibleCount = tab === 'to_prepare' ? counts.to_prepare : tab === 'ready' ? counts.ready : counts.shipped;
 
   return (
+    <OrdersReadOnlyProvider readOnly={readOnly}>
     <BoxTypesProvider boxTypes={boxTypes}>
       <PageHeader title={t('orders.title')} subtitle={t('orders.boardSubtitle')} />
 
-      <OrdersTabs active={tab} counts={counts} canManage={canManage} date={canManage ? date : undefined} mode={mode} />
+      <OrdersTabs active={tab} counts={counts} withAll={canBrowse} date={canBrowse ? date : undefined} mode={mode} />
 
-      {canManage ? (
+      {canBrowse ? (
         <DayNavigation tab={tab} date={date} today={today} mode={mode} openDays={openDays} />
       ) : (
         // A plain user works today; there is nothing to navigate.
         <p className="mb-3 text-[13px] font-medium capitalize">{formatDate(today, 'weekday')}</p>
+      )}
+
+      {readOnly && (
+        <>
+          <p className="mb-3 text-[12.5px] text-muted">{t('orders.readOnlyNote')}</p>
+          <DayTotalsCard
+            totals={dayTotals(
+              [...toPrepare, ...ready, ...shipped],
+              date,
+              mode === 'delivery' ? 'delivery_date' : 'preparation_date',
+            )}
+          />
+        </>
       )}
 
       {visibleCount > 0 && (
@@ -184,6 +210,45 @@ export function OrdersBoard({
       {tab === 'ready' && <ReadyTab orders={ready} canManage={canManage} bulk={bulk} showsBacklog={date === today} />}
       {tab === 'shipped' && <ShippedTab orders={shipped} canManage={canManage} bulk={bulk} />}
     </BoxTypesProvider>
+    </OrdersReadOnlyProvider>
+  );
+}
+
+/**
+ * What the day's orders add up to, product by product. Open by default —
+ * it is the reason a production manager opens this screen.
+ */
+function DayTotalsCard({ totals }: { totals: DayTotal[] }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(true);
+  if (totals.length === 0) return null;
+  return (
+    <Card className="mb-4 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-1.5 px-3.5 py-2.5 text-left text-[13px] font-semibold"
+      >
+        <ChevronDown className={cn('h-4 w-4 text-muted transition-transform', !open && '-rotate-90')} aria-hidden />
+        {t('orders.dayTotals')}
+        <span className="text-[12px] font-normal text-subtle">{totals.length}</span>
+      </button>
+      {open && (
+        <ul className="divide-y divide-border border-t border-border">
+          {totals.map((p) => (
+            <li key={p.productId} className="flex items-center gap-3 px-3.5 py-1.5 text-[13px]">
+              <span className="w-12 shrink-0 text-[11.5px] tabular text-subtle">{p.code ?? '—'}</span>
+              <span className="min-w-0 flex-1 truncate" title={p.name}>{p.name}</span>
+              <span className="shrink-0 text-[11.5px] tabular text-subtle">
+                {p.orders} {t('report.ordersShort')}
+              </span>
+              <span className="w-14 shrink-0 text-right font-semibold tabular">{p.quantity}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }
 
@@ -394,6 +459,7 @@ function ReadyTab({
   const { t } = useI18n();
   const router = useRouter();
   const translate = useOrderError();
+  const readOnly = useOrdersReadOnly();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -447,9 +513,11 @@ function ReadyTab({
                 {group.name}
                 <span className="text-[12.5px] font-normal tabular text-muted">{group.orders.length}</span>
               </h2>
-              <Button size="sm" variant="ghost" onClick={() => toggleGroup(ids)}>
-                {allChosen ? t('orders.selectNone') : t('orders.selectAll')}
-              </Button>
+              {!readOnly && (
+                <Button size="sm" variant="ghost" onClick={() => toggleGroup(ids)}>
+                  {allChosen ? t('orders.selectNone') : t('orders.selectAll')}
+                </Button>
+              )}
             </div>
             <div className="space-y-3">
               {group.orders.map((order) => (
@@ -462,7 +530,7 @@ function ReadyTab({
                     order={order}
                     canManage={canManage}
                     bulk={bulk}
-                    selection={{ checked: selected.has(order.id), onToggle: () => toggle(order.id) }}
+                    selection={readOnly ? undefined : { checked: selected.has(order.id), onToggle: () => toggle(order.id) }}
                   />
                 </div>
               ))}

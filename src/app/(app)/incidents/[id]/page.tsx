@@ -4,7 +4,7 @@ import { getUsers, getViewer } from '@/server/data';
 import { getIncident } from '@/server/incidents';
 import { getCustomers, getDeliveryMethods, getProducts } from '@/server/orders';
 import { IncidentDetail } from '@/components/incidents/incident-detail';
-import { canUseReminders } from '@/lib/authz';
+import { canUseReminders, ordersReadOnly, teamScope } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +23,10 @@ export default async function IncidentPage({ params }: { params: { id: string } 
   const incident = await getIncident(params.id);
   if (!incident) notFound();
 
-  const canManage = viewer.can('incidents.manage');
+  // A production manager reads every incident but manages only their team's;
+  // the update policies say the same in the database.
+  const scope = teamScope(viewer.role, viewer.profile.team);
+  const canManage = viewer.can('incidents.manage') && (scope === null || incident.team === scope);
 
   /*
    * Only for somebody who can act. A read-only viewer is handed neither the
@@ -33,7 +36,10 @@ export default async function IncidentPage({ params }: { params: { id: string } 
    */
   const [users, customers, products, deliveryMethods] = canManage
     ? await Promise.all([
-        getUsers().then((all) => all.filter((u) => u.status === 'approved')),
+        // Corrective actions go to people in the viewer's scope only.
+        getUsers().then((all) =>
+          all.filter((u) => u.status === 'approved' && (scope === null || u.team === scope)),
+        ),
         getCustomers(),
         getProducts(),
         getDeliveryMethods(),
@@ -48,6 +54,13 @@ export default async function IncidentPage({ params }: { params: { id: string } 
       products={products}
       deliveryMethods={deliveryMethods}
       canManage={canManage}
+      // Holding the permission yet unable to act means the team, not a
+      // missing permission — and the notice should say which.
+      otherTeam={viewer.can('incidents.manage') && !canManage}
+      // A replacement is an ORDER, and orders are read-only for some roles.
+      canReplace={canManage && !ordersReadOnly(viewer.role)}
+      // Moving an incident between teams is for someone who sees both.
+      canChangeTeam={canManage && scope === null}
       canClose={viewer.can('incidents.close')}
       reminderViewerId={canUseReminders(viewer) ? viewer.profile.id : null}
       currentUserName={displayName(viewer.profile)}

@@ -28,6 +28,7 @@ import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
 import { OrderWeight } from './order-weight';
 import { OrderBoxesEditor, useBoxTypes } from './order-boxes';
 import { orderStage, stageWeight } from '@/domain/orders/stage';
+import { useOrdersReadOnly } from './orders-read-only';
 
 /*
  * The preparation card and its lines, used by the Orders section
@@ -102,6 +103,7 @@ export function OrderPreparationCard({
   selection?: { checked: boolean; onToggle: () => void };
 }) {
   const { t, formatDate } = useI18n();
+  const readOnly = useOrdersReadOnly();
   // Computed once by the query layer; see OrderWithProgress.
   const progress = order.progress;
   // Boxes are required for Ready once there are box types to choose from.
@@ -244,14 +246,14 @@ export function OrderPreparationCard({
           </p>
           <ul className="divide-y divide-border">
             {group.lines.map((line) => (
-              <PreparationLine key={line.id} line={line} canManage={canManage} locked={Boolean(order.ready_at)} />
+              <PreparationLine key={line.id} line={line} canManage={canManage} locked={readOnly || Boolean(order.ready_at)} />
             ))}
           </ul>
         </div>
       ))}
 
       {/* The boxes it is packed in: recorded here, until it ships. */}
-      {expanded && !order.shipped_at && <OrderBoxesEditor order={order} />}
+      {expanded && !order.shipped_at && !readOnly && <OrderBoxesEditor order={order} />}
 
       {/* Ready and Shipped, always reachable — folded or open. */}
       <div className="border-t border-border px-3.5 py-2">

@@ -14,8 +14,15 @@
  * action that would be rejected. If the two ever disagree, the database wins.
  */
 
-export const ROLES = ['admin', 'manager', 'power_user', 'user'] as const;
+export const ROLES = ['admin', 'manager', 'power_user', 'production_manager', 'user'] as const;
 export type Role = (typeof ROLES)[number];
+
+/**
+ * The two teams. Mirrors the `team` enum in
+ * `supabase/migrations/20261012090100_production_manager_and_teams.sql`.
+ */
+export const TEAMS = ['production', 'operations'] as const;
+export type Team = (typeof TEAMS)[number];
 
 /**
  * The hierarchy as a number.
@@ -28,6 +35,9 @@ export const ROLE_RANK: Record<Role, number> = {
   admin: 4,
   manager: 3,
   power_user: 2,
+  // Beside the Power User, as in role_rank() in SQL: the rank only opens the
+  // Gestión area, and what is inside is decided by permissions.
+  production_manager: 2,
   user: 1,
 };
 
@@ -108,7 +118,7 @@ export function isConfigurable(permission: Permission): boolean {
 }
 
 /** Roles whose capabilities are configurable. Admin holds all; user holds none. */
-export const CONFIGURABLE_ROLES = ['manager', 'power_user'] as const;
+export const CONFIGURABLE_ROLES = ['manager', 'power_user', 'production_manager'] as const;
 export type ConfigurableRole = (typeof CONFIGURABLE_ROLES)[number];
 
 /**
@@ -133,6 +143,29 @@ export function permissionKey(permission: Permission): string {
  */
 export function canUseReminders(viewer: { profile: { status: string } } | null | undefined): boolean {
   return viewer?.profile.status === 'approved';
+}
+
+/**
+ * The team a role is confined to, or null when it sees everything.
+ *
+ * Mirrors team_scope() in SQL, which is what enforces it: a User sees only
+ * their team's tasks, and a Production manager sees and manages only their
+ * team's tasks, incidents and people. Admin, Manager and Power User are
+ * unscoped.
+ */
+export function teamScope(role: Role, team: Team): Team | null {
+  return role === 'user' || role === 'production_manager' ? team : null;
+}
+
+/**
+ * May this role only LOOK at orders?
+ *
+ * The production manager sees every order and the order report, but
+ * preparing, lots, Ready and Shipped are Operaciones' work. Mirrors
+ * guard_orders_read_only() in SQL, which rejects the writes themselves.
+ */
+export function ordersReadOnly(role: Role): boolean {
+  return role === 'production_manager';
 }
 
 export function isRole(value: string): value is Role {

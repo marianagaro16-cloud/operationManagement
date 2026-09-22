@@ -103,6 +103,8 @@ export const es: Messages = {
     todayProgress: 'Tareas {done} / {total}',
   },
   task: {
+    notYourTeam: 'Esta actividad es de otro equipo',
+    teamLabel: 'Equipo',
     complete: 'Completar',
     completing: 'Completando…',
     completed: 'Completada',
@@ -431,6 +433,9 @@ export const es: Messages = {
     noInventoriesBody: 'Elige otro periodo.',
   },
   orders: {
+    readOnlyNote: 'Solo lectura: la preparación, los lotes y los envíos los gestiona Operaciones.',
+    dayTotals: 'Total del día por producto',
+    ordersReadOnly: 'Los pedidos son de solo lectura para tu rol',
     chooseDeliveryMethod: 'Elige una forma de envío',
     searchCustomer: 'Buscar cliente…',
     searchProduct: 'Buscar código o producto…',
@@ -662,6 +667,7 @@ export const es: Messages = {
     tplErrSave: 'No se pudo guardar la plantilla.',
   },
   incident: {
+    teamLabel: 'Equipo',
     title: 'Incidencias',
     subtitle: 'Qué salió mal, por qué, y qué hicimos al respecto',
     navLabel: 'Incidencias',
@@ -670,6 +676,7 @@ export const es: Messages = {
     noneBody: 'No se ha registrado nada con estos filtros.',
     readOnly: 'Puedes ver esta incidencia pero no modificarla',
     readOnlyBody: 'Editar una incidencia requiere el permiso Gestionar incidencias. Pídeselo a un administrador si lo necesitas.',
+    readOnlyOtherTeam: 'Esta incidencia es de otro equipo: puedes verla, pero la gestiona ese equipo.',
 
     detected: 'Detectada',
 
@@ -1372,6 +1379,12 @@ export const es: Messages = {
     digitalIsManual: 'Introducido por un administrador, no leído de ningún sistema',
   },
   roles: {
+    productionManager: 'Encargado de producción',
+    team: 'Equipo',
+    teamProduction: 'Producción',
+    teamOperations: 'Operaciones',
+    teamHint: 'Un Usuario ve solo las actividades de su equipo. El Encargado de producción siempre es de Producción.',
+    productionManagerNote: 'El Encargado de producción solo actúa sobre las personas, actividades e incidencias de Producción, y ve los pedidos sin poder cambiarlos.',
     admin: 'Administrador',
     manager: 'Responsable',
     powerUser: 'Usuario avanzado',
@@ -1379,7 +1392,7 @@ export const es: Messages = {
     changeRole: 'Cambiar rol',
     lastAdmin: 'Es el último administrador. Promueve a otra persona primero.',
     matrixTitle: 'Roles y permisos',
-    matrixSubtitle: 'Qué pueden hacer un Responsable y un Usuario avanzado',
+    matrixSubtitle: 'Qué pueden hacer un Responsable, un Usuario avanzado y un Encargado de producción',
     capability: 'Capacidad',
     adminOnly: 'Solo administrador',
     matrixNote:
@@ -1476,6 +1489,7 @@ export const es: Messages = {
       invalid_recipient: 'Alguna de las personas seleccionadas ya no puede recibir notificaciones. Recarga la pantalla e inténtalo de nuevo.',
       not_authorized: 'No tienes permiso para enviar notificaciones.',
       push_not_configured: 'Las notificaciones push no están configuradas en este despliegue.',
+      not_your_team: 'Solo puedes escribir a personas de tu equipo.',
     },
   },
   gr: {

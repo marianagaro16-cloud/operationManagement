@@ -11,6 +11,7 @@ import { displayName } from '@/lib/utils';
 import { OrderControl } from '@/components/orders/order-control';
 import { OrdersBoard, OrdersTabs, type OrdersMode, type OrdersTab } from '@/components/orders/orders-board';
 import { redirect } from 'next/navigation';
+import { ordersReadOnly } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,10 @@ export default async function OrdersPage({
   const viewer = await getViewer();
   if (!viewer || viewer.profile.status !== 'approved') redirect('/dashboard');
   const canManage = viewer.can('orders.manage');
+  // The production manager browses every order and day like a manager, and
+  // changes nothing — the database refuses their writes regardless.
+  const readOnly = ordersReadOnly(viewer.role);
+  const canBrowse = canManage || readOnly;
 
   /*
    * Which tab. The stage tabs are for everyone; All — the monthly order book,
@@ -59,15 +64,17 @@ export default async function OrdersPage({
   const requested = searchParams.tab as OrdersTab | undefined;
   const tab: OrdersTab =
     requested === 'all' || (!requested && hasBookFilters)
-      ? (canManage ? 'all' : 'to_prepare')
+      ? (canBrowse ? 'all' : 'to_prepare')
       : requested === 'ready' || requested === 'shipped' ? requested : 'to_prepare';
 
   if (tab !== 'all') {
     const today = businessToday();
     // A plain user works today only — whatever the URL says. Managers can move
-    // between days and key the day on delivery instead of preparation.
-    const date = canManage && isDate(searchParams.date) ? searchParams.date : today;
-    const mode: OrdersMode = canManage && searchParams.mode === 'delivery' ? 'delivery' : 'preparation';
+    // between days and key the day on delivery instead of preparation. A
+    // read-only viewer wants what LEAVES each day, so delivery is their default.
+    const date = canBrowse && isDate(searchParams.date) ? searchParams.date : today;
+    const requestedMode = searchParams.mode === 'delivery' || searchParams.mode === 'preparation' ? searchParams.mode : null;
+    const mode: OrdersMode = canBrowse ? requestedMode ?? (readOnly ? 'delivery' : 'preparation') : 'preparation';
     const [board, boxTypes] = await Promise.all([getOrdersBoard(date, mode, date === today), getBoxTypes()]);
     return (
       <OrdersBoard
@@ -76,6 +83,8 @@ export default async function OrdersPage({
         today={today}
         mode={mode}
         canManage={canManage}
+        canBrowse={canBrowse}
+        readOnly={readOnly}
         toPrepare={board.toPrepare}
         carriedOver={board.carriedOver}
         ready={board.ready}
@@ -174,7 +183,7 @@ export default async function OrdersPage({
 
   return (
     <OrderControl
-      tabs={<OrdersTabs active="all" canManage />}
+      tabs={<OrdersTabs active="all" withAll />}
       orders={visible}
       customers={customers}
       products={products}
@@ -189,7 +198,7 @@ export default async function OrdersPage({
         brandId,
         query,
       }}
-      canManage
+      canManage={canManage}
       currentUserName={displayName(viewer.profile)}
       incidentCategories={incidentCategories}
       incidentTypes={incidentTypes}

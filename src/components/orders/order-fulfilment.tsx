@@ -13,6 +13,7 @@ import { orderStage } from '@/domain/orders/stage';
 import { boxCount } from '@/domain/orders/weight';
 import { setOrderReady, setOrdersShipped } from '@/server/order-actions';
 import type { OrderWithProgress } from '@/types/orders';
+import { useOrdersReadOnly } from './orders-read-only';
 
 /** The one chip that says where an order is: to prepare → … → shipped. */
 export function OrderStageChip({ order, hideToPrepare = true }: { order: OrderWithProgress; hideToPrepare?: boolean }) {
@@ -67,6 +68,7 @@ export function OrderFulfilment({
   const { t, locale } = useI18n();
   const router = useRouter();
   const translate = useOrderError();
+  const readOnly = useOrdersReadOnly();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -120,6 +122,8 @@ export function OrderFulfilment({
         </div>
       )}
 
+      {/* Who and when stay visible; moving it on is for whoever prepares. */}
+      {!readOnly && (
       <div className="flex flex-wrap items-center gap-1.5">
         {!ready && (
           <>
@@ -157,6 +161,7 @@ export function OrderFulfilment({
           </Button>
         )}
       </div>
+      )}
 
       {error && <p className="text-[12px] text-late">{error}</p>}
     </div>

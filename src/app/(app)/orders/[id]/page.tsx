@@ -7,7 +7,8 @@ import { IncidentLinks } from '@/components/incidents/incident-links';
 import { ReportIncidentButton } from '@/components/incidents/report-incident-button';
 import { orderContextFrom } from '@/components/incidents/order-context';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
-import { canUseReminders } from '@/lib/authz';
+import { canUseReminders, ordersReadOnly } from '@/lib/authz';
+import { OrdersReadOnlyProvider } from '@/components/orders/orders-read-only';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +60,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
   const orderContext = orderContextFrom(order);
 
   return (
-    <>
+    <OrdersReadOnlyProvider readOnly={viewer ? ordersReadOnly(viewer.role) : false}>
       <OrderDetail
         order={order}
         customers={customers}
@@ -94,6 +95,6 @@ export default async function OrderDetailPage({ params }: { params: { id: string
       <div className="mt-4">
         <IncidentLinks incidents={incidents} variant="order" />
       </div>
-    </>
+    </OrdersReadOnlyProvider>
   );
 }

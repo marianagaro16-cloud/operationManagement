@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import type { ConfigurableRole, Permission } from '@/lib/authz';
+import { CONFIGURABLE_ROLES, type ConfigurableRole, type Permission } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 
 /**
@@ -35,8 +35,7 @@ export async function getRoleMatrix(): Promise<Record<ConfigurableRole, Permissi
   if (error) throw new Error(error.message);
 
   const rows = (data ?? []) as { role: ConfigurableRole; permission: Permission }[];
-  return {
-    manager: rows.filter((r) => r.role === 'manager').map((r) => r.permission),
-    power_user: rows.filter((r) => r.role === 'power_user').map((r) => r.permission),
-  };
+  return Object.fromEntries(
+    CONFIGURABLE_ROLES.map((role) => [role, rows.filter((r) => r.role === role).map((r) => r.permission)]),
+  ) as Record<ConfigurableRole, Permission[]>;
 }

@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Badge, Card, EmptyState, ErrorState, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { deleteUser, setUserRole, setUserStatus } from '@/server/actions';
-import { ROLES, type Role } from '@/lib/authz';
+import { deleteUser, setUserRole, setUserStatus, setUserTeam } from '@/server/actions';
+import { ROLES, TEAMS, type Role, type Team } from '@/lib/authz';
 import type { Profile, UserStatus } from '@/types/database';
 
 const STATUS_TONE = {
@@ -24,8 +24,16 @@ const ROLE_TONE = {
   admin: 'accent',
   manager: 'done',
   power_user: 'warn',
+  production_manager: 'warn',
   user: 'neutral',
 } as const;
+
+/*
+ * The team only narrows a User or a Production manager (see teamScope()).
+ * Admin, Manager and Power User see everything, so asking for theirs would
+ * be asking for a value that changes nothing.
+ */
+const TEAM_MATTERS: ReadonlySet<Role> = new Set<Role>(['user', 'production_manager']);
 
 export function UserManager({ users, currentUserId }: { users: Profile[]; currentUserId: string }) {
   const { t, formatDate } = useI18n();
@@ -73,8 +81,47 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
       case 'admin': return t('roles.admin');
       case 'manager': return t('roles.manager');
       case 'power_user': return t('roles.powerUser');
+      case 'production_manager': return t('roles.productionManager');
       case 'user': return t('roles.user');
     }
+  };
+
+  const teamLabel = (team: Team) =>
+    team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations');
+
+  function changeTeam(user: Profile, team: Team) {
+    if (team === user.team) return;
+    startTransition(async () => {
+      const res = await setUserTeam(user.id, team);
+      if (!res.ok) setError(res.error);
+      router.refresh();
+    });
+  }
+
+  /*
+   * A picker for a User, set before approval too so they start on the right
+   * team; a fixed badge for a Production manager, whose team the database
+   * forces to Producción.
+   */
+  const teamControl = (user: Profile) => {
+    if (!TEAM_MATTERS.has(user.role)) return null;
+    if (user.role === 'production_manager') {
+      return <Badge tone="neutral">{teamLabel('production')}</Badge>;
+    }
+    return (
+      <Select
+        aria-label={t('roles.team')}
+        title={t('roles.teamHint')}
+        className="h-8 w-auto py-0 text-[12.5px]"
+        value={user.team}
+        disabled={pending}
+        onChange={(e) => changeTeam(user, e.target.value as Team)}
+      >
+        {TEAMS.map((team) => (
+          <option key={team} value={team}>{teamLabel(team)}</option>
+        ))}
+      </Select>
+    );
   };
 
   function changeRole(user: Profile, role: Role) {
@@ -89,7 +136,9 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
 
   const row = (user: Profile) => (
     <li key={user.id} className="flex flex-wrap items-center gap-2 px-3.5 py-2.5">
-      <div className="min-w-0 flex-1">
+      {/* A floor under the name: with a team and a role picker beside it, the
+          controls wrap to their own line rather than squeezing the name out. */}
+      <div className="min-w-[11rem] flex-1">
         <p className="truncate text-[13.5px] font-medium">{user.name ?? '—'}</p>
         <p className="truncate text-[12px] text-muted">{user.email}</p>
       </div>
@@ -101,7 +150,9 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
         {formatDate(user.created_at.slice(0, 10), 'short')}
       </span>
 
-      <div className="flex shrink-0 gap-1">
+      <div className="flex shrink-0 flex-wrap gap-1">
+        {user.status !== 'rejected' && user.status !== 'deactivated' && teamControl(user)}
+
         {user.status === 'pending' && (
           <>
             <Button

@@ -28,6 +28,7 @@ import { NoteBlock, NoteChip } from '@/components/ui/note';
 import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
 import { ShortfallSummary } from './shortfall';
 import { OrderWeight } from './order-weight';
+import { useOrdersReadOnly } from './orders-read-only';
 
 /**
  * One order, at its own address.
@@ -73,6 +74,7 @@ export function OrderDetail({
   boxesRequired?: boolean;
 }) {
   const { t, formatDate } = useI18n();
+  const readOnlyRole = useOrdersReadOnly();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
 
@@ -119,7 +121,12 @@ export function OrderDetail({
           Absence of a control reads as a missing feature; this reads as a
           permission, which is what it is. */}
       {!canManage && (
-        <ReadOnlyNotice title={t('orders.readOnly')} reason={t('orders.readOnlyBody')} />
+        <ReadOnlyNotice
+          title={t('orders.readOnly')}
+          // A read-only role is not missing a permission: orders are simply
+          // Operaciones' to change.
+          reason={t(readOnlyRole ? 'orders.readOnlyNote' : 'orders.readOnlyBody')}
+        />
       )}
 
       {/* ------------------------- the facts ------------------------- */}

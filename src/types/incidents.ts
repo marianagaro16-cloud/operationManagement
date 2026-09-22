@@ -149,6 +149,8 @@ export interface Incident {
   description: string;
   severity: IncidentSeverity;
   status: IncidentStatus;
+  /** Whose incident it is — by default the reporter's team. */
+  team: import('@/lib/authz').Team;
 
   primary_cause: IncidentCause | null;
   responsibility: IncidentResponsibility;

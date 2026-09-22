@@ -24,6 +24,7 @@ const ROLE_LABEL: Record<Role, MessageKey> = {
   admin: 'roles.admin',
   manager: 'roles.manager',
   power_user: 'roles.powerUser',
+  production_manager: 'roles.productionManager',
   user: 'roles.user',
 };
 
@@ -42,6 +43,7 @@ const KNOWN_ERRORS = [
   'invalid_message',
   'invalid_recipient',
   'not_authorized',
+  'not_your_team',
   'push_not_configured',
 ] as const;
 

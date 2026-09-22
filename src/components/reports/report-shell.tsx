@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ import {
   type PeriodRange,
   type ReportPeriod,
 } from '@/domain/orders/reporting';
+import { REPORT_TABS, type ReportTab } from './report-tabs';
 
 /**
  * The reporting shell: tabs, period selector, period navigation.
@@ -33,9 +34,20 @@ import {
  * moving from Orders to Inventory keeps the month you were looking at.
  */
 
-export type ReportTab = 'orders' | 'preparation' | 'tasks' | 'inventory';
+export type { ReportTab };
 
-const TABS: ReportTab[] = ['orders', 'preparation', 'tasks', 'inventory'];
+/**
+ * Which tabs this viewer gets. Set once by the page for the whole screen, so
+ * the four report views need not each carry it: a production manager sees
+ * Orders and Inventory, not Preparation (Operaciones' work) or Activities
+ * (every team's tasks).
+ */
+const ReportTabsContext = createContext<ReportTab[]>(REPORT_TABS);
+
+export function ReportTabsProvider({ tabs, children }: { tabs: ReportTab[]; children: ReactNode }) {
+  return <ReportTabsContext.Provider value={tabs}>{children}</ReportTabsContext.Provider>;
+}
+
 const PERIODS: ReportPeriod[] = ['day', 'week', 'month', 'year', 'custom'];
 
 /** Every link in here keeps the tab and the period together. */
@@ -84,6 +96,7 @@ export function ReportShell({
   children: ReactNode;
 }) {
   const { t, locale } = useI18n();
+  const tabs = useContext(ReportTabsContext);
   const [from, setFrom] = useState(range.start);
   const [to, setTo] = useState(range.end);
   const isCustom = range.kind === 'custom';
@@ -105,7 +118,7 @@ export function ReportShell({
       {/* Which module. Switching tabs preserves the period below. */}
       <nav className="-mx-4 mb-4 overflow-x-auto px-4">
         <ul className="flex min-w-max gap-1 border-b border-border pb-px">
-          {TABS.map((item) => (
+          {tabs.map((item) => (
             <li key={item}>
               <Link
                 href={reportHref(item, range, anchor)}

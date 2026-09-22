@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { scheduleConfigSchema, FREQUENCIES } from '@/domain/recurrence/types';
-import { ROLES, wouldOrphanAdmins, type Role } from '@/lib/authz';
+import { ROLES, TEAMS, wouldOrphanAdmins, type Role, type Team } from '@/lib/authz';
 import { countApprovedAdmins } from './data';
 import { ensureScheduled } from './scheduling';
 
@@ -34,6 +34,7 @@ function fail(error: unknown): { ok: false; error: string } {
   if (message.includes('not_authorized')) return { ok: false, error: 'not_authorized' };
   if (message.includes('not_your_action')) return { ok: false, error: 'not_your_action' };
   if (message.includes('not_assigned_to_you')) return { ok: false, error: 'not_assigned_to_you' };
+  if (message.includes('not_your_team')) return { ok: false, error: 'not_your_team' };
   if (message.includes('occurrence_not_found')) return { ok: false, error: 'occurrence_not_found' };
   return { ok: false, error: message };
 }
@@ -146,6 +147,8 @@ const taskInputSchema = z.object({
   schedule_config: scheduleConfigSchema.nullable(),
   is_skippable: z.boolean(),
   is_active: z.boolean(),
+  /** Whose work it is: scoped users see only their team's tasks. */
+  team: z.enum(TEAMS).default('operations'),
 });
 
 export type TaskInput = z.infer<typeof taskInputSchema>;
@@ -252,6 +255,20 @@ export async function setUserRole(userId: string, role: Role): Promise<ActionRes
   if (error) return fail(error);
   revalidatePath('/admin/users');
   revalidatePath('/admin/permissions');
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Put someone on a team. Admin-only, like the role: the profiles update
+ * policy allows admins alone, so nobody can move themselves out of a scope.
+ * A production manager's team is forced to Producción by the database.
+ */
+export async function setUserTeam(userId: string, team: Team): Promise<ActionResult> {
+  if (!(TEAMS as readonly string[]).includes(team)) return { ok: false, error: 'invalid_team' };
+  const supabase = createClient();
+  const { error } = await supabase.from('profiles').update({ team }).eq('id', userId);
+  if (error) return fail(error);
+  revalidatePath('/admin/users');
   return { ok: true, data: undefined };
 }
 

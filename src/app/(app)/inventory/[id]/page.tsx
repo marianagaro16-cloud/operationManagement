@@ -3,7 +3,7 @@ import { businessToday } from '@/lib/datetime';
 import { getUsers, getViewer } from '@/server/data';
 import { getInventoryDetail, getInventoryLocations } from '@/server/inventory';
 import { InventoryDetailView } from '@/components/inventory/inventory-detail';
-import { canUseReminders } from '@/lib/authz';
+import { canUseReminders, teamScope } from '@/lib/authz';
 
 // Never cached: two people may be counting the same inventory at once, and
 // the 18:00 lock has to be evaluated against the real clock on every load.
@@ -29,7 +29,12 @@ export default async function InventoryDetailPage({ params }: { params: { id: st
 
   // The assign dialog is the only consumer, so anyone who cannot manage
   // instances never pays for the query.
-  const users = canManage ? await getUsers() : [];
+  // Only people in the viewer's scope: a production manager assigns
+  // Producción people, and the database refuses anyone else.
+  const scope = viewer ? teamScope(viewer.role, viewer.profile.team) : null;
+  const users = canManage
+    ? (await getUsers()).filter((u) => scope === null || u.team === scope)
+    : [];
 
   return (
     <InventoryDetailView

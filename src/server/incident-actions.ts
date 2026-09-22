@@ -13,6 +13,7 @@ import {
 } from '@/domain/incidents/vocabulary';
 import { canTransition, stampsFor } from '@/domain/incidents/workflow';
 import { monthRange } from '@/domain/orders/scheduling';
+import { TEAMS } from '@/lib/authz';
 import type { ActionResult } from './actions';
 
 /**
@@ -179,6 +180,8 @@ const updateSchema = z.object({
   resolution_notes: z.string().trim().max(8000).nullable().optional(),
 
   status: z.enum(INCIDENT_STATUSES).optional(),
+  /** Moving it to the other team. The update policy refuses it for a scoped manager. */
+  team: z.enum(TEAMS).optional(),
 });
 
 export type UpdateIncidentInput = z.infer<typeof updateSchema>;
@@ -223,7 +226,7 @@ export async function updateIncident(
   for (const key of [
     'customer_id', 'order_id', 'delivery_method_id', 'incident_type_id',
     'severity', 'description', 'primary_cause', 'responsibility',
-    'investigation_notes', 'resolution_notes',
+    'investigation_notes', 'resolution_notes', 'team',
   ] as const) {
     if (data[key] !== undefined) patch[key] = data[key];
   }

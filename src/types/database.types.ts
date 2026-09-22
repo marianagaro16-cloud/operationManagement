@@ -1106,6 +1106,7 @@ export type Database = {
           responsibility: Database["public"]["Enums"]["incident_responsibility"]
           severity: Database["public"]["Enums"]["incident_severity"]
           status: Database["public"]["Enums"]["incident_status"]
+          team: Database["public"]["Enums"]["team"]
           updated_at: string
           updated_by: string | null
         }
@@ -1132,6 +1133,7 @@ export type Database = {
           responsibility?: Database["public"]["Enums"]["incident_responsibility"]
           severity?: Database["public"]["Enums"]["incident_severity"]
           status?: Database["public"]["Enums"]["incident_status"]
+          team: Database["public"]["Enums"]["team"]
           updated_at?: string
           updated_by?: string | null
         }
@@ -1158,6 +1160,7 @@ export type Database = {
           responsibility?: Database["public"]["Enums"]["incident_responsibility"]
           severity?: Database["public"]["Enums"]["incident_severity"]
           status?: Database["public"]["Enums"]["incident_status"]
+          team?: Database["public"]["Enums"]["team"]
           updated_at?: string
           updated_by?: string | null
         }
@@ -3071,6 +3074,7 @@ export type Database = {
           name: string | null
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["user_status"]
+          team: Database["public"]["Enums"]["team"]
           updated_at: string
         }
         Insert: {
@@ -3082,6 +3086,7 @@ export type Database = {
           name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["user_status"]
+          team?: Database["public"]["Enums"]["team"]
           updated_at?: string
         }
         Update: {
@@ -3093,6 +3098,7 @@ export type Database = {
           name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["user_status"]
+          team?: Database["public"]["Enums"]["team"]
           updated_at?: string
         }
         Relationships: []
@@ -3920,6 +3926,7 @@ export type Database = {
           is_skippable: boolean
           schedule_config: Json | null
           starts_on: string | null
+          team: Database["public"]["Enums"]["team"]
           title: string
           translations: Json
           updated_at: string
@@ -3936,6 +3943,7 @@ export type Database = {
           is_skippable?: boolean
           schedule_config?: Json | null
           starts_on?: string | null
+          team?: Database["public"]["Enums"]["team"]
           title: string
           translations?: Json
           updated_at?: string
@@ -3952,6 +3960,7 @@ export type Database = {
           is_skippable?: boolean
           schedule_config?: Json | null
           starts_on?: string | null
+          team?: Database["public"]["Enums"]["team"]
           title?: string
           translations?: Json
           updated_at?: string
@@ -4145,6 +4154,11 @@ export type Database = {
         Args: { p_assignee_id: string }
         Returns: boolean
       }
+      can_act_on_task_occurrence: {
+        Args: { p_assignee_id: string; p_task_id: string }
+        Returns: boolean
+      }
+      can_manage_incident: { Args: { p_incident_id: string }; Returns: boolean }
       can_use_reminders: { Args: never; Returns: boolean }
       can_view_incident:
         | { Args: { p_order_id: string }; Returns: boolean }
@@ -4246,6 +4260,10 @@ export type Database = {
       }
       get_viewer: { Args: never; Returns: Json }
       has_permission: { Args: { p_key: string }; Returns: boolean }
+      in_team_scope: {
+        Args: { p_team: Database["public"]["Enums"]["team"] }
+        Returns: boolean
+      }
       inventory_can_edit: { Args: { p_instance_id: string }; Returns: boolean }
       inventory_complete: {
         Args: { p_instance_id: string }
@@ -4424,6 +4442,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_approved: { Args: never; Returns: boolean }
+      is_assigned_to_task: { Args: { p_task_id: string }; Returns: boolean }
       is_at_least: {
         Args: { r: Database["public"]["Enums"]["user_role"] }
         Returns: boolean
@@ -4472,6 +4491,7 @@ export type Database = {
         Args: { p_order_ids: string[]; p_shipped: boolean }
         Returns: number
       }
+      person_in_team_scope: { Args: { p_user_id: string }; Returns: boolean }
       preparation_date_for: {
         Args: { p_delivery_date: string; p_lead_days: number }
         Returns: string
@@ -4623,6 +4643,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      task_in_team_scope: { Args: { p_task_id: string }; Returns: boolean }
+      team_scope: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       touch_presence: { Args: { p_path: string }; Returns: undefined }
     }
     Enums: {
@@ -4677,7 +4699,13 @@ export type Database = {
         | "monthly"
         | "semiannual"
         | "one_off"
-      user_role: "admin" | "user" | "manager" | "power_user"
+      team: "production" | "operations"
+      user_role:
+        | "admin"
+        | "user"
+        | "manager"
+        | "power_user"
+        | "production_manager"
       user_status: "pending" | "approved" | "rejected" | "deactivated"
     }
     CompositeTypes: {
@@ -4866,7 +4894,14 @@ export const Constants = {
         "semiannual",
         "one_off",
       ],
-      user_role: ["admin", "user", "manager", "power_user"],
+      team: ["production", "operations"],
+      user_role: [
+        "admin",
+        "user",
+        "manager",
+        "power_user",
+        "production_manager",
+      ],
       user_status: ["pending", "approved", "rejected", "deactivated"],
     },
   },

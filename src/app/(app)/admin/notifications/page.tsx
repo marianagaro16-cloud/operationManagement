@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getViewer } from '@/server/data';
 import { getNotifiableUsers } from '@/server/notifications';
 import { NotificationSender } from '@/components/admin/notification-sender';
+import { teamScope } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ export default async function AdminNotificationsPage() {
   const viewer = await getViewer();
   if (!viewer?.can('notifications.send')) redirect('/admin');
 
-  const users = await getNotifiableUsers(viewer.profile.id);
+  const users = await getNotifiableUsers(viewer.profile.id, teamScope(viewer.role, viewer.profile.team));
 
   return <NotificationSender users={users} />;
 }

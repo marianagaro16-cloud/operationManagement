@@ -9,7 +9,9 @@ import {
   can,
   isConfigurable,
   isRole,
+  ordersReadOnly,
   permissionKey,
+  teamScope,
   wouldOrphanAdmins,
   type Permission,
 } from './authz';
@@ -31,7 +33,8 @@ describe('role hierarchy', () => {
   // The ordering of ROLES is for display; rank must not be derived from it.
   it('does not derive rank from the declaration order', () => {
     const byDeclaration = [...ROLES].map((r) => ROLE_RANK[r]);
-    expect(byDeclaration).toEqual([4, 3, 2, 1]);
+    // The production manager sits beside the power user: same rank, listed after it.
+    expect(byDeclaration).toEqual([4, 3, 2, 2, 1]);
   });
 
   it('recognises only real roles', () => {
@@ -73,8 +76,33 @@ describe('admin-only capabilities', () => {
     expect(isConfigurable('inventory.manage_templates')).toBe(true);
   });
 
-  it('only offers manager and power_user as configurable roles', () => {
-    expect([...CONFIGURABLE_ROLES]).toEqual(['manager', 'power_user']);
+  it('offers manager, power_user and production_manager as configurable roles', () => {
+    expect([...CONFIGURABLE_ROLES]).toEqual(['manager', 'power_user', 'production_manager']);
+  });
+});
+
+describe('team scope', () => {
+  it('confines a user and a production manager to their team', () => {
+    expect(teamScope('user', 'operations')).toBe('operations');
+    expect(teamScope('production_manager', 'production')).toBe('production');
+  });
+
+  it('leaves admin, manager and power user unscoped whatever their team', () => {
+    expect(teamScope('admin', 'production')).toBeNull();
+    expect(teamScope('manager', 'operations')).toBeNull();
+    expect(teamScope('power_user', 'production')).toBeNull();
+  });
+
+  it('makes orders read-only for the production manager alone', () => {
+    expect(ordersReadOnly('production_manager')).toBe(true);
+    for (const role of ['admin', 'manager', 'power_user', 'user'] as const) {
+      expect(ordersReadOnly(role)).toBe(false);
+    }
+  });
+
+  it('opens the management area to the production manager', () => {
+    expect(atLeast('production_manager', 'power_user')).toBe(true);
+    expect(atLeast('production_manager', 'manager')).toBe(false);
   });
 });
 
