@@ -211,55 +211,63 @@ export function ProductManager({
         <Card className="overflow-hidden">
           <ul className="divide-y divide-border">
             {visible.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 px-3.5 py-2">
-                <span className="w-14 shrink-0 text-[11.5px] tabular text-subtle">
+              <li key={p.id} className="flex items-start gap-3 px-3.5 py-2.5">
+                <span className="w-14 shrink-0 pt-px text-[11.5px] tabular text-subtle">
                   {p.code ?? '—'}
                 </span>
-                <span
-                  className={cn(
-                    'min-w-0 flex-1 truncate text-[13px]',
-                    !p.is_active && 'text-muted line-through',
-                  )}
-                  title={productLabel(p)}
-                >
-                  {productLabel(p)}
-                </span>
-                {/* The brand a product is sold under, beside its name.
-                    Absent rather than "—" when unclassified: a badge that
-                    says nothing still costs a column on a phone. */}
-                {p.brand && <Badge tone="neutral">{p.brand.name}</Badge>}
-                {p.category_id && (
-                  <Badge tone="neutral" className="hidden sm:inline-flex">
-                    {classificationLabel(p, categories, subcategories, locale)}
-                  </Badge>
-                )}
-                <ProductWeights product={p} />
-                {p.needs_review && (
-                  <Badge tone="warn" title={p.notes ?? undefined}>
-                    <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
-                    {t('master.needsReview')}
-                  </Badge>
-                )}
-                <Badge tone={p.is_active ? 'done' : 'neutral'}>
-                  {p.is_active ? t('status.active') : t('status.inactive')}
-                </Badge>
-                <QuickReminderButton
-                  viewerId={reminderViewerId}
-                  variant="ghost"
-                  link={{
-                    type: 'product',
-                    id: p.id,
-                    label: p.code ? `${p.code} · ${productLabel(p)}` : productLabel(p),
-                  }}
-                />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setEditing(p)}
-                  aria-label={t('common.edit')}
-                >
-                  <Pencil className="h-3.5 w-3.5" aria-hidden />
-                </Button>
+                {/* The name on a line of its own and wrapping, never cut off:
+                    names like "Bio Mais Tortillas zum frittieren- Vakuum
+                    Verpackt- 1kg - Ø14cm" only differ at the end. The badges
+                    follow underneath. */}
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={cn(
+                      'break-words text-[13px] leading-snug',
+                      !p.is_active && 'text-muted line-through',
+                    )}
+                  >
+                    {productLabel(p)}
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    {/* The brand a product is sold under. Absent rather than
+                        "—" when unclassified: a badge that says nothing still
+                        costs room on a phone. */}
+                    {p.brand && <Badge tone="neutral">{p.brand.name}</Badge>}
+                    {p.category_id && (
+                      <Badge tone="neutral">{classificationLabel(p, categories, subcategories, locale)}</Badge>
+                    )}
+                    <ProductWeights product={p} />
+                    {p.needs_review && (
+                      <Badge tone="warn" title={p.notes ?? undefined}>
+                        <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
+                        {t('master.needsReview')}
+                      </Badge>
+                    )}
+                    <Badge tone={p.is_active ? 'done' : 'neutral'}>
+                      {p.is_active ? t('status.active') : t('status.inactive')}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <QuickReminderButton
+                    viewerId={reminderViewerId}
+                    variant="ghost"
+                    compact
+                    link={{
+                      type: 'product',
+                      id: p.id,
+                      label: p.code ? `${p.code} · ${productLabel(p)}` : productLabel(p),
+                    }}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setEditing(p)}
+                    aria-label={t('common.edit')}
+                  >
+                    <Pencil className="h-3.5 w-3.5" aria-hidden />
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>

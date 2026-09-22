@@ -141,12 +141,15 @@ export function QuickReminderButton({
   variant = 'secondary',
   size = 'sm',
   className,
+  compact = false,
 }: {
   viewerId: string | null;
   link?: ReminderContextLink;
   variant?: 'primary' | 'secondary' | 'ghost';
   size?: 'sm' | 'md';
   className?: string;
+  /** Icon only on a phone, for rows where the words would crowd out the content. */
+  compact?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -155,9 +158,16 @@ export function QuickReminderButton({
 
   return (
     <>
-      <Button variant={variant} size={size} onClick={() => setOpen(true)} className={className}>
+      <Button
+        variant={variant}
+        size={size}
+        onClick={() => setOpen(true)}
+        className={className}
+        aria-label={compact ? t('reminder.new') : undefined}
+        title={compact ? t('reminder.new') : undefined}
+      >
         <Plus className="h-3.5 w-3.5" aria-hidden />
-        {t('reminder.new')}
+        {compact ? <span className="hidden sm:inline">{t('reminder.new')}</span> : t('reminder.new')}
       </Button>
       {open && (
         <ReminderDialog
