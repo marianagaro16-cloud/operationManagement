@@ -53,6 +53,17 @@ export interface Customer {
    */
   customer_type_id?: string | null;
   customer_type?: CustomerType | null;
+  /** Where the van delivers. Empty until somebody fills it in. */
+  street?: string | null;
+  postal_code?: string | null;
+  city?: string | null;
+  /** ISO country code; 'CH' unless stated. */
+  country?: string | null;
+  /** What the driver needs to know: which door, which hours, who to ask for. */
+  delivery_notes?: string | null;
+  /** Geocoded from the address when it is saved; null when it could not be placed. */
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   /**
    * "5 Almas AG — La Catedral", or just the company where there is no
    * addition. A GENERATED column in Postgres, so it can never disagree with
@@ -76,6 +87,8 @@ export interface DeliveryMethod {
   name: string;
   sort_order: number;
   is_active: boolean;
+  /** We drive it ourselves, so its orders form a delivery round. */
+  own_vehicle?: boolean;
 }
 
 /**

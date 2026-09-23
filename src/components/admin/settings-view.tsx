@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardBody, ErrorState } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { generateHorizon } from '@/server/actions';
+import { RouteOriginCard } from './route-origin';
+import type { RouteOrigin } from '@/server/route';
 import { BUSINESS_TZ } from '@/lib/datetime';
 
-export function SettingsView() {
+export function SettingsView({ routeOrigin }: { routeOrigin: RouteOrigin | null }) {
   const { t } = useI18n();
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<string | null>(null);
@@ -20,6 +22,8 @@ export function SettingsView() {
       <PageHeader title={t('admin.settingsTitle')} />
 
       <div className="space-y-4">
+        <RouteOriginCard origin={routeOrigin} />
+
         <Card>
           <CardBody className="pt-4">
             <div className="flex items-start gap-3">

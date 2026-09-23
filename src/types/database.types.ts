@@ -39,6 +39,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       box_types: {
         Row: {
           created_at: string
@@ -266,33 +295,57 @@ export type Database = {
       }
       customers: {
         Row: {
+          city: string | null
           company_name: string
           company_name_addition: string | null
+          country: string
           created_at: string
           customer_type_id: string | null
+          delivery_notes: string | null
+          geocoded_at: string | null
           id: string
           is_active: boolean
+          latitude: number | null
+          longitude: number | null
           name: string | null
+          postal_code: string | null
+          street: string | null
           updated_at: string
         }
         Insert: {
+          city?: string | null
           company_name: string
           company_name_addition?: string | null
+          country?: string
           created_at?: string
           customer_type_id?: string | null
+          delivery_notes?: string | null
+          geocoded_at?: string | null
           id?: string
           is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
           name?: string | null
+          postal_code?: string | null
+          street?: string | null
           updated_at?: string
         }
         Update: {
+          city?: string | null
           company_name?: string
           company_name_addition?: string | null
+          country?: string
           created_at?: string
           customer_type_id?: string | null
+          delivery_notes?: string | null
+          geocoded_at?: string | null
           id?: string
           is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
           name?: string | null
+          postal_code?: string | null
+          street?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -311,6 +364,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          own_vehicle: boolean
           slug: string
           sort_order: number
           updated_at: string
@@ -320,6 +374,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          own_vehicle?: boolean
           slug: string
           sort_order?: number
           updated_at?: string
@@ -329,6 +384,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          own_vehicle?: boolean
           slug?: string
           sort_order?: number
           updated_at?: string
@@ -2533,6 +2589,7 @@ export type Database = {
           recurring_template_id: string | null
           reference: number
           replaces_incident_id: string | null
+          route_position: number | null
           shipped_at: string | null
           shipped_by: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -2559,6 +2616,7 @@ export type Database = {
           recurring_template_id?: string | null
           reference?: never
           replaces_incident_id?: string | null
+          route_position?: number | null
           shipped_at?: string | null
           shipped_by?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -2585,6 +2643,7 @@ export type Database = {
           recurring_template_id?: string | null
           reference?: never
           replaces_incident_id?: string | null
+          route_position?: number | null
           shipped_at?: string | null
           shipped_by?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -4248,6 +4307,7 @@ export type Database = {
           recurring_template_id: string | null
           reference: number
           replaces_incident_id: string | null
+          route_position: number | null
           shipped_at: string | null
           shipped_by: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -4502,6 +4562,10 @@ export type Database = {
       }
       order_set_ready: {
         Args: { p_order_id: string; p_ready: boolean }
+        Returns: undefined
+      }
+      order_set_route_position: {
+        Args: { p_order_id: string; p_position: number }
         Returns: undefined
       }
       order_set_shipped: {

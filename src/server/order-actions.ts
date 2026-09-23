@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { isValidSchedule } from '@/domain/orders/scheduling';
 import { SHORTFALL_CODES, type OrderType } from '@/types/orders';
 import { getViewer } from './data';
+import { geocodeAddress } from './geocode';
 import type { ActionResult } from './actions';
 
 /**
@@ -377,6 +378,13 @@ const customerSchema = z.object({
   company_name: z.string().trim().min(1),
   // Kept separate from the company name on purpose; never merged away.
   company_name_addition: z.string().trim().nullable(),
+  // The delivery address. Optional throughout: most customers are shipped by
+  // a carrier and nobody needs to know where they are.
+  street: z.string().trim().max(200).nullable().optional(),
+  postal_code: z.string().trim().max(20).nullable().optional(),
+  city: z.string().trim().max(120).nullable().optional(),
+  country: z.string().trim().length(2).optional(),
+  delivery_notes: z.string().trim().max(1000).nullable().optional(),
   /** Commercial segment, or null while unclassified. Optional so an older
    *  caller that never sent it does not silently wipe an existing one.
    *  Required when creating a customer: see saveCustomer. */
@@ -394,10 +402,48 @@ export async function saveCustomer(
   // can still be saved, so this applies to inserts only.
   if (!id && !parsed.data.customer_type_id) return { ok: false, error: 'customer_type_required' };
   const supabase = createClient();
+
+  /*
+   * The address is geocoded when it CHANGES, and only then: Nominatim is a
+   * free service used politely, and a customer's street does not move when
+   * somebody edits their trading name.
+   */
+  const address = {
+    street: parsed.data.street ?? null,
+    postal_code: parsed.data.postal_code ?? null,
+    city: parsed.data.city ?? null,
+    country: parsed.data.country ?? 'CH',
+  };
+  const previous = id
+    ? ((await supabase
+      .from('customers')
+      .select('street, postal_code, city, country')
+      .eq('id', id)
+      .maybeSingle()).data as typeof address | null)
+    : null;
+  const addressChanged =
+    !previous
+    || previous.street !== address.street
+    || previous.postal_code !== address.postal_code
+    || previous.city !== address.city
+    || previous.country !== address.country;
+  const coordinates = addressChanged ? await geocodeAddress(address) : undefined;
+
   // `name` is a generated column — derived by Postgres, never written here.
   const row = {
     company_name: parsed.data.company_name,
     company_name_addition: parsed.data.company_name_addition || null,
+    ...address,
+    delivery_notes: parsed.data.delivery_notes || null,
+    // Only when the address moved: an unchanged customer keeps the
+    // coordinates it already had, geocoder outage or not.
+    ...(coordinates === undefined
+      ? {}
+      : {
+        latitude: coordinates?.latitude ?? null,
+        longitude: coordinates?.longitude ?? null,
+        geocoded_at: coordinates ? new Date().toISOString() : null,
+      }),
     // undefined leaves the column alone; null clears it deliberately.
     ...(parsed.data.customer_type_id === undefined
       ? {}

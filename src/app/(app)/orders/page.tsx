@@ -12,6 +12,7 @@ import { OrderControl } from '@/components/orders/order-control';
 import { OrdersBoard, OrdersTabs, type OrdersMode, type OrdersTab } from '@/components/orders/orders-board';
 import { redirect } from 'next/navigation';
 import { ordersReadOnly } from '@/lib/authz';
+import { getRouteOrigin, getRouteStops } from '@/server/route';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +66,9 @@ export default async function OrdersPage({
   const tab: OrdersTab =
     requested === 'all' || (!requested && hasBookFilters)
       ? (canBrowse ? 'all' : 'to_prepare')
-      : requested === 'ready' || requested === 'shipped' ? requested : 'to_prepare';
+      : requested === 'ready' || requested === 'shipped' || requested === 'route'
+        ? requested
+        : 'to_prepare';
 
   if (tab !== 'all') {
     const today = businessToday();
@@ -75,7 +78,19 @@ export default async function OrdersPage({
     const date = canBrowse && isDate(searchParams.date) ? searchParams.date : today;
     const requestedMode = searchParams.mode === 'delivery' || searchParams.mode === 'preparation' ? searchParams.mode : null;
     const mode: OrdersMode = canBrowse ? requestedMode ?? (readOnly ? 'delivery' : 'preparation') : 'preparation';
-    const [board, boxTypes] = await Promise.all([getOrdersBoard(date, mode, date === today), getBoxTypes()]);
+    /*
+     * The round is keyed on the DELIVERY date whatever the board is showing:
+     * "what the van drives on Thursday" is a question about deliveries, and
+     * reading it off the preparation date would answer a different one.
+     */
+    const [board, boxTypes, methods, route, routeOrigin] = await Promise.all([
+      getOrdersBoard(date, mode, date === today),
+      getBoxTypes(),
+      getDeliveryMethods(),
+      getRouteStops(date),
+      getRouteOrigin(),
+    ]);
+    const hasOwnVehicle = methods.some((m) => m.own_vehicle);
     return (
       <OrdersBoard
         tab={tab}
@@ -91,6 +106,9 @@ export default async function OrdersPage({
         shipped={board.shipped}
         openDays={board.openDays}
         boxTypes={boxTypes}
+        route={route}
+        routeOrigin={routeOrigin}
+        hasOwnVehicle={hasOwnVehicle}
       />
     );
   }

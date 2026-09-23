@@ -9,7 +9,7 @@ import { filterByQuery } from '@/lib/search';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { saveCustomer, setCustomerType } from '@/server/order-actions';
@@ -210,6 +210,13 @@ function CustomerDialog({
   const [companyName, setCompanyName] = useState(customer?.company_name ?? '');
   const [addition, setAddition] = useState(customer?.company_name_addition ?? '');
   const [typeId, setTypeId] = useState(customer?.customer_type_id ?? '');
+  // The delivery address. Saving it geocodes it, which is what lets the
+  // Palomo's round be ordered by proximity.
+  const [street, setStreet] = useState(customer?.street ?? '');
+  const [postalCode, setPostalCode] = useState(customer?.postal_code ?? '');
+  const [city, setCity] = useState(customer?.city ?? '');
+  const [country, setCountry] = useState(customer?.country ?? 'CH');
+  const [deliveryNotes, setDeliveryNotes] = useState(customer?.delivery_notes ?? '');
   const [active, setActive] = useState(customer?.is_active ?? true);
   const typeLabel = useCustomerTypeLabel();
   const [error, setError] = useState<string | null>(null);
@@ -226,6 +233,11 @@ function CustomerDialog({
           company_name: companyName,
           company_name_addition: addition || null,
           customer_type_id: typeId || null,
+          street: street.trim() || null,
+          postal_code: postalCode.trim() || null,
+          city: city.trim() || null,
+          country: (country.trim() || 'CH').toUpperCase(),
+          delivery_notes: deliveryNotes.trim() || null,
           is_active: active,
         },
         customer?.id,
@@ -277,6 +289,43 @@ function CustomerDialog({
               ))}
           </Select>
         </Field>
+
+        {/* Where the van delivers. Only our own round reads it, so it stays
+            optional: most customers go by carrier. */}
+        <div>
+          <p className="mb-2 text-[13px] font-medium">{t('master.addressTitle')}</p>
+          <div className="space-y-3">
+            <Field label={t('master.street')} htmlFor="c-street">
+              <Input id="c-street" value={street} onChange={(e) => setStreet(e.target.value)} />
+            </Field>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label={t('master.postalCode')} htmlFor="c-zip">
+                <Input id="c-zip" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} inputMode="numeric" />
+              </Field>
+              <div className="col-span-2">
+                <Field label={t('master.city')} htmlFor="c-city">
+                  <Input id="c-city" value={city} onChange={(e) => setCity(e.target.value)} />
+                </Field>
+              </div>
+            </div>
+            <Field label={t('master.country')} htmlFor="c-country">
+              <Input
+                id="c-country"
+                value={country}
+                onChange={(e) => setCountry(e.target.value.toUpperCase().slice(0, 2))}
+                className="max-w-24"
+              />
+            </Field>
+            <Field label={t('master.deliveryNotes')} hint={t('master.deliveryNotesHint')} htmlFor="c-delivery-notes">
+              <Textarea
+                id="c-delivery-notes"
+                value={deliveryNotes}
+                onChange={(e) => setDeliveryNotes(e.target.value)}
+                rows={2}
+              />
+            </Field>
+          </div>
+        </div>
 
         <Checkbox
           label={t('status.active')}

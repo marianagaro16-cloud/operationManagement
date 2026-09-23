@@ -25,9 +25,11 @@ import { useOrderError } from './order-fulfilment';
 import { BoxTypesProvider } from './order-boxes';
 import { OrdersReadOnlyProvider, useOrdersReadOnly } from './orders-read-only';
 import { dayTotals, type DayTotal } from '@/domain/orders/day-totals';
+import { RouteView } from './route-view';
+import type { RouteOrigin, RouteStopRow } from '@/server/route';
 import type { BoxType } from '@/types/orders';
 
-export type OrdersTab = 'to_prepare' | 'ready' | 'shipped' | 'all';
+export type OrdersTab = 'to_prepare' | 'ready' | 'shipped' | 'route' | 'all';
 export type OrdersMode = 'preparation' | 'delivery';
 
 /** Every link in the section keeps the tab, day and date mode together. */
@@ -43,6 +45,7 @@ const TAB_KEY: Record<OrdersTab, MessageKey> = {
   to_prepare: 'orders.tabToPrepare',
   ready: 'orders.tabReady',
   shipped: 'orders.tabShipped',
+  route: 'route.tab',
   all: 'orders.tabAll',
 };
 
@@ -57,6 +60,7 @@ export function OrdersTabs({
   active,
   counts,
   withAll,
+  withRoute = false,
   date,
   mode,
 }: {
@@ -64,11 +68,19 @@ export function OrdersTabs({
   counts?: Partial<Record<OrdersTab, number>>;
   /** The All tab: the order book, for whoever may browse every order. */
   withAll: boolean;
+  /** The Ruta tab: only where a delivery method is driven by us. */
+  withRoute?: boolean;
   date?: string;
   mode?: OrdersMode;
 }) {
   const { t } = useI18n();
-  const tabs: OrdersTab[] = withAll ? ['to_prepare', 'ready', 'shipped', 'all'] : ['to_prepare', 'ready', 'shipped'];
+  const tabs: OrdersTab[] = [
+    'to_prepare',
+    'ready',
+    'shipped',
+    ...(withRoute ? ['route' as const] : []),
+    ...(withAll ? ['all' as const] : []),
+  ];
   return (
     <nav className="-mx-4 mb-4 overflow-x-auto px-4">
       <ul className="flex min-w-max gap-1 border-b border-border pb-px">
@@ -128,6 +140,9 @@ export function OrdersBoard({
   canManage,
   canBrowse,
   readOnly,
+  route,
+  routeOrigin,
+  hasOwnVehicle,
   toPrepare,
   carriedOver,
   ready,
@@ -140,6 +155,10 @@ export function OrdersBoard({
   today: string;
   mode: OrdersMode;
   canManage: boolean;
+  /** The day's own-van round, and where it starts. Empty when no method is ours. */
+  route: RouteStopRow[];
+  routeOrigin: RouteOrigin | null;
+  hasOwnVehicle: boolean;
   /** May move between days and open the order book. */
   canBrowse: boolean;
   /** Sees orders without being able to change them. */
@@ -155,7 +174,12 @@ export function OrdersBoard({
   const { t, formatDate } = useI18n();
   const [bulk, setBulk] = useState<BulkToggle>(null);
 
-  const counts = { to_prepare: toPrepare.length + carriedOver.length, ready: ready.length, shipped: shipped.length };
+  const counts = {
+    to_prepare: toPrepare.length + carriedOver.length,
+    ready: ready.length,
+    shipped: shipped.length,
+    route: route.length,
+  };
   const visibleCount = tab === 'to_prepare' ? counts.to_prepare : tab === 'ready' ? counts.ready : counts.shipped;
 
   return (
@@ -163,7 +187,14 @@ export function OrdersBoard({
     <BoxTypesProvider boxTypes={boxTypes}>
       <PageHeader title={t('orders.title')} subtitle={t('orders.boardSubtitle')} />
 
-      <OrdersTabs active={tab} counts={counts} withAll={canBrowse} date={canBrowse ? date : undefined} mode={mode} />
+      <OrdersTabs
+        active={tab}
+        counts={counts}
+        withAll={canBrowse}
+        withRoute={hasOwnVehicle}
+        date={canBrowse ? date : undefined}
+        mode={mode}
+      />
 
       {canBrowse ? (
         <DayNavigation tab={tab} date={date} today={today} mode={mode} openDays={openDays} />
@@ -185,7 +216,7 @@ export function OrdersBoard({
         </>
       )}
 
-      {visibleCount > 0 && (
+      {visibleCount > 0 && tab !== 'route' && (
         <div className="mb-3 flex justify-end gap-1.5">
           <Button size="sm" variant="ghost" onClick={() => setBulk({ expanded: true })}>
             <ChevronsUpDown className="h-3.5 w-3.5" aria-hidden />
@@ -209,6 +240,9 @@ export function OrdersBoard({
       )}
       {tab === 'ready' && <ReadyTab orders={ready} canManage={canManage} bulk={bulk} showsBacklog={date === today} />}
       {tab === 'shipped' && <ShippedTab orders={shipped} canManage={canManage} bulk={bulk} />}
+      {tab === 'route' && (
+        <RouteView stops={route} origin={routeOrigin} date={date} canReorder={!readOnly} />
+      )}
     </BoxTypesProvider>
     </OrdersReadOnlyProvider>
   );
