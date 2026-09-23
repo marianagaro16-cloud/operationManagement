@@ -1,11 +1,9 @@
 'use client';
 
-import { createContext, useContext, useState, useTransition, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Minus, Plus } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/primitives';
+import { Input, Select } from '@/components/ui/primitives';
 import { boxCount, formatKg } from '@/domain/orders/weight';
 import { setOrderBoxQuantity } from '@/server/order-actions';
 import type { BoxType, OrderWithProgress } from '@/types/orders';
@@ -38,9 +36,12 @@ export function boxSize(type: Pick<BoxType, 'length_cm' | 'width_cm' | 'height_c
 /**
  * The boxes an order is packed in, on its preparation card.
  *
- * Recorded by whoever prepares, one tap per box. Editable until the order is
- * Shipped — boxes are often only settled when loading — and required before
- * it can be marked Ready.
+ * The number is TYPED: whoever packs counts the boxes and writes how many,
+ * rather than tapping + once per box. It used to be a tap per box, which is
+ * fine for two and wrong for eleven.
+ *
+ * Editable until the order is Shipped — boxes are often only settled when
+ * loading — and required before it can be marked Ready.
  */
 export function OrderBoxesEditor({ order }: { order: OrderWithProgress }) {
   const { t } = useI18n();
@@ -61,12 +62,19 @@ export function OrderBoxesEditor({ order }: { order: OrderWithProgress }) {
   // Nothing to show: no box types exist yet, and none were recorded before.
   if (boxTypes.length === 0 && boxes.length === 0) return null;
 
-  function set(boxTypeId: string, quantity: number) {
+  /** Resolves false when the server refused, so a typed field can go back. */
+  function set(boxTypeId: string, quantity: number): Promise<boolean> {
     setError(null);
-    startTransition(async () => {
-      const res = await setOrderBoxQuantity(order.id, boxTypeId, quantity);
-      if (!res.ok) return setError(translate(res.error));
-      router.refresh();
+    return new Promise((resolve) => {
+      startTransition(async () => {
+        const res = await setOrderBoxQuantity(order.id, boxTypeId, quantity);
+        if (!res.ok) {
+          setError(translate(res.error));
+          return resolve(false);
+        }
+        router.refresh();
+        resolve(true);
+      });
     });
   }
 
@@ -86,28 +94,18 @@ export function OrderBoxesEditor({ order }: { order: OrderWithProgress }) {
                   {[size, formatKg(Number(b.box_type.empty_weight_kg))].filter(Boolean).join(' · ')}
                 </p>
               </div>
-              {!locked && (
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  onClick={() => set(b.box_type_id, b.quantity - 1)}
-                  disabled={pending || lastBox}
-                  aria-label={t('orders.fewerBoxes', { name: b.box_type.name })}
-                >
-                  <Minus className="h-3.5 w-3.5" aria-hidden />
-                </Button>
-              )}
-              <span className="w-7 shrink-0 text-center text-[15px] font-semibold tabular">{b.quantity}</span>
-              {!locked && (
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  onClick={() => set(b.box_type_id, b.quantity + 1)}
-                  disabled={pending || b.quantity >= 999}
-                  aria-label={t('orders.moreBoxes', { name: b.box_type.name })}
-                >
-                  <Plus className="h-3.5 w-3.5" aria-hidden />
-                </Button>
+              {locked ? (
+                <span className="w-9 shrink-0 text-center text-[15px] font-semibold tabular">{b.quantity}</span>
+              ) : (
+                <BoxQuantityInput
+                  quantity={b.quantity}
+                  name={b.box_type.name}
+                  // A Ready order keeps at least one box: its last one cannot
+                  // be typed away either.
+                  minimum={lastBox ? 1 : 0}
+                  disabled={pending}
+                  onCommit={(quantity) => set(b.box_type_id, quantity)}
+                />
               )}
             </li>
           );
@@ -135,5 +133,79 @@ export function OrderBoxesEditor({ order }: { order: OrderWithProgress }) {
 
       {error && <p className="px-3.5 pb-2 text-[12px] text-late">{error}</p>}
     </div>
+  );
+}
+
+/**
+ * How many boxes of one type: typed, saved by itself.
+ *
+ * Saving happens a moment after the typing stops, and immediately on leaving
+ * the field or pressing Enter — so a number that was typed is a number that
+ * was recorded, without a button to remember on a phone held in one hand
+ * beside a pallet.
+ *
+ * An empty field is not zero. Zero removes the box type, and somebody
+ * halfway through replacing "2" with "12" has an empty field for an instant;
+ * treating that as zero would delete the row under their fingers.
+ *
+ * A number the server refuses — a Ready order may not lose its boxes — snaps
+ * back to what is actually recorded, beside the reason. A field left showing
+ * a figure nobody kept is worse than no field at all.
+ */
+function BoxQuantityInput({
+  quantity,
+  name,
+  minimum,
+  disabled,
+  onCommit,
+}: {
+  quantity: number;
+  name: string;
+  /** 1 where the order may not lose its last box, 0 otherwise. */
+  minimum: number;
+  disabled: boolean;
+  /** False when the server refused the number. */
+  onCommit: (quantity: number) => Promise<boolean>;
+}) {
+  const { t } = useI18n();
+  const [draft, setDraft] = useState(String(quantity));
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // What the server says wins whenever it changes underneath.
+  useEffect(() => {
+    setDraft(String(quantity));
+  }, [quantity]);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  const commit = (value: string) => {
+    if (timer.current) clearTimeout(timer.current);
+    const next = Number(value);
+    if (value.trim() === '' || !Number.isFinite(next)) { setDraft(String(quantity)); return; }
+    const clamped = Math.min(999, Math.max(minimum, Math.floor(next)));
+    setDraft(String(clamped));
+    if (clamped !== quantity) {
+      void onCommit(clamped).then((ok) => { if (!ok) setDraft(String(quantity)); });
+    }
+  };
+
+  return (
+    <Input
+      value={draft}
+      onChange={(e) => {
+        const value = e.target.value.replace(/[^\d]/g, '');
+        setDraft(value);
+        if (timer.current) clearTimeout(timer.current);
+        // Long enough to type a second digit, short enough to feel saved.
+        timer.current = setTimeout(() => commit(value), 800);
+      }}
+      onBlur={(e) => commit(e.target.value)}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+      onFocus={(e) => e.currentTarget.select()}
+      disabled={disabled}
+      inputMode="numeric"
+      aria-label={t('orders.boxCountFor', { name })}
+      className="w-16 shrink-0 text-center text-[15px] font-semibold tabular"
+    />
   );
 }

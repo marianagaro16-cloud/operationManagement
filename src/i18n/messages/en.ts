@@ -469,6 +469,7 @@ export const en = {
     noInventoriesBody: 'Choose another period.',
   },
   orders: {
+    boxCountFor: 'How many boxes: {name}',
     readOnlyNote: 'Read-only: preparation, lots and shipping are handled by Operations.',
     dayTotals: 'Day total per product',
     ordersReadOnly: 'Orders are read-only for your role',

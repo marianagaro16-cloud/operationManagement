@@ -466,6 +466,7 @@ export const de: Messages = {
     noInventoriesBody: 'Wähle einen anderen Zeitraum.',
   },
   orders: {
+    boxCountFor: 'Wie viele Kisten: {name}',
     readOnlyNote: 'Nur lesen: Vorbereitung, Chargen und Versand erledigt Operations.',
     dayTotals: 'Tagestotal pro Produkt',
     ordersReadOnly: 'Bestellungen sind für deine Rolle nur lesbar',
