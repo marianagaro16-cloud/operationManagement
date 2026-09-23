@@ -9,6 +9,7 @@ import { BUSINESS_TZ } from '@/lib/datetime';
 import { Button } from '@/components/ui/button';
 import { Badge, ErrorState } from '@/components/ui/primitives';
 import { StatusChip } from '@/components/ui/status-chip';
+import { NoteText } from '@/components/ui/note';
 import { completeOccurrence, reopenOccurrence } from '@/server/actions';
 import { daysLate } from '@/domain/recurrence/engine';
 import { localizedTitle, localizedDescription } from '@/lib/localized-content';
@@ -109,9 +110,9 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
         </div>
 
         {!resolved && localizedDescription(occurrence.task, locale) && (
-          <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
-            {localizedDescription(occurrence.task, locale)}
-          </p>
+          <div className="mt-1 text-[12.5px] leading-relaxed text-muted">
+            <NoteText text={localizedDescription(occurrence.task, locale)} />
+          </div>
         )}
 
         {/* Weekly tasks need their completion-window rule made explicit. */}
@@ -145,15 +146,17 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
         )}
 
         {isSkipped && occurrence.skip_reason && (
-          <p className="mt-1.5 rounded-md bg-surface-2 px-2 py-1 text-[12px] text-muted">
-            <span className="font-medium">{t('task.skipReason')}:</span> {occurrence.skip_reason}
-          </p>
+          <div className="mt-1.5 rounded-md bg-surface-2 px-2 py-1 text-[12px] text-muted">
+            <span className="font-medium">{t('task.skipReason')}:</span>{' '}
+            <NoteText text={occurrence.skip_reason} />
+          </div>
         )}
 
         {isBlocked && occurrence.blocked_reason && (
-          <p className="mt-1.5 rounded-md border border-warn/25 bg-warn/[0.06] px-2 py-1 text-[12px] text-fg">
-            <span className="font-medium">{t('task.blockReason')}</span> {occurrence.blocked_reason}
-          </p>
+          <div className="mt-1.5 rounded-md border border-warn/25 bg-warn/[0.06] px-2 py-1 text-[12px] text-fg">
+            <span className="font-medium">{t('task.blockReason')}</span>{' '}
+            <NoteText text={occurrence.blocked_reason} />
+          </div>
         )}
 
         {/* Comments, always visible and in the note colour. */}

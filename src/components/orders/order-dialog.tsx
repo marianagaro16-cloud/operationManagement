@@ -6,7 +6,8 @@ import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
-import { ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
+import { ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { Combobox } from '@/components/ui/combobox';
 import { defaultPreparationDate, isValidSchedule } from '@/domain/orders/scheduling';
 import { toQuantity } from '@/domain/orders/progress';
@@ -444,7 +445,7 @@ export function OrderDialog({
         </div>
 
         <Field label={t('orders.orderNote')} hint={t('orders.orderNoteHint')} htmlFor="o-note">
-          <Textarea id="o-note" value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
+          <NoteTextarea id="o-note" value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
         </Field>
 
         {error && <ErrorState message={error} />}

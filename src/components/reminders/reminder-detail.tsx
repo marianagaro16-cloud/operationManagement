@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/shell/app-shell';
 import { reminderPhase } from '@/domain/reminders/schedule';
 import { cancelReminder, convertReminder } from '@/server/reminder-actions';
 import type { Reminder, ReminderEvent, ReminderPerson } from '@/types/reminders';
+import { NoteText } from '@/components/ui/note';
 import { ReminderDialog } from './reminder-dialog';
 import { QuickActions } from './reminder-actions';
 import {
@@ -117,7 +118,7 @@ export function ReminderDetail({
         )}
 
         {reminder.notes && (
-          <p className="mt-3 whitespace-pre-wrap text-[13.5px] text-fg">{reminder.notes}</p>
+          <NoteText className="mt-3 text-[13.5px] text-fg" text={reminder.notes} />
         )}
 
         <dl className="mt-3 space-y-1.5 text-[12.5px]">

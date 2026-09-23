@@ -1,5 +1,6 @@
 import { StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { parseNote } from '@/domain/notes';
 
 /**
  * Something a person wrote, made findable at a glance.
@@ -19,7 +20,50 @@ import { cn } from '@/lib/utils';
  * up imported across a boundary it was never meant to cross.
  */
 
-/** A note with room to breathe: its own block, marked down the left edge. */
+/**
+ * What somebody wrote, laid out as they wrote it.
+ *
+ * Line breaks are kept, and lines starting with "- " or "1. " become a real
+ * list. Steps written as a list used to arrive as one run-on sentence, which
+ * is how an instruction gets half-followed.
+ *
+ * Plain text in, plain text in the database: see domain/notes.
+ */
+export function NoteText({ text, className }: { text: string | null | undefined; className?: string }) {
+  const blocks = parseNote(text);
+  if (blocks.length === 0) return null;
+
+  return (
+    <div className={cn('space-y-1', className)}>
+      {blocks.map((block, i) =>
+        block.kind === 'paragraph' ? (
+          <span key={i} className="block whitespace-pre-wrap break-words">
+            {block.lines.join('\n')}
+          </span>
+        ) : block.kind === 'bullets' ? (
+          <ul key={i} className="list-disc space-y-0.5 pl-4 marker:text-current">
+            {block.items.filter(Boolean).map((item, j) => (
+              <li key={j} className="break-words">{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <ol key={i} start={block.start} className="list-decimal space-y-0.5 pl-5 marker:text-current">
+            {block.items.filter(Boolean).map((item, j) => (
+              <li key={j} className="break-words">{item}</li>
+            ))}
+          </ol>
+        ),
+      )}
+    </div>
+  );
+}
+
+/**
+ * A note with room to breathe: its own block, marked down the left edge.
+ *
+ * A div rather than a paragraph, because a note may now hold a list and a
+ * list inside a <p> is markup the browser silently rearranges.
+ */
 export function NoteBlock({
   children,
   className,
@@ -28,7 +72,7 @@ export function NoteBlock({
   className?: string;
 }) {
   return (
-    <p
+    <div
       className={cn(
         // Strong enough to be seen on a busy card from arm's length: a note is
         // an instruction somebody expects to be followed.
@@ -38,7 +82,7 @@ export function NoteBlock({
     >
       <StickyNote className="mt-[2px] h-4 w-4 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1">{children}</span>
-    </p>
+    </div>
   );
 }
 

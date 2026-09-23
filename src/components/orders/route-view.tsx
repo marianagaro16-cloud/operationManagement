@@ -8,7 +8,7 @@ import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState, ErrorState } from '@/components/ui/primitives';
-import { NoteChip } from '@/components/ui/note';
+import { NoteBlock, NoteChip, NoteText } from '@/components/ui/note';
 import { googleMapsLegs } from '@/domain/orders/route';
 import { planDeliveryRoute, setRouteOrder } from '@/server/route-actions';
 import type { RouteOrigin, RouteStopRow } from '@/server/route';
@@ -186,7 +186,11 @@ export function RouteView({
                     )}
                   </p>
 
-                  {stop.deliveryNotes && <NoteChip className="mt-1.5">{stop.deliveryNotes}</NoteChip>}
+                  {stop.deliveryNotes && (
+                    <NoteBlock className="mt-1.5 rounded px-2 py-1 text-[12.5px]">
+                      <NoteText text={stop.deliveryNotes} />
+                    </NoteBlock>
+                  )}
 
                   {/* What is on board for this stop. */}
                   {stop.items.length > 0 && (

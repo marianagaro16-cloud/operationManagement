@@ -20,6 +20,7 @@ import { itemNameSearchText, localizedName } from '@/lib/localized-content';
 import type { InventoryDetail, InventoryLocation, InventoryStatus } from '@/types/inventory';
 import type { Profile } from '@/types/database';
 import { shelfLifeThreshold, shortShelfLife } from '@/domain/inventory/shelf-life';
+import { NoteText } from '@/components/ui/note';
 
 /**
  * One inventory, being counted.
@@ -211,7 +212,7 @@ export function InventoryDetailView({
                 <span className="font-medium text-note">
                   {c.author ? displayName(c.author) : '—'}
                 </span>
-                <span className="text-note/80"> · {c.body}</span>
+                <NoteText className="text-note/80" text={c.body} />
               </li>
             ))}
           </ul>

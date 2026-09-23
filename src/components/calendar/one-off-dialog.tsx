@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
+import { ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { createOneOffTask } from '@/server/planning-actions';
 import { TEAMS, type Team } from '@/lib/authz';
 
@@ -106,7 +107,7 @@ export function OneOffDialog({
         </Field>
 
         <Field label={t('plan.oneOffNotes')} htmlFor="oneoff-notes">
-          <Textarea id="oneoff-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+          <NoteTextarea id="oneoff-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </Field>
 
         <Field label={t('plan.oneOffWho')} hint={t('plan.oneOffWhoHint')} htmlFor="oneoff-who">

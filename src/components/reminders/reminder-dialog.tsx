@@ -7,7 +7,8 @@ import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Checkbox, ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
+import { Checkbox, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { NOTIFY_BEFORE, RECURRENCES, utcToLocal, type Recurrence } from '@/domain/reminders/schedule';
 import type { LinkType } from '@/domain/reminders/links';
@@ -241,7 +242,7 @@ export function ReminderDialog({
         {more && (
           <div className="space-y-3 border-t border-border pt-3">
             <Field label={t('reminder.fieldNotes')} htmlFor="rem-notes">
-              <Textarea id="rem-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} />
+              <NoteTextarea id="rem-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} />
             </Field>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

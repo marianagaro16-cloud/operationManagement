@@ -4,7 +4,8 @@ import { useState, useTransition } from 'react';
 import { useI18n } from '@/i18n';
 import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Field, Textarea } from '@/components/ui/primitives';
+import { Field } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { skipOccurrence } from '@/server/actions';
 
 /**
@@ -65,7 +66,7 @@ export function SkipDialog({
         htmlFor="skip-reason"
         error={touched && empty ? t('task.skipReasonRequired') : undefined}
       >
-        <Textarea
+        <NoteTextarea
           id="skip-reason"
           value={reason}
           onChange={(e) => setReason(e.target.value)}

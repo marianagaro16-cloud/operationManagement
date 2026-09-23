@@ -21,7 +21,8 @@ import { IncidentDialog, orderContextFrom } from '@/components/incidents/inciden
 import type { IncidentCategory, IncidentType } from '@/types/incidents';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
-import { NoteBlock, NoteChip } from '@/components/ui/note';
+import { NoteBlock, NoteChip, NoteText } from '@/components/ui/note';
+import { noteToPlainLine } from '@/domain/notes';
 import { OrderStageChip } from './order-fulfilment';
 import { OrderWeight } from './order-weight';
 import type { BulkToggle } from './preparation-view';
@@ -614,7 +615,7 @@ function OrderCard({
       </div>
 
       {order.note && (
-        <NoteBlock className={cn('px-3.5 py-1.5', expanded && 'border-b border-border')}>{order.note}</NoteBlock>
+        <NoteBlock className={cn('px-3.5 py-1.5', expanded && 'border-b border-border')}><NoteText text={order.note} /></NoteBlock>
       )}
 
       {expanded && (
@@ -631,7 +632,7 @@ function OrderCard({
             <li key={line.id} className="flex items-center gap-3 px-3.5 py-2">
               <span className="min-w-0 flex-1 truncate text-[13px]">
                 {productLabel(line.product)}
-                {line.note && <NoteChip className="ml-2">{line.note}</NoteChip>}
+                {line.note && <NoteChip className="ml-2">{noteToPlainLine(line.note)}</NoteChip>}
               </span>
               {diverged && (
                 <span

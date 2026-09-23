@@ -6,7 +6,8 @@ import { Plus } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
+import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { INVENTORY_FREQUENCIES, INVENTORY_KINDS } from '@/domain/inventory/types';
 import {
   saveInventoryTemplate,
@@ -220,7 +221,7 @@ function TemplateDialog({
         </div>
 
         <Field label={t('common.filter')}>
-          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+          <NoteTextarea value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
 
         <Field label={t('inventory.kind')} hint={t('inventory.kindHint')}>

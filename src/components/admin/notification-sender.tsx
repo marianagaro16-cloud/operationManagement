@@ -19,6 +19,7 @@ import { sendDirectNotification, type SendOutcome } from '@/server/notify-action
 import type { NotifiableUser } from '@/server/notifications';
 import { requiresOk } from '@/domain/direct-messages';
 import type { Role } from '@/lib/authz';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 
 const ROLE_LABEL: Record<Role, MessageKey> = {
   admin: 'roles.admin',
@@ -227,7 +228,7 @@ export function NotificationSender({ users }: { users: NotifiableUser[] }) {
             required
             htmlFor="notify-message"
           >
-            <Textarea
+            <NoteTextarea
               id="notify-message"
               value={message}
               maxLength={MAX_MESSAGE}

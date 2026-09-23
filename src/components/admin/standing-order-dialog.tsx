@@ -7,7 +7,8 @@ import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { Dialog } from '@/components/ui/dialog';
-import { Field, Input, Select, Textarea } from '@/components/ui/primitives';
+import { Field, Input, Select } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { nextStandingDelivery } from '@/domain/orders/scheduling';
 import { businessToday } from '@/lib/datetime';
 import { saveTemplate } from '@/server/order-actions';
@@ -284,7 +285,7 @@ export function StandingOrderDialog({
         </div>
 
         <Field label={t('orders.orderNote')}>
-          <Textarea value={note} maxLength={1000} onChange={(e) => setNote(e.target.value)} />
+          <NoteTextarea value={note} maxLength={1000} onChange={(e) => setNote(e.target.value)} />
         </Field>
 
         {/* Inactive by default, and the label says what that means. An active

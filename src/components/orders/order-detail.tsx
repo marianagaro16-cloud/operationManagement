@@ -24,7 +24,8 @@ import {
 } from '@/types/orders';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
-import { NoteBlock, NoteChip } from '@/components/ui/note';
+import { NoteBlock, NoteChip, NoteText } from '@/components/ui/note';
+import { noteToPlainLine } from '@/domain/notes';
 import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
 import { ShortfallSummary } from './shortfall';
 import { OrderWeight } from './order-weight';
@@ -207,7 +208,7 @@ export function OrderDetail({
         </dl>
 
         {order.note && (
-          <NoteBlock className="mt-3 rounded-lg px-3 py-2">{order.note}</NoteBlock>
+          <NoteBlock className="mt-3 rounded-lg px-3 py-2"><NoteText text={order.note} /></NoteBlock>
         )}
       </Card>
 
@@ -270,7 +271,7 @@ function DetailLine({ line }: { line: OrderLine }) {
           {line.product.code && (
             <span className="text-[11px] tabular text-subtle">{line.product.code}</span>
           )}
-          {line.note && <NoteChip className="mt-1 inline-block">{line.note}</NoteChip>}
+          {line.note && <NoteChip className="mt-1 inline-block">{noteToPlainLine(line.note)}</NoteChip>}
           {/* What the customer wrote, on an imported line.
               The preview showed this before the order existed; keeping it
               means a line matched to the wrong product can be traced back to
@@ -318,7 +319,7 @@ function DetailLine({ line }: { line: OrderLine }) {
               {/* A preparation note gets the same colour as an order note:
                   one thing on screen means "somebody wrote this". */}
               {a.note && (
-                <NoteChip className="min-w-0 flex-1 truncate">{a.note}</NoteChip>
+                <NoteChip className="min-w-0 flex-1 truncate">{noteToPlainLine(a.note)}</NoteChip>
               )}
               {/* Who recorded this lot. Already in the payload; never shown. */}
               <span className="ml-auto shrink-0 text-[11.5px] text-subtle">

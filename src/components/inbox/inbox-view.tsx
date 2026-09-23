@@ -11,6 +11,7 @@ import { Card, EmptyState } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { markInboxRead } from '@/server/inbox-actions';
 import type { InboxEntry } from '@/server/inbox';
+import { NoteText } from '@/components/ui/note';
 
 /**
  * Every notification sent to the viewer, newest first.
@@ -114,14 +115,10 @@ export function InboxView({ entries }: { entries: InboxEntry[] }) {
                           </span>
                         </div>
                         {entry.body && (
-                          <p
-                            className={cn(
-                              'mt-0.5 whitespace-pre-line break-words text-[13px]',
-                              fresh ? 'text-fg' : 'text-muted',
-                            )}
-                          >
-                            {entry.body}
-                          </p>
+                          <NoteText
+                            className={cn('mt-0.5 text-[13px]', fresh ? 'text-fg' : 'text-muted')}
+                            text={entry.body}
+                          />
                         )}
                       </div>
                       {leaves && <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-subtle" aria-hidden />}

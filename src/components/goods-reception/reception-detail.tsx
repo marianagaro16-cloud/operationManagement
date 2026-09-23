@@ -38,6 +38,8 @@ import type { ReceptionAuditEntry, ReceptionDetail, Supplier, Transporter } from
 import type { Product } from '@/types/orders';
 import type { IncidentType } from '@/types/incidents';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
+import { NoteText } from '@/components/ui/note';
+import { noteToPlainLine } from '@/domain/notes';
 import { ReceptionForm } from './reception-form';
 import { ExceptionEditor } from './exception-editor';
 import { ReportIncidentDialog } from './report-incident-dialog';
@@ -207,7 +209,7 @@ export function ReceptionDetailView({
                 <p className="text-[11.5px] font-medium uppercase tracking-wide text-subtle">
                   {t('gr.comments')}
                 </p>
-                <p className="mt-1 whitespace-pre-wrap text-[13px]">{reception.comments}</p>
+                <NoteText className="mt-1 text-[13px]" text={reception.comments} />
               </div>
             )}
           </CardBody>
@@ -258,7 +260,7 @@ export function ReceptionDetailView({
                           <StatusChip domain="severity" status={incident.severity} />
                           <StatusChip domain="incident" status={incident.status} />
                         </div>
-                        <p className="mt-1 line-clamp-2 text-[13px]">{incident.description}</p>
+                        <p className="mt-1 line-clamp-2 text-[13px]">{noteToPlainLine(incident.description)}</p>
                       </div>
                     </Link>
                   </li>

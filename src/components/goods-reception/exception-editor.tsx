@@ -24,6 +24,8 @@ import {
 import type { ReceptionDetail, ReceptionException } from '@/types/goods-reception';
 import type { Product } from '@/types/orders';
 import { useReceptionError } from './reception-bits';
+import { NoteTextarea } from '@/components/ui/note-textarea';
+import { NoteText } from '@/components/ui/note';
 
 /**
  * Exceptional product information.
@@ -160,7 +162,7 @@ function ExceptionRow({
             )}
           </p>
 
-          <p className="mt-1 whitespace-pre-wrap text-[13px]">{exception.description}</p>
+          <NoteText className="mt-1 text-[13px]" text={exception.description} />
 
           {exception.evidence && exception.evidence.length > 0 && (
             <ul className="mt-2 flex flex-wrap gap-1.5">
@@ -325,7 +327,7 @@ function ExceptionDialog({
         </Field>
 
         <Field label={t('gr.description')} required>
-          <Textarea
+          <NoteTextarea
             value={description}
             maxLength={1000}
             onChange={(e) => setDescription(e.target.value)}

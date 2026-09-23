@@ -7,9 +7,11 @@ import { AlertTriangle } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Checkbox, Select, Textarea } from '@/components/ui/primitives';
+import { Checkbox, Select } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { setLineShortfall } from '@/server/order-actions';
 import { productLabel, SHORTFALL_CODES, type OrderLine, type ShortfallCode } from '@/types/orders';
+import { noteToPlainLine } from '@/domain/notes';
 
 /*
  * Why a product is short or not sent, on one order line.
@@ -51,7 +53,7 @@ export function ShortfallSummary({ line, className }: { line: OrderLine; classNa
   return (
     <p className={cn('rounded-md bg-surface-2 px-2 py-1 text-[12px] text-muted', className)}>
       <span className="font-medium">{t('prep.shortfallReason')}:</span>{' '}
-      {[line.shortfall_code ? label(line.shortfall_code) : null, note].filter(Boolean).join(' — ')}
+      {[line.shortfall_code ? label(line.shortfall_code) : null, noteToPlainLine(note)].filter(Boolean).join(' — ')}
       {line.shortfall_incident && (
         <>
           {' · '}
@@ -150,7 +152,7 @@ export function ShortfallEditor({
         ))}
       </Select>
 
-      <Textarea
+      <NoteTextarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder={t('prep.shortfallNotePlaceholder')}

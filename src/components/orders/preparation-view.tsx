@@ -9,7 +9,8 @@ import {
 import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Badge, Card, EmptyState, ErrorState, Field, Input, Textarea } from '@/components/ui/primitives';
+import { Badge, Card, EmptyState, ErrorState, Field, Input } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/shell/app-shell';
 import { canAllocate, lineProgress, toQuantity } from '@/domain/orders/progress';
@@ -17,7 +18,7 @@ import { groupLinesByBrand } from '@/domain/orders/picking';
 import { weekDays } from '@/domain/orders/scheduling';
 import { addDays } from '@/lib/datetime';
 import { UrgencyBadge } from './urgency-badge';
-import { NoteBlock, NoteChip } from '@/components/ui/note';
+import { NoteBlock, NoteChip, NoteText } from '@/components/ui/note';
 import { productLabel, type CustomerType, type OrderLine, type OrderWithProgress } from '@/types/orders';
 import { useCustomerTypeLabel } from '@/components/customers/use-customer-type-label';
 import { StatusChip, statusPresentation } from '@/components/ui/status-chip';
@@ -28,6 +29,7 @@ import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
 import { OrderWeight } from './order-weight';
 import { OrderBoxesEditor, useBoxTypes } from './order-boxes';
 import { orderStage, stageWeight } from '@/domain/orders/stage';
+import { noteToPlainLine } from '@/domain/notes';
 import { useOrdersReadOnly } from './orders-read-only';
 
 /*
@@ -220,7 +222,7 @@ export function OrderPreparationCard({
           whether the card is open or folded — a folded order must not hide
           'deliver before 10'. */}
       {order.note && (
-        <NoteBlock className="px-3.5 py-2">{order.note}</NoteBlock>
+        <NoteBlock className="px-3.5 py-2"><NoteText text={order.note} /></NoteBlock>
       )}
 
       {/* Folded: how far along it is, so nothing needs opening to find out. */}
@@ -337,7 +339,7 @@ function PreparationLine({
             <span className="text-[11px] tabular text-subtle">{line.product.code}</span>
           )}
           {/* A note on this product only, e.g. from the customer's order. */}
-          {line.note && <NoteChip className="mt-1 inline-block">{line.note}</NoteChip>}
+          {line.note && <NoteChip className="mt-1 inline-block">{noteToPlainLine(line.note)}</NoteChip>}
         </div>
         <Badge tone={tone}>
           {progress.status === 'complete' && <Check className="h-2.5 w-2.5" aria-hidden />}
@@ -379,7 +381,7 @@ function PreparationLine({
                 <span className="shrink-0 text-[11.5px] text-subtle">{displayName(a.author)}</span>
               )}
               {a.note && (
-                <NoteChip className="min-w-0 flex-1 truncate">{a.note}</NoteChip>
+                <NoteChip className="min-w-0 flex-1 truncate">{noteToPlainLine(a.note)}</NoteChip>
               )}
               {/* Confirmed. This fired on the first tap of a small icon, on a
                   touchscreen, next to a scrolling list, and erased a recorded
@@ -427,7 +429,7 @@ function PreparationLine({
               />
             </Field>
           </div>
-          <Textarea
+          <NoteTextarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder={t('prep.lotNotePlaceholder')}

@@ -26,6 +26,8 @@ import {
   setSpecificationActive,
 } from '@/server/order-actions';
 import type { Customer, CustomerSpecification, SpecificationType } from '@/types/orders';
+import { NoteTextarea } from '@/components/ui/note-textarea';
+import { NoteText } from '@/components/ui/note';
 
 /**
  * Customer specifications — one combined list.
@@ -189,9 +191,7 @@ export function SpecificationManager({
                         >
                           {spec.customer?.name ?? '—'}
                         </p>
-                        <p className="mt-0.5 whitespace-pre-wrap text-[13px] text-muted">
-                          {spec.body}
-                        </p>
+                        <NoteText className="mt-0.5 text-[13px] text-muted" text={spec.body} />
                       </div>
 
                       {!spec.is_active && (
@@ -345,7 +345,7 @@ function SpecificationDialog({
         </Field>
 
         <Field label={t('spec.body')} hint={t('spec.bodyHint')} required>
-          <Textarea
+          <NoteTextarea
             value={body}
             maxLength={1000}
             onChange={(e) => setBody(e.target.value)}

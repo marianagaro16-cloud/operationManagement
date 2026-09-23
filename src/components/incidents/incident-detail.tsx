@@ -30,10 +30,12 @@ import { productLabel, type Customer, type DeliveryMethod, type Product } from '
 import type { Incident } from '@/types/incidents';
 import type { Profile } from '@/types/database';
 import { TEAMS, type Team } from '@/lib/authz';
-import { NoteChip } from '@/components/ui/note';
+import { NoteChip, NoteText } from '@/components/ui/note';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { categoryLabel, typeLabel } from './incident-list';
 import { errorKey } from './incident-dialog';
+import { NoteTextarea } from '@/components/ui/note-textarea';
+import { noteToPlainLine } from '@/domain/notes';
 
 /**
  * The incident detail — where the investigation actually happens.
@@ -210,7 +212,7 @@ export function IncidentDetail({
             </Badge>
             <Badge tone="accent">{typeLabel(t, incident.type.slug, incident.type.name)}</Badge>
           </div>
-          <p className="mt-2.5 whitespace-pre-wrap text-[13px]">{incident.description}</p>
+          <NoteText className="mt-2.5 text-[13px]" text={incident.description} />
         </Section>
 
         {/* ---------- affected products ---------- */}
@@ -284,7 +286,7 @@ export function IncidentDetail({
         {(incident.resolution_notes || incident.resolved_at) && (
           <Section title={t('incident.resolution')}>
             {incident.resolution_notes && (
-              <p className="whitespace-pre-wrap text-[13px]">{incident.resolution_notes}</p>
+              <NoteText className="text-[13px]" text={incident.resolution_notes} />
             )}
             {/* Who, not just when. Resolving and closing are separate acts by
                 potentially different people, and a date with no name answers
@@ -410,7 +412,7 @@ function StatusControls({
           hint={t('incident.resolutionNotesHint')}
           htmlFor="i-resolution"
         >
-          <Textarea
+          <NoteTextarea
             id="i-resolution"
             value={resolution}
             onChange={(e) => setResolution(e.target.value)}
@@ -483,7 +485,7 @@ function InvestigationSection({
           </Detail>
         </dl>
         {incident.investigation_notes && (
-          <p className="mt-2.5 whitespace-pre-wrap text-[13px]">{incident.investigation_notes}</p>
+          <NoteText className="mt-2.5 text-[13px]" text={incident.investigation_notes} />
         )}
       </Section>
     );
@@ -564,7 +566,7 @@ function InvestigationSection({
         </div>
 
         <Field label={t('incident.investigationNotes')} htmlFor="i-notes">
-          <Textarea id="i-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+          <NoteTextarea id="i-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
         </Field>
 
         <Button
@@ -811,10 +813,10 @@ function ReplacementSection({
                   /* No order was linked, so what somebody typed IS the record
                      of the replacement. Coloured, not chipped: it is the
                      row's content rather than an aside beside it. */
-                  <p className="text-[13px] text-note">{r.note}</p>
+                  <NoteText className="text-[13px] text-note" text={r.note} />
                 )}
                 {r.order && r.note && (
-                  <NoteChip className="mt-0.5 inline-block text-[12px]">{r.note}</NoteChip>
+                  <NoteChip className="mt-0.5 inline-block text-[12px]">{noteToPlainLine(r.note)}</NoteChip>
                 )}
               </div>
               {canManage && (
@@ -929,7 +931,7 @@ function ReplacementSection({
               />
             </Field>
             <Field label={t('incident.replacementNote')} htmlFor="r-note">
-              <Textarea
+              <NoteTextarea
                 id="r-note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -1046,7 +1048,7 @@ function ActionsSection({
               />
             </Field>
             <Field label={t('incident.actionDescription')} htmlFor="a-desc">
-              <Textarea
+              <NoteTextarea
                 id="a-desc"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}

@@ -6,7 +6,8 @@ import { useI18n, type MessageKey } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Combobox } from '@/components/ui/combobox';
-import { ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
+import { ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { INCIDENT_SEVERITIES, vocabularyKey } from '@/domain/incidents/vocabulary';
 import { createIncident } from '@/server/incident-actions';
 import { productLabel, type Customer, type Product } from '@/types/orders';
@@ -216,7 +217,7 @@ export function IncidentDialog({
           htmlFor="i-desc"
           error={fieldErrors.description}
         >
-          <Textarea
+          <NoteTextarea
             id="i-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}

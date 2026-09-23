@@ -10,12 +10,15 @@ import { cn } from '@/lib/utils';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Card, EmptyState, ErrorState, Field, Input, Progress, Textarea } from '@/components/ui/primitives';
+import { Card, EmptyState, ErrorState, Field, Input, Progress } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { PageHeader } from '@/components/shell/app-shell';
 import { daysFromToday, isOnDay, isOpenPersonalTask, personalTaskPhase, type PersonalTaskStatus } from '@/domain/reminders/schedule';
 import { LINK_COLUMN, LINK_TYPES, type LinkType } from '@/domain/reminders/links';
 import { savePersonalTask, setPersonalTaskStatus } from '@/server/reminder-actions';
 import type { PersonalTask } from '@/types/reminders';
+import { NoteText } from '@/components/ui/note';
+import { noteToPlainLine } from '@/domain/notes';
 import { LinkChip, reminderErrorKey } from './reminder-bits';
 
 export type Group = 'overdue' | 'today' | 'upcoming' | 'undated';
@@ -358,7 +361,7 @@ export function TaskRow({
               {task.title}
             </p>
             {task.notes && !compact && (
-              <p className="mt-0.5 line-clamp-2 whitespace-pre-wrap text-[12.5px] text-muted">{task.notes}</p>
+              <p className="mt-0.5 line-clamp-2 text-[12.5px] text-muted">{noteToPlainLine(task.notes)}</p>
             )}
           </button>
 
@@ -569,7 +572,7 @@ export function PersonalTaskDialog({
           </Field>
         </div>
         <Field label={t('ptask.fieldNotes')} htmlFor="pt-notes">
-          <Textarea id="pt-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} />
+          <NoteTextarea id="pt-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} />
         </Field>
         {task && isOpenPersonalTask(task.status) && (
           <button

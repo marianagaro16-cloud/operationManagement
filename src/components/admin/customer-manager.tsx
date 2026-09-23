@@ -10,11 +10,14 @@ import { formatAddress } from '@/domain/orders/route';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
+import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { PageHeader } from '@/components/shell/app-shell';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { saveCustomer, setAddressChecked, setCustomerType } from '@/server/order-actions';
 import type { Customer, CustomerType } from '@/types/orders';
+import { NoteText } from '@/components/ui/note';
+import { noteToPlainLine } from '@/domain/notes';
 
 /**
  * Customer master.
@@ -353,7 +356,7 @@ function CustomerDialog({
               />
             </Field>
             <Field label={t('master.deliveryNotes')} hint={t('master.deliveryNotesHint')} htmlFor="c-delivery-notes">
-              <Textarea
+              <NoteTextarea
                 id="c-delivery-notes"
                 value={deliveryNotes}
                 onChange={(e) => setDeliveryNotes(e.target.value)}
@@ -421,7 +424,9 @@ function AddressLine({ customer }: { customer: Customer }) {
       {customer.location_precision === 'city' && (
         <span className="text-warn">· {t('master.addressApproximateOne')}</span>
       )}
-      {customer.delivery_notes && <span className="text-subtle">· {customer.delivery_notes}</span>}
+      {customer.delivery_notes && (
+        <span className="text-subtle">· {noteToPlainLine(customer.delivery_notes)}</span>
+      )}
     </p>
   );
 }

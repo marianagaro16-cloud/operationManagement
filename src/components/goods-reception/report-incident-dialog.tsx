@@ -6,7 +6,8 @@ import { useI18n } from '@/i18n';
 import { displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Field, Select, Textarea } from '@/components/ui/primitives';
+import { Field, Select } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { reportIncidentFromReception } from '@/server/goods-reception-actions';
 import type { ReceptionDetail } from '@/types/goods-reception';
 import type { IncidentType } from '@/types/incidents';
@@ -138,7 +139,7 @@ export function ReportIncidentDialog({
         </Field>
 
         <Field label={t('gr.description')} required>
-          <Textarea
+          <NoteTextarea
             value={description}
             maxLength={2000}
             onChange={(e) => setDescription(e.target.value)}

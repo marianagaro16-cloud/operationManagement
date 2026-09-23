@@ -7,7 +7,8 @@ import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
-import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
+import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { PageHeader } from '@/components/shell/app-shell';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { ScheduleEditor, defaultConfigFor } from './schedule-editor';
@@ -314,7 +315,7 @@ function TaskDialog({
         </Field>
 
         <Field label={t('admin.taskDescription')} htmlFor="task-desc">
-          <Textarea
+          <NoteTextarea
             id="task-desc"
             value={form.description ?? ''}
             onChange={(e) => setForm({ ...form, description: e.target.value || null })}

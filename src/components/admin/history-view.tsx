@@ -6,6 +6,7 @@ import { Badge, Card, EmptyState } from '@/components/ui/primitives';
 import { StatusChip } from '@/components/ui/status-chip';
 import { PageHeader } from '@/components/shell/app-shell';
 import type { OccurrenceWithTask } from '@/types/database';
+import { NoteText } from '@/components/ui/note';
 
 /**
  * The operational record. Deactivating a task must never remove rows from
@@ -64,7 +65,7 @@ export function HistoryView({
                           <span>
                             {names[actor] ?? '—'}
                             {o.skip_reason && (
-                              <span className="block text-[11.5px] text-subtle">{o.skip_reason}</span>
+                              <NoteText className="text-[11.5px] text-subtle" text={o.skip_reason} />
                             )}
                           </span>
                         ) : (

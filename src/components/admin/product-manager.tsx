@@ -8,13 +8,15 @@ import { filterByQuery } from '@/lib/search';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
+import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { PageHeader } from '@/components/shell/app-shell';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { saveProduct } from '@/server/order-actions';
 import { addProductAlias, deleteProductAlias } from '@/server/import-actions';
 import type { ProductAliasRow } from '@/server/order-import';
 import { suggestNetWeightKg } from '@/domain/orders/weight';
+import { noteToPlainLine } from '@/domain/notes';
 import {
   localizedName,
   productLabel,
@@ -238,7 +240,7 @@ export function ProductManager({
                     )}
                     <ProductWeights product={p} />
                     {p.needs_review && (
-                      <Badge tone="warn" title={p.notes ?? undefined}>
+                      <Badge tone="warn" title={noteToPlainLine(p.notes) || undefined}>
                         <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
                         {t('master.needsReview')}
                       </Badge>
@@ -523,7 +525,7 @@ function ProductDialog({
         </WeightField>
 
         <Field label={t('master.notes')} htmlFor="p-notes">
-          <Textarea id="p-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+          <NoteTextarea id="p-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </Field>
 
         {/* Only on an existing product: an alias needs something to point at,

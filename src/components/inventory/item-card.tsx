@@ -6,13 +6,15 @@ import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Badge, Field, Input, Textarea } from '@/components/ui/primitives';
+import { Badge, Field, Input } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { countState, physicalStock } from '@/domain/inventory/calc';
 import { addInventoryComment, markInventoryItemEmpty, resolveInventoryItem, setInventoryDigital, setInventoryItemDone } from '@/server/inventory-actions';
 import { DifferenceValue, DigitalPendingBadge, StatusBadge, useInventoryError } from './inventory-bits';
 import { EntryRows } from './entry-rows';
 import { localizedItemName } from '@/lib/localized-content';
 import type { InventoryItemDetail, InventoryKind, InventoryLocation } from '@/types/inventory';
+import { NoteText } from '@/components/ui/note';
 
 /**
  * One counted line.
@@ -264,7 +266,7 @@ export function ItemCard({
               <span className="font-medium text-note">
                 {c.author ? displayName(c.author) : '—'}
               </span>
-              <span className="text-note/80"> · {c.body}</span>
+              <NoteText className="text-note/80" text={c.body} />
             </li>
           ))}
           {!open &&
@@ -276,7 +278,7 @@ export function ItemCard({
                     {e.quantity ?? '—'}
                     {label ? ` · ${label}` : ''}
                   </span>
-                  <span className="text-note/80"> · {e.note}</span>
+                  <NoteText className="text-note/80" text={e.note} />
                 </li>
               );
             })}
@@ -413,7 +415,7 @@ export function CommentDialog({
         </>
       }
     >
-      <Textarea value={body} onChange={(e) => setBody(e.target.value)} autoFocus />
+      <NoteTextarea value={body} onChange={(e) => setBody(e.target.value)} autoFocus />
       {error && <p className="mt-2 text-[12px] text-late">{error}</p>}
     </Dialog>
   );
@@ -584,7 +586,7 @@ function ResolveDialog({
       </dl>
 
       <Field label={t('inventory.resolutionNote')} required>
-        <Textarea value={note} onChange={(e) => setNote(e.target.value)} autoFocus />
+        <NoteTextarea value={note} onChange={(e) => setNote(e.target.value)} autoFocus />
       </Field>
 
       {error && <p className="mt-2 text-[12px] text-late">{error}</p>}
@@ -612,7 +614,7 @@ function ItemHistoryDialog({
           <ul className="space-y-2">
             {item.resolutions.map((r) => (
               <li key={r.id} className="rounded-lg border border-border p-2 text-[12.5px]">
-                <p className="text-fg">{r.note}</p>
+                <NoteText className="text-fg" text={r.note} />
                 <p className="mt-1 text-muted">
                   {r.author ? displayName(r.author) : '—'} ·{' '}
                   {new Date(r.resolved_at).toLocaleString()} · {t('inventory.difference')}{' '}

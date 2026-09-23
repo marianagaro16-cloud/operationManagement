@@ -4,7 +4,8 @@ import { useState, useTransition } from 'react';
 import { useI18n } from '@/i18n';
 import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Field, Textarea } from '@/components/ui/primitives';
+import { Field } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { blockOccurrence } from '@/server/actions';
 
 /**
@@ -69,7 +70,7 @@ export function BlockDialog({
         htmlFor="block-reason"
         error={touched && empty ? t('task.blockReasonRequired') : undefined}
       >
-        <Textarea
+        <NoteTextarea
           id="block-reason"
           value={reason}
           onChange={(e) => setReason(e.target.value)}

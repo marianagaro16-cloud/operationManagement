@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Field, Input, Select, Textarea } from '@/components/ui/primitives';
+import { Field, Input, Select } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import {
   QUANTITY_CHECKS,
   RECEPTION_CONDITIONS,
@@ -198,7 +199,7 @@ export function ReceptionForm({
         </Field>
 
         <Field label={t('gr.comments')} hint={t('gr.commentsHint')} htmlFor="gr-comments">
-          <Textarea
+          <NoteTextarea
             id="gr-comments"
             value={comments}
             maxLength={2000}

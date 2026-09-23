@@ -7,10 +7,12 @@ import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
 import { displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ErrorState, Textarea } from '@/components/ui/primitives';
+import { ErrorState } from '@/components/ui/primitives';
+import { NoteTextarea } from '@/components/ui/note-textarea';
 import { addComment } from '@/server/actions';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import type { TaskComment } from '@/types/database';
+import { NoteText } from '@/components/ui/note';
 
 /**
  * The comments on a task, always on the card.
@@ -32,7 +34,7 @@ export function TaskComments({ comments }: { comments: TaskComment[] }) {
         <li key={c.id} className="flex items-start gap-1.5 text-[13px] text-note">
           <StickyNote className="mt-[2px] h-4 w-4 shrink-0" aria-hidden />
           <span className="min-w-0 flex-1">
-            <span className="whitespace-pre-wrap font-medium">{c.body}</span>
+            <NoteText className="font-medium" text={c.body} />
             <span className="ml-1.5 text-[11.5px] text-note/80">
               {c.author ? displayName(c.author) : '—'} ·{' '}
               {DateTime.fromISO(c.created_at).setZone(BUSINESS_TZ).setLocale(locale).toFormat('d LLL, HH:mm')}
@@ -81,7 +83,7 @@ export function CommentComposer({
     <div className="mt-2.5 space-y-2 border-t border-border pt-2.5">
       {error && <ErrorState message={error} />}
       <div className="flex items-end gap-2">
-        <Textarea
+        <NoteTextarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder={t('task.commentPlaceholder')}
