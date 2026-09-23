@@ -59,6 +59,7 @@ export default async function CalendarPage({
           id: i.id,
           inventory_date: i.inventory_date,
           name: i.name_snapshot,
+          translations: i.template?.translations,
           status: i.status,
         }))}
         tasks={tasks

@@ -38,20 +38,33 @@ export function localizedDescription(
 }
 
 /**
- * An inventory item's name in the reader's language.
+ * Anything whose name is Spanish in the base field and overridden per locale
+ * under `name`: inventory templates, their items, their locations.
  *
- * Same rule as localizedTitle, on the shape inventory items use: the name is
- * Spanish in the base field, and each locale overrides it under `name`. The
- * copy read here is the sheet's own, frozen when the row was counted.
+ * The same rule as localizedTitle, for the shape the inventory module uses.
+ * A brand's inventory (Masamor, Del Barrio…) is a proper noun with no
+ * translation to give, and falls back to the Spanish field, which is the name
+ * itself.
+ */
+export function localizedName(
+  content: { name: string; translations?: unknown },
+  locale: Locale,
+): string {
+  if (locale === SOURCE_LOCALE) return content.name;
+  const translations = content.translations as Record<string, { name?: string | null }> | null | undefined;
+  const name = translations?.[locale]?.name;
+  return name && name.trim() ? name : content.name;
+}
+
+/**
+ * An inventory item's name in the reader's language. Reads the sheet's OWN
+ * copy, frozen when the row was counted.
  */
 export function localizedItemName(
   item: { item_name: string; item_translations?: unknown },
   locale: Locale,
 ): string {
-  if (locale === SOURCE_LOCALE) return item.item_name;
-  const translations = item.item_translations as Record<string, { name?: string | null }> | null | undefined;
-  const name = translations?.[locale]?.name;
-  return name && name.trim() ? name : item.item_name;
+  return localizedName({ name: item.item_name, translations: item.item_translations }, locale);
 }
 
 /** Every language an item reads in, for searching without switching language. */

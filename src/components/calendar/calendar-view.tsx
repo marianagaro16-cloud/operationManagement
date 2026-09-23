@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { DateTime } from 'luxon';
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { localizedTitle } from '@/lib/localized-content';
+import { localizedName, localizedTitle } from '@/lib/localized-content';
 import { cn } from '@/lib/utils';
 import { Badge, Card, EmptyState } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,9 @@ import type { InventoryStatus } from '@/types/inventory';
 export interface CalendarInventory {
   id: string;
   inventory_date: BusinessDate;
+  /** The frozen name, with the live template's translations beside it. */
   name: string;
+  translations?: unknown;
   status: InventoryStatus;
 }
 
@@ -304,7 +306,7 @@ export function CalendarView({
                     href={`/inventory/${i.id}`}
                     className="min-w-0 flex-1 break-words text-[13px] hover:underline"
                   >
-                    {i.name}
+                    {localizedName(i, locale)}
                   </Link>
                   <Badge tone="warn">{t('inventory.title')}</Badge>
                   <StatusChip domain="inventory" status={i.status} />

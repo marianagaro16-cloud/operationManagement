@@ -6,6 +6,7 @@ import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/primitives';
 import { DigitalPendingBadge, StatusBadge, WeekBadge } from './inventory-bits';
+import { localizedName } from '@/lib/localized-content';
 import type { InventoryListRow } from '@/types/inventory';
 
 /**
@@ -25,7 +26,7 @@ export function InventoryWidget({
   dueToday: InventoryListRow[];
   overdue: InventoryListRow[];
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const rows = [...overdue, ...dueToday];
   if (rows.length === 0) return null;
 
@@ -49,7 +50,9 @@ export function InventoryWidget({
                   )}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13.5px] font-medium">{row.name_snapshot}</p>
+                    <p className="truncate text-[13.5px] font-medium">
+                      {row.template ? localizedName(row.template, locale) : row.name_snapshot}
+                    </p>
                     <p className="mt-0.5 text-[12px] text-muted">
                       {isOverdue ? t('inventory.overdue') : t('common.today')}
                     </p>

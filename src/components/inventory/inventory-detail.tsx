@@ -16,7 +16,7 @@ import { completeInventory, reopenInventory, setInventoryAssignees } from '@/ser
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { DigitalPendingBadge, StatusBadge, useInventoryError } from './inventory-bits';
 import { CommentDialog, ItemCard } from './item-card';
-import { itemNameSearchText } from '@/lib/localized-content';
+import { itemNameSearchText, localizedName } from '@/lib/localized-content';
 import type { InventoryDetail, InventoryLocation, InventoryStatus } from '@/types/inventory';
 import type { Profile } from '@/types/database';
 import { shelfLifeThreshold, shortShelfLife } from '@/domain/inventory/shelf-life';
@@ -43,7 +43,10 @@ export function InventoryDetailView({
   /** Null when the viewer cannot use reminders; the button then renders nothing. */
   reminderViewerId: string | null;
 }) {
-  const { t, formatDate } = useI18n();
+  const { t, locale, formatDate } = useI18n();
+  // The frozen name is the record; the live template is what translates it,
+  // exactly as the overview does.
+  const title = detail.template ? localizedName(detail.template, locale) : detail.name_snapshot;
   const translateError = useInventoryError();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +112,7 @@ export function InventoryDetailView({
       </Link>
 
       <PageHeader
-        title={detail.name_snapshot}
+        title={title}
         subtitle={`${formatDate(detail.inventory_date, 'medium')} · ${formatCalendarWeek(detail.iso_week)}`}
         action={
           // The button only opens the dialog; a reminder links to the
@@ -117,7 +120,7 @@ export function InventoryDetailView({
           <div className="flex flex-wrap items-center gap-1.5">
             <QuickReminderButton
               viewerId={reminderViewerId}
-              link={{ type: 'inventory', id: detail.id, label: detail.name_snapshot }}
+              link={{ type: 'inventory', id: detail.id, label: title }}
             />
             <StatusBadge status={detail.status} />
           </div>

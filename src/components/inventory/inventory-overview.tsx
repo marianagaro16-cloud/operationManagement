@@ -9,7 +9,7 @@ import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, Checkbox, EmptyState, Field, Input, SectionHeading, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { localizedTitle } from '@/lib/localized-content';
+import { localizedName } from '@/lib/localized-content';
 import { AssigneeList, DigitalPendingBadge, StatusBadge, WeekBadge } from './inventory-bits';
 import type { InventoryListRow, InventoryStatus } from '@/types/inventory';
 import type { Profile } from '@/types/database';
@@ -167,12 +167,7 @@ function InventoryRow({
 
   // The instance carries a frozen name so a renamed template does not rewrite
   // history; the live template is used only to translate the current name.
-  const name = row.template
-    ? localizedTitle(
-        { title: row.template.name, translations: row.template.translations as never },
-        locale,
-      )
-    : row.name_snapshot;
+  const name = row.template ? localizedName(row.template, locale) : row.name_snapshot;
 
   return (
     <li>
@@ -253,7 +248,7 @@ function FilterPanel({
             <option value="">{t('inventory.filterAll')}</option>
             {templates.map((tpl) => (
               <option key={tpl.id} value={tpl.id}>
-                {localizedTitle({ title: tpl.name, translations: tpl.translations as never }, locale)}
+                {localizedName(tpl, locale)}
               </option>
             ))}
           </Select>
