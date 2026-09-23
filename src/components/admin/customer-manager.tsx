@@ -2,17 +2,18 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Plus } from 'lucide-react';
+import { Check, MapPin, Pencil, Plus } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { useCustomerTypeLabel } from '@/components/customers/use-customer-type-label';
 import { filterByQuery } from '@/lib/search';
+import { formatAddress } from '@/domain/orders/route';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select, Textarea } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
-import { saveCustomer, setCustomerType } from '@/server/order-actions';
+import { saveCustomer, setAddressChecked, setCustomerType } from '@/server/order-actions';
 import type { Customer, CustomerType } from '@/types/orders';
 
 /**
@@ -45,6 +46,12 @@ export function CustomerManager({
   // '' is every segment; 'none' is the unclassified backlog, which needs to be
   // reachable in one click or nobody will ever work through it.
   const [typeFilter, setTypeFilter] = useState('');
+  /*
+   * Going through the addresses. 'unchecked' is the working list — what is
+   * left to look at — and the others answer "which ones are doubtful" and
+   * "which have no address at all".
+   */
+  const [addressFilter, setAddressFilter] = useState<'' | 'unchecked' | 'approximate' | 'missing' | 'checked'>('');
   const typeLabel = useCustomerTypeLabel();
 
   const inactiveCount = customers.filter((c) => !c.is_active).length;
@@ -67,13 +74,26 @@ export function CustomerManager({
               : typeFilter === 'none'
                 ? !c.customer_type_id
                 : c.customer_type_id === typeFilter,
-          ),
+          )
+          .filter((c) => {
+            const hasAddress = Boolean(c.city || c.street);
+            if (addressFilter === 'missing') return !hasAddress;
+            if (addressFilter === 'approximate') return c.location_precision === 'city';
+            if (addressFilter === 'checked') return Boolean(c.address_checked_at);
+            if (addressFilter === 'unchecked') return hasAddress && !c.address_checked_at;
+            return true;
+          }),
         query,
         // Search covers BOTH fields, since the team may know either.
         (c) => `${c.company_name} ${c.company_name_addition ?? ''}`,
       ),
-    [customers, query, showInactive, typeFilter],
+    [customers, query, showInactive, typeFilter, addressFilter],
   );
+
+  const withAddress = customers.filter((c) => c.city || c.street);
+  const unchecked = withAddress.filter((c) => !c.address_checked_at).length;
+  const approximate = customers.filter((c) => c.location_precision === 'city').length;
+  const missing = customers.filter((c) => !(c.city || c.street)).length;
 
   return (
     <>
@@ -129,6 +149,20 @@ export function CustomerManager({
           </option>
         </Select>
 
+        {/* Checking the delivery addresses, one pass through the list. */}
+        <Select
+          value={addressFilter}
+          onChange={(e) => setAddressFilter(e.target.value as typeof addressFilter)}
+          aria-label={t('master.addressTitle')}
+          className="max-w-[15rem]"
+        >
+          <option value="">{t('master.addressAll')}</option>
+          <option value="unchecked">{t('master.addressUnchecked', { count: unchecked })}</option>
+          <option value="approximate">{t('master.addressApproximate', { count: approximate })}</option>
+          <option value="missing">{t('master.addressMissing', { count: missing })}</option>
+          <option value="checked">{t('master.addressChecked', { count: withAddress.length - unchecked })}</option>
+        </Select>
+
         <span className="text-[12px] text-subtle">
           {t('master.showingCount', { shown: visible.length, total: customers.length })}
         </span>
@@ -148,11 +182,13 @@ export function CustomerManager({
                   {c.company_name_addition && (
                     <p className="truncate text-[11.5px] text-muted">{c.company_name_addition}</p>
                   )}
+                  <AddressLine customer={c} />
                 </div>
                 {/* Classifying happens HERE rather than only in the dialog:
                     221 customers arrived unclassified, and a modal per
                     customer is a chore nobody finishes. */}
                 <TypeSelect customer={c} customerTypes={customerTypes} />
+                <CheckedButton customer={c} />
 
                 <Badge tone={c.is_active ? 'done' : 'neutral'}>
                   {c.is_active ? t('status.active') : t('status.inactive')}
@@ -352,6 +388,73 @@ function CustomerDialog({
  * otherwise the dropdown would silently display the wrong segment for a
  * customer classified before that segment was retired.
  */
+/**
+ * The delivery address under the name, with where it sits on the map.
+ *
+ * The pin opens that exact spot in Google Maps, which is how somebody checks
+ * an address without typing it anywhere: coordinates when we have them, the
+ * written address when we do not.
+ */
+function AddressLine({ customer }: { customer: Customer }) {
+  const { t } = useI18n();
+  const address = formatAddress(customer);
+  if (!address) {
+    return <p className="mt-0.5 text-[11.5px] text-warn">{t('master.addressMissingOne')}</p>;
+  }
+
+  const target = customer.latitude && customer.longitude
+    ? `${customer.latitude},${customer.longitude}`
+    : address;
+
+  return (
+    <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11.5px] text-muted">
+      <a
+        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(target)}`}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1 hover:text-accent hover:underline"
+        title={t('master.addressOnMap')}
+      >
+        <MapPin className="h-3 w-3 shrink-0" aria-hidden />
+        {address}
+      </a>
+      {customer.location_precision === 'city' && (
+        <span className="text-warn">· {t('master.addressApproximateOne')}</span>
+      )}
+      {customer.delivery_notes && <span className="text-subtle">· {customer.delivery_notes}</span>}
+    </p>
+  );
+}
+
+/** "Looked at it, it is right." Changing the address clears it again. */
+function CheckedButton({ customer }: { customer: Customer }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const checked = Boolean(customer.address_checked_at);
+  if (!(customer.city || customer.street)) return null;
+
+  return (
+    <Button
+      size="icon"
+      variant="ghost"
+      aria-pressed={checked}
+      title={checked ? t('master.addressCheckedOne') : t('master.addressCheckOne')}
+      aria-label={checked ? t('master.addressCheckedOne') : t('master.addressCheckOne')}
+      disabled={pending}
+      className={cn(checked && 'text-done')}
+      onClick={() =>
+        startTransition(async () => {
+          await setAddressChecked(customer.id, !checked);
+          router.refresh();
+        })
+      }
+    >
+      <Check className="h-3.5 w-3.5" aria-hidden />
+    </Button>
+  );
+}
+
 function TypeSelect({
   customer,
   customerTypes,

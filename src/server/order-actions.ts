@@ -442,6 +442,7 @@ export async function saveCustomer(
       : {
         latitude: coordinates?.latitude ?? null,
         longitude: coordinates?.longitude ?? null,
+        location_precision: coordinates?.precision ?? null,
         geocoded_at: coordinates ? new Date().toISOString() : null,
       }),
     // undefined leaves the column alone; null clears it deliberately.
@@ -453,6 +454,35 @@ export async function saveCustomer(
   const { error } = id
     ? await supabase.from('customers').update(row).eq('id', id)
     : await supabase.from('customers').insert(row);
+  if (error) return fail(error);
+  revalidatePath('/admin/customers');
+  return { ok: true, data: undefined };
+}
+
+/**
+ * "I have looked at this address and it is right."
+ *
+ * Its own action rather than a field in the dialog: checking 214 addresses is
+ * done from the list, one tick at a time, and opening a dialog for each would
+ * make the job twice as long. Changing the address clears the tick — that
+ * rule lives in the database, where it cannot be forgotten.
+ */
+export async function setAddressChecked(
+  customerId: string,
+  checked: boolean,
+): Promise<ActionResult> {
+  const viewer = await getViewer();
+  if (!viewer?.can('customers.manage')) return { ok: false, error: 'not_authorized' };
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('customers')
+    .update({
+      address_checked_at: checked ? new Date().toISOString() : null,
+      address_checked_by: checked ? viewer.profile.id : null,
+    })
+    .eq('id', customerId);
+
   if (error) return fail(error);
   revalidatePath('/admin/customers');
   return { ok: true, data: undefined };

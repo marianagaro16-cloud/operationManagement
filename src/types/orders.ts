@@ -64,6 +64,10 @@ export interface Customer {
   /** Geocoded from the address when it is saved; null when it could not be placed. */
   latitude?: number | string | null;
   longitude?: number | string | null;
+  /** How exactly it was placed: the street, or only the town. */
+  location_precision?: 'address' | 'city' | null;
+  /** When somebody confirmed the address is right. Cleared when the address changes. */
+  address_checked_at?: string | null;
   /**
    * "5 Almas AG — La Catedral", or just the company where there is no
    * addition. A GENERATED column in Postgres, so it can never disagree with

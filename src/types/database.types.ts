@@ -295,6 +295,8 @@ export type Database = {
       }
       customers: {
         Row: {
+          address_checked_at: string | null
+          address_checked_by: string | null
           city: string | null
           company_name: string
           company_name_addition: string | null
@@ -306,6 +308,7 @@ export type Database = {
           id: string
           is_active: boolean
           latitude: number | null
+          location_precision: string | null
           longitude: number | null
           name: string | null
           postal_code: string | null
@@ -313,6 +316,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          address_checked_at?: string | null
+          address_checked_by?: string | null
           city?: string | null
           company_name: string
           company_name_addition?: string | null
@@ -324,6 +329,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           latitude?: number | null
+          location_precision?: string | null
           longitude?: number | null
           name?: string | null
           postal_code?: string | null
@@ -331,6 +337,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          address_checked_at?: string | null
+          address_checked_by?: string | null
           city?: string | null
           company_name?: string
           company_name_addition?: string | null
@@ -342,6 +350,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           latitude?: number | null
+          location_precision?: string | null
           longitude?: number | null
           name?: string | null
           postal_code?: string | null
@@ -349,6 +358,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_address_checked_by_fkey"
+            columns: ["address_checked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "customers_customer_type_id_fkey"
             columns: ["customer_type_id"]

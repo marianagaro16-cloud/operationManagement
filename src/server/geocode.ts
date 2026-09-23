@@ -20,7 +20,16 @@ const USER_AGENT = 'OperationManager/1.0 (delivery round planning)';
 export interface Coordinates {
   latitude: number;
   longitude: number;
+  /**
+   * 'address' when the street itself was found, 'city' when only the town
+   * was. A town is still a usable stop position and still worth a human
+   * look, which is why the difference is kept rather than rounded away.
+   */
+  precision: 'address' | 'city';
 }
+
+/** Nominatim's own word for what it matched. Everything vaguer than a road is a town. */
+const STREET_LEVEL = new Set(['building', 'house', 'house_number', 'road', 'street', 'amenity', 'shop', 'place_house']);
 
 export async function geocodeAddress(address: {
   street?: string | null;
@@ -47,13 +56,19 @@ export async function geocodeAddress(address: {
     });
     if (!response.ok) return null;
 
-    const results = (await response.json()) as { lat?: string; lon?: string }[];
+    const results = (await response.json()) as { lat?: string; lon?: string; addresstype?: string }[];
     const first = results?.[0];
     if (!first?.lat || !first?.lon) return null;
 
     const latitude = Number(first.lat);
     const longitude = Number(first.lon);
-    return Number.isFinite(latitude) && Number.isFinite(longitude) ? { latitude, longitude } : null;
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+
+    return {
+      latitude,
+      longitude,
+      precision: STREET_LEVEL.has(first.addresstype ?? '') ? 'address' : 'city',
+    };
   } catch {
     return null;
   }
