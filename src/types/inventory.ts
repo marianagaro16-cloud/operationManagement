@@ -105,6 +105,8 @@ export interface InventoryInstanceItem {
   instance_id: string;
   template_item_id: string;
   item_name: string;
+  /** The item's name in the other languages, copied from the template item. */
+  item_translations: Translations;
   item_group: string | null;
   item_sort_order: number;
   product_id: string | null;

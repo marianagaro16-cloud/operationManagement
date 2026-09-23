@@ -11,6 +11,7 @@ import { countState, physicalStock } from '@/domain/inventory/calc';
 import { addInventoryComment, markInventoryItemEmpty, resolveInventoryItem, setInventoryDigital, setInventoryItemDone } from '@/server/inventory-actions';
 import { DifferenceValue, DigitalPendingBadge, StatusBadge, useInventoryError } from './inventory-bits';
 import { EntryRows } from './entry-rows';
+import { localizedItemName } from '@/lib/localized-content';
 import type { InventoryItemDetail, InventoryKind, InventoryLocation } from '@/types/inventory';
 
 /**
@@ -39,7 +40,7 @@ export function ItemCard({
   canManage: boolean;
   defaultOpen?: boolean;
 }) {
-  const { t, formatDate } = useI18n();
+  const { locale, t, formatDate } = useI18n();
   const [open, setOpen] = useState(Boolean(defaultOpen));
   const done = Boolean(item.counted_at);
   const entryNotes = item.entries.filter((e) => e.note?.trim());
@@ -119,7 +120,7 @@ export function ItemCard({
         <div className="min-w-0 flex-1">
           <p className={cn('flex items-center gap-1.5 text-[14px] font-medium leading-snug', done && 'text-muted')}>
             {done && <CheckCircle2 className="h-4 w-4 shrink-0 text-done" aria-hidden />}
-            {item.item_name}
+            {localizedItemName(item, locale)}
           </p>
           {item.item_group && (
             <p className="mt-0.5 text-[11px] uppercase tracking-wide text-subtle">{item.item_group}</p>
@@ -435,7 +436,7 @@ function DigitalDialog({
   instanceId: string;
   stock: number;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const translateError = useInventoryError();
   const [value, setValue] = useState(
     item.digital_quantity === null ? '' : String(item.digital_quantity),
@@ -461,7 +462,7 @@ function DigitalDialog({
       open={open}
       onClose={onClose}
       title={t('inventory.setDigital')}
-      description={item.item_name}
+      description={localizedItemName(item, locale)}
       footer={
         <>
           {/* Returning to Pending is a real admin action, not a way of
@@ -601,10 +602,10 @@ function ItemHistoryDialog({
   onClose: () => void;
   item: InventoryItemDetail;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
 
   return (
-    <Dialog open={open} onClose={onClose} title={t('inventory.auditTrail')} description={item.item_name}>
+    <Dialog open={open} onClose={onClose} title={t('inventory.auditTrail')} description={localizedItemName(item, locale)}>
       {item.resolutions.length > 0 && (
         <section className="mb-4">
           <h3 className="mb-1.5 text-[13px] font-semibold">{t('inventory.resolutionHistory')}</h3>

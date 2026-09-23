@@ -16,6 +16,7 @@ import { completeInventory, reopenInventory, setInventoryAssignees } from '@/ser
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { DigitalPendingBadge, StatusBadge, useInventoryError } from './inventory-bits';
 import { CommentDialog, ItemCard } from './item-card';
+import { itemNameSearchText } from '@/lib/localized-content';
 import type { InventoryDetail, InventoryLocation, InventoryStatus } from '@/types/inventory';
 import type { Profile } from '@/types/database';
 import { shelfLifeThreshold, shortShelfLife } from '@/domain/inventory/shelf-life';
@@ -75,7 +76,9 @@ export function InventoryDetailView({
             !onlyOpen || item.status === 'in_progress' || item.status === 'to_review',
         ),
         query,
-        (item) => `${item.item_name} ${item.item_group ?? ''}`,
+        // Searchable in every language, so a German sheet still finds
+        // "bolsa" and a Spanish one finds "Beutel".
+        (item) => `${itemNameSearchText(item)} ${item.item_group ?? ''}`,
       )
         // Done products sink to the bottom; everything keeps its own order
         // within each half (the sort is stable), so the list still reads in

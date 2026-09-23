@@ -37,6 +37,29 @@ export function localizedDescription(
   return content.description ?? null;
 }
 
+/**
+ * An inventory item's name in the reader's language.
+ *
+ * Same rule as localizedTitle, on the shape inventory items use: the name is
+ * Spanish in the base field, and each locale overrides it under `name`. The
+ * copy read here is the sheet's own, frozen when the row was counted.
+ */
+export function localizedItemName(
+  item: { item_name: string; item_translations?: unknown },
+  locale: Locale,
+): string {
+  if (locale === SOURCE_LOCALE) return item.item_name;
+  const translations = item.item_translations as Record<string, { name?: string | null }> | null | undefined;
+  const name = translations?.[locale]?.name;
+  return name && name.trim() ? name : item.item_name;
+}
+
+/** Every language an item reads in, for searching without switching language. */
+export function itemNameSearchText(item: { item_name: string; item_translations?: unknown }): string {
+  const translations = (item.item_translations ?? {}) as Record<string, { name?: string | null }>;
+  return [item.item_name, ...Object.values(translations).map((t) => t?.name ?? '')].join(' ');
+}
+
 /** True when this locale has no translation and is falling back. */
 export function isUntranslated(content: TranslatableContent, locale: Locale): boolean {
   if (locale === SOURCE_LOCALE) return false;

@@ -1632,6 +1632,7 @@ export type Database = {
           item_group: string | null
           item_name: string
           item_sort_order: number
+          item_translations: Json
           physical_stock: number
           product_id: string | null
           resolved_at: string | null
@@ -1652,6 +1653,7 @@ export type Database = {
           item_group?: string | null
           item_name: string
           item_sort_order?: number
+          item_translations?: Json
           physical_stock?: number
           product_id?: string | null
           resolved_at?: string | null
@@ -1672,6 +1674,7 @@ export type Database = {
           item_group?: string | null
           item_name?: string
           item_sort_order?: number
+          item_translations?: Json
           physical_stock?: number
           product_id?: string | null
           resolved_at?: string | null
@@ -4377,6 +4380,7 @@ export type Database = {
           item_group: string | null
           item_name: string
           item_sort_order: number
+          item_translations: Json
           physical_stock: number
           product_id: string | null
           resolved_at: string | null
@@ -4428,6 +4432,7 @@ export type Database = {
           item_group: string | null
           item_name: string
           item_sort_order: number
+          item_translations: Json
           physical_stock: number
           product_id: string | null
           resolved_at: string | null
@@ -4446,6 +4451,10 @@ export type Database = {
       inventory_sync_brand: { Args: { p_brand_id: string }; Returns: undefined }
       inventory_sync_instance_status: {
         Args: { p_instance_id: string }
+        Returns: undefined
+      }
+      inventory_sync_template: {
+        Args: { p_template_id: string }
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }

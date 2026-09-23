@@ -187,7 +187,7 @@ export async function getInventoryDashboard(days = 14): Promise<{
 /* -------------------------------- detail ------------------------------- */
 
 const DETAIL_ITEM_SELECT = `
-  id, instance_id, template_item_id, item_name, item_group, item_sort_order,
+  id, instance_id, template_item_id, item_name, item_translations, item_group, item_sort_order,
   product_id, physical_stock, digital_quantity, difference, status,
   is_resolved, resolved_at, resolved_by, counted_at, counted_by, created_at, updated_at,
   counted_by_profile:profiles!inventory_instance_items_counted_by_fkey ( id, name, email ),
