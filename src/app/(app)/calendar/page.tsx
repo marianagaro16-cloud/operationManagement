@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
-import { getOccurrencesInRange, getTasksForAdmin, getViewer } from '@/server/data';
+import { getOccurrencesInRange, getTasksForAdmin, getUsers, getViewer } from '@/server/data';
+import { displayName } from '@/lib/utils';
 import { getInventories, getInventoryTemplates } from '@/server/inventory';
 import { ensureCalendarWindow } from '@/server/scheduling';
 import { BUSINESS_TZ, businessToday, toBusinessDate } from '@/lib/datetime';
@@ -36,13 +37,15 @@ export default async function CalendarPage({
   // generate for it.
   await ensureCalendarWindow(from, to);
 
-  const [occurrences, inventories, tasks, templates] = await Promise.all([
+  const [occurrences, inventories, tasks, templates, users] = await Promise.all([
     getOccurrencesInRange(from, to),
     // A month of a calendar cannot hold more than this, and the planner needs
     // them all rather than a first page.
     getInventories({ from, to, limit: 100 }),
     getTasksForAdmin(),
     getInventoryTemplates(),
+    // For giving a one-off activity to one person.
+    getUsers(),
   ]);
 
   const canPlanInventories = viewer.can('inventory.manage_instances');
@@ -66,6 +69,10 @@ export default async function CalendarPage({
             ? templates.filter((t) => t.is_active).map((t) => ({ id: t.id, name: t.name }))
             : []
         }
+        people={users
+          .filter((u) => u.status === 'approved')
+          .map((u) => ({ id: u.id, name: displayName(u), team: u.team }))}
+        viewerTeam={viewer.profile.team}
         month={toBusinessDate(anchor)}
         today={today}
       />

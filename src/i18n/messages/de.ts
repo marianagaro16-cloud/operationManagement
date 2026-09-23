@@ -151,6 +151,7 @@ export const de: Messages = {
     blockedSubtitle: 'Wartet auf etwas ausserhalb dieser Liste',
   },
   frequency: {
+    one_off: 'Einmalig',
     daily: 'Täglich',
     weekly: 'Wöchentlich',
     biweekly: 'Alle 2 Wochen',
@@ -326,6 +327,14 @@ export const de: Messages = {
     histQuantity: 'Menge von {from} auf {to} geändert',
   },
   plan: {
+    oneOff: 'Einmalige Aufgabe',
+    oneOffHint: 'Passiert einmal, am {date}. Ist sie erledigt, kommt sie nicht wieder.',
+    oneOffTitle: 'Was ist zu tun?',
+    oneOffNotes: 'Notizen (optional)',
+    oneOffWho: 'Wer macht sie?',
+    oneOffWhoHint: 'Einer Person zugewiesen, gehört die Aufgabe ihr: nur sie und wer die Arbeit verwaltet sehen sie.',
+    oneOffEveryone: 'Das ganze Team',
+    errTitleRequired: 'Schreibe, was zu tun ist',
     addToDay: 'Arbeit hinzufügen',
     week: 'Woche planen',
     month: 'Monat planen',

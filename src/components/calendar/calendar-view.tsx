@@ -14,6 +14,8 @@ import { monthRange, weekRange } from '@/domain/recurrence/planning';
 import { unplanInventory, unplanTask } from '@/server/planning-actions';
 import { BUSINESS_TZ, type BusinessDate } from '@/lib/datetime';
 import { PlanDialog, type PlannableTask, type PlannableTemplate } from './plan-dialog';
+import { OneOffDialog, type OneOffPerson } from './one-off-dialog';
+import type { Team } from '@/lib/authz';
 import type { OccurrenceWithTask } from '@/types/database';
 import type { InventoryStatus } from '@/types/inventory';
 
@@ -41,6 +43,8 @@ export function CalendarView({
   occurrences,
   inventories,
   tasks,
+  people,
+  viewerTeam,
   templates,
   month,
   today,
@@ -48,6 +52,9 @@ export function CalendarView({
   occurrences: OccurrenceWithTask[];
   inventories: CalendarInventory[];
   tasks: PlannableTask[];
+  /** Who a one-off can be given to, and the creator's own team. */
+  people: OneOffPerson[];
+  viewerTeam: Team;
   templates: PlannableTemplate[];
   month: string; // YYYY-MM-01
   today: string;
@@ -55,6 +62,7 @@ export function CalendarView({
   const { t, locale, formatDate } = useI18n();
   const [selected, setSelected] = useState<string | null>(today);
   const [planning, setPlanning] = useState<{ from: string; to: string; title: string } | null>(null);
+  const [oneOffFor, setOneOffFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -235,16 +243,23 @@ export function CalendarView({
         <div>
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-[13px] font-medium capitalize">{formatDate(selected, 'weekday')}</h3>
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() =>
-                setPlanning({ from: selected, to: selected, title: t('plan.addToDay') })
-              }
-            >
-              <Plus className="h-3.5 w-3.5" aria-hidden />
-              {t('plan.addToDay')}
-            </Button>
+            <div className="flex flex-wrap gap-1.5">
+              {/* Work that happens once, written and placed in one act. */}
+              <Button size="sm" variant="secondary" onClick={() => setOneOffFor(selected)}>
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+                {t('plan.oneOff')}
+              </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() =>
+                  setPlanning({ from: selected, to: selected, title: t('plan.addToDay') })
+                }
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+                {t('plan.addToDay')}
+              </Button>
+            </div>
           </div>
 
           {selectedTasks.length === 0 && selectedInventories.length === 0 ? (
@@ -308,6 +323,16 @@ export function CalendarView({
             </ul>
           )}
         </div>
+      )}
+
+      {oneOffFor && (
+        <OneOffDialog
+          open
+          onClose={() => setOneOffFor(null)}
+          date={oneOffFor}
+          people={people}
+          defaultTeam={viewerTeam}
+        />
       )}
 
       {planning && (

@@ -2,7 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { generateOccurrences, isScheduleConfigured, type TaskDefinitionLike } from '@/domain/recurrence/engine';
-import { FREQUENCIES } from '@/domain/recurrence/types';
+import { FREQUENCIES, ONE_OFF, type Frequency } from '@/domain/recurrence/types';
 import { addDays, businessToday, type BusinessDate } from '@/lib/datetime';
 import { atLeast, can, type Permission, type Role } from '@/lib/authz';
 import { bucketByDay } from '@/domain/buckets';
@@ -259,12 +259,20 @@ export async function getOccurrenceComments(occurrenceId: string) {
 
 /* ----------------------------- admin reads ----------------------------- */
 
-export async function getTasksForAdmin(): Promise<(Task & { category: Category | null })[]> {
+/** A recurring definition with its category: what the catalogue and the planner list. */
+export type RecurringTask = Task & { frequency: Frequency; category: Category | null };
+
+export async function getTasksForAdmin(): Promise<RecurringTask[]> {
   const supabase = createClient();
   const { data, error } = await supabase.from('tasks').select('*, category:categories ( * )');
 
   if (error) throw new Error(error.message);
-  const tasks = (data ?? []) as unknown as (Task & { category: Category | null })[];
+  // Recurring definitions only. A one-off — a calendar placement or an
+  // incident's corrective action — is reached where it lives, on its day or
+  // on its incident, and listing it in the catalogue would fill a screen of
+  // rules with things that are not rules.
+  const tasks = ((data ?? []) as unknown as (Task & { category: Category | null })[])
+    .filter((t): t is RecurringTask => t.frequency !== ONE_OFF);
 
   // Ordered by frequency, in operational cadence order (daily -> semiannual)
   // rather than alphabetically, which would put "biweekly" before "daily".

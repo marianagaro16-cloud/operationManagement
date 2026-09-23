@@ -6,7 +6,7 @@
  * and re-export from there. This file exists so the app is type-safe before
  * the first push.
  */
-import type { Frequency, OccurrenceStatus, ScheduleConfig } from '@/domain/recurrence/types';
+import type { Frequency, OccurrenceStatus, ScheduleConfig, TaskFrequency } from '@/domain/recurrence/types';
 import type { Role, Team } from '@/lib/authz';
 
 /**
@@ -47,7 +47,8 @@ export interface Task {
   title: string;
   description: string | null;
   category_id: string | null;
-  frequency: Frequency;
+  /** A recurrence, or 'one_off' for a single placement and for corrective actions. */
+  frequency: TaskFrequency;
   schedule_config: ScheduleConfig | null;
   /** Per-locale title/description overrides; Spanish is in the base fields. */
   translations: Record<string, { title?: string | null; description?: string | null }> | null;
@@ -135,4 +136,4 @@ export interface OccurrenceWithTask extends TaskOccurrence {
   resolved_at?: string | null;
 }
 
-export type { Frequency, OccurrenceStatus, ScheduleConfig };
+export type { Frequency, OccurrenceStatus, ScheduleConfig, TaskFrequency };

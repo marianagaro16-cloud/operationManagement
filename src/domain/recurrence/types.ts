@@ -8,6 +8,15 @@ import type { BusinessDate, Weekday } from '@/lib/datetime';
 export const FREQUENCIES = ['daily', 'weekly', 'biweekly', 'monthly', 'semiannual'] as const;
 export type Frequency = (typeof FREQUENCIES)[number];
 
+/**
+ * Work that happens once: a one-off placed on the calendar, or an incident's
+ * corrective action. It is NOT a recurrence — there is no rule to resolve and
+ * nothing for the engine to generate — so it stays out of FREQUENCIES, which
+ * is the list of cadences a definition can repeat on.
+ */
+export const ONE_OFF = 'one_off';
+export type TaskFrequency = Frequency | typeof ONE_OFF;
+
 export const weekdaySchema = z.union([
   z.literal(1), z.literal(2), z.literal(3), z.literal(4),
   z.literal(5), z.literal(6), z.literal(7),

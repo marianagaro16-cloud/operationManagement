@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { periodKeyForDate } from '@/domain/recurrence/periods';
+import { ONE_OFF } from '@/domain/recurrence/types';
+import { TEAMS } from '@/lib/authz';
 import { resolveScheduleConfig } from '@/domain/recurrence/engine';
 import type { Frequency } from '@/domain/recurrence/types';
 import type { ActionResult } from './actions';
@@ -129,14 +131,92 @@ export async function unplanTask(occurrenceId: string): Promise<ActionResult> {
     .delete()
     .eq('id', occurrenceId)
     .eq('status', 'pending')
-    .select('id');
+    .select('id, task_id, task:tasks ( frequency, incident_id )');
 
   if (error) return fail(error);
   if (!data || data.length === 0) return { ok: false, error: 'not_removable' };
 
+  // A one-off exists only for the day it was placed on, so taking it off the
+  // calendar removes the activity itself. A corrective action is its
+  // incident's and is left alone; the policy refuses it in any case.
+  const removed = data[0] as unknown as {
+    task_id: string;
+    task: { frequency: string; incident_id: string | null } | null;
+  };
+  if (removed.task?.frequency === ONE_OFF && removed.task.incident_id === null) {
+    await supabase.from('tasks').delete().eq('id', removed.task_id);
+  }
+
   revalidatePath('/calendar');
   revalidatePath('/dashboard');
   return { ok: true, data: undefined };
+}
+
+/* ------------------------------ one-offs ------------------------------- */
+
+const oneOffSchema = z.object({
+  title: z.string().trim().min(1, { message: 'title_required' }).max(200),
+  description: z.string().trim().max(2000).nullable().optional(),
+  date: BUSINESS_DATE,
+  team: z.enum(TEAMS),
+  /** Null means the whole team's, like every recurring activity. */
+  assignee_id: z.string().uuid().nullable().optional(),
+});
+
+export type OneOffInput = z.infer<typeof oneOffSchema>;
+
+/**
+ * An activity that happens once, on one day.
+ *
+ * Two rows, written in order: the definition carrying the title, and the
+ * single occurrence that puts it on the day. If the occurrence cannot be
+ * written the definition is removed again, so a failure leaves nothing
+ * behind rather than an activity that exists on no date.
+ *
+ * Who may do this is the database's decision — the one-off policies on
+ * `tasks` and the existing occurrence policy — not this function's.
+ */
+export async function createOneOffTask(input: OneOffInput): Promise<ActionResult<{ id: string }>> {
+  const parsed = oneOffSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_task' };
+  }
+  const { title, description, date, team, assignee_id: assignee } = parsed.data;
+  const supabase = createClient();
+
+  const { data: task, error: taskError } = await supabase
+    .from('tasks')
+    .insert({
+      title,
+      description: description || null,
+      frequency: ONE_OFF,
+      schedule_config: null,
+      is_active: true,
+      team,
+      starts_on: date,
+    })
+    .select('id')
+    .single();
+
+  if (taskError || !task) return fail(taskError ?? new Error('insert_failed'));
+
+  const { error: occurrenceError } = await supabase.from('task_occurrences').insert({
+    task_id: (task as { id: string }).id,
+    // A one-off has no period to belong to; the day IS its period.
+    period_key: date,
+    due_date: date,
+    source: 'manual',
+    assignee_id: assignee ?? null,
+  });
+
+  if (occurrenceError) {
+    await supabase.from('tasks').delete().eq('id', (task as { id: string }).id);
+    return fail(occurrenceError);
+  }
+
+  revalidatePath('/calendar');
+  revalidatePath('/dashboard');
+  return { ok: true, data: { id: (task as { id: string }).id } };
 }
 
 /* ----------------------------- inventories ----------------------------- */

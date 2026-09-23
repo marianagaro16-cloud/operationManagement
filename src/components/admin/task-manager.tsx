@@ -17,7 +17,7 @@ import { FREQUENCIES, type Frequency, type ScheduleConfig } from '@/domain/recur
 import { TEAMS, type Team } from '@/lib/authz';
 import type { Category, Task } from '@/types/database';
 
-type TaskRow = Task & { category: Category | null };
+type TaskRow = Task & { frequency: Frequency; category: Category | null };
 
 function useTeamLabel() {
   const { t } = useI18n();

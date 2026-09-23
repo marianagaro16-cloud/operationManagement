@@ -151,6 +151,7 @@ export const es: Messages = {
     blockedSubtitle: 'Esperando algo fuera de esta lista',
   },
   frequency: {
+    one_off: 'Puntual',
     daily: 'Diaria',
     weekly: 'Semanal',
     biweekly: 'Quincenal',
@@ -326,6 +327,14 @@ export const es: Messages = {
     histQuantity: 'Cantidad cambiada de {from} a {to}',
   },
   plan: {
+    oneOff: 'Actividad puntual',
+    oneOffHint: 'Ocurre una sola vez, el {date}. Cuando se completa, no vuelve.',
+    oneOffTitle: '¿Qué hay que hacer?',
+    oneOffNotes: 'Notas (opcional)',
+    oneOffWho: '¿Quién la hace?',
+    oneOffWhoHint: 'Si eliges a una persona, la actividad es suya: solo ella y quien gestiona el trabajo la ven.',
+    oneOffEveryone: 'Todo el equipo',
+    errTitleRequired: 'Escribe qué hay que hacer',
     addToDay: 'Añadir trabajo',
     week: 'Programar la semana',
     month: 'Programar el mes',

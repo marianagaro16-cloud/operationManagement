@@ -153,6 +153,7 @@ export const en = {
     blockedSubtitle: 'Waiting on something outside this list',
   },
   frequency: {
+    one_off: 'One-off',
     daily: 'Daily',
     weekly: 'Weekly',
     biweekly: 'Every 2 weeks',
@@ -329,6 +330,14 @@ export const en = {
     histQuantity: 'Quantity changed from {from} to {to}',
   },
   plan: {
+    oneOff: 'One-off activity',
+    oneOffHint: 'Happens once, on {date}. Once it is done it does not come back.',
+    oneOffTitle: 'What has to be done?',
+    oneOffNotes: 'Notes (optional)',
+    oneOffWho: 'Who does it?',
+    oneOffWhoHint: 'Given to a person, the activity is theirs: only they and whoever manages the work see it.',
+    oneOffEveryone: 'The whole team',
+    errTitleRequired: 'Write what has to be done',
     addToDay: 'Add work',
     week: 'Plan the week',
     month: 'Plan the month',

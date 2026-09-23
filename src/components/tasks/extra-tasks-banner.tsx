@@ -2,7 +2,7 @@
 
 import { CalendarClock, ArrowDown } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import type { Frequency } from '@/types/database';
+import type { TaskFrequency } from '@/types/database';
 
 /**
  * The safeguard against the failure mode this system exists to prevent:
@@ -12,7 +12,7 @@ import type { Frequency } from '@/types/database';
  * It is deliberately loud, states the actual count and which cadences are
  * involved, and links straight to the section.
  */
-export function ExtraTasksBanner({ frequencies, count }: { frequencies: Frequency[]; count: number }) {
+export function ExtraTasksBanner({ frequencies, count }: { frequencies: TaskFrequency[]; count: number }) {
   const { t } = useI18n();
   if (count === 0) return null;
 
