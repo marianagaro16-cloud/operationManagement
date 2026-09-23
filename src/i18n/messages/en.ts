@@ -359,6 +359,7 @@ export const en = {
     errInventoryInUse: 'Something has already been counted into this inventory',
   },
   route: {
+    openMapsLeg: 'Maps · leg {leg} of {of}',
     tab: 'Route',
     title: 'The day\'s round',
     stopCount: '{count} stops',

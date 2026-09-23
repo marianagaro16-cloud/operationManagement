@@ -98,36 +98,56 @@ export function planRoute(stops: RouteStop[], origin: RoutePoint | null): RouteS
 }
 
 /**
- * The round as a Google Maps link: origin, the stops in order, and back.
+ * Google Maps takes at most nine waypoints in a link — a round of fifteen
+ * doors does not fit in one. Anything longer is cut into legs that each end
+ * where the next begins, so the driver opens leg 1, drives it, opens leg 2.
+ */
+const MAX_WAYPOINTS = 9;
+
+/**
+ * The round as Google Maps links: origin, the stops in order, and back.
  *
  * Addresses rather than coordinates, because that is what the driver reads
  * when the app opens; a stop with no address falls back to its coordinates.
  * Maps keeps the order given — `dir_action=navigate` would re-sort it.
+ *
+ * One link for a short round, several for a long one. Never a single link
+ * that quietly loses the tenth stop.
  */
-export function googleMapsUrl(params: {
+export function googleMapsLegs(params: {
   origin: string | null;
   stops: string[];
   /** Back to the origin at the end of the round. */
   returnToOrigin: boolean;
-}): string | null {
+}): string[] {
   const stops = params.stops.filter((s) => s.trim());
-  if (stops.length === 0) return null;
-
-  const url = new URL('https://www.google.com/maps/dir/');
-  url.searchParams.set('api', '1');
+  if (stops.length === 0) return [];
 
   const origin = params.origin?.trim() || null;
-  if (origin) url.searchParams.set('origin', origin);
+  const sequence = [
+    ...(origin ? [origin] : []),
+    ...stops,
+    ...(params.returnToOrigin && origin ? [origin] : []),
+  ];
+  if (sequence.length < 2) return [];
 
-  // Maps takes one destination and the rest as waypoints. Coming back to the
-  // factory makes the origin the destination too.
-  const destination = params.returnToOrigin && origin ? origin : stops[stops.length - 1];
-  const waypoints = params.returnToOrigin && origin ? stops : stops.slice(0, -1);
+  const legs: string[] = [];
+  // Each leg is a start, up to nine waypoints and a destination; the
+  // destination of one leg is the start of the next.
+  for (let start = 0; start < sequence.length - 1; start += MAX_WAYPOINTS + 1) {
+    const leg = sequence.slice(start, start + MAX_WAYPOINTS + 2);
+    if (leg.length < 2) break;
 
-  url.searchParams.set('destination', destination);
-  if (waypoints.length > 0) url.searchParams.set('waypoints', waypoints.join('|'));
-  url.searchParams.set('travelmode', 'driving');
-  return url.toString();
+    const url = new URL('https://www.google.com/maps/dir/');
+    url.searchParams.set('api', '1');
+    url.searchParams.set('origin', leg[0]);
+    url.searchParams.set('destination', leg[leg.length - 1]);
+    const waypoints = leg.slice(1, -1);
+    if (waypoints.length > 0) url.searchParams.set('waypoints', waypoints.join('|'));
+    url.searchParams.set('travelmode', 'driving');
+    legs.push(url.toString());
+  }
+  return legs;
 }
 
 /** One line for a map, a label or a geocoder. Empty parts are left out. */

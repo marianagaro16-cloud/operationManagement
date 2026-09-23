@@ -356,6 +356,7 @@ export const es: Messages = {
     errInventoryInUse: 'Ya se ha contado algo en este inventario',
   },
   route: {
+    openMapsLeg: 'Maps · tramo {leg} de {of}',
     tab: 'Ruta',
     title: 'Ruta del día',
     stopCount: '{count} paradas',

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { distanceKm, formatAddress, googleMapsUrl, planRoute, type RouteStop } from './route';
+import { distanceKm, formatAddress, googleMapsLegs, planRoute, type RouteStop } from './route';
 
 /** Roughly Zurich, and points a few kilometres out in known directions. */
 const FACTORY = { latitude: 47.3769, longitude: 8.5417 };
@@ -73,24 +73,56 @@ describe('planning the round', () => {
   });
 });
 
-describe('the Google Maps link', () => {
+describe('the Google Maps links', () => {
+  const paramsOf = (url: string) => new URL(url).searchParams;
+
   it('drives the stops in order and comes home', () => {
-    const url = googleMapsUrl({ origin: 'Fabrik 1, 8000 Zürich', stops: ['A 1, 8004', 'B 2, 8005'], returnToOrigin: true });
-    const params = new URL(url!).searchParams;
-    expect(params.get('origin')).toBe('Fabrik 1, 8000 Zürich');
-    expect(params.get('destination')).toBe('Fabrik 1, 8000 Zürich');
-    expect(params.get('waypoints')).toBe('A 1, 8004|B 2, 8005');
-    expect(params.get('travelmode')).toBe('driving');
+    const [leg, ...rest] = googleMapsLegs({ origin: 'Fabrik 1, 8000 Zürich', stops: ['A 1, 8004', 'B 2, 8005'], returnToOrigin: true });
+    expect(rest).toHaveLength(0);
+    expect(paramsOf(leg).get('origin')).toBe('Fabrik 1, 8000 Zürich');
+    expect(paramsOf(leg).get('destination')).toBe('Fabrik 1, 8000 Zürich');
+    expect(paramsOf(leg).get('waypoints')).toBe('A 1, 8004|B 2, 8005');
+    expect(paramsOf(leg).get('travelmode')).toBe('driving');
   });
 
   it('ends at the last stop when there is no return leg', () => {
-    const params = new URL(googleMapsUrl({ origin: 'F', stops: ['A', 'B'], returnToOrigin: false })!).searchParams;
-    expect(params.get('destination')).toBe('B');
-    expect(params.get('waypoints')).toBe('A');
+    const [leg] = googleMapsLegs({ origin: 'F', stops: ['A', 'B'], returnToOrigin: false });
+    expect(paramsOf(leg).get('destination')).toBe('B');
+    expect(paramsOf(leg).get('waypoints')).toBe('A');
   });
 
   it('is nothing at all with no stops', () => {
-    expect(googleMapsUrl({ origin: 'F', stops: [], returnToOrigin: true })).toBeNull();
+    expect(googleMapsLegs({ origin: 'F', stops: [], returnToOrigin: true })).toEqual([]);
+  });
+
+  it('splits a long round into legs of nine waypoints, each starting where the last ended', () => {
+    const stops = Array.from({ length: 15 }, (_, i) => `S${i + 1}`);
+    const legs = googleMapsLegs({ origin: 'F', stops, returnToOrigin: true });
+    expect(legs).toHaveLength(2);
+
+    const first = paramsOf(legs[0]);
+    expect(first.get('origin')).toBe('F');
+    expect(first.get('waypoints')?.split('|')).toHaveLength(9);
+    expect(first.get('destination')).toBe('S10');
+
+    const second = paramsOf(legs[1]);
+    expect(second.get('origin')).toBe('S10');
+    expect(second.get('destination')).toBe('F');
+    // Nothing is lost between the legs: S11..S15 are the second leg's waypoints.
+    expect(second.get('waypoints')).toBe('S11|S12|S13|S14|S15');
+  });
+
+  it('never loses a stop, whatever the length', () => {
+    for (const count of [1, 9, 10, 11, 20, 31]) {
+      const stops = Array.from({ length: count }, (_, i) => `S${i + 1}`);
+      const seen = googleMapsLegs({ origin: 'F', stops, returnToOrigin: true })
+        .flatMap((leg) => [
+          paramsOf(leg).get('origin') ?? '',
+          ...(paramsOf(leg).get('waypoints')?.split('|') ?? []),
+          paramsOf(leg).get('destination') ?? '',
+        ]);
+      for (const stop of stops) expect(seen).toContain(stop);
+    }
   });
 });
 

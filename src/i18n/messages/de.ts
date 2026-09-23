@@ -356,6 +356,7 @@ export const de: Messages = {
     errInventoryInUse: 'In diese Inventur wurde bereits etwas gezählt',
   },
   route: {
+    openMapsLeg: 'Maps · Etappe {leg} von {of}',
     tab: 'Route',
     title: 'Tour des Tages',
     stopCount: '{count} Stopps',

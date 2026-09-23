@@ -25,12 +25,20 @@ export interface RouteOrigin {
   longitude: number | null;
 }
 
+/**
+ * A stop is an ADDRESS, not an order.
+ *
+ * Three orders for the same restaurant are one door, rung once. Listing them
+ * as three stops made a round of fifteen doors read as twenty-one, and the
+ * proposed order then spent two of its steps travelling nowhere.
+ */
 export interface RouteStopRow {
-  orderId: string;
-  reference: number;
+  /** The customer: one address, one stop. */
   customerId: string;
   customerName: string;
-  /** "HH:MM" when an hour was promised. */
+  /** Every order dropped at this door, in reference order. */
+  orders: { id: string; reference: number; deliveryTime: string | null; ready: boolean; shipped: boolean }[];
+  /** The earliest hour promised at this door, if any. */
   deliveryTime: string | null;
   address: string;
   deliveryNotes: string | null;
@@ -38,8 +46,9 @@ export interface RouteStopRow {
   longitude: number | null;
   /** Its place in the round, or null while the round is unplanned. */
   position: number | null;
-  /** Lines, so the driver sees what they are carrying without opening the order. */
+  /** What comes off the van here, across every order for this door. */
   items: { product: string; quantity: number }[];
+  /** Everything for this door is prepared / has left. */
   ready: boolean;
   shipped: boolean;
 }
@@ -116,29 +125,61 @@ export async function getRouteStops(date: BusinessDate): Promise<RouteStopRow[]>
   if (error) throw new Error(error.message);
 
   const rows = (data ?? []) as unknown as RawStop[];
-  return rows
-    .map((row) => ({
-      orderId: row.id,
-      reference: row.reference,
+
+  const byCustomer = new Map<string, RouteStopRow>();
+  for (const row of rows) {
+    const stop = byCustomer.get(row.customer.id) ?? {
       customerId: row.customer.id,
       customerName: row.customer.name,
-      deliveryTime: row.delivery_time ? row.delivery_time.slice(0, 5) : null,
+      orders: [],
+      deliveryTime: null,
       address: formatAddress(row.customer),
       deliveryNotes: row.customer.delivery_notes,
       latitude: row.customer.latitude === null ? null : Number(row.customer.latitude),
       longitude: row.customer.longitude === null ? null : Number(row.customer.longitude),
-      position: row.route_position,
-      items: (row.lines ?? []).map((line) => ({
-        product: line.product?.name?.trim() || line.product?.family || '—',
-        quantity: Number(line.ordered_quantity),
-      })),
+      position: null,
+      items: [],
+      ready: true,
+      shipped: true,
+    };
+
+    const time = row.delivery_time ? row.delivery_time.slice(0, 5) : null;
+    stop.orders.push({
+      id: row.id,
+      reference: row.reference,
+      deliveryTime: time,
       ready: row.ready_at !== null,
       shipped: row.shipped_at !== null,
-    }))
+    });
+
+    // The earliest hour promised at this door is the one the round must keep.
+    if (time && (stop.deliveryTime === null || time < stop.deliveryTime)) stop.deliveryTime = time;
+    // The door is done when every order for it is done.
+    stop.ready = stop.ready && row.ready_at !== null;
+    stop.shipped = stop.shipped && row.shipped_at !== null;
+    // Where the orders disagree, the earliest position wins, so a stop never
+    // jumps because a second order was added to it later.
+    if (row.route_position !== null) {
+      stop.position = stop.position === null ? row.route_position : Math.min(stop.position, row.route_position);
+    }
+
+    // The same product on two orders for one door is one thing to unload.
+    for (const line of row.lines ?? []) {
+      const product = line.product?.name?.trim() || line.product?.family || '—';
+      const existing = stop.items.find((i) => i.product === product);
+      if (existing) existing.quantity += Number(line.ordered_quantity);
+      else stop.items.push({ product, quantity: Number(line.ordered_quantity) });
+    }
+
+    byCustomer.set(row.customer.id, stop);
+  }
+
+  return [...byCustomer.values()]
+    .map((stop) => ({ ...stop, orders: [...stop.orders].sort((a, b) => a.reference - b.reference) }))
     .sort((a, b) => {
       if (a.position !== null && b.position !== null) return a.position - b.position;
       if (a.position !== null) return -1;
       if (b.position !== null) return 1;
-      return a.reference - b.reference;
+      return a.orders[0].reference - b.orders[0].reference;
     });
 }

@@ -55,9 +55,11 @@ export async function planDeliveryRoute(date: string): Promise<ActionResult<{ st
   const [stops, origin] = await Promise.all([getRouteStops(parsed.data), getRouteOrigin()]);
   if (stops.length === 0) return { ok: false, error: 'no_stops' };
 
+  // One stop per address; the orders behind it keep consecutive positions,
+  // so the door is visited once whatever it is carrying.
   const planned = planRoute(
     stops.map((s) => ({
-      orderId: s.orderId,
+      orderId: s.customerId,
       latitude: s.latitude,
       longitude: s.longitude,
       deliveryTime: s.deliveryTime,
@@ -65,7 +67,12 @@ export async function planDeliveryRoute(date: string): Promise<ActionResult<{ st
     originPoint(origin),
   );
 
-  const written = await writePositions(planned.map((s) => s.orderId));
+  const orderIds = planned.flatMap((p) => {
+    const stop = stops.find((s) => s.customerId === p.orderId);
+    return stop ? stop.orders.map((o) => o.id) : [];
+  });
+
+  const written = await writePositions(orderIds);
   if (!written.ok) return written;
   return { ok: true, data: { stops: planned.length } };
 }

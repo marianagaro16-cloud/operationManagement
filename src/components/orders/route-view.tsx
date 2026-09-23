@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState, ErrorState } from '@/components/ui/primitives';
 import { NoteChip } from '@/components/ui/note';
-import { googleMapsUrl } from '@/domain/orders/route';
+import { googleMapsLegs } from '@/domain/orders/route';
 import { planDeliveryRoute, setRouteOrder } from '@/server/route-actions';
 import type { RouteOrigin, RouteStopRow } from '@/server/route';
 
@@ -51,7 +51,9 @@ export function RouteView({
       .join(', ')
     : '';
 
-  const mapsHref = googleMapsUrl({
+  // Google Maps takes nine waypoints at a time, so a long round opens in
+  // legs rather than losing its tail.
+  const mapsLegs = googleMapsLegs({
     origin: originLine || null,
     // A stop with no address still has a customer; Maps searches the name.
     stops: stops.map((s) => s.address || s.customerName),
@@ -65,7 +67,8 @@ export function RouteView({
     setStops(next);
     setError(null);
     startTransition(async () => {
-      const res = await setRouteOrder(next.map((s) => s.orderId));
+      // The stops are doors; the positions written are their orders'.
+      const res = await setRouteOrder(next.flatMap((s) => s.orders.map((o) => o.id)));
       if (!res.ok) {
         setError(res.error === 'orders_read_only' ? t('orders.ordersReadOnly') : res.error);
         setStops(initial);
@@ -115,14 +118,16 @@ export function RouteView({
             {t('route.plan')}
           </Button>
         )}
-        {mapsHref && (
-          <a href={mapsHref} target="_blank" rel="noreferrer">
+        {mapsLegs.map((href, index) => (
+          <a key={href} href={href} target="_blank" rel="noreferrer">
             <Button size="sm" variant="primary">
               <Navigation className="h-3.5 w-3.5" aria-hidden />
-              {t('route.openMaps')}
+              {mapsLegs.length === 1
+                ? t('route.openMaps')
+                : t('route.openMapsLeg', { leg: index + 1, of: mapsLegs.length })}
             </Button>
           </a>
-        )}
+        ))}
       </div>
 
       {/* What the plan could not take into account, said plainly. */}
@@ -140,7 +145,7 @@ export function RouteView({
 
       <ol className="space-y-2">
         {stops.map((stop, index) => (
-          <li key={stop.orderId}>
+          <li key={stop.customerId}>
             <Card className={cn('p-3', stop.shipped && 'opacity-70')}>
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[12px] font-semibold tabular text-accent">
@@ -149,13 +154,17 @@ export function RouteView({
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <Link
-                      href={`/orders/${stop.orderId}`}
-                      className="text-[13.5px] font-medium hover:text-accent hover:underline"
-                    >
-                      {stop.customerName}
-                    </Link>
-                    <span className="text-[11.5px] tabular text-subtle">#{stop.reference}</span>
+                    <span className="text-[13.5px] font-medium">{stop.customerName}</span>
+                    {/* Every order left at this door, each one openable. */}
+                    {stop.orders.map((order) => (
+                      <Link
+                        key={order.id}
+                        href={`/orders/${order.id}`}
+                        className="text-[11.5px] tabular text-subtle hover:text-accent hover:underline"
+                      >
+                        #{order.reference}
+                      </Link>
+                    ))}
                     {stop.deliveryTime && (
                       <Badge tone="warn">
                         <Clock className="h-2.5 w-2.5" aria-hidden />
