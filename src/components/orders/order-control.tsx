@@ -335,11 +335,18 @@ export function OrderControl({
           </form>
         )}
 
-        {/* Four across, so a fifth filter WRAPS rather than narrowing the
-            other four. Five abreast fits on paper and truncates every label
-            in practice: "Todos los tipos" and "Todos los estados" both become
-            "Todos los…", which is a filter bar nobody can read. */}
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {/*
+          * Each filter keeps a MINIMUM width and the row fits as many as it
+          * can — five on a wide screen, fewer on a laptop, one on a phone.
+          *
+          * A fixed number of columns divides the bar by the count of filters
+          * rather than by what they have to say, so adding a fifth one
+          * silently cut "Todas las formas de envío" down to "Todas las formas
+          * de…". The label is not the thing to shorten: a filter that cannot
+          * be read is not a filter. The floor is set from the longest label
+          * the bar carries, in Spanish, which is the longest of the three.
+          */}
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(216px,1fr))]">
           {/* Searchable: 216 customers is far too many to scroll. An empty
               field means "all", which is why clearing it removes the filter. */}
           <Combobox
