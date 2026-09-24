@@ -16,9 +16,10 @@ import { lineProgress, toQuantity } from '@/domain/orders/progress';
 import { ORDERS_GO_LIVE } from '@/domain/orders/config';
 import { periodLabel, periodRange, shiftCustomRange, shiftPeriod, type PeriodRange } from '@/domain/orders/reporting';
 import { businessToday } from '@/lib/datetime';
-import { productLabel, type Brand, type Customer, type DeliveryMethod, type OrderWithProgress, type Product } from '@/types/orders';
+import { productLabel, type Brand, type Customer, type DeliveryMethod, type OrderType, type OrderWithProgress, type Product } from '@/types/orders';
 import { IncidentDialog, orderContextFrom } from '@/components/incidents/incident-dialog';
 import type { IncidentCategory, IncidentType } from '@/types/incidents';
+import { ORDER_TYPES, ORDER_TYPE_LABEL } from './order-types';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
 import { NoteBlock, NoteChip, NoteText } from '@/components/ui/note';
@@ -71,6 +72,7 @@ export function OrderControl({
     customerId?: string;
     deliveryMethodId?: string;
     status?: string;
+    orderType?: OrderType;
     /** Orders carrying at least one line of this brand. */
     brandId?: string;
     /** Free text. When set, the search spans every month, not just this one. */
@@ -118,6 +120,7 @@ export function OrderControl({
       if (filters.customerId) params.set('customer', filters.customerId);
       if (filters.deliveryMethodId) params.set('method', filters.deliveryMethodId);
       if (filters.status) params.set('status', filters.status);
+      if (filters.orderType) params.set('type', filters.orderType);
       if (filters.brandId) params.set('brand', filters.brandId);
       if (filters.query) params.set('q', filters.query);
     }
@@ -192,6 +195,10 @@ export function OrderControl({
     filters.brandId && {
       key: 'brand',
       label: brands.find((b) => b.id === filters.brandId)?.name ?? t('master.brand'),
+    },
+    filters.orderType && {
+      key: 'type',
+      label: t(ORDER_TYPE_LABEL[filters.orderType]),
     },
     filters.status && {
       key: 'status',
@@ -328,6 +335,10 @@ export function OrderControl({
           </form>
         )}
 
+        {/* Four across, so a fifth filter WRAPS rather than narrowing the
+            other four. Five abreast fits on paper and truncates every label
+            in practice: "Todos los tipos" and "Todos los estados" both become
+            "Todos los…", which is a filter bar nobody can read. */}
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {/* Searchable: 216 customers is far too many to scroll. An empty
               field means "all", which is why clearing it removes the filter. */}
@@ -371,6 +382,19 @@ export function OrderControl({
             <option value="">{t('master.allBrands')}</option>
             {brands.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </Select>
+          {/* What the delivery WAS commercially — a sale, a consignment, or
+              one of the free kinds. Independent of its status: a cancelled
+              sample is both. */}
+          <Select
+            value={filters.orderType ?? ''}
+            onChange={(e) => setFilter('type', e.target.value)}
+            aria-label={t('orders.orderType')}
+          >
+            <option value="">{t('orders.allTypes')}</option>
+            {ORDER_TYPES.map((type) => (
+              <option key={type} value={type}>{t(ORDER_TYPE_LABEL[type])}</option>
             ))}
           </Select>
           <Select

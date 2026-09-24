@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge, Card, CardBody, EmptyState, Select } from '@/components/ui/primitives';
 import { Combobox } from '@/components/ui/combobox';
 import { ReportShell, reportHref } from '@/components/reports/report-shell';
+import { ORDER_TYPES, ORDER_TYPE_LABEL } from './order-types';
 import {
   PRODUCT_GROUPINGS,
   productReportToCsv,
@@ -25,6 +26,7 @@ import {
   productLabel,
   type Brand,
   type Customer,
+  type OrderType,
   type Product,
   type ProductCategory,
   type ProductSubcategory,
@@ -97,7 +99,7 @@ export function OrderReportView({
   products: Product[];
   brands: Brand[];
   /** Narrowing applied to the whole report, carried in the URL. brandId may be 'none'. */
-  filters: { customerId?: string; productId?: string; brandId?: string };
+  filters: { customerId?: string; productId?: string; brandId?: string; orderType?: OrderType };
   /** How the product table is grouped, carried in the URL so it survives period changes. */
   grouping: ProductGrouping;
   /** To name categories in the viewer's language, which can change after the server render. */
@@ -117,9 +119,10 @@ export function OrderReportView({
     customer: filters.customerId,
     product: filters.productId,
     brand: filters.brandId,
+    type: filters.orderType,
     group: grouping === 'none' ? undefined : grouping,
   };
-  const setFilter = (key: 'customer' | 'product', value: string | null) =>
+  const setFilter = (key: 'customer' | 'product' | 'type', value: string | null) =>
     router.push(reportHref('orders', range, anchor, undefined, { ...urlFilters, [key]: value ?? undefined }));
 
   // The product picker offers only the chosen brand's products.
@@ -221,7 +224,7 @@ export function OrderReportView({
     >
       {/* Outside the empty state, so a filter that matches nothing can still
           be seen and cleared. Clearing a field means "all". */}
-      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Combobox
           items={customers}
           value={filters.customerId ?? null}
@@ -255,6 +258,19 @@ export function OrderReportView({
           placeholder={t('incident.allProducts')}
           emptyMessage={t('orders.noProductsFound')}
         />
+        {/* Narrowing to one type answers "how much of the month was given
+            away, or is still on somebody's shelf" — and the CSV below is
+            built from whatever is on screen, so the export follows. */}
+        <Select
+          value={filters.orderType ?? ''}
+          onChange={(e) => setFilter('type', e.target.value || null)}
+          aria-label={t('orders.orderType')}
+        >
+          <option value="">{t('orders.allTypes')}</option>
+          {ORDER_TYPES.map((type) => (
+            <option key={type} value={type}>{t(ORDER_TYPE_LABEL[type])}</option>
+          ))}
+        </Select>
       </div>
 
       {report.orders === 0 && report.cancelled === 0 ? (

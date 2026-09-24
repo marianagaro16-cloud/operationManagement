@@ -92,6 +92,8 @@ export async function getOrdersByDelivery(filters: {
   customerId?: string;
   deliveryMethodId?: string;
   status?: string;
+  /** 'sale', 'consignment', 'sample', 'replacement' or 'sponsorship'. */
+  orderType?: string;
 }): Promise<OrderWithProgress[]> {
   const supabase = createClient();
   let q = supabase
@@ -103,6 +105,7 @@ export async function getOrdersByDelivery(filters: {
     .order('reference', { ascending: true });
 
   if (filters.customerId) q = q.eq('customer_id', filters.customerId);
+  if (filters.orderType) q = q.eq('order_type', filters.orderType);
   if (filters.deliveryMethodId) q = q.eq('delivery_method_id', filters.deliveryMethodId);
   // Ready and Shipped are milestones on a confirmed order, not status values
   // (see migration 20261001090000), so they filter on their own columns.

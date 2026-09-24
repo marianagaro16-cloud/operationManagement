@@ -9,6 +9,7 @@ import { filterByQuery } from '@/lib/search';
 import { productLabel } from '@/types/orders';
 import { displayName } from '@/lib/utils';
 import { OrderControl } from '@/components/orders/order-control';
+import { asOrderType } from '@/components/orders/order-types';
 import { OrdersBoard, OrdersTabs, type OrdersMode, type OrdersTab } from '@/components/orders/orders-board';
 import { redirect } from 'next/navigation';
 import { ordersReadOnly } from '@/lib/authz';
@@ -27,6 +28,7 @@ export default async function OrdersPage({
     customer?: string;
     method?: string;
     status?: string;
+    type?: string;
     brand?: string;
     q?: string;
     from?: string;
@@ -60,7 +62,7 @@ export default async function OrdersPage({
    */
   const hasBookFilters = Boolean(
     searchParams.month || searchParams.period || searchParams.customer || searchParams.method || searchParams.status
-    || searchParams.brand || searchParams.q || searchParams.from || searchParams.to,
+    || searchParams.brand || searchParams.type || searchParams.q || searchParams.from || searchParams.to,
   );
   const requested = searchParams.tab as OrdersTab | undefined;
   const tab: OrdersTab =
@@ -147,6 +149,10 @@ export default async function OrdersPage({
       ? { start: ORDERS_GO_LIVE, end: addDays(today, SEARCH_HORIZON_DAYS) }
       : bookRange;
 
+  // Only a type we know reaches the query; a hand-edited URL narrows the
+  // list to nothing rather than being passed through.
+  const orderType = asOrderType(searchParams.type);
+
   const canReportIncident = viewer.can('incidents.manage');
 
   const [found, customers, products, deliveryMethods, brands, incidentCategories, incidentTypes] =
@@ -157,6 +163,7 @@ export default async function OrdersPage({
         customerId: searchParams.customer,
         deliveryMethodId: searchParams.method,
         status: searchParams.status,
+        orderType,
       }),
       getCustomers(),
       getProducts(),
@@ -213,6 +220,7 @@ export default async function OrdersPage({
         customerId: searchParams.customer,
         deliveryMethodId: searchParams.method,
         status: searchParams.status,
+        orderType,
         brandId,
         query,
       }}

@@ -1,8 +1,9 @@
 'use client';
 
-import { useI18n, type MessageKey } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { Badge, type Tone } from '@/components/ui/primitives';
 import type { OrderType } from '@/types/orders';
+import { ORDER_TYPE_LABEL } from './order-types';
 
 /**
  * How an order's commercial type is shown on a row.
@@ -19,20 +20,20 @@ import type { OrderType } from '@/types/orders';
  * a fourth type meant three edits and a chance of three different colours.
  */
 
-const PRESENTATION: Partial<Record<OrderType, { key: MessageKey; tone: Tone }>> = {
+const TONES: Partial<Record<OrderType, Tone>> = {
   // `neutral`: the goods are out but nothing went wrong and nothing was
   // given away. It is a sale that has not happened yet.
-  consignment: { key: 'orders.typeConsignment', tone: 'neutral' },
-  sample: { key: 'orders.typeSample', tone: 'accent' },
+  consignment: 'neutral',
+  sample: 'accent',
   // `warn`, not `accent`: a replacement is not a giveaway we planned, it is
   // one something went wrong to cause.
-  replacement: { key: 'orders.typeReplacement', tone: 'warn' },
-  sponsorship: { key: 'orders.typeSponsorship', tone: 'accent' },
+  replacement: 'warn',
+  sponsorship: 'accent',
 };
 
 export function OrderTypeBadge({ type }: { type: OrderType }) {
   const { t } = useI18n();
-  const presentation = PRESENTATION[type];
-  if (!presentation) return null;
-  return <Badge tone={presentation.tone}>{t(presentation.key)}</Badge>;
+  const tone = TONES[type];
+  if (!tone) return null;
+  return <Badge tone={tone}>{t(ORDER_TYPE_LABEL[type])}</Badge>;
 }

@@ -16,6 +16,7 @@ import { businessToday } from '@/lib/datetime';
 import { productLabel, type Customer, type DeliveryMethod, type Order, type OrderType, type Product } from '@/types/orders';
 import { saveOrder } from '@/server/order-actions';
 import { ImportPanel, type ImportMethod } from './import-panel';
+import { ORDER_TYPES, ORDER_TYPE_LABEL } from './order-types';
 import { OrderLineEditor, emptyLine, type DraftLine } from './order-line-editor';
 
 /**
@@ -386,11 +387,9 @@ export function OrderDialog({
               value={orderType}
               onChange={(e) => setOrderType(e.target.value as Order['order_type'])}
             >
-              <option value="sale">{t('orders.typeSale')}</option>
-              <option value="consignment">{t('orders.typeConsignment')}</option>
-              <option value="sample">{t('orders.typeSample')}</option>
-              <option value="replacement">{t('orders.typeReplacement')}</option>
-              <option value="sponsorship">{t('orders.typeSponsorship')}</option>
+              {ORDER_TYPES.map((type) => (
+                <option key={type} value={type}>{t(ORDER_TYPE_LABEL[type])}</option>
+              ))}
             </Select>
           </Field>
         </div>

@@ -40,6 +40,7 @@ import { monthRange } from '@/domain/orders/scheduling';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { LOCALE_COOKIE, resolveLocale } from '@/i18n/config';
 import type { Viewer } from '@/server/data';
+import { asOrderType } from '@/components/orders/order-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,6 +83,7 @@ interface ReportSearchParams {
   to?: string;
   customer?: string;
   product?: string;
+  type?: string;
   brand?: string;
   group?: string;
   /** Incidents tab: YYYY-MM. */
@@ -162,6 +164,7 @@ async function ReportTabContent({
   const productId = isUuid(searchParams.product) ? searchParams.product : undefined;
   // A brand id, or 'none' for products nobody has classified.
   const brandId = searchParams.brand === 'none' || isUuid(searchParams.brand) ? searchParams.brand : undefined;
+  const orderType = asOrderType(searchParams.type);
 
   // Reuses the existing order query — no reporting tables, no duplicated data.
   // Inactive customers, products and brands are offered too: a report looks backwards.
@@ -170,7 +173,7 @@ async function ReportTabContent({
     : 'none';
 
   const [found, customers, products, brands, categories, subcategories] = await Promise.all([
-    getOrdersByDelivery({ from: range.start, to: range.end, customerId }),
+    getOrdersByDelivery({ from: range.start, to: range.end, customerId, orderType }),
     getCustomers(true),
     getProducts(true),
     getBrands(true),
@@ -188,7 +191,7 @@ async function ReportTabContent({
       customers={customers}
       products={products}
       brands={brands}
-      filters={{ customerId, productId, brandId }}
+      filters={{ customerId, productId, brandId, orderType }}
       grouping={grouping}
       categories={categories}
       subcategories={subcategories}
