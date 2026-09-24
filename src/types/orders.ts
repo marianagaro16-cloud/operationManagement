@@ -7,14 +7,16 @@ export type OrderStatus = 'draft' | 'confirmed' | 'cancelled';
 /**
  * The commercial nature of a delivery, not its provenance.
  *
- * 'sale' is billed, 'sample' is free for evaluation, 'replacement' is free to
- * make good, 'sponsorship' is free in exchange for visibility — an event, a
- * team, a fair, where no future order is expected of the recipient and none
- * is the point. Independent of `replaces_incident_id`, which records WHICH
- * incident prompted the delivery — a redelivery the customer still pays for
- * is a sale with an incident attached.
+ * 'sale' is billed. 'consignment' left the factory but is not sold yet: it
+ * sits on the customer's shelf as ours, and what does not sell can come
+ * back. 'sample' is free for evaluation, 'replacement' is free to make good,
+ * 'sponsorship' is free in exchange for visibility — an event, a team, a
+ * fair, where no future order is expected of the recipient and none is the
+ * point. Independent of `replaces_incident_id`, which records WHICH incident
+ * prompted the delivery — a redelivery the customer still pays for is a sale
+ * with an incident attached.
  */
-export type OrderType = 'sale' | 'sample' | 'replacement' | 'sponsorship';
+export type OrderType = 'sale' | 'consignment' | 'sample' | 'replacement' | 'sponsorship';
 
 /**
  * Why a product was prepared short, or not sent at all. A fixed list so the

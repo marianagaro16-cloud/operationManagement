@@ -276,7 +276,7 @@ export function OrderReportView({
 
           {/* Anything the headline hides */}
           {(report.cancelled > 0 || report.draft > 0 || report.samples > 0
-            || report.replacements > 0 || report.sponsorships > 0
+            || report.replacements > 0 || report.sponsorships > 0 || report.consignments > 0
             || report.shortLines > 0) && (
             <div className="flex flex-wrap gap-1.5">
               {report.cancelled > 0 && (
@@ -296,6 +296,11 @@ export function OrderReportView({
               )}
               {report.sponsorships > 0 && (
                 <Badge tone="accent">{t('orders.typeSponsorship')}: {report.sponsorships}</Badge>
+              )}
+              {/* Out of the factory, not yet sold: neither trade nor a
+                  giveaway, which is why it is counted on its own. */}
+              {report.consignments > 0 && (
+                <Badge tone="neutral">{t('orders.typeConsignment')}: {report.consignments}</Badge>
               )}
               {report.shortLines > 0 && (
                 <Badge tone="warn">

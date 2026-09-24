@@ -505,6 +505,7 @@ export const en = {
     statusDraft: 'Draft',
     statusConfirmed: 'Confirmed',
     statusCancelled: 'Cancelled',
+    typeConsignment: 'Consignment',
     typeSale: 'Sale',
     typeSample: 'Sample',
     typeReplacement: 'Replacement',

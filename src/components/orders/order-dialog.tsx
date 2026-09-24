@@ -387,6 +387,7 @@ export function OrderDialog({
               onChange={(e) => setOrderType(e.target.value as Order['order_type'])}
             >
               <option value="sale">{t('orders.typeSale')}</option>
+              <option value="consignment">{t('orders.typeConsignment')}</option>
               <option value="sample">{t('orders.typeSample')}</option>
               <option value="replacement">{t('orders.typeReplacement')}</option>
               <option value="sponsorship">{t('orders.typeSponsorship')}</option>

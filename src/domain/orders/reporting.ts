@@ -250,6 +250,14 @@ export interface OrderReport {
    * apart from samples because nobody is expected to buy afterwards.
    */
   sponsorships: number;
+  /**
+   * Deliveries that left but are not sold yet — the goods sit on the
+   * customer's shelf as ours until they sell them, and what does not sell
+   * comes back. Counted apart from sales because booking them as trade
+   * would count revenue nobody has earned, and apart from the free types
+   * because nothing was given away.
+   */
+  consignments: number;
   customersServed: number;
   lines: number;
 
@@ -537,6 +545,7 @@ export function computeOrderReport(
     samples: counted.filter((o) => o.order_type === 'sample').length,
     replacements: counted.filter((o) => o.order_type === 'replacement').length,
     sponsorships: counted.filter((o) => o.order_type === 'sponsorship').length,
+    consignments: counted.filter((o) => o.order_type === 'consignment').length,
     customersServed: customers.size,
     lines,
     totalOrdered: round3(totalOrdered),

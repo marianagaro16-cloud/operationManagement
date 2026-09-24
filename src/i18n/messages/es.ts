@@ -502,6 +502,7 @@ export const es: Messages = {
     statusDraft: 'Borrador',
     statusConfirmed: 'Confirmado',
     statusCancelled: 'Cancelado',
+    typeConsignment: 'Consignación',
     typeSale: 'Venta',
     typeSample: 'Muestra',
     typeReplacement: 'Reposición',

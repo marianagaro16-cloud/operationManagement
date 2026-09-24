@@ -54,7 +54,7 @@ const orderInputSchema = z.object({
   // a translatable refusal rather than a constraint violation surfaced raw.
   delivery_method_id: z.string().uuid(),
   status: z.enum(['draft', 'confirmed', 'cancelled']),
-  order_type: z.enum(['sale', 'sample', 'replacement', 'sponsorship']),
+  order_type: z.enum(['sale', 'consignment', 'sample', 'replacement', 'sponsorship']),
   note: z.string().trim().nullable(),
   /**
    * How the order arrived. Omitted means what it has always meant — entered

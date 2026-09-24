@@ -242,6 +242,31 @@ describe('headline numbers', () => {
     const r = computeOrderReport([order({ lines: [line('p1', '0001', 'T', 1)] })], SEP);
     expect(r.sponsorships).toBe(0);
   });
+
+  it('counts consignments apart from sales and from the free types', () => {
+    // A consignment is not a sale yet — the crates sit on the customer's
+    // shelf as ours and what does not sell comes back — and it is not a
+    // giveaway either, so it belongs in neither pile.
+    const r = computeOrderReport(
+      [
+        order({ lines: [line('p1', '0001', 'T', 10)] }),
+        order({ order_type: 'consignment', lines: [line('p1', '0001', 'T', 6)] }),
+        order({ order_type: 'sample', lines: [line('p1', '0001', 'T', 1)] }),
+      ],
+      SEP,
+    );
+    expect(r.orders).toBe(3);
+    expect(r.consignments).toBe(1);
+    expect(r.samples).toBe(1);
+    expect(r.sponsorships).toBe(0);
+    // They left the warehouse like any other crates, sold or not.
+    expect(r.totalOrdered).toBe(17);
+  });
+
+  it('reports no consignments when there are none', () => {
+    const r = computeOrderReport([order({ lines: [line('p1', '0001', 'T', 1)] })], SEP);
+    expect(r.consignments).toBe(0);
+  });
 });
 
 describe('quantities per product — the main question', () => {
