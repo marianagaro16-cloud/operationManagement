@@ -9,6 +9,7 @@ import {
   can,
   isConfigurable,
   incidentScope,
+  inventoryOwnOnly,
   isRole,
   ordersReadOnly,
   permissionKey,
@@ -86,6 +87,14 @@ describe('team scope', () => {
   it("confines a plain user's tasks to their team, and nobody else's", () => {
     expect(teamScope('user', 'operations')).toBe('operations');
     expect(teamScope('production_manager', 'production')).toBeNull();
+  });
+
+  it('limits inventories to their own for a plain user on Production only', () => {
+    expect(inventoryOwnOnly('user', 'production')).toBe(true);
+    expect(inventoryOwnOnly('user', 'operations')).toBe(false);
+    for (const role of ['admin', 'manager', 'power_user', 'production_manager'] as const) {
+      expect(inventoryOwnOnly(role, 'production')).toBe(false);
+    }
   });
 
   it('confines the incidents a production manager manages to their team', () => {

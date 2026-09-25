@@ -285,16 +285,18 @@ function FilterPanel({
           />
         </Field>
 
-        <Field label={t('inventory.filterUser')}>
-          <Select value={params.get('user') ?? ''} onChange={(e) => set('user', e.target.value)}>
-            <option value="">{t('inventory.filterAll')}</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {displayName(u)}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        {users.length > 0 && (
+          <Field label={t('inventory.filterUser')}>
+            <Select value={params.get('user') ?? ''} onChange={(e) => set('user', e.target.value)}>
+              <option value="">{t('inventory.filterAll')}</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {displayName(u)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
 
         <Field label={t('inventory.filterFrom')}>
           <Input

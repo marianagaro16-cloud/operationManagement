@@ -1,4 +1,5 @@
 import { getUsers, getViewer } from '@/server/data';
+import { inventoryOwnOnly } from '@/lib/authz';
 import { businessToday } from '@/lib/datetime';
 import {
   getInventories,
@@ -36,6 +37,9 @@ export default async function InventoryPage({
   // is management work, so the widgets that surface it follow the capability
   // rather than the admin role.
   const canManage = viewer?.can('inventory.manage_instances') ?? false;
+  // A User on Production sees only their own inventories and not who else
+  // counts them (enforced in RLS), so filtering by person has nothing to offer.
+  const ownOnly = viewer ? inventoryOwnOnly(viewer.role, viewer.profile.team) : false;
 
   // History is paged, never loaded whole: it grows for as long as the
   // operation runs, and a phone on the warehouse floor must not fetch it all.
@@ -65,7 +69,7 @@ export default async function InventoryPage({
       isoWeek: Number.isFinite(week) && week >= 1 && week <= 53 ? week : undefined,
       from: searchParams.from || undefined,
       to: capTo(searchParams.to || undefined),
-      assignedUserId: searchParams.user || undefined,
+      assignedUserId: ownOnly ? undefined : searchParams.user || undefined,
       digitalPending: searchParams.pending === '1',
       needsReview: searchParams.review === '1',
       limit: take,
@@ -96,7 +100,7 @@ export default async function InventoryPage({
           name: t.name,
           translations: t.translations,
         }))}
-        users={users}
+        users={ownOnly ? [] : users}
         canManage={canManage}
       />
     </>

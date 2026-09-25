@@ -157,6 +157,17 @@ export function teamScope(role: Role, team: Team): Team | null {
 }
 
 /**
+ * Whether someone sees only the inventories assigned to them, and not who
+ * else counts them.
+ *
+ * Mirrors inventory_own_only() in SQL, which is what enforces it: a plain
+ * User on the Production team.
+ */
+export function inventoryOwnOnly(role: Role, team: Team): boolean {
+  return role === 'user' && team === 'production';
+}
+
+/**
  * The team whose incidents a role may manage, or null for every team's.
  *
  * Mirrors incident_scope() in SQL: a Production manager reads every
