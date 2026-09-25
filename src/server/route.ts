@@ -46,8 +46,6 @@ export interface RouteStopRow {
   longitude: number | null;
   /** Its place in the round, or null while the round is unplanned. */
   position: number | null;
-  /** What comes off the van here, across every order for this door. */
-  items: { product: string; quantity: number }[];
   /** Everything for this door is prepared / has left. */
   ready: boolean;
   shipped: boolean;
@@ -86,8 +84,7 @@ const STOP_SELECT = `
   customer:customers!inner (
     id, name, street, postal_code, city, country, delivery_notes, latitude, longitude
   ),
-  delivery_method:delivery_methods!inner ( id, name, own_vehicle ),
-  lines:order_lines ( ordered_quantity, product:products ( name, family, presentation ) )
+  delivery_method:delivery_methods!inner ( id, name, own_vehicle )
 `;
 
 interface RawStop {
@@ -102,7 +99,6 @@ interface RawStop {
     city: string | null; country: string | null; delivery_notes: string | null;
     latitude: number | string | null; longitude: number | string | null;
   };
-  lines: { ordered_quantity: number | string; product: { name: string | null; family: string; presentation: string } | null }[] | null;
 }
 
 /**
@@ -138,7 +134,6 @@ export async function getRouteStops(date: BusinessDate): Promise<RouteStopRow[]>
       latitude: row.customer.latitude === null ? null : Number(row.customer.latitude),
       longitude: row.customer.longitude === null ? null : Number(row.customer.longitude),
       position: null,
-      items: [],
       ready: true,
       shipped: true,
     };
@@ -161,14 +156,6 @@ export async function getRouteStops(date: BusinessDate): Promise<RouteStopRow[]>
     // jumps because a second order was added to it later.
     if (row.route_position !== null) {
       stop.position = stop.position === null ? row.route_position : Math.min(stop.position, row.route_position);
-    }
-
-    // The same product on two orders for one door is one thing to unload.
-    for (const line of row.lines ?? []) {
-      const product = line.product?.name?.trim() || line.product?.family || '—';
-      const existing = stop.items.find((i) => i.product === product);
-      if (existing) existing.quantity += Number(line.ordered_quantity);
-      else stop.items.push({ product, quantity: Number(line.ordered_quantity) });
     }
 
     byCustomer.set(row.customer.id, stop);

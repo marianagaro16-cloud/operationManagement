@@ -191,13 +191,6 @@ export function RouteView({
                       <NoteText text={stop.deliveryNotes} />
                     </NoteBlock>
                   )}
-
-                  {/* What is on board for this stop. */}
-                  {stop.items.length > 0 && (
-                    <p className="mt-1.5 text-[12px] text-subtle">
-                      {stop.items.map((i) => `${i.quantity}× ${i.product}`).join(' · ')}
-                    </p>
-                  )}
                 </div>
 
                 {canReorder && (
