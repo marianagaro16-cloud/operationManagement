@@ -123,6 +123,9 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       // the section card for this alone.
       { href: '/admin/notifications', label: 'notify.title', permission: 'notifications.send' },
       { href: '/admin/permissions', label: 'roles.matrixTitle', permission: 'permissions.configure' },
+      // The lists behind worker files — note types and evaluation criteria.
+      // Admin's alone; the files themselves live in their own section.
+      { href: '/admin/hr', label: 'hr.navLabel', permission: 'system.configure' },
       { href: '/admin/settings', label: 'nav.settings', permission: 'system.configure' },
     ],
   },

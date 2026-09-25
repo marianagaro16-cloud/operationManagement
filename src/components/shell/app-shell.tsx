@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, ClipboardList, LayoutDashboard, MoreHorizontal, Package, ScanSearch, Settings, Shield, Truck, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, ClipboardList, LayoutDashboard, MoreHorizontal, Package, ScanSearch, Settings, Shield, Truck, UserRound, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -104,6 +104,11 @@ export function AppShell({
     ...(can(role, held, 'tasks.manage_occurrences')
       ? [{ href: '/calendar', label: t('nav.calendar'), icon: CalendarDays, primary: false }]
       : []),
+    // Worker files are about people, not configuration, so they are a section
+    // of their own rather than a corner of the management area.
+    ...(can(role, held, 'hr.manage')
+      ? [{ href: '/hr', label: t('hr.navLabel'), icon: UserRound, primary: false }]
+      : []),
     // The management area opens at power_user; its own nav filters the tabs.
     ...(atLeast(role, 'power_user')
       ? [{ href: '/admin', label: t('nav.manage'), icon: Shield, primary: false }]
@@ -113,7 +118,7 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/reminders'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/reminders', '/hr'];
   const active = (href: string) =>
     SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
 

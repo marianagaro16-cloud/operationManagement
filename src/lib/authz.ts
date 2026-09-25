@@ -80,6 +80,10 @@ export const PERMISSIONS = [
   // account administration, so it is delegable.
   'team.view_online',
 
+  // Human resources: worker files, their log and evaluations. A Production
+  // manager holds it for Production's workers only (hr_scope() in SQL).
+  'hr.manage',
+
   // Goods Reception. NOTE what is absent: there is no key for "may register a
   // delivery". That authority comes from goods_reception_assignees, because
   // role_permissions carries a CHECK constraint allowing only 'manager' and

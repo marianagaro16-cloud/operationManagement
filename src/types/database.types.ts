@@ -764,6 +764,319 @@ export type Database = {
           },
         ]
       }
+      hr_criteria: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          team: Database["public"]["Enums"]["team"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          team: Database["public"]["Enums"]["team"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          team?: Database["public"]["Enums"]["team"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hr_evaluation_scores: {
+        Row: {
+          criterion_id: string | null
+          criterion_name: string
+          evaluation_id: string
+          score: number
+          sort_order: number
+        }
+        Insert: {
+          criterion_id?: string | null
+          criterion_name: string
+          evaluation_id: string
+          score: number
+          sort_order?: number
+        }
+        Update: {
+          criterion_id?: string | null
+          criterion_name?: string
+          evaluation_id?: string
+          score?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_evaluation_scores_criterion_id_fkey"
+            columns: ["criterion_id"]
+            isOneToOne: false
+            referencedRelation: "hr_criteria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_evaluation_scores_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "hr_evaluations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_evaluations: {
+        Row: {
+          comment: string | null
+          created_at: string
+          created_by: string | null
+          evaluated_on: string
+          id: string
+          worker_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          evaluated_on: string
+          id?: string
+          worker_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          evaluated_on?: string
+          id?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_evaluations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_evaluations_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_note_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string
+          note_id: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type: string
+          note_id: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          note_id?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_note_attachments_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "hr_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_note_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_note_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hr_notes: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          note_date: string
+          type_id: string
+          worker_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note_date: string
+          type_id: string
+          worker_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note_date?: string
+          type_id?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_notes_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "hr_note_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_notes_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_workers: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          emergency_contact: string | null
+          id: string
+          is_active: boolean
+          left_on: string | null
+          name: string
+          phone: string | null
+          position: string | null
+          profile_id: string | null
+          start_date: string | null
+          team: Database["public"]["Enums"]["team"]
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          id?: string
+          is_active?: boolean
+          left_on?: string | null
+          name: string
+          phone?: string | null
+          position?: string | null
+          profile_id?: string | null
+          start_date?: string | null
+          team: Database["public"]["Enums"]["team"]
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          id?: string
+          is_active?: boolean
+          left_on?: string | null
+          name?: string
+          phone?: string | null
+          position?: string | null
+          profile_id?: string | null
+          start_date?: string | null
+          team?: Database["public"]["Enums"]["team"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_workers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_workers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incident_affected_items: {
         Row: {
           affected_quantity: number | null
@@ -4377,6 +4690,17 @@ export type Database = {
       }
       get_viewer: { Args: never; Returns: Json }
       has_permission: { Args: { p_key: string }; Returns: boolean }
+      hr_can: {
+        Args: { p_team: Database["public"]["Enums"]["team"] }
+        Returns: boolean
+      }
+      hr_can_note: { Args: { p_note_id: string }; Returns: boolean }
+      hr_can_worker: { Args: { p_worker_id: string }; Returns: boolean }
+      hr_scope: { Args: never; Returns: Database["public"]["Enums"]["team"] }
+      hr_worker_stats: {
+        Args: { p_from: string; p_to: string; p_worker_id: string }
+        Returns: Json
+      }
       in_incident_scope: {
         Args: { p_team: Database["public"]["Enums"]["team"] }
         Returns: boolean
