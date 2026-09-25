@@ -37,9 +37,9 @@ export default async function InventoryPage({
   // is management work, so the widgets that surface it follow the capability
   // rather than the admin role.
   const canManage = viewer?.can('inventory.manage_instances') ?? false;
-  // A User on Production sees only their own inventories and not who else
-  // counts them (enforced in RLS), so filtering by person has nothing to offer.
-  const ownOnly = viewer ? inventoryOwnOnly(viewer.role, viewer.profile.team) : false;
+  // A User sees only their own inventories and not who else counts them
+  // (enforced in RLS), so filtering by person has nothing to offer.
+  const ownOnly = viewer ? inventoryOwnOnly(viewer.role) : false;
 
   // History is paged, never loaded whole: it grows for as long as the
   // operation runs, and a phone on the warehouse floor must not fetch it all.

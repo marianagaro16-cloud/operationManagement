@@ -224,7 +224,7 @@ async function main() {
     .from('inventory_instances')
     .select('id')
     .eq('id', inst.id);
-  check('an unassigned user can still READ the inventory', outsiderRead?.length === 1);
+  check('an unassigned user can NOT read the inventory', outsiderRead?.length === 0);
 
   const { error: assignedWrite } = await assignedC.from('inventory_entries').insert({
     instance_item_id: itemA.id,

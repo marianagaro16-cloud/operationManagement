@@ -89,11 +89,10 @@ describe('team scope', () => {
     expect(teamScope('production_manager', 'production')).toBeNull();
   });
 
-  it('limits inventories to their own for a plain user on Production only', () => {
-    expect(inventoryOwnOnly('user', 'production')).toBe(true);
-    expect(inventoryOwnOnly('user', 'operations')).toBe(false);
+  it('limits inventories to their own for a plain user only', () => {
+    expect(inventoryOwnOnly('user')).toBe(true);
     for (const role of ['admin', 'manager', 'power_user', 'production_manager'] as const) {
-      expect(inventoryOwnOnly(role, 'production')).toBe(false);
+      expect(inventoryOwnOnly(role)).toBe(false);
     }
   });
 

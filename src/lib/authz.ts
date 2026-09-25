@@ -149,8 +149,9 @@ export function canUseReminders(viewer: { profile: { status: string } } | null |
  * The team whose tasks a role sees, or null when it sees every team's.
  *
  * Mirrors team_scope() in SQL, which is what enforces it: only a plain User
- * is confined — to their own team's tasks. Everyone else, the Production
- * manager included, works with every team's tasks and people.
+ * is confined — to their own team's tasks, and within those to the
+ * occurrences assigned to them. Everyone else, the Production manager
+ * included, works with every team's tasks and people.
  */
 export function teamScope(role: Role, team: Team): Team | null {
   return role === 'user' ? team : null;
@@ -161,10 +162,10 @@ export function teamScope(role: Role, team: Team): Team | null {
  * else counts them.
  *
  * Mirrors inventory_own_only() in SQL, which is what enforces it: a plain
- * User on the Production team.
+ * User, on either team.
  */
-export function inventoryOwnOnly(role: Role, team: Team): boolean {
-  return role === 'user' && team === 'production';
+export function inventoryOwnOnly(role: Role): boolean {
+  return role === 'user';
 }
 
 /**
