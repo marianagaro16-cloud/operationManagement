@@ -56,6 +56,8 @@ export interface Task {
   is_active: boolean;
   /** Whose work it is. Users see only their team's; corrective actions take their incident's. */
   team: Team;
+  /** Who normally does it; each new day starts assigned to them. Null = shared. */
+  default_assignee_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -78,6 +80,10 @@ export interface TaskOccurrence {
    */
   effective_due_date: string;
   status: OccurrenceStatus;
+  /** Whose this day is. Null = shared by the team. */
+  assignee_id: string | null;
+  /** The person was chosen by hand for this day, so a new default leaves it alone. */
+  assignee_manual: boolean;
   completed_by: string | null;
   completed_at: string | null;
   skipped_by: string | null;

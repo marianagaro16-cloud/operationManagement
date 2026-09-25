@@ -3892,6 +3892,7 @@ export type Database = {
       task_occurrences: {
         Row: {
           assignee_id: string | null
+          assignee_manual: boolean
           blocked_at: string | null
           blocked_by: string | null
           blocked_reason: string | null
@@ -3913,6 +3914,7 @@ export type Database = {
         }
         Insert: {
           assignee_id?: string | null
+          assignee_manual?: boolean
           blocked_at?: string | null
           blocked_by?: string | null
           blocked_reason?: string | null
@@ -3934,6 +3936,7 @@ export type Database = {
         }
         Update: {
           assignee_id?: string | null
+          assignee_manual?: boolean
           blocked_at?: string | null
           blocked_by?: string | null
           blocked_reason?: string | null
@@ -3996,6 +3999,7 @@ export type Database = {
           category_id: string | null
           created_at: string
           created_by: string | null
+          default_assignee_id: string | null
           description: string | null
           frequency: Database["public"]["Enums"]["task_frequency"]
           id: string
@@ -4013,6 +4017,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           created_by?: string | null
+          default_assignee_id?: string | null
           description?: string | null
           frequency: Database["public"]["Enums"]["task_frequency"]
           id?: string
@@ -4030,6 +4035,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           created_by?: string | null
+          default_assignee_id?: string | null
           description?: string | null
           frequency?: Database["public"]["Enums"]["task_frequency"]
           id?: string
@@ -4054,6 +4060,13 @@ export type Database = {
           {
             foreignKeyName: "tasks_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_default_assignee_id_fkey"
+            columns: ["default_assignee_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -4202,6 +4215,7 @@ export type Database = {
         Args: { p_occurrence_id: string; p_reason: string }
         Returns: {
           assignee_id: string | null
+          assignee_manual: boolean
           blocked_at: string | null
           blocked_by: string | null
           blocked_reason: string | null
@@ -4275,6 +4289,7 @@ export type Database = {
         Args: { p_occurrence_id: string }
         Returns: {
           assignee_id: string | null
+          assignee_manual: boolean
           blocked_at: string | null
           blocked_by: string | null
           blocked_reason: string | null
@@ -4412,10 +4427,12 @@ export type Database = {
         Args: { p_instance_id: string }
         Returns: boolean
       }
+      inventory_is_mine: { Args: { p_instance_id: string }; Returns: boolean }
       inventory_item_set_done: {
         Args: { p_done: boolean; p_item_id: string }
         Returns: undefined
       }
+      inventory_own_only: { Args: never; Returns: boolean }
       inventory_reopen: {
         Args: { p_instance_id: string }
         Returns: {
@@ -4644,6 +4661,7 @@ export type Database = {
         Args: { p_occurrence_id: string }
         Returns: {
           assignee_id: string | null
+          assignee_manual: boolean
           blocked_at: string | null
           blocked_by: string | null
           blocked_reason: string | null
@@ -4714,6 +4732,7 @@ export type Database = {
         Args: { p_occurrence_id: string; p_reason: string }
         Returns: {
           assignee_id: string | null
+          assignee_manual: boolean
           blocked_at: string | null
           blocked_by: string | null
           blocked_reason: string | null

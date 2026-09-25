@@ -9,6 +9,7 @@ import { TEAMS } from '@/lib/authz';
 import { resolveScheduleConfig } from '@/domain/recurrence/engine';
 import type { Frequency } from '@/domain/recurrence/types';
 import type { ActionResult } from './actions';
+import { notifyActivityDayAssigned } from './activity-notify';
 
 /**
  * Placing scheduled work by hand.
@@ -145,6 +146,45 @@ export async function unplanTask(occurrenceId: string): Promise<ActionResult> {
   };
   if (removed.task?.frequency === ONE_OFF && removed.task.incident_id === null) {
     await supabase.from('tasks').delete().eq('id', removed.task_id);
+  }
+
+  revalidatePath('/calendar');
+  revalidatePath('/dashboard');
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Give one day of an activity to a person, or back to the whole team.
+ *
+ * Only while pending: who completed a day is its record. The day is marked
+ * as chosen by hand, so a later change of the activity's regular person
+ * leaves it where it was put.
+ */
+export async function setOccurrenceAssignee(
+  occurrenceId: string,
+  assigneeId: string | null,
+): Promise<ActionResult> {
+  const ids = z.object({ occurrenceId: z.string().uuid(), assigneeId: z.string().uuid().nullable() })
+    .safeParse({ occurrenceId, assigneeId });
+  if (!ids.success) return { ok: false, error: 'invalid_assignee' };
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('task_occurrences')
+    .update({ assignee_id: assigneeId, assignee_manual: true })
+    .eq('id', occurrenceId)
+    .eq('status', 'pending')
+    .select('effective_due_date, task:tasks ( title )');
+
+  if (error) return fail(error);
+  if (!data || data.length === 0) return { ok: false, error: 'not_assignable' };
+
+  if (assigneeId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const row = data[0] as unknown as { effective_due_date: string; task: { title: string } | null };
+    if (assigneeId !== user?.id && row.task) {
+      await notifyActivityDayAssigned(assigneeId, row.task.title, row.effective_due_date);
+    }
   }
 
   revalidatePath('/calendar');

@@ -7,6 +7,7 @@ import { scheduleConfigSchema, FREQUENCIES } from '@/domain/recurrence/types';
 import { ROLES, TEAMS, wouldOrphanAdmins, type Role, type Team } from '@/lib/authz';
 import { countApprovedAdmins } from './data';
 import { ensureScheduled } from './scheduling';
+import { notifyActivityAssigned } from './activity-notify';
 
 /**
  * Server actions.
@@ -149,6 +150,8 @@ const taskInputSchema = z.object({
   is_active: z.boolean(),
   /** Whose work it is: scoped users see only their team's tasks. */
   team: z.enum(TEAMS).default('operations'),
+  /** Who normally does it; each new day starts assigned to them. Null = shared. */
+  default_assignee_id: z.string().uuid().nullable().default(null),
 });
 
 export type TaskInput = z.infer<typeof taskInputSchema>;
@@ -163,6 +166,14 @@ export async function saveTask(
   }
   const supabase = createClient();
 
+  // Who it belonged to before, so only a CHANGE of person is announced.
+  let previousAssignee: string | null = null;
+  if (taskId) {
+    const { data: before } = await supabase
+      .from('tasks').select('default_assignee_id').eq('id', taskId).maybeSingle();
+    previousAssignee = (before as { default_assignee_id: string | null } | null)?.default_assignee_id ?? null;
+  }
+
   const query = taskId
     ? supabase.from('tasks').update(parsed.data).eq('id', taskId).select('id').single()
     : supabase.from('tasks').insert(parsed.data).select('id').single();
@@ -170,7 +181,15 @@ export async function saveTask(
   const { data, error } = await query;
   if (error) return fail(error);
 
+  const assignee = parsed.data.default_assignee_id;
+  if (assignee && assignee !== previousAssignee) {
+    const { data: { user } } = await supabase.auth.getUser();
+    // Nobody needs telling what they just gave themselves.
+    if (assignee !== user?.id) await notifyActivityAssigned(assignee, parsed.data.title, parsed.data.frequency);
+  }
+
   revalidatePath('/admin/tasks');
+  revalidatePath('/calendar');
   revalidatePath('/dashboard');
   return { ok: true, data: { id: (data as { id: string }).id } };
 }

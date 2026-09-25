@@ -27,7 +27,7 @@ export interface Viewer {
 
 const OCCURRENCE_SELECT = `
   id, task_id, period_key, due_date, due_date_override, effective_due_date, status,
-  completed_by, completed_at, skipped_by, skipped_at, skip_reason,
+  assignee_id, assignee_manual, completed_by, completed_at, skipped_by, skipped_at, skip_reason,
   created_at, updated_at,
   task:tasks!inner (
     id, title, description, frequency, is_skippable, is_active, category_id, translations,

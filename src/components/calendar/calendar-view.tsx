@@ -7,11 +7,11 @@ import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { localizedName, localizedTitle } from '@/lib/localized-content';
 import { cn } from '@/lib/utils';
-import { Badge, Card, EmptyState } from '@/components/ui/primitives';
+import { Badge, Card, EmptyState, Select } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import { monthRange, weekRange } from '@/domain/recurrence/planning';
-import { unplanInventory, unplanTask } from '@/server/planning-actions';
+import { setOccurrenceAssignee, unplanInventory, unplanTask } from '@/server/planning-actions';
 import { BUSINESS_TZ, type BusinessDate } from '@/lib/datetime';
 import { PlanDialog, type PlannableTask, type PlannableTemplate } from './plan-dialog';
 import { OneOffDialog, type OneOffPerson } from './one-off-dialog';
@@ -120,6 +120,14 @@ export function CalendarView({
               : res.error,
         );
       }
+    });
+  }
+
+  function assign(occurrenceId: string, assigneeId: string | null) {
+    setError(null);
+    startTransition(async () => {
+      const res = await setOccurrenceAssignee(occurrenceId, assigneeId);
+      if (!res.ok) setError(res.error === 'not_assignable' ? t('plan.errNotAssignable') : res.error);
     });
   }
 
@@ -273,9 +281,31 @@ export function CalendarView({
                   key={o.id}
                   className="flex items-start justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2"
                 >
-                  <span className="min-w-0 flex-1 break-words text-[13px]">
-                    {localizedTitle(o.task, locale)}
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    <span className="break-words text-[13px]">{localizedTitle(o.task, locale)}</span>
+                    {/* Whose this day is. Changeable only while pending: who did
+                        a finished day is the record of it. */}
+                    {o.status === 'pending' ? (
+                      <Select
+                        aria-label={t('plan.assignee')}
+                        value={o.assignee_id ?? ''}
+                        disabled={pending}
+                        onChange={(e) => assign(o.id, e.target.value || null)}
+                        className="mt-1 h-8 max-w-[14rem] py-0 text-[12px]"
+                      >
+                        <option value="">{t('plan.oneOffEveryone')}</option>
+                        {people.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </Select>
+                    ) : (
+                      o.assignee_id && (
+                        <p className="mt-0.5 text-[11.5px] text-muted">
+                          {t('plan.assignee')}: {people.find((p) => p.id === o.assignee_id)?.name ?? '—'}
+                        </p>
+                      )
+                    )}
+                  </div>
                   <Badge tone="neutral" className="mt-0.5 shrink-0">
                     {t(`frequency.${o.task.frequency}` as 'frequency.daily')}
                   </Badge>
