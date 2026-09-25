@@ -113,9 +113,11 @@ async function main() {
 
   const sees = async (who, occ) =>
     ((await who.client.from('task_occurrences').select('id').eq('id', occ)).data ?? []).length === 1;
-  check('an Operaciones user sees their task', await sees(OPS, opsTask.occ));
+  // A plain User sees only what is assigned to them, so neither team's
+  // unassigned occurrence reaches either User.
+  check("an Operaciones user does NOT see their team's unassigned task", !(await sees(OPS, opsTask.occ)));
   check('an Operaciones user does NOT see a Producción task', !(await sees(OPS, prodTask.occ)));
-  check('a Producción user sees their task', await sees(PROD, prodTask.occ));
+  check("a Producción user does NOT see their team's unassigned task", !(await sees(PROD, prodTask.occ)));
   check('a Producción user does NOT see an Operaciones task', !(await sees(PROD, opsTask.occ)));
   check('the production manager sees Producción tasks', await sees(PM, prodTask.occ));
   check('the production manager sees Operaciones tasks too', await sees(PM, opsTask.occ));
@@ -130,6 +132,7 @@ async function main() {
   check('...and complete one', !pmOps.error, errorOf(pmOps));
   const pmAssign = await PM.client.from('task_occurrences').update({ assignee_id: PROD.id }).eq('id', prodTask.occ).select('id');
   check('the production manager can assign a Producción task', !pmAssign.error && pmAssign.data.length === 1, errorOf(pmAssign));
+  check('...which the Producción user then sees', await sees(PROD, prodTask.occ));
   const prodDone = await PROD.client.rpc('complete_occurrence', { p_occurrence_id: prodTask.occ });
   check('the assignee completes it', !prodDone.error, errorOf(prodDone));
 
