@@ -18,8 +18,9 @@ import { FREQUENCIES, type Frequency, type ScheduleConfig } from '@/domain/recur
 import { TEAMS, type Team } from '@/lib/authz';
 import type { Category, Task } from '@/types/database';
 import type { OneOffPerson } from '@/components/calendar/one-off-dialog';
+import { PeoplePicker } from '@/components/tasks/people-picker';
 
-type TaskRow = Task & { frequency: Frequency; category: Category | null };
+type TaskRow = Task & { frequency: Frequency; category: Category | null; assignee_ids: string[] };
 
 function useTeamLabel() {
   const { t } = useI18n();
@@ -36,7 +37,7 @@ const EMPTY: TaskInput = {
   is_skippable: false,
   is_active: true,
   team: 'operations',
-  default_assignee_id: null,
+  assignee_ids: [],
 };
 
 export function TaskManager({
@@ -167,8 +168,13 @@ export function TaskManager({
                           </p>
                           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11.5px] text-muted">
                             <span>{teamLabel(task.team)}</span>
-                            {task.default_assignee_id && (
-                              <span>· {people.find((p) => p.id === task.default_assignee_id)?.name ?? '—'}</span>
+                            {task.assignee_ids.length > 0 && (
+                              <span>
+                                ·{' '}
+                                {task.assignee_ids
+                                  .map((id) => people.find((p) => p.id === id)?.name ?? '—')
+                                  .join(', ')}
+                              </span>
                             )}
                             {task.category && <span>· {task.category.name}</span>}
                             {task.is_skippable && <span>· {t('task.skip')}</span>}
@@ -281,7 +287,7 @@ function TaskDialog({
           is_skippable: task.is_skippable,
           is_active: task.is_active,
           team: task.team,
-          default_assignee_id: task.default_assignee_id,
+          assignee_ids: task.assignee_ids,
         }
       : EMPTY,
   );
@@ -365,25 +371,17 @@ function TaskDialog({
           </div>
         </div>
 
-        {/* Who does it. Choosing a person also makes it their team's work. */}
-        <Field label={t('admin.taskAssignee')} hint={t('admin.taskAssigneeHint')} htmlFor="task-assignee">
-          <Select
-            id="task-assignee"
-            value={form.default_assignee_id ?? ''}
-            onChange={(e) => {
-              const person = people.find((p) => p.id === e.target.value);
-              setForm({
-                ...form,
-                default_assignee_id: person?.id ?? null,
-                team: person?.team ?? form.team,
-              });
+        {/* Who does it: each person ticked completes their own copy. The first
+            one chosen also decides the team, when nobody was chosen before. */}
+        <Field label={t('admin.taskAssignee')} hint={t('admin.taskAssigneeHint')}>
+          <PeoplePicker
+            people={people}
+            selected={form.assignee_ids ?? []}
+            onChange={(ids) => {
+              const first = form.assignee_ids?.length ? null : people.find((p) => p.id === ids[0]);
+              setForm({ ...form, assignee_ids: ids, team: first?.team ?? form.team });
             }}
-          >
-            <option value="">{t('plan.oneOffEveryone')}</option>
-            {people.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </Select>
+          />
         </Field>
 
         {/* Whose work this is: a User sees only their own team's tasks. */}

@@ -8,6 +8,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { createOneOffTask } from '@/server/planning-actions';
+import { PeoplePicker } from '@/components/tasks/people-picker';
 import { TEAMS, type Team } from '@/lib/authz';
 
 /** Who a one-off can be given to. The whole team, or one of these. */
@@ -24,9 +25,9 @@ export interface OneOffPerson {
  * the activity is written and placed in the same act, because there is no
  * catalogue entry to pick — it happens once and is then finished.
  *
- * Given to one person or left to a team, like the work already on the board:
- * an occurrence with an assignee belongs to that person, and one without is
- * shared by whoever works that team's day.
+ * Given to people or left to a team, like the work already on the board: each
+ * chosen person gets their own copy to complete, and with nobody chosen one
+ * copy is shared by whoever works that team's day.
  */
 export function OneOffDialog({
   open,
@@ -48,19 +49,19 @@ export function OneOffDialog({
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [team, setTeam] = useState<Team>(defaultTeam);
-  const [assignee, setAssignee] = useState('');
+  const [assignees, setAssignees] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const teamLabel = (value: Team) =>
     value === 'production' ? t('roles.teamProduction') : t('roles.teamOperations');
 
-  // Given to a person, the activity belongs to that person's team: it is
+  // Given to people, the activity belongs to the first one's team: it is
   // their work, and a team they are not on would only hide it from them.
-  function choosePerson(id: string) {
-    setAssignee(id);
-    const person = people.find((p) => p.id === id);
-    if (person) setTeam(person.team);
+  function choosePeople(ids: string[]) {
+    setAssignees(ids);
+    const first = people.find((p) => p.id === ids[0]);
+    if (first) setTeam(first.team);
   }
 
   function submit() {
@@ -71,13 +72,13 @@ export function OneOffDialog({
         description: notes.trim() || null,
         date,
         team,
-        assignee_id: assignee || null,
+        assignee_ids: assignees,
       });
       if (!res.ok) {
         setError(res.error === 'title_required' ? t('plan.errTitleRequired') : res.error);
         return;
       }
-      setTitle(''); setNotes(''); setAssignee('');
+      setTitle(''); setNotes(''); setAssignees([]);
       onClose();
       router.refresh();
     });
@@ -110,13 +111,8 @@ export function OneOffDialog({
           <NoteTextarea id="oneoff-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </Field>
 
-        <Field label={t('plan.oneOffWho')} hint={t('plan.oneOffWhoHint')} htmlFor="oneoff-who">
-          <Select id="oneoff-who" value={assignee} onChange={(e) => choosePerson(e.target.value)}>
-            <option value="">{t('plan.oneOffEveryone')}</option>
-            {people.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </Select>
+        <Field label={t('plan.oneOffWho')} hint={t('plan.oneOffWhoHint')}>
+          <PeoplePicker people={people} selected={assignees} onChange={choosePeople} />
         </Field>
 
         <Field label={t('roles.team')} htmlFor="oneoff-team">
@@ -126,7 +122,7 @@ export function OneOffDialog({
             onChange={(e) => setTeam(e.target.value as Team)}
             // Follows the person it was given to; changing it would only take
             // the activity out of their sight.
-            disabled={assignee !== ''}
+            disabled={assignees.length > 0}
           >
             {TEAMS.map((value) => (
               <option key={value} value={value}>{teamLabel(value)}</option>

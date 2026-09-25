@@ -56,8 +56,6 @@ export interface Task {
   is_active: boolean;
   /** Whose work it is. Users see only their team's; corrective actions take their incident's. */
   team: Team;
-  /** Who normally does it; each new day starts assigned to them. Null = shared. */
-  default_assignee_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -80,9 +78,9 @@ export interface TaskOccurrence {
    */
   effective_due_date: string;
   status: OccurrenceStatus;
-  /** Whose this day is. Null = shared by the team. */
+  /** Whose copy of the day this is — each person has their own. Null = shared by the team. */
   assignee_id: string | null;
-  /** The person was chosen by hand for this day, so a new default leaves it alone. */
+  /** The people were chosen by hand for this day, so a change of the activity's people leaves it alone. */
   assignee_manual: boolean;
   completed_by: string | null;
   completed_at: string | null;
@@ -138,6 +136,8 @@ export interface OccurrenceWithTask extends TaskOccurrence {
    * the occurrence is still open.
    */
   actor_name?: string | null;
+  /** Display name of the person whose copy this is; null when shared. */
+  assignee_name?: string | null;
   /** When it was resolved — completed_at or skipped_at, whichever applies. */
   resolved_at?: string | null;
 }

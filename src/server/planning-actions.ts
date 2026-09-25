@@ -44,7 +44,7 @@ function fail(error: unknown): { ok: false; error: string } {
   if (message.includes('violates row-level security')) {
     return { ok: false, error: 'not_authorized' };
   }
-  if (message.includes('task_occurrences_task_date_key')) {
+  if (message.includes('task_occurrences_task_date_person_key')) {
     // Every row in the batch collided; nothing was added.
     return { ok: false, error: 'already_planned' };
   }
@@ -105,16 +105,15 @@ export async function planTasks(
     }
   }
 
-  const { data: inserted, error } = await supabase
-    .from('task_occurrences')
-    .upsert(rows, { onConflict: 'task_id,due_date', ignoreDuplicates: true })
-    .select('id');
+  // A day already on the calendar is left as it is; a new one gets one copy
+  // per person of the activity.
+  const { data: created, error } = await supabase.rpc('materialise_task_days', { p_rows: rows });
 
   if (error) return fail(error);
 
   revalidatePath('/calendar');
   revalidatePath('/dashboard');
-  return { ok: true, data: { created: inserted?.length ?? 0 } };
+  return { ok: true, data: { created: created ?? 0 } };
 }
 
 /**
@@ -127,25 +126,40 @@ export async function planTasks(
 export async function unplanTask(occurrenceId: string): Promise<ActionResult> {
   const supabase = createClient();
 
+  // A day of an activity is one copy per person; taking it off the calendar
+  // takes every copy still pending. Resolved ones stay as the record.
+  const { data: day } = await supabase
+    .from('task_occurrences')
+    .select('task_id, due_date')
+    .eq('id', occurrenceId)
+    .maybeSingle();
+  if (!day) return { ok: false, error: 'not_removable' };
+  const { task_id: taskId, due_date: dueDate } = day as { task_id: string; due_date: string };
+
   const { data, error } = await supabase
     .from('task_occurrences')
     .delete()
-    .eq('id', occurrenceId)
+    .eq('task_id', taskId)
+    .eq('due_date', dueDate)
     .eq('status', 'pending')
-    .select('id, task_id, task:tasks ( frequency, incident_id )');
+    .select('id, task:tasks ( frequency, incident_id )');
 
   if (error) return fail(error);
   if (!data || data.length === 0) return { ok: false, error: 'not_removable' };
 
   // A one-off exists only for the day it was placed on, so taking it off the
-  // calendar removes the activity itself. A corrective action is its
-  // incident's and is left alone; the policy refuses it in any case.
+  // calendar removes the activity itself — unless somebody already resolved
+  // their copy, which keeps it. A corrective action is its incident's and is
+  // left alone; the policy refuses it in any case.
   const removed = data[0] as unknown as {
-    task_id: string;
     task: { frequency: string; incident_id: string | null } | null;
   };
   if (removed.task?.frequency === ONE_OFF && removed.task.incident_id === null) {
-    await supabase.from('tasks').delete().eq('id', removed.task_id);
+    const { count } = await supabase
+      .from('task_occurrences')
+      .select('id', { count: 'exact', head: true })
+      .eq('task_id', taskId);
+    if (!count) await supabase.from('tasks').delete().eq('id', taskId);
   }
 
   revalidatePath('/calendar');
@@ -154,36 +168,42 @@ export async function unplanTask(occurrenceId: string): Promise<ActionResult> {
 }
 
 /**
- * Give one day of an activity to a person, or back to the whole team.
+ * Set who does one day of an activity: one copy each, or one shared copy
+ * when nobody is chosen.
  *
- * Only while pending: who completed a day is its record. The day is marked
- * as chosen by hand, so a later change of the activity's regular person
- * leaves it where it was put.
+ * Resolved copies are kept — who completed a day is its record. The day is
+ * marked as arranged by hand, so a later change of the activity's people
+ * leaves it where it was put. Everyone newly added is told.
  */
-export async function setOccurrenceAssignee(
+export async function setOccurrenceDayPeople(
   occurrenceId: string,
-  assigneeId: string | null,
+  userIds: string[],
 ): Promise<ActionResult> {
-  const ids = z.object({ occurrenceId: z.string().uuid(), assigneeId: z.string().uuid().nullable() })
-    .safeParse({ occurrenceId, assigneeId });
+  const ids = z.object({ occurrenceId: z.string().uuid(), userIds: z.array(z.string().uuid()).max(50) })
+    .safeParse({ occurrenceId, userIds });
   if (!ids.success) return { ok: false, error: 'invalid_assignee' };
 
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from('task_occurrences')
-    .update({ assignee_id: assigneeId, assignee_manual: true })
-    .eq('id', occurrenceId)
-    .eq('status', 'pending')
-    .select('effective_due_date, task:tasks ( title )');
-
+  const { data: added, error } = await supabase.rpc('set_occurrence_day_people', {
+    p_occurrence_id: occurrenceId,
+    p_user_ids: ids.data.userIds,
+  });
   if (error) return fail(error);
-  if (!data || data.length === 0) return { ok: false, error: 'not_assignable' };
 
-  if (assigneeId) {
-    const { data: { user } } = await supabase.auth.getUser();
-    const row = data[0] as unknown as { effective_due_date: string; task: { title: string } | null };
-    if (assigneeId !== user?.id && row.task) {
-      await notifyActivityDayAssigned(assigneeId, row.task.title, row.effective_due_date);
+  const newcomers = (added ?? []) as string[];
+  if (newcomers.length > 0) {
+    const [{ data: { user } }, { data: day }] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.from('task_occurrences')
+        .select('effective_due_date, task:tasks ( title )')
+        .eq('id', occurrenceId).maybeSingle(),
+    ]);
+    const row = day as unknown as { effective_due_date: string; task: { title: string } | null } | null;
+    if (row?.task) {
+      for (const person of newcomers) {
+        // Nobody needs telling what they just gave themselves.
+        if (person !== user?.id) await notifyActivityDayAssigned(person, row.task.title, row.effective_due_date);
+      }
     }
   }
 
@@ -199,8 +219,8 @@ const oneOffSchema = z.object({
   description: z.string().trim().max(2000).nullable().optional(),
   date: BUSINESS_DATE,
   team: z.enum(TEAMS),
-  /** Null means the whole team's, like every recurring activity. */
-  assignee_id: z.string().uuid().nullable().optional(),
+  /** Each person gets their own copy to complete; none means the whole team's. */
+  assignee_ids: z.array(z.string().uuid()).max(50).default([]),
 });
 
 export type OneOffInput = z.infer<typeof oneOffSchema>;
@@ -208,8 +228,8 @@ export type OneOffInput = z.infer<typeof oneOffSchema>;
 /**
  * An activity that happens once, on one day.
  *
- * Two rows, written in order: the definition carrying the title, and the
- * single occurrence that puts it on the day. If the occurrence cannot be
+ * Written in order: the definition carrying the title, then the day — one
+ * copy per chosen person, or a single shared one. If the day cannot be
  * written the definition is removed again, so a failure leaves nothing
  * behind rather than an activity that exists on no date.
  *
@@ -221,7 +241,8 @@ export async function createOneOffTask(input: OneOffInput): Promise<ActionResult
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_task' };
   }
-  const { title, description, date, team, assignee_id: assignee } = parsed.data;
+  const { title, description, date, team } = parsed.data;
+  const people = [...new Set(parsed.data.assignee_ids)];
   const supabase = createClient();
 
   const { data: task, error: taskError } = await supabase
@@ -240,18 +261,26 @@ export async function createOneOffTask(input: OneOffInput): Promise<ActionResult
 
   if (taskError || !task) return fail(taskError ?? new Error('insert_failed'));
 
-  const { error: occurrenceError } = await supabase.from('task_occurrences').insert({
-    task_id: (task as { id: string }).id,
-    // A one-off has no period to belong to; the day IS its period.
-    period_key: date,
-    due_date: date,
-    source: 'manual',
-    assignee_id: assignee ?? null,
-  });
+  const taskId = (task as { id: string }).id;
+  const { error: occurrenceError } = await supabase.from('task_occurrences').insert(
+    (people.length > 0 ? people : [null]).map((person) => ({
+      task_id: taskId,
+      // A one-off has no period to belong to; the day IS its period.
+      period_key: date,
+      due_date: date,
+      source: 'manual' as const,
+      assignee_id: person,
+    })),
+  );
 
   if (occurrenceError) {
-    await supabase.from('tasks').delete().eq('id', (task as { id: string }).id);
+    await supabase.from('tasks').delete().eq('id', taskId);
     return fail(occurrenceError);
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  for (const person of people) {
+    if (person !== user?.id) await notifyActivityDayAssigned(person, title, date);
   }
 
   revalidatePath('/calendar');

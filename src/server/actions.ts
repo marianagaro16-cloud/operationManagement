@@ -150,8 +150,8 @@ const taskInputSchema = z.object({
   is_active: z.boolean(),
   /** Whose work it is: scoped users see only their team's tasks. */
   team: z.enum(TEAMS).default('operations'),
-  /** Who normally does it; each new day starts assigned to them. Null = shared. */
-  default_assignee_id: z.string().uuid().nullable().default(null),
+  /** Who does it; each gets their own copy of every day. None = shared by the team. */
+  assignee_ids: z.array(z.string().uuid()).max(50).default([]),
 });
 
 export type TaskInput = z.infer<typeof taskInputSchema>;
@@ -166,32 +166,37 @@ export async function saveTask(
   }
   const supabase = createClient();
 
-  // Who it belonged to before, so only a CHANGE of person is announced.
-  let previousAssignee: string | null = null;
-  if (taskId) {
-    const { data: before } = await supabase
-      .from('tasks').select('default_assignee_id').eq('id', taskId).maybeSingle();
-    previousAssignee = (before as { default_assignee_id: string | null } | null)?.default_assignee_id ?? null;
-  }
+  const { assignee_ids: assigneeIds, ...definition } = parsed.data;
 
   const query = taskId
-    ? supabase.from('tasks').update(parsed.data).eq('id', taskId).select('id').single()
-    : supabase.from('tasks').insert(parsed.data).select('id').single();
+    ? supabase.from('tasks').update(definition).eq('id', taskId).select('id').single()
+    : supabase.from('tasks').insert(definition).select('id').single();
 
   const { data, error } = await query;
   if (error) return fail(error);
+  const id = (data as { id: string }).id;
 
-  const assignee = parsed.data.default_assignee_id;
-  if (assignee && assignee !== previousAssignee) {
+  // The people live beside the definition. Setting them also brings the
+  // pending days from today onward in line, and returns who is new.
+  const { data: added, error: peopleError } = await supabase.rpc('set_task_assignees', {
+    p_task_id: id,
+    p_user_ids: assigneeIds,
+  });
+  if (peopleError) return fail(peopleError);
+
+  const newcomers = (added ?? []) as string[];
+  if (newcomers.length > 0) {
     const { data: { user } } = await supabase.auth.getUser();
-    // Nobody needs telling what they just gave themselves.
-    if (assignee !== user?.id) await notifyActivityAssigned(assignee, parsed.data.title, parsed.data.frequency);
+    for (const person of newcomers) {
+      // Nobody needs telling what they just gave themselves.
+      if (person !== user?.id) await notifyActivityAssigned(person, definition.title, definition.frequency);
+    }
   }
 
   revalidatePath('/admin/tasks');
   revalidatePath('/calendar');
   revalidatePath('/dashboard');
-  return { ok: true, data: { id: (data as { id: string }).id } };
+  return { ok: true, data: { id } };
 }
 
 /** Soft delete only. History must survive. */

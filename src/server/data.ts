@@ -59,10 +59,12 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
  * calendar — see `src/server/planning-actions.ts` — because a recurring rule
  * was filling months ahead with work nobody had decided to do.
  *
- * Idempotent: UNIQUE(task_id, due_date) plus an ignoring upsert means running
- * it twice, concurrently, or after a definition edit never duplicates a
- * requirement, and never disturbs one a person placed by hand. Runs with the
- * service role because these rows are created by the system, not by a user.
+ * Idempotent: materialise_task_days() leaves any day that already exists
+ * alone, so running it twice, concurrently, or after a definition edit never
+ * duplicates a requirement, and never disturbs one a person arranged by hand.
+ * It also writes one copy per person when the activity has several people.
+ * Runs with the service role because these rows are created by the system,
+ * not by a user.
  */
 export async function ensureOccurrences(
   from: BusinessDate,
@@ -112,21 +114,17 @@ export async function ensureOccurrences(
 
   if (rows.length === 0) return { created: 0, skippedTasks };
 
-  // ignoreDuplicates keeps existing rows (and their completion state) intact.
-  // Keyed on the DATE now, not the period: a task may legitimately sit on
-  // several dates within one period, so the period can no longer identify it.
-  const { data: inserted, error: upsertError } = await admin
-    .from('task_occurrences')
-    .upsert(rows, { onConflict: 'task_id,due_date', ignoreDuplicates: true })
-    .select('id');
+  // Keyed on the DATE, not the period: a task may legitimately sit on several
+  // dates within one period, so the period can no longer identify it.
+  const { data: created, error: writeError } = await admin.rpc('materialise_task_days', { p_rows: rows });
 
-  if (upsertError) throw new Error(`Failed to write occurrences: ${upsertError.message}`);
+  if (writeError) throw new Error(`Failed to write occurrences: ${writeError.message}`);
 
-  return { created: inserted?.length ?? 0, skippedTasks };
+  return { created: created ?? 0, skippedTasks };
 }
 
 /**
- * Fill in who resolved each occurrence, and when.
+ * Fill in whose copy each occurrence is, who resolved it, and when.
  *
  * `completed_by` and `skipped_by` reference `auth.users`, so there is no
  * foreign key from an occurrence to `profiles` for PostgREST to embed — which
@@ -142,6 +140,7 @@ async function attachActors(rows: OccurrenceWithTask[]): Promise<OccurrenceWithT
   for (const o of rows) {
     const actor = o.completed_by ?? o.skipped_by;
     if (actor) ids.add(actor);
+    if (o.assignee_id) ids.add(o.assignee_id);
   }
   if (ids.size === 0) return rows;
 
@@ -161,6 +160,7 @@ async function attachActors(rows: OccurrenceWithTask[]): Promise<OccurrenceWithT
   for (const o of rows) {
     const actor = o.completed_by ?? o.skipped_by;
     o.actor_name = actor ? nameById.get(actor) ?? null : null;
+    o.assignee_name = o.assignee_id ? nameById.get(o.assignee_id) ?? null : null;
     o.resolved_at = o.completed_at ?? o.skipped_at ?? null;
   }
   return rows;
@@ -259,20 +259,29 @@ export async function getOccurrenceComments(occurrenceId: string) {
 
 /* ----------------------------- admin reads ----------------------------- */
 
-/** A recurring definition with its category: what the catalogue and the planner list. */
-export type RecurringTask = Task & { frequency: Frequency; category: Category | null };
+/** A recurring definition with its category and people: what the catalogue and the planner list. */
+export type RecurringTask = Task & { frequency: Frequency; category: Category | null; assignee_ids: string[] };
 
 export async function getTasksForAdmin(): Promise<RecurringTask[]> {
   const supabase = createClient();
-  const { data, error } = await supabase.from('tasks').select('*, category:categories ( * )');
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*, category:categories ( * ), assignees:task_assignees ( user_id )');
 
   if (error) throw new Error(error.message);
   // Recurring definitions only. A one-off — a calendar placement or an
   // incident's corrective action — is reached where it lives, on its day or
   // on its incident, and listing it in the catalogue would fill a screen of
   // rules with things that are not rules.
-  const tasks = ((data ?? []) as unknown as (Task & { category: Category | null })[])
-    .filter((t): t is RecurringTask => t.frequency !== ONE_OFF);
+  const tasks = ((data ?? []) as unknown as (Task & {
+    category: Category | null;
+    assignees: { user_id: string }[] | null;
+  })[])
+    .filter((t) => t.frequency !== ONE_OFF)
+    .map(({ assignees, ...t }) => ({
+      ...(t as RecurringTask),
+      assignee_ids: (assignees ?? []).map((a) => a.user_id),
+    }));
 
   // Ordered by frequency, in operational cadence order (daily -> semiannual)
   // rather than alphabetically, which would put "biweekly" before "daily".

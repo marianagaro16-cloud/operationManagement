@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { DateTime } from 'luxon';
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { localizedName, localizedTitle } from '@/lib/localized-content';
 import { cn } from '@/lib/utils';
@@ -11,7 +11,7 @@ import { Badge, Card, EmptyState, Select } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import { monthRange, weekRange } from '@/domain/recurrence/planning';
-import { setOccurrenceAssignee, unplanInventory, unplanTask } from '@/server/planning-actions';
+import { setOccurrenceDayPeople, unplanInventory, unplanTask } from '@/server/planning-actions';
 import { BUSINESS_TZ, type BusinessDate } from '@/lib/datetime';
 import { PlanDialog, type PlannableTask, type PlannableTemplate } from './plan-dialog';
 import { OneOffDialog, type OneOffPerson } from './one-off-dialog';
@@ -101,7 +101,16 @@ export function CalendarView({
     gridStart.plus({ days: i }).toFormat('ccc'),
   );
 
-  const selectedTasks = selected ? (byDate.get(selected) ?? []) : [];
+  // One row per activity: its copies — one per person — are shown together.
+  const selectedTasks = useMemo(() => {
+    const groups = new Map<string, OccurrenceWithTask[]>();
+    for (const o of selected ? (byDate.get(selected) ?? []) : []) {
+      const list = groups.get(o.task_id);
+      if (list) list.push(o);
+      else groups.set(o.task_id, [o]);
+    }
+    return [...groups.values()];
+  }, [byDate, selected]);
   const selectedInventories = selected ? (inventoriesByDate.get(selected) ?? []) : [];
 
   const href = (delta: number) =>
@@ -123,11 +132,12 @@ export function CalendarView({
     });
   }
 
-  function assign(occurrenceId: string, assigneeId: string | null) {
+  /** Set the people for one day of an activity; `copies` are that day's occurrences. */
+  function setDayPeople(copies: OccurrenceWithTask[], next: string[]) {
     setError(null);
     startTransition(async () => {
-      const res = await setOccurrenceAssignee(occurrenceId, assigneeId);
-      if (!res.ok) setError(res.error === 'not_assignable' ? t('plan.errNotAssignable') : res.error);
+      const res = await setOccurrenceDayPeople(copies[0].id, next);
+      if (!res.ok) setError(res.error === 'not_authorized' ? t('plan.errNotAssignable') : res.error);
     });
   }
 
@@ -204,7 +214,8 @@ export function CalendarView({
             const outside = d.month !== anchor.month;
             const isToday = iso === today;
             const open = items.filter((o) => o.status === 'pending').length;
-            const count = items.length + invs.length;
+            // Activities, not copies: one done by three people is one thing on the day.
+            const count = new Set(items.map((o) => o.task_id)).size + invs.length;
 
             return (
               <button
@@ -276,56 +287,89 @@ export function CalendarView({
             <EmptyState title={t('calendar.noOccurrences')} />
           ) : (
             <ul className="space-y-1.5">
-              {selectedTasks.map((o) => (
-                <li
-                  key={o.id}
-                  className="flex items-start justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <span className="break-words text-[13px]">{localizedTitle(o.task, locale)}</span>
-                    {/* Whose this day is. Changeable only while pending: who did
-                        a finished day is the record of it. */}
-                    {o.status === 'pending' ? (
-                      <Select
-                        aria-label={t('plan.assignee')}
-                        value={o.assignee_id ?? ''}
-                        disabled={pending}
-                        onChange={(e) => assign(o.id, e.target.value || null)}
-                        className="mt-1 h-8 max-w-[14rem] py-0 text-[12px]"
-                      >
-                        <option value="">{t('plan.oneOffEveryone')}</option>
-                        {people.map((p) => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </Select>
-                    ) : (
-                      o.assignee_id && (
-                        <p className="mt-0.5 text-[11.5px] text-muted">
-                          {t('plan.assignee')}: {people.find((p) => p.id === o.assignee_id)?.name ?? '—'}
-                        </p>
-                      )
-                    )}
-                  </div>
-                  <Badge tone="neutral" className="mt-0.5 shrink-0">
-                    {t(`frequency.${o.task.frequency}` as 'frequency.daily')}
-                  </Badge>
-                  <StatusChip domain="task" status={o.status} />
-                  {/* Only while still pending: a completed or skipped
-                      occurrence is the record that it happened. */}
-                  {o.status === 'pending' && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      disabled={pending}
-                      aria-label={t('plan.remove')}
-                      className="h-7 w-7 text-muted hover:text-late"
-                      onClick={() => remove('task', o.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                    </Button>
-                  )}
-                </li>
-              ))}
+              {selectedTasks.map((copies) => {
+                const task = copies[0].task;
+                const onDay = copies.map((c) => c.assignee_id).filter((id): id is string => id !== null);
+                const shared = copies.find((c) => c.assignee_id === null);
+                const anyPending = copies.some((c) => c.status === 'pending');
+                const addable = people.filter((p) => !onDay.includes(p.id));
+                return (
+                  <li
+                    key={copies[0].task_id}
+                    className="rounded-lg border border-border bg-surface px-3 py-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="min-w-0 flex-1 break-words text-[13px]">
+                        {localizedTitle(task, locale)}
+                      </span>
+                      <Badge tone="neutral" className="mt-0.5 shrink-0">
+                        {t(`frequency.${task.frequency}` as 'frequency.daily')}
+                      </Badge>
+                      {shared && <StatusChip domain="task" status={shared.status} />}
+                      {/* Only while something is still pending: a completed or
+                          skipped copy is the record that it happened. */}
+                      {anyPending && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          disabled={pending}
+                          aria-label={t('plan.remove')}
+                          className="h-7 w-7 text-muted hover:text-late"
+                          onClick={() => remove('task', copies[0].id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Who does it this day: each person completes their own copy. */}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      {copies
+                        .filter((c) => c.assignee_id !== null)
+                        .map((c) => {
+                          const name = people.find((p) => p.id === c.assignee_id)?.name ?? '—';
+                          return (
+                            <span
+                              key={c.id}
+                              className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2/50 py-0.5 pl-2 pr-1 text-[12px]"
+                            >
+                              {name}
+                              <StatusChip domain="task" status={c.status} />
+                              {c.status === 'pending' && (
+                                <button
+                                  type="button"
+                                  disabled={pending}
+                                  aria-label={t('plan.removePerson', { name })}
+                                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-late"
+                                  onClick={() => setDayPeople(copies, onDay.filter((id) => id !== c.assignee_id))}
+                                >
+                                  <X className="h-3 w-3" aria-hidden />
+                                </button>
+                              )}
+                            </span>
+                          );
+                        })}
+                      {shared && (
+                        <span className="text-[12px] text-muted">{t('plan.oneOffEveryone')}</span>
+                      )}
+                      {addable.length > 0 && (
+                        <Select
+                          aria-label={t('plan.addPerson')}
+                          value=""
+                          disabled={pending}
+                          onChange={(e) => e.target.value && setDayPeople(copies, [...onDay, e.target.value])}
+                          className="h-7 w-auto max-w-[11rem] py-0 text-[12px]"
+                        >
+                          <option value="">+ {t('plan.addPerson')}</option>
+                          {addable.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </Select>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
 
               {selectedInventories.map((i) => (
                 <li

@@ -41,7 +41,7 @@ export interface ScheduleRun {
 /**
  * Materialise the daily checklist.
  *
- * Idempotent — UNIQUE(task_id, due_date) plus an ignoring upsert mean a
+ * Idempotent — materialise_task_days() skips any day that already exists, so a
  * retried, overlapping or duplicated run can never create a second record,
  * overwrite one carrying entered data, or disturb one a person placed. That
  * property is what makes it safe to call from a cron, a button and a test.

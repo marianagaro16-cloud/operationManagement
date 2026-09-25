@@ -23,9 +23,11 @@ interface Props {
   today: string;
   /** Show the original due date — used in the overdue and upcoming sections. */
   showDueDate?: boolean;
+  /** Say whose copy this is — for planners, who see everyone's. */
+  showAssignee?: boolean;
 }
 
-export function TaskCard({ occurrence, today, showDueDate }: Props) {
+export function TaskCard({ occurrence, today, showDueDate, showAssignee }: Props) {
   const { t, locale, formatDate } = useI18n();
   const [pending, startTransition] = useTransition();
   const [skipOpen, setSkipOpen] = useState(false);
@@ -118,6 +120,12 @@ export function TaskCard({ occurrence, today, showDueDate }: Props) {
         {/* Weekly tasks need their completion-window rule made explicit. */}
         {occurrence.task.frequency === 'weekly' && !resolved && (
           <p className="mt-1 text-[12px] text-subtle">{t('task.weeklyHint')}</p>
+        )}
+
+        {showAssignee && occurrence.assignee_name && (
+          <p className="mt-1 text-[12px] text-muted">
+            {t('plan.assignee')}: {occurrence.assignee_name}
+          </p>
         )}
 
         {showDueDate && (

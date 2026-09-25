@@ -3785,6 +3785,39 @@ export type Database = {
           },
         ]
       }
+      task_assignees: {
+        Row: {
+          created_at: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_assignees_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_assignees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_audit_log: {
         Row: {
           action: string
@@ -3999,7 +4032,6 @@ export type Database = {
           category_id: string | null
           created_at: string
           created_by: string | null
-          default_assignee_id: string | null
           description: string | null
           frequency: Database["public"]["Enums"]["task_frequency"]
           id: string
@@ -4017,7 +4049,6 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           created_by?: string | null
-          default_assignee_id?: string | null
           description?: string | null
           frequency: Database["public"]["Enums"]["task_frequency"]
           id?: string
@@ -4035,7 +4066,6 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           created_by?: string | null
-          default_assignee_id?: string | null
           description?: string | null
           frequency?: Database["public"]["Enums"]["task_frequency"]
           id?: string
@@ -4060,13 +4090,6 @@ export type Database = {
           {
             foreignKeyName: "tasks_created_by_fkey"
             columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_default_assignee_id_fkey"
-            columns: ["default_assignee_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -4580,6 +4603,7 @@ export type Database = {
         }[]
       }
       mark_inbox_read: { Args: { p_ids?: string[] }; Returns: undefined }
+      materialise_task_days: { Args: { p_rows: Json }; Returns: number }
       next_goods_reception_report_version: {
         Args: { p_month: string }
         Returns: number
@@ -4726,6 +4750,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_occurrence_day_people: {
+        Args: { p_occurrence_id: string; p_user_ids: string[] }
+        Returns: string[]
+      }
+      set_task_assignees: {
+        Args: { p_task_id: string; p_user_ids: string[] }
+        Returns: string[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       skip_occurrence: {
@@ -4759,7 +4791,18 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      task_day_set_people: {
+        Args: {
+          p_due_date: string
+          p_manual: boolean
+          p_people: string[]
+          p_task_id: string
+        }
+        Returns: undefined
+      }
       task_in_team_scope: { Args: { p_task_id: string }; Returns: boolean }
+      task_people: { Args: { p_task_id: string }; Returns: string[] }
+      task_resync_days: { Args: { p_task_id: string }; Returns: undefined }
       team_scope: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       touch_presence: { Args: { p_path: string }; Returns: undefined }
     }
