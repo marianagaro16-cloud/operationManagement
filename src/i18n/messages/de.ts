@@ -1540,6 +1540,7 @@ export const de: Messages = {
   permission: {
     inventoryManageTemplates: 'Inventurvorlagen verwalten',
     tasksManageDefinitions: 'Aufgabendefinitionen verwalten',
+    tasksManageOwnTeam: 'Aufgaben des eigenen Teams verwalten',
     ordersManageConfig: 'Bestellkonfiguration verwalten',
     productsChangeCode: 'Produktcode ändern',
     ordersManage: 'Bestellungen verwalten',
@@ -1566,6 +1567,7 @@ export const de: Messages = {
   permissionHint: {
     inventoryManageTemplates: 'Artikel, Frequenz, Zähltag und Lagerorte — bestimmt künftige Inventuren',
     tasksManageDefinitions: 'Aufgaben anlegen, bearbeiten und ihre Wiederholung ändern',
+    tasksManageOwnTeam: 'Aufgaben des eigenen Teams anlegen und bearbeiten und wählen, wer aus diesem Team sie macht',
     ordersManageConfig: 'Versandarten und Vorlagen für wiederkehrende Bestellungen',
     productsChangeCode: 'Der Code ist ein stabiler Identifikator; Änderungen werden protokolliert',
     ordersManage: 'Bestellungen, Positionen und Lotzuordnungen anlegen und korrigieren',

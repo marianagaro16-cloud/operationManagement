@@ -43,11 +43,14 @@ const EMPTY: TaskInput = {
 export function TaskManager({
   tasks,
   categories,
+  ownTeam,
   people,
   reminderViewerId,
 }: {
   tasks: TaskRow[];
   categories: Category[];
+  /** Set when the viewer configures only their own team's activities: the team is fixed. */
+  ownTeam: Team | null;
   /** Who an activity can be given to. */
   people: OneOffPerson[];
   /** Null when the viewer cannot use reminders; the row button then renders nothing. */
@@ -223,6 +226,7 @@ export function TaskManager({
           key={editing?.id ?? 'new'}
           task={editing}
           categories={categories}
+          ownTeam={ownTeam}
           people={people}
           onClose={() => {
             setCreating(false);
@@ -263,12 +267,14 @@ export function TaskManager({
 function TaskDialog({
   task,
   categories,
+  ownTeam,
   people,
   onClose,
   onSaved,
 }: {
   task: TaskRow | null;
   categories: Category[];
+  ownTeam: Team | null;
   people: OneOffPerson[];
   onClose: () => void;
   onSaved: () => void;
@@ -289,7 +295,7 @@ function TaskDialog({
           team: task.team,
           assignee_ids: task.assignee_ids,
         }
-      : EMPTY,
+      : { ...EMPTY, team: ownTeam ?? EMPTY.team },
   );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -378,7 +384,7 @@ function TaskDialog({
             people={people}
             selected={form.assignee_ids ?? []}
             onChange={(ids) => {
-              const first = form.assignee_ids?.length ? null : people.find((p) => p.id === ids[0]);
+              const first = form.assignee_ids?.length || ownTeam ? null : people.find((p) => p.id === ids[0]);
               setForm({ ...form, assignee_ids: ids, team: first?.team ?? form.team });
             }}
           />
@@ -390,6 +396,8 @@ function TaskDialog({
             id="task-team"
             value={form.team}
             onChange={(e) => setForm({ ...form, team: e.target.value as Team })}
+            // A team's manager files activities under their own team only.
+            disabled={ownTeam !== null}
           >
             {TEAMS.map((team) => (
               <option key={team} value={team}>{teamLabel(team)}</option>

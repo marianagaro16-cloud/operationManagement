@@ -1540,6 +1540,7 @@ export const es: Messages = {
   permission: {
     inventoryManageTemplates: 'Gestionar plantillas de inventario',
     tasksManageDefinitions: 'Gestionar definiciones de tareas',
+    tasksManageOwnTeam: 'Gestionar las tareas de su equipo',
     ordersManageConfig: 'Gestionar configuración de pedidos',
     productsChangeCode: 'Cambiar el código de producto',
     ordersManage: 'Gestionar pedidos',
@@ -1566,6 +1567,7 @@ export const es: Messages = {
   permissionHint: {
     inventoryManageTemplates: 'Artículos, frecuencia, día de conteo y ubicaciones: define los inventarios futuros',
     tasksManageDefinitions: 'Crear y editar tareas, y cambiar su recurrencia',
+    tasksManageOwnTeam: 'Crear y editar las tareas de su propio equipo y elegir quién las hace, entre las personas de ese equipo',
     ordersManageConfig: 'Formas de envío y plantillas de pedidos recurrentes',
     productsChangeCode: 'El código es un identificador estable; los cambios quedan registrados',
     ordersManage: 'Crear y corregir pedidos, líneas y asignaciones de lote',

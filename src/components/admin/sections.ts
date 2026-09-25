@@ -75,7 +75,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     label: 'nav.sectionWork',
     description: 'nav.sectionWorkBody',
     screens: [
-      { href: '/admin/tasks', label: 'nav.tasks', permission: 'tasks.manage_definitions' },
+      { href: '/admin/tasks', label: 'nav.tasks', permission: ['tasks.manage_definitions', 'tasks.manage_own_team'] },
       { href: '/admin/recurring', label: 'master.recurringTitle', permission: 'orders.manage_config' },
       // Beside standing orders rather than beside customers: all three of
       // these decide how an order comes into being, and they share a

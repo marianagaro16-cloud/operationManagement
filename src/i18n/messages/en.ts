@@ -1572,6 +1572,7 @@ export const en = {
   permission: {
     inventoryManageTemplates: 'Manage inventory templates',
     tasksManageDefinitions: 'Manage task definitions',
+    tasksManageOwnTeam: 'Manage own team tasks',
     ordersManageConfig: 'Manage order configuration',
     productsChangeCode: 'Change product code',
     ordersManage: 'Manage orders',
@@ -1598,6 +1599,7 @@ export const en = {
   permissionHint: {
     inventoryManageTemplates: 'Items, frequency, counting day and locations — shapes future counts',
     tasksManageDefinitions: 'Create and edit tasks, and change their recurrence',
+    tasksManageOwnTeam: 'Create and edit the tasks of their own team, and choose who from that team does them',
     ordersManageConfig: 'Shipping methods and recurring order templates',
     productsChangeCode: 'The product code is a stable identifier; changes are logged',
     ordersManage: 'Create and correct orders, lines and lot allocations',

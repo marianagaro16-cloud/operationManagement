@@ -50,6 +50,8 @@ export const PERMISSIONS = [
   // operational CONFIGURATION — the manager / power-user line
   'inventory.manage_templates',
   'tasks.manage_definitions',
+  // The same, for the holder's own team only — the Production manager's.
+  'tasks.manage_own_team',
   'orders.manage_config',
   'products.change_code',
 
