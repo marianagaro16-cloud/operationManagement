@@ -11,7 +11,8 @@ import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select } f
 import { PageHeader } from '@/components/shell/app-shell';
 import { saveCriterion, saveNoteType } from '@/server/hr-actions';
 import { TEAMS, type Team } from '@/lib/authz';
-import type { HrCriterion, HrNoteType } from '@/types/hr';
+import { localizedName, localizedNameDescription } from '@/lib/localized-content';
+import type { HrCriterion, HrNoteType, HrTranslations } from '@/types/hr';
 
 type Editing =
   | { kind: 'type'; row: HrNoteType | null }
@@ -23,7 +24,7 @@ type Editing =
  * old notes and evaluations still name them.
  */
 export function HrConfig({ noteTypes, criteria }: { noteTypes: HrNoteType[]; criteria: HrCriterion[] }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [editing, setEditing] = useState<Editing | null>(null);
   const teamLabel = (team: Team) => (team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations'));
 
@@ -54,7 +55,9 @@ export function HrConfig({ noteTypes, criteria }: { noteTypes: HrNoteType[]; cri
         </div>
         <Card className="overflow-hidden">
           <ul className="divide-y divide-border">
-            {noteTypes.map((ty) => row(ty.id, ty.name, ty.is_active, null, () => setEditing({ kind: 'type', row: ty })))}
+            {noteTypes.map((ty) =>
+              row(ty.id, localizedName(ty, locale), ty.is_active, null, () => setEditing({ kind: 'type', row: ty })),
+            )}
           </ul>
         </Card>
       </section>
@@ -82,7 +85,13 @@ export function HrConfig({ noteTypes, criteria }: { noteTypes: HrNoteType[]; cri
               <Card className="overflow-hidden">
                 <ul className="divide-y divide-border">
                   {list.map((c) =>
-                    row(c.id, c.name, c.is_active, c.description, () => setEditing({ kind: 'criterion', row: c, team })),
+                    row(
+                      c.id,
+                      localizedName(c, locale),
+                      c.is_active,
+                      localizedNameDescription(c, locale),
+                      () => setEditing({ kind: 'criterion', row: c, team }),
+                    ),
                   )}
                 </ul>
               </Card>
@@ -106,6 +115,13 @@ function ListDialog({ editing, onClose }: { editing: Editing; onClose: () => voi
   );
   const [team, setTeam] = useState<Team>(editing.kind === 'criterion' ? editing.row?.team ?? editing.team : 'operations');
   const [sortOrder, setSortOrder] = useState(String(editing.row?.sort_order ?? 100));
+  const initial: HrTranslations = editing.row?.translations ?? {};
+  const [tr, setTr] = useState({
+    deName: initial.de?.name ?? '',
+    enName: initial.en?.name ?? '',
+    deDescription: initial.de?.description ?? '',
+    enDescription: initial.en?.description ?? '',
+  });
   const [active, setActive] = useState(editing.row?.is_active ?? true);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -114,7 +130,11 @@ function ListDialog({ editing, onClose }: { editing: Editing; onClose: () => voi
   function submit() {
     setError(null);
     startTransition(async () => {
-      const common = { name, sort_order: Number(sortOrder) || 100, is_active: active };
+      const translations = {
+        de: { name: tr.deName.trim() || null, ...(isType ? {} : { description: tr.deDescription.trim() || null }) },
+        en: { name: tr.enName.trim() || null, ...(isType ? {} : { description: tr.enDescription.trim() || null }) },
+      };
+      const common = { name, translations, sort_order: Number(sortOrder) || 100, is_active: active };
       const res = isType
         ? await saveNoteType(common, editing.row?.id)
         : await saveCriterion({ ...common, team, description: description || null }, editing.row?.id);
@@ -147,11 +167,27 @@ function ListDialog({ editing, onClose }: { editing: Editing; onClose: () => voi
         <Field label={t('hr.name')} required htmlFor="hr-list-name">
           <Input id="hr-list-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         </Field>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Deutsch" hint={t('admin.translationsHint')}>
+            <Input value={tr.deName} onChange={(e) => setTr({ ...tr, deName: e.target.value })} />
+          </Field>
+          <Field label="English">
+            <Input value={tr.enName} onChange={(e) => setTr({ ...tr, enName: e.target.value })} />
+          </Field>
+        </div>
         {!isType && (
           <>
             <Field label={t('hr.description')} htmlFor="hr-list-desc">
               <Input id="hr-list-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
             </Field>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={`${t('hr.description')} · Deutsch`}>
+                <Input value={tr.deDescription} onChange={(e) => setTr({ ...tr, deDescription: e.target.value })} />
+              </Field>
+              <Field label={`${t('hr.description')} · English`}>
+                <Input value={tr.enDescription} onChange={(e) => setTr({ ...tr, enDescription: e.target.value })} />
+              </Field>
+            </div>
             <Field label={t('roles.team')} htmlFor="hr-list-team">
               <Select id="hr-list-team" value={team} onChange={(e) => setTeam(e.target.value as Team)}>
                 {TEAMS.map((value) => (

@@ -57,6 +57,20 @@ export function localizedName(
 }
 
 /**
+ * The description beside a localizedName — HR criteria. Same fallback rule:
+ * the Spanish base field when the locale has nothing.
+ */
+export function localizedNameDescription(
+  content: { description?: string | null; translations?: unknown },
+  locale: Locale,
+): string | null {
+  if (locale === SOURCE_LOCALE) return content.description ?? null;
+  const translations = content.translations as Record<string, { description?: string | null }> | null | undefined;
+  const d = translations?.[locale]?.description;
+  return d && d.trim() ? d : content.description ?? null;
+}
+
+/**
  * An inventory item's name in the reader's language. Reads the sheet's OWN
  * copy, frozen when the row was counted.
  */

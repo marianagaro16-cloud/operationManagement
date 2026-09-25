@@ -1,5 +1,8 @@
 import type { Team } from '@/lib/authz';
 
+/** German and English overrides; Spanish is in the base fields. */
+export type HrTranslations = Partial<Record<'de' | 'en', { name?: string | null; description?: string | null }>>;
+
 /** Someone who works here — with an app account or without one. */
 export interface HrWorker {
   id: string;
@@ -21,6 +24,7 @@ export interface HrNoteType {
   id: string;
   slug: string;
   name: string;
+  translations: HrTranslations;
   sort_order: number;
   is_active: boolean;
 }
@@ -30,6 +34,7 @@ export interface HrCriterion {
   team: Team;
   name: string;
   description: string | null;
+  translations: HrTranslations;
   sort_order: number;
   is_active: boolean;
 }
@@ -46,7 +51,7 @@ export interface HrNote {
   note_date: string;
   body: string;
   created_at: string;
-  type: { id: string; name: string; slug: string } | null;
+  type: { id: string; name: string; slug: string; translations: HrTranslations } | null;
   author_name: string | null;
   attachments: HrAttachment[];
 }
@@ -59,7 +64,8 @@ export interface HrEvaluation {
   goals: string | null;
   created_at: string;
   author_name: string | null;
-  scores: { criterion_name: string; score: number; comment: string | null }[];
+  /** Each criterion's words as they were when rated, in every language. */
+  scores: { criterion_name: string; criterion_translations: HrTranslations; score: number; comment: string | null }[];
 }
 
 /** What a linked account did in the app over a period. */

@@ -32,6 +32,14 @@ function revalidateHr(workerId?: string) {
   if (workerId) revalidatePath(`/hr/${workerId}`);
 }
 
+/** German and English overrides of a list entry; empty means "show the Spanish". */
+const translationsSchema = z
+  .object({
+    de: z.object({ name: z.string().trim().max(200).nullable().optional(), description: z.string().trim().max(2000).nullable().optional() }).optional(),
+    en: z.object({ name: z.string().trim().max(200).nullable().optional(), description: z.string().trim().max(2000).nullable().optional() }).optional(),
+  })
+  .default({});
+
 /* -------------------------------- workers ------------------------------- */
 
 const workerSchema = z.object({
@@ -163,10 +171,12 @@ export async function addEvaluation(input: z.input<typeof evaluationSchema>): Pr
   // trusted from the browser, so a later rename leaves this evaluation as it was.
   const { data: criteria, error: criteriaError } = await supabase
     .from('hr_criteria')
-    .select('id, name, sort_order')
+    .select('id, name, sort_order, translations')
     .in('id', parsed.data.scores.map((s) => s.criterion_id));
   if (criteriaError) return fail(criteriaError);
-  const byId = new Map((criteria ?? []).map((c) => [c.id as string, c as { name: string; sort_order: number }]));
+  const byId = new Map(
+    (criteria ?? []).map((c) => [c.id as string, c as { name: string; sort_order: number; translations: unknown }]),
+  );
   if (parsed.data.scores.some((s) => !byId.has(s.criterion_id))) return { ok: false, error: 'invalid_criterion' };
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -189,6 +199,7 @@ export async function addEvaluation(input: z.input<typeof evaluationSchema>): Pr
       evaluation_id: id,
       criterion_id: s.criterion_id,
       criterion_name: byId.get(s.criterion_id)!.name,
+      criterion_translations: byId.get(s.criterion_id)!.translations ?? {},
       sort_order: byId.get(s.criterion_id)!.sort_order,
       score: s.score,
       comment: s.comment,
@@ -206,6 +217,7 @@ export async function addEvaluation(input: z.input<typeof evaluationSchema>): Pr
 
 const noteTypeSchema = z.object({
   name: z.string().trim().min(1, { message: 'name_required' }).max(100),
+  translations: translationsSchema,
   sort_order: z.number().int().default(100),
   is_active: z.boolean().default(true),
 });
@@ -229,6 +241,7 @@ const criterionSchema = z.object({
   team: z.enum(TEAMS),
   name: z.string().trim().min(1, { message: 'name_required' }).max(100),
   description: optionalText,
+  translations: translationsSchema,
   sort_order: z.number().int().default(100),
   is_active: z.boolean().default(true),
 });

@@ -13,6 +13,7 @@ import { NoteText } from '@/components/ui/note';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { createClient } from '@/lib/supabase/client';
 import { HR_ALLOWED_MIME, HR_BUCKET, HR_MAX_BYTES } from '@/lib/hr';
+import { localizedName, localizedNameDescription } from '@/lib/localized-content';
 import { addEvaluation, addNote, recordNoteAttachment } from '@/server/hr-actions';
 import { WorkerDialog, useHrError, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
@@ -133,7 +134,7 @@ export function WorkerFile({
 /* ---------------------------------- log ---------------------------------- */
 
 function LogTab({ file, noteTypes, today }: { file: HrWorkerFile; noteTypes: HrNoteType[]; today: string }) {
-  const { t, formatDate } = useI18n();
+  const { t, locale, formatDate } = useI18n();
   const [adding, setAdding] = useState(false);
   const [typeFilter, setTypeFilter] = useState('');
 
@@ -141,9 +142,9 @@ function LogTab({ file, noteTypes, today }: { file: HrWorkerFile; noteTypes: HrN
   // Every type that appears in the log, including one Admin has since switched off.
   const types = useMemo(() => {
     const map = new Map<string, string>();
-    for (const n of file.notes) if (n.type) map.set(n.type.id, n.type.name);
+    for (const n of file.notes) if (n.type) map.set(n.type.id, localizedName(n.type, locale));
     return [...map.entries()];
-  }, [file.notes]);
+  }, [file.notes, locale]);
 
   return (
     <div className="space-y-3">
@@ -178,7 +179,7 @@ function LogTab({ file, noteTypes, today }: { file: HrWorkerFile; noteTypes: HrN
               <Card className="p-3">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
                   <span className="tabular font-medium text-fg">{formatDate(n.note_date, 'medium')}</span>
-                  {n.type && <Badge tone="accent">{n.type.name}</Badge>}
+                  {n.type && <Badge tone="accent">{localizedName(n.type, locale)}</Badge>}
                   {n.author_name && <span>{t('hr.by', { name: n.author_name })}</span>}
                 </div>
                 <div className="mt-1.5 text-[13px] leading-relaxed">
@@ -235,7 +236,7 @@ function NoteDialog({
   today: string;
   onClose: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const errorText = useHrError();
   const [typeId, setTypeId] = useState(noteTypes[0]?.id ?? '');
@@ -321,7 +322,7 @@ function NoteDialog({
               <Field label={t('hr.noteType')} htmlFor="note-type">
                 <Select id="note-type" value={typeId} onChange={(e) => setTypeId(e.target.value)}>
                   {noteTypes.map((ty) => (
-                    <option key={ty.id} value={ty.id}>{ty.name}</option>
+                    <option key={ty.id} value={ty.id}>{localizedName(ty, locale)}</option>
                   ))}
                 </Select>
               </Field>
@@ -352,7 +353,7 @@ function NoteDialog({
 /* ------------------------------ evaluations ------------------------------ */
 
 function EvaluationsTab({ file, criteria, today }: { file: HrWorkerFile; criteria: HrCriterion[]; today: string }) {
-  const { t, formatDate } = useI18n();
+  const { t, locale, formatDate } = useI18n();
   const [adding, setAdding] = useState(false);
 
   return (
@@ -392,7 +393,9 @@ function EvaluationsTab({ file, criteria, today }: { file: HrWorkerFile; criteri
                     {e.scores.map((s) => (
                       <div key={s.criterion_name} className="text-[12.5px]">
                         <div className="flex items-center justify-between gap-2">
-                          <dt className="min-w-0 break-words">{s.criterion_name}</dt>
+                          <dt className="min-w-0 break-words">
+                            {localizedName({ name: s.criterion_name, translations: s.criterion_translations }, locale)}
+                          </dt>
                           <dd className="shrink-0 tabular font-medium">{s.score} / 5</dd>
                         </div>
                         {s.comment && <p className="mt-0.5 break-words text-[12px] text-muted">{s.comment}</p>}
@@ -449,7 +452,7 @@ function EvaluationDialog({
   today: string;
   onClose: () => void;
 }) {
-  const { t, formatDate } = useI18n();
+  const { t, locale, formatDate } = useI18n();
   const router = useRouter();
   const errorText = useHrError();
   const [date, setDate] = useState(today);
@@ -523,9 +526,11 @@ function EvaluationDialog({
           {!complete && <p className="text-[12px] text-muted">{t('hr.rateAll')}</p>}
           {criteria.map((c) => (
             <div key={c.id}>
-              <p className="text-[13px] font-medium">{c.name}</p>
-              {c.description && <p className="text-[12px] text-muted">{c.description}</p>}
-              <div className="mt-1 flex gap-1.5" role="radiogroup" aria-label={c.name}>
+              <p className="text-[13px] font-medium">{localizedName(c, locale)}</p>
+              {localizedNameDescription(c, locale) && (
+                <p className="text-[12px] text-muted">{localizedNameDescription(c, locale)}</p>
+              )}
+              <div className="mt-1 flex gap-1.5" role="radiogroup" aria-label={localizedName(c, locale)}>
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button
                     key={n}
@@ -548,7 +553,7 @@ function EvaluationDialog({
                 )}
               </div>
               <NoteTextarea
-                aria-label={`${c.name} — ${t('hr.criterionDetails')}`}
+                aria-label={`${localizedName(c, locale)} — ${t('hr.criterionDetails')}`}
                 placeholder={t('hr.criterionDetails')}
                 rows={1}
                 value={details[c.id] ?? ''}

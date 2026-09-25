@@ -773,6 +773,7 @@ export type Database = {
           name: string
           sort_order: number
           team: Database["public"]["Enums"]["team"]
+          translations: Json
           updated_at: string
         }
         Insert: {
@@ -783,6 +784,7 @@ export type Database = {
           name: string
           sort_order?: number
           team: Database["public"]["Enums"]["team"]
+          translations?: Json
           updated_at?: string
         }
         Update: {
@@ -793,6 +795,7 @@ export type Database = {
           name?: string
           sort_order?: number
           team?: Database["public"]["Enums"]["team"]
+          translations?: Json
           updated_at?: string
         }
         Relationships: []
@@ -802,6 +805,7 @@ export type Database = {
           comment: string | null
           criterion_id: string | null
           criterion_name: string
+          criterion_translations: Json
           evaluation_id: string
           score: number
           sort_order: number
@@ -810,6 +814,7 @@ export type Database = {
           comment?: string | null
           criterion_id?: string | null
           criterion_name: string
+          criterion_translations?: Json
           evaluation_id: string
           score: number
           sort_order?: number
@@ -818,6 +823,7 @@ export type Database = {
           comment?: string | null
           criterion_id?: string | null
           criterion_name?: string
+          criterion_translations?: Json
           evaluation_id?: string
           score?: number
           sort_order?: number
@@ -940,6 +946,7 @@ export type Database = {
           name: string
           slug: string
           sort_order: number
+          translations: Json
           updated_at: string
         }
         Insert: {
@@ -949,6 +956,7 @@ export type Database = {
           name: string
           slug: string
           sort_order?: number
+          translations?: Json
           updated_at?: string
         }
         Update: {
@@ -958,6 +966,7 @@ export type Database = {
           name?: string
           slug?: string
           sort_order?: number
+          translations?: Json
           updated_at?: string
         }
         Relationships: []

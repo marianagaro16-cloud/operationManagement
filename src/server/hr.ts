@@ -7,6 +7,7 @@ import type {
   HrNote,
   HrNoteType,
   HrStats,
+  HrTranslations,
   HrWorker,
   HrWorkerFile,
 } from '@/types/hr';
@@ -46,7 +47,7 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
         .from('hr_notes')
         .select(`
           id, note_date, body, created_at,
-          type:hr_note_types ( id, name, slug ),
+          type:hr_note_types ( id, name, slug, translations ),
           author:profiles!hr_notes_created_by_fkey ( name, email ),
           attachments:hr_note_attachments ( id, file_name, mime_type, storage_path )
         `)
@@ -58,7 +59,7 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
         .select(`
           id, evaluated_on, comment, goals, created_at,
           author:profiles!hr_evaluations_created_by_fkey ( name, email ),
-          scores:hr_evaluation_scores ( criterion_name, score, sort_order, comment )
+          scores:hr_evaluation_scores ( criterion_name, criterion_translations, score, sort_order, comment )
         `)
         .eq('worker_id', id)
         .order('evaluated_on', { ascending: false })
@@ -88,7 +89,7 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
   type RawEvaluation = {
     id: string; evaluated_on: string; comment: string | null; goals: string | null; created_at: string;
     author: { name: string | null; email: string } | null;
-    scores: { criterion_name: string; score: number; sort_order: number; comment: string | null }[] | null;
+    scores: { criterion_name: string; criterion_translations: HrTranslations | null; score: number; sort_order: number; comment: string | null }[] | null;
   };
 
   return {
@@ -116,14 +117,19 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
       author_name: authorName(e.author),
       scores: [...(e.scores ?? [])]
         .sort((a, b) => a.sort_order - b.sort_order || a.criterion_name.localeCompare(b.criterion_name))
-        .map(({ criterion_name, score, comment }) => ({ criterion_name, score, comment })),
+        .map(({ criterion_name, criterion_translations, score, comment }) => ({
+          criterion_name,
+          criterion_translations: criterion_translations ?? {},
+          score,
+          comment,
+        })),
     })),
   };
 }
 
 export async function getNoteTypes(includeInactive = false): Promise<HrNoteType[]> {
   const supabase = createClient();
-  let query = supabase.from('hr_note_types').select('id, slug, name, sort_order, is_active').order('sort_order');
+  let query = supabase.from('hr_note_types').select('id, slug, name, translations, sort_order, is_active').order('sort_order');
   if (!includeInactive) query = query.eq('is_active', true);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
@@ -134,7 +140,7 @@ export async function getCriteria(includeInactive = false): Promise<HrCriterion[
   const supabase = createClient();
   let query = supabase
     .from('hr_criteria')
-    .select('id, team, name, description, sort_order, is_active')
+    .select('id, team, name, description, translations, sort_order, is_active')
     .order('team')
     .order('sort_order')
     .order('name');
