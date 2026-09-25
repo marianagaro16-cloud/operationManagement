@@ -799,6 +799,7 @@ export type Database = {
       }
       hr_evaluation_scores: {
         Row: {
+          comment: string | null
           criterion_id: string | null
           criterion_name: string
           evaluation_id: string
@@ -806,6 +807,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          comment?: string | null
           criterion_id?: string | null
           criterion_name: string
           evaluation_id: string
@@ -813,6 +815,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          comment?: string | null
           criterion_id?: string | null
           criterion_name?: string
           evaluation_id?: string
@@ -842,6 +845,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           evaluated_on: string
+          goals: string | null
           id: string
           worker_id: string
         }
@@ -850,6 +854,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           evaluated_on: string
+          goals?: string | null
           id?: string
           worker_id: string
         }
@@ -858,6 +863,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           evaluated_on?: string
+          goals?: string | null
           id?: string
           worker_id?: string
         }
@@ -4928,6 +4934,7 @@ export type Database = {
       }
       mark_inbox_read: { Args: { p_ids?: string[] }; Returns: undefined }
       materialise_task_days: { Args: { p_rows: Json }; Returns: number }
+      my_team: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       next_goods_reception_report_version: {
         Args: { p_month: string }
         Returns: number

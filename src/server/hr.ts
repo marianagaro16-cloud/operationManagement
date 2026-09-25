@@ -56,9 +56,9 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
       supabase
         .from('hr_evaluations')
         .select(`
-          id, evaluated_on, comment, created_at,
+          id, evaluated_on, comment, goals, created_at,
           author:profiles!hr_evaluations_created_by_fkey ( name, email ),
-          scores:hr_evaluation_scores ( criterion_name, score, sort_order )
+          scores:hr_evaluation_scores ( criterion_name, score, sort_order, comment )
         `)
         .eq('worker_id', id)
         .order('evaluated_on', { ascending: false })
@@ -86,9 +86,9 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
   }
 
   type RawEvaluation = {
-    id: string; evaluated_on: string; comment: string | null; created_at: string;
+    id: string; evaluated_on: string; comment: string | null; goals: string | null; created_at: string;
     author: { name: string | null; email: string } | null;
-    scores: { criterion_name: string; score: number; sort_order: number }[] | null;
+    scores: { criterion_name: string; score: number; sort_order: number; comment: string | null }[] | null;
   };
 
   return {
@@ -111,11 +111,12 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
       id: e.id,
       evaluated_on: e.evaluated_on,
       comment: e.comment,
+      goals: e.goals,
       created_at: e.created_at,
       author_name: authorName(e.author),
       scores: [...(e.scores ?? [])]
         .sort((a, b) => a.sort_order - b.sort_order || a.criterion_name.localeCompare(b.criterion_name))
-        .map(({ criterion_name, score }) => ({ criterion_name, score })),
+        .map(({ criterion_name, score, comment }) => ({ criterion_name, score, comment })),
     })),
   };
 }

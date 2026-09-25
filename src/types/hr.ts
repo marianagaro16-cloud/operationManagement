@@ -55,9 +55,11 @@ export interface HrEvaluation {
   id: string;
   evaluated_on: string;
   comment: string | null;
+  /** Goals for the next period — shown again when the next evaluation is written. */
+  goals: string | null;
   created_at: string;
   author_name: string | null;
-  scores: { criterion_name: string; score: number }[];
+  scores: { criterion_name: string; score: number; comment: string | null }[];
 }
 
 /** What a linked account did in the app over a period. */

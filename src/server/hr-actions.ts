@@ -147,8 +147,9 @@ const evaluationSchema = z.object({
   worker_id: z.string().uuid(),
   evaluated_on: DATE,
   comment: optionalText,
+  goals: optionalText,
   scores: z
-    .array(z.object({ criterion_id: z.string().uuid(), score: z.number().int().min(1).max(5) }))
+    .array(z.object({ criterion_id: z.string().uuid(), score: z.number().int().min(1).max(5), comment: optionalText }))
     .min(1, { message: 'scores_required' }),
 });
 
@@ -175,6 +176,7 @@ export async function addEvaluation(input: z.input<typeof evaluationSchema>): Pr
       worker_id: parsed.data.worker_id,
       evaluated_on: parsed.data.evaluated_on,
       comment: parsed.data.comment,
+      goals: parsed.data.goals,
       created_by: user?.id ?? null,
     })
     .select('id')
@@ -189,6 +191,7 @@ export async function addEvaluation(input: z.input<typeof evaluationSchema>): Pr
       criterion_name: byId.get(s.criterion_id)!.name,
       sort_order: byId.get(s.criterion_id)!.sort_order,
       score: s.score,
+      comment: s.comment,
     })),
   );
   // Nothing can delete an evaluation, so a failure here is reported rather

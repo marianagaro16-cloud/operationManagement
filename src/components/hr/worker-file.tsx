@@ -16,7 +16,7 @@ import { HR_ALLOWED_MIME, HR_BUCKET, HR_MAX_BYTES } from '@/lib/hr';
 import { addEvaluation, addNote, recordNoteAttachment } from '@/server/hr-actions';
 import { WorkerDialog, useHrError, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
-import type { HrCriterion, HrNoteType, HrStats, HrWorkerFile } from '@/types/hr';
+import type { HrCriterion, HrEvaluation, HrNoteType, HrStats, HrWorkerFile } from '@/types/hr';
 
 export type HrTab = 'log' | 'evaluations' | 'app';
 
@@ -388,17 +388,31 @@ function EvaluationsTab({ file, criteria, today }: { file: HrWorkerFile; criteri
                     )}
                     {e.author_name && <span>{t('hr.by', { name: e.author_name })}</span>}
                   </div>
-                  <dl className="mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-2">
+                  <dl className="mt-2 grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
                     {e.scores.map((s) => (
-                      <div key={s.criterion_name} className="flex items-center justify-between gap-2 text-[12.5px]">
-                        <dt className="min-w-0 break-words">{s.criterion_name}</dt>
-                        <dd className="shrink-0 tabular font-medium">{s.score} / 5</dd>
+                      <div key={s.criterion_name} className="text-[12.5px]">
+                        <div className="flex items-center justify-between gap-2">
+                          <dt className="min-w-0 break-words">{s.criterion_name}</dt>
+                          <dd className="shrink-0 tabular font-medium">{s.score} / 5</dd>
+                        </div>
+                        {s.comment && <p className="mt-0.5 break-words text-[12px] text-muted">{s.comment}</p>}
                       </div>
                     ))}
                   </dl>
                   {e.comment && (
-                    <div className="mt-2 text-[13px] leading-relaxed text-muted">
-                      <NoteText text={e.comment} />
+                    <div className="mt-2.5">
+                      <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('hr.comment')}</p>
+                      <div className="mt-0.5 text-[13px] leading-relaxed">
+                        <NoteText text={e.comment} />
+                      </div>
+                    </div>
+                  )}
+                  {e.goals && (
+                    <div className="mt-2.5">
+                      <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('hr.goals')}</p>
+                      <div className="mt-0.5 text-[13px] leading-relaxed">
+                        <NoteText text={e.goals} />
+                      </div>
                     </div>
                   )}
                 </Card>
@@ -409,7 +423,13 @@ function EvaluationsTab({ file, criteria, today }: { file: HrWorkerFile; criteri
       )}
 
       {adding && (
-        <EvaluationDialog workerId={file.worker.id} criteria={criteria} today={today} onClose={() => setAdding(false)} />
+        <EvaluationDialog
+          workerId={file.worker.id}
+          criteria={criteria}
+          previous={file.evaluations[0] ?? null}
+          today={today}
+          onClose={() => setAdding(false)}
+        />
       )}
     </div>
   );
@@ -418,20 +438,27 @@ function EvaluationsTab({ file, criteria, today }: { file: HrWorkerFile; criteri
 function EvaluationDialog({
   workerId,
   criteria,
+  previous,
   today,
   onClose,
 }: {
   workerId: string;
   criteria: HrCriterion[];
+  /** The last evaluation, whose goals this one checks. */
+  previous: HrEvaluation | null;
   today: string;
   onClose: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
   const router = useRouter();
   const errorText = useHrError();
   const [date, setDate] = useState(today);
   const [scores, setScores] = useState<Record<string, number>>({});
+  const [details, setDetails] = useState<Record<string, string>>({});
   const [comment, setComment] = useState('');
+  const [goals, setGoals] = useState('');
+  // 1 = Muy en desacuerdo … 5 = Totalmente de acuerdo, as on the paper form.
+  const scale = [t('hr.scale1'), t('hr.scale2'), t('hr.scale3'), t('hr.scale4'), t('hr.scale5')];
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -444,7 +471,12 @@ function EvaluationDialog({
         worker_id: workerId,
         evaluated_on: date,
         comment: comment.trim() || null,
-        scores: criteria.map((c) => ({ criterion_id: c.id, score: scores[c.id] })),
+        goals: goals.trim() || null,
+        scores: criteria.map((c) => ({
+          criterion_id: c.id,
+          score: scores[c.id],
+          comment: details[c.id]?.trim() || null,
+        })),
       });
       if (!res.ok) return setError(errorText(res.error));
       router.refresh();
@@ -474,7 +506,20 @@ function EvaluationDialog({
           <Input id="eval-date" type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} />
         </Field>
 
-        <div className="space-y-2.5">
+        {previous?.goals && (
+          <div className="rounded-lg bg-surface-2 px-3 py-2">
+            <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">
+              {t('hr.previousGoals', { date: formatDate(previous.evaluated_on, 'medium') })}
+            </p>
+            <div className="mt-0.5 text-[13px] leading-relaxed">
+              <NoteText text={previous.goals} />
+            </div>
+          </div>
+        )}
+
+        <p className="text-[12px] text-muted">{scale.map((label, i) => `${i + 1} = ${label}`).join(' · ')}</p>
+
+        <div className="space-y-3.5">
           {!complete && <p className="text-[12px] text-muted">{t('hr.rateAll')}</p>}
           {criteria.map((c) => (
             <div key={c.id}>
@@ -498,13 +543,28 @@ function EvaluationDialog({
                     {n}
                   </button>
                 ))}
+                {scores[c.id] && (
+                  <span className="self-center text-[12px] text-muted">{scale[scores[c.id] - 1]}</span>
+                )}
               </div>
+              <NoteTextarea
+                aria-label={`${c.name} — ${t('hr.criterionDetails')}`}
+                placeholder={t('hr.criterionDetails')}
+                rows={1}
+                value={details[c.id] ?? ''}
+                onChange={(e) => setDetails((d) => ({ ...d, [c.id]: e.target.value }))}
+                className="mt-1.5 text-[12.5px]"
+              />
             </div>
           ))}
         </div>
 
         <Field label={t('hr.comment')} htmlFor="eval-comment">
           <NoteTextarea id="eval-comment" rows={4} value={comment} onChange={(e) => setComment(e.target.value)} />
+        </Field>
+
+        <Field label={t('hr.goals')} htmlFor="eval-goals">
+          <NoteTextarea id="eval-goals" rows={3} value={goals} onChange={(e) => setGoals(e.target.value)} />
         </Field>
       </div>
     </Dialog>
