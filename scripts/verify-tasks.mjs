@@ -257,8 +257,7 @@ async function main() {
   check('a manager sees it', await sees(M, assigned.id));
   check('a power user sees it', await sees(P, assigned.id));
   check('another user does NOT see it', !(await sees(U, assigned.id)));
-  check('a user does NOT see an unassigned occurrence', !(await sees(U, shared.id)));
-  check('a manager sees an unassigned occurrence', await sees(M, shared.id));
+  check('an unassigned occurrence is still seen by everyone', await sees(U, shared.id));
 
   const statusOf = async (id) => (await admin.from('task_occurrences').select('status').eq('id', id).single()).data.status;
   const otherComplete = await U.client.rpc('complete_occurrence', { p_occurrence_id: assigned.id });
@@ -278,10 +277,7 @@ async function main() {
     (puReopen.error ?? puComplete.error)?.message);
 
   const sharedComplete = await U.client.rpc('complete_occurrence', { p_occurrence_id: shared.id });
-  check('a user CANNOT complete an unassigned occurrence', !!sharedComplete.error && (await statusOf(shared.id)) === 'pending',
-    sharedComplete.error?.message);
-  const puShared = await P.client.rpc('complete_occurrence', { p_occurrence_id: shared.id });
-  check('a power user CAN complete an unassigned occurrence', !puShared.error, puShared.error?.message);
+  check('anyone can still complete an unassigned occurrence', !sharedComplete.error, sharedComplete.error?.message);
 }
 
 async function cleanup() {

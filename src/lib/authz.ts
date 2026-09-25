@@ -149,9 +149,8 @@ export function canUseReminders(viewer: { profile: { status: string } } | null |
  * The team whose tasks a role sees, or null when it sees every team's.
  *
  * Mirrors team_scope() in SQL, which is what enforces it: only a plain User
- * is confined — to their own team's tasks, and within those to the
- * occurrences assigned to them. Everyone else, the Production manager
- * included, works with every team's tasks and people.
+ * is confined — to their own team's tasks. Everyone else, the Production
+ * manager included, works with every team's tasks and people.
  */
 export function teamScope(role: Role, team: Team): Team | null {
   return role === 'user' ? team : null;
