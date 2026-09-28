@@ -13,5 +13,5 @@ export default async function AdminUsersPage() {
   if (!viewer?.can('users.manage')) redirect('/admin');
 
   const users = await getUsers();
-  return <UserManager users={users} currentUserId={viewer.profile.id} />;
+  return <UserManager users={users} currentUserId={viewer.profile.id} currentUserRole={viewer.role} />;
 }

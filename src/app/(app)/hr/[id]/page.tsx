@@ -5,7 +5,7 @@ import { getCriteria, getNoteTypes, getWorkerFile, getWorkerStats, getWorkers } 
 import { getWorkerEvalRequests } from '@/server/hr-evaluations';
 import { WorkerFile, type HrTab } from '@/components/hr/worker-file';
 import { displayName } from '@/lib/utils';
-import { TEAMS, incidentScope } from '@/lib/authz';
+import { TEAMS, incidentScope, isAdminRole } from '@/lib/authz';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
@@ -68,7 +68,7 @@ export default async function WorkerFilePage({
       teams={scope ? [scope] : [...TEAMS]}
       today={today}
       evalRequests={evalRequests}
-      isAdmin={viewer.role === 'admin'}
+      isAdmin={isAdminRole(viewer.role)}
     />
   );
 }

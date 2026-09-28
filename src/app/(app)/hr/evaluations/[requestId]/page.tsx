@@ -5,6 +5,7 @@ import { getWorkerFile } from '@/server/hr';
 import { EvalRequestView } from '@/components/hr/eval-request-view';
 import { displayName } from '@/lib/utils';
 import { businessToday } from '@/lib/datetime';
+import { isAdminRole } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export default async function EvalRequestPage({ params }: { params: { requestId: string } }) {
   const viewer = await getViewer();
   if (!viewer?.can('hr.manage')) redirect('/dashboard');
-  const isAdmin = viewer.role === 'admin';
+  const isAdmin = isAdminRole(viewer.role);
 
   const detail = await getEvalRequest(params.requestId, isAdmin);
   if (!detail) notFound();

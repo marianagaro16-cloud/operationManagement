@@ -404,13 +404,14 @@ async function legacyViewer(): Promise<Viewer | null> {
   };
 }
 
-/** How many approved admins exist — the last-admin guard needs it. */
+/** How many approved admins (Owners included) exist — the last-admin guard needs it. */
 export async function countApprovedAdmins(): Promise<number> {
   const supabase = createClient();
   const { count } = await supabase
     .from('profiles')
     .select('id', { count: 'exact', head: true })
-    .eq('role', 'admin')
+    // An Owner is everything an admin is.
+    .in('role', ['admin', 'owner'])
     .eq('status', 'approved')
     .is('deleted_at', null);
   return count ?? 0;

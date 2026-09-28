@@ -4931,6 +4931,7 @@ export type Database = {
       }
       hr_can_note: { Args: { p_note_id: string }; Returns: boolean }
       hr_can_worker: { Args: { p_worker_id: string }; Returns: boolean }
+      hr_eval_admin_may: { Args: { p_request_id: string }; Returns: boolean }
       hr_eval_answer: {
         Args: {
           p_answers: Json
@@ -4973,6 +4974,7 @@ export type Database = {
         Args: { p_assignment_id: string }
         Returns: undefined
       }
+      hr_is_self: { Args: { p_worker_id: string }; Returns: boolean }
       hr_scope: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       hr_worker_stats: {
         Args: { p_from: string; p_to: string; p_worker_id: string }
@@ -5182,6 +5184,8 @@ export type Database = {
         Returns: boolean
       }
       is_goods_reception_assignee: { Args: never; Returns: boolean }
+      is_owner: { Args: never; Returns: boolean }
+      is_owner_account: { Args: { p_profile_id: string }; Returns: boolean }
       is_reminder_participant: {
         Args: { p_reminder: string }
         Returns: boolean
@@ -5472,6 +5476,7 @@ export type Database = {
         | "manager"
         | "power_user"
         | "production_manager"
+        | "owner"
       user_status: "pending" | "approved" | "rejected" | "deactivated"
     }
     CompositeTypes: {
@@ -5673,6 +5678,7 @@ export const Constants = {
         "manager",
         "power_user",
         "production_manager",
+        "owner",
       ],
       user_status: ["pending", "approved", "rejected", "deactivated"],
     },

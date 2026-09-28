@@ -14,7 +14,7 @@
  * action that would be rejected. If the two ever disagree, the database wins.
  */
 
-export const ROLES = ['admin', 'manager', 'power_user', 'production_manager', 'user'] as const;
+export const ROLES = ['owner', 'admin', 'manager', 'power_user', 'production_manager', 'user'] as const;
 export type Role = (typeof ROLES)[number];
 
 /**
@@ -32,6 +32,8 @@ export type Team = (typeof TEAMS)[number];
  * someone reordered the list for the UI.
  */
 export const ROLE_RANK: Record<Role, number> = {
+  // The company's owners: everything an admin is, and only they change an owner.
+  owner: 5,
   admin: 4,
   manager: 3,
   power_user: 2,
@@ -211,7 +213,24 @@ export function atLeast(role: Role, min: Role): boolean {
  * never depends on matrix rows, so it cannot be reduced by editing the matrix.
  */
 export function can(role: Role, caps: ReadonlySet<Permission>, permission: Permission): boolean {
-  return role === 'admin' || caps.has(permission);
+  return isAdminRole(role) || caps.has(permission);
+}
+
+/**
+ * Admin, or an Owner — who is everything an admin is. Mirrors is_admin() in
+ * SQL. Ask this, not `role === 'admin'`, wherever admin powers are meant.
+ */
+export function isAdminRole(role: Role | string | null | undefined): boolean {
+  return role === 'admin' || role === 'owner';
+}
+
+/**
+ * May this viewer change this account? Only an Owner changes an Owner, or
+ * makes someone one. Mirrors guard_owner_profile() in SQL.
+ */
+export function mayChangeAccount(viewerRole: Role, targetRole: Role, nextRole?: Role): boolean {
+  if (viewerRole === 'owner') return true;
+  return targetRole !== 'owner' && nextRole !== 'owner';
 }
 
 /**
@@ -220,7 +239,8 @@ export function can(role: Role, caps: ReadonlySet<Permission>, permission: Permi
  * The app has always refused to strip the last admin so nobody can lock
  * themselves out. Under two roles that read as "demoting to 'user'"; under four
  * it has to be "changing to anything that is not admin", or demoting the final
- * admin to `manager` would walk straight past the guard.
+ * admin to `manager` would walk straight past the guard. An Owner counts as an
+ * admin here: either can run the system.
  */
 export function wouldOrphanAdmins(params: {
   currentRole: Role;
@@ -228,6 +248,6 @@ export function wouldOrphanAdmins(params: {
   approvedAdminCount: number;
 }): boolean {
   const { currentRole, nextRole, approvedAdminCount } = params;
-  if (currentRole !== 'admin' || nextRole === 'admin') return false;
+  if (!isAdminRole(currentRole) || isAdminRole(nextRole)) return false;
   return approvedAdminCount <= 1;
 }

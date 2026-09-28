@@ -184,7 +184,7 @@ export async function sendToPermissionHolders(
     .eq('permission', permission);
   if (grantsError) throw new Error(grantsError.message);
 
-  const roles = ['admin', ...(grants ?? []).map((g) => (g as { role: string }).role)];
+  const roles = ['admin', 'owner', ...(grants ?? []).map((g) => (g as { role: string }).role)];
   const { data: people, error: peopleError } = await admin
     .from('profiles')
     .select('id')
@@ -209,7 +209,8 @@ export async function sendToAdmins(payload: PushPayload): Promise<number> {
     .from('profiles')
     .select('id')
     .eq('status', 'approved')
-    .eq('role', 'admin');
+    // Owners are admins too.
+    .in('role', ['admin', 'owner']);
 
   return sendToUsers((admins ?? []).map((p) => (p as { id: string }).id), payload);
 }

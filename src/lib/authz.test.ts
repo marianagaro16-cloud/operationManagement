@@ -8,6 +8,8 @@ import {
   atLeast,
   can,
   isConfigurable,
+  isAdminRole,
+  mayChangeAccount,
   incidentScope,
   inventoryOwnOnly,
   isRole,
@@ -19,7 +21,8 @@ import {
 } from './authz';
 
 describe('role hierarchy', () => {
-  it('ranks admin above manager above power user above user', () => {
+  it('ranks owner above admin above manager above power user above user', () => {
+    expect(ROLE_RANK.owner).toBeGreaterThan(ROLE_RANK.admin);
     expect(ROLE_RANK.admin).toBeGreaterThan(ROLE_RANK.manager);
     expect(ROLE_RANK.manager).toBeGreaterThan(ROLE_RANK.power_user);
     expect(ROLE_RANK.power_user).toBeGreaterThan(ROLE_RANK.user);
@@ -36,7 +39,7 @@ describe('role hierarchy', () => {
   it('does not derive rank from the declaration order', () => {
     const byDeclaration = [...ROLES].map((r) => ROLE_RANK[r]);
     // The production manager sits beside the power user: same rank, listed after it.
-    expect(byDeclaration).toEqual([4, 3, 2, 2, 1]);
+    expect(byDeclaration).toEqual([5, 4, 3, 2, 2, 1]);
   });
 
   it('recognises only real roles', () => {
@@ -170,5 +173,29 @@ describe('wouldOrphanAdmins', () => {
     expect(
       wouldOrphanAdmins({ currentRole: 'admin', nextRole: 'admin', approvedAdminCount: 1 }),
     ).toBe(false);
+  });
+});
+
+describe('owners', () => {
+  const none = new Set<Permission>();
+
+  it('are everything an admin is', () => {
+    expect(isAdminRole('owner')).toBe(true);
+    expect(isAdminRole('admin')).toBe(true);
+    expect(isAdminRole('manager')).toBe(false);
+    expect(can('owner', none, 'permissions.configure')).toBe(true);
+  });
+
+  it('are changed only by an owner', () => {
+    expect(mayChangeAccount('admin', 'owner')).toBe(false);
+    expect(mayChangeAccount('admin', 'manager', 'owner')).toBe(false);
+    expect(mayChangeAccount('admin', 'manager', 'admin')).toBe(true);
+    expect(mayChangeAccount('owner', 'owner', 'admin')).toBe(true);
+    expect(mayChangeAccount('owner', 'user', 'owner')).toBe(true);
+  });
+
+  it('count as an admin for the last-admin guard', () => {
+    expect(wouldOrphanAdmins({ currentRole: 'owner', nextRole: 'user', approvedAdminCount: 1 })).toBe(true);
+    expect(wouldOrphanAdmins({ currentRole: 'admin', nextRole: 'owner', approvedAdminCount: 1 })).toBe(false);
   });
 });

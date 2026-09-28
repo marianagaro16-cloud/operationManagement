@@ -9,7 +9,7 @@ import { ConfirmDialog } from '@/components/ui/dialog';
 import { Badge, Card, EmptyState, ErrorState, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { deleteUser, setUserRole, setUserStatus, setUserTeam } from '@/server/actions';
-import { ROLES, TEAMS, type Role, type Team } from '@/lib/authz';
+import { ROLES, TEAMS, mayChangeAccount, type Role, type Team } from '@/lib/authz';
 import type { Profile, UserStatus } from '@/types/database';
 
 const STATUS_TONE = {
@@ -21,6 +21,7 @@ const STATUS_TONE = {
 
 // Privilege reads as colour: the more a role can do, the louder the badge.
 const ROLE_TONE = {
+  owner: 'accent',
   admin: 'accent',
   manager: 'done',
   power_user: 'warn',
@@ -36,7 +37,16 @@ const ROLE_TONE = {
  */
 const TEAM_MATTERS: ReadonlySet<Role> = new Set<Role>(['user', 'production_manager']);
 
-export function UserManager({ users, currentUserId }: { users: Profile[]; currentUserId: string }) {
+export function UserManager({
+  users,
+  currentUserId,
+  currentUserRole,
+}: {
+  users: Profile[];
+  currentUserId: string;
+  /** Only an Owner changes an Owner, or makes someone one. */
+  currentUserRole: Role;
+}) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -68,6 +78,7 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
       if (!res.ok) {
         setError(
           res.error === 'last_admin' ? t('roles.lastAdmin')
+          : res.error === 'owner_protected' ? t('roles.ownerProtected')
           : res.error === 'cannot_delete_self' ? t('admin.cannotDeleteSelf')
           : res.error,
         );
@@ -79,6 +90,7 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
 
   const roleLabel = (role: Role) => {
     switch (role) {
+      case 'owner': return t('roles.owner');
       case 'admin': return t('roles.admin');
       case 'manager': return t('roles.manager');
       case 'power_user': return t('roles.powerUser');
@@ -130,7 +142,13 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
     startTransition(async () => {
       const res = await setUserRole(user.id, role);
       // Refuse to strip the final admin, which would lock everyone out.
-      if (!res.ok) setError(res.error === 'last_admin' ? t('roles.lastAdmin') : res.error);
+      if (!res.ok) {
+        setError(
+          res.error === 'last_admin' ? t('roles.lastAdmin')
+          : res.error === 'owner_protected' ? t('roles.ownerProtected')
+          : res.error,
+        );
+      }
       router.refresh();
     });
   }
@@ -151,6 +169,9 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
         {formatDate(user.created_at.slice(0, 10), 'short')}
       </span>
 
+      {!mayChangeAccount(currentUserRole, user.role) ? (
+        <span className="shrink-0 text-[12px] text-muted">{t('roles.ownerProtected')}</span>
+      ) : (
       <div className="flex shrink-0 flex-wrap gap-1">
         {user.status !== 'rejected' && user.status !== 'deactivated' && teamControl(user)}
 
@@ -190,7 +211,8 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
               disabled={pending}
               onChange={(e) => changeRole(user, e.target.value as Role)}
             >
-              {ROLES.map((r) => (
+              {/* Only an Owner makes someone an Owner. */}
+              {ROLES.filter((r) => mayChangeAccount(currentUserRole, user.role, r)).map((r) => (
                 <option key={r} value={r}>{roleLabel(r)}</option>
               ))}
             </Select>
@@ -237,6 +259,7 @@ export function UserManager({ users, currentUserId }: { users: Profile[]; curren
           </Button>
         )}
       </div>
+      )}
     </li>
   );
 

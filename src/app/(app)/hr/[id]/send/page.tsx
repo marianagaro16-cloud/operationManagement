@@ -4,13 +4,14 @@ import { getCriteria, getWorkerFile } from '@/server/hr';
 import { SendEvaluation } from '@/components/hr/send-evaluation';
 import { displayName } from '@/lib/utils';
 import { addDays, businessToday } from '@/lib/datetime';
+import { isAdminRole } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
 /** Admin sends an evaluation of this worker to several people. */
 export default async function SendEvaluationPage({ params }: { params: { id: string } }) {
   const viewer = await getViewer();
-  if (viewer?.role !== 'admin') redirect('/dashboard');
+  if (!isAdminRole(viewer?.role)) redirect('/dashboard');
 
   const [file, criteria, users] = await Promise.all([getWorkerFile(params.id), getCriteria(), getUsers()]);
   if (!file) notFound();

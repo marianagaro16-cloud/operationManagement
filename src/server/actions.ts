@@ -235,7 +235,7 @@ export async function deleteUser(userId: string): Promise<ActionResult> {
   const supabase = createClient();
   const { error } = await supabase.rpc('admin_delete_user', { p_user_id: userId });
   if (error) {
-    for (const code of ['cannot_delete_self', 'last_admin', 'user_not_found']) {
+    for (const code of ['cannot_delete_self', 'last_admin', 'owner_protected', 'user_not_found']) {
       if (error.message.includes(code)) return { ok: false, error: code };
     }
     return fail(error);
