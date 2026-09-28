@@ -25,9 +25,11 @@ interface Props {
   showDueDate?: boolean;
   /** Say whose copy this is — for planners, who see everyone's. */
   showAssignee?: boolean;
+  /** Skipping is a manager's decision; everyone else can only block. */
+  canSkip?: boolean;
 }
 
-export function TaskCard({ occurrence, today, showDueDate, showAssignee }: Props) {
+export function TaskCard({ occurrence, today, showDueDate, showAssignee, canSkip }: Props) {
   const { t, locale, formatDate } = useI18n();
   const [pending, startTransition] = useTransition();
   const [skipOpen, setSkipOpen] = useState(false);
@@ -185,7 +187,7 @@ export function TaskCard({ occurrence, today, showDueDate, showAssignee }: Props
             </Button>
           )}
 
-          {!resolved && !isBlocked && occurrence.task.is_skippable && (
+          {canSkip && !resolved && !isBlocked && occurrence.task.is_skippable && (
             <Button size="sm" variant="ghost" onClick={() => setSkipOpen(true)} disabled={pending}>
               <SkipForward className="h-3.5 w-3.5" aria-hidden />
               {t('task.skip')}

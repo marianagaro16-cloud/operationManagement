@@ -20,6 +20,7 @@ import type { DashboardData } from '@/server/data';
 export function DashboardView({
   data,
   showUpcoming = true,
+  canSkip = false,
 }: {
   data: DashboardData;
   /**
@@ -27,6 +28,8 @@ export function DashboardView({
    * and, since they see everyone's copies, whose each one is.
    */
   showUpcoming?: boolean;
+  /** Skipping is a manager's decision; everyone else can only block. */
+  canSkip?: boolean;
 }) {
   const { t } = useI18n();
   const { today, dailyToday, extraToday, overdue, upcoming, blocked } = data;
@@ -57,7 +60,7 @@ export function DashboardView({
           />
           <ul className="space-y-2">
             {overdue.map((o) => (
-              <TaskCard key={o.id} occurrence={o} today={today} showDueDate showAssignee={showUpcoming} />
+              <TaskCard key={o.id} occurrence={o} today={today} canSkip={canSkip} showDueDate showAssignee={showUpcoming} />
             ))}
           </ul>
         </section>
@@ -81,7 +84,7 @@ export function DashboardView({
           />
           <ul className="space-y-2">
             {blocked.map((o) => (
-              <TaskCard key={o.id} occurrence={o} today={today} showDueDate showAssignee={showUpcoming} />
+              <TaskCard key={o.id} occurrence={o} today={today} canSkip={canSkip} showDueDate showAssignee={showUpcoming} />
             ))}
           </ul>
         </section>
@@ -121,7 +124,7 @@ export function DashboardView({
         {dailyToday.length > 0 && (
           <ul className="space-y-2">
             {dailyToday.map((o) => (
-              <TaskCard key={o.id} occurrence={o} today={today} showAssignee={showUpcoming} />
+              <TaskCard key={o.id} occurrence={o} today={today} canSkip={canSkip} showAssignee={showUpcoming} />
             ))}
           </ul>
         )}
@@ -133,7 +136,7 @@ export function DashboardView({
           <SectionHeading title={t('dashboard.extraSectionTitle')} />
           <ul className="space-y-2">
             {extraToday.map((o) => (
-              <TaskCard key={o.id} occurrence={o} today={today} showAssignee={showUpcoming} />
+              <TaskCard key={o.id} occurrence={o} today={today} canSkip={canSkip} showAssignee={showUpcoming} />
             ))}
           </ul>
         </section>
@@ -150,7 +153,7 @@ export function DashboardView({
         ) : (
           <ul className="space-y-2 opacity-90">
             {upcoming.slice(0, 12).map((o) => (
-              <TaskCard key={o.id} occurrence={o} today={today} showDueDate showAssignee={showUpcoming} />
+              <TaskCard key={o.id} occurrence={o} today={today} canSkip={canSkip} showDueDate showAssignee={showUpcoming} />
             ))}
           </ul>
         )}

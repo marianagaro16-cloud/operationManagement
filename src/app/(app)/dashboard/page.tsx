@@ -86,7 +86,7 @@ export default async function DashboardPage() {
           nowIso={new Date().toISOString()}
         />
       )}
-      <DashboardView data={data} showUpcoming={plans} />
+      <DashboardView data={data} showUpcoming={plans} canSkip={plans} />
     </>
   );
 }
