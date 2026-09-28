@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/shell/app-shell';
 import { WorkerDialog, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
 import type { HrWorker } from '@/types/hr';
+import { teamLabelKey } from '@/lib/authz';
 
 /** Everyone with a file, the people who still work here first. */
 export function WorkerList({
@@ -26,7 +27,7 @@ export function WorkerList({
   const [creating, setCreating] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
 
-  const teamLabel = (team: Team) => (team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations'));
+  const teamLabel = (team: Team) => (t(teamLabelKey(team)));
   const linked = new Set(workers.map((w) => w.profile_id).filter(Boolean));
   const shown = workers.filter((w) => showInactive || w.is_active);
   const inactiveCount = workers.filter((w) => !w.is_active).length;

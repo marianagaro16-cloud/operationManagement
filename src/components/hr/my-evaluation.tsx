@@ -17,10 +17,11 @@ import { answerEvaluation } from '@/server/hr-eval-actions';
 import { RequestStatus, ScaleInput, useEvalError, useScaleLabels } from './evaluation-parts';
 import type { Team } from '@/lib/authz';
 import type { MyEvaluation } from '@/server/hr-evaluations';
+import { teamLabelKey } from '@/lib/authz';
 
 function useTeamLabel() {
   const { t } = useI18n();
-  return (team: Team) => (team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations'));
+  return (team: Team) => (t(teamLabelKey(team)));
 }
 
 /** Everything the viewer was asked to evaluate, still to do first. */

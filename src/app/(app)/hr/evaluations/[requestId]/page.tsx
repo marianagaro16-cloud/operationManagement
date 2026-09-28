@@ -5,7 +5,7 @@ import { getWorkerFile } from '@/server/hr';
 import { EvalRequestView } from '@/components/hr/eval-request-view';
 import { displayName } from '@/lib/utils';
 import { businessToday } from '@/lib/datetime';
-import { isAdminRole } from '@/lib/authz';
+import { isAdminRole, type Team } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,7 @@ export default async function EvalRequestPage({ params }: { params: { requestId:
   const detail = await getEvalRequest(params.requestId, isAdmin);
   if (!detail) notFound();
 
-  let people: { id: string; name: string; team: 'production' | 'operations' }[] = [];
+  let people: { id: string; name: string; team: Team }[] = [];
   if (isAdmin) {
     const [users, file] = await Promise.all([getUsers(), getWorkerFile(detail.request.worker_id)]);
     const invited = new Set((detail.assignments ?? []).map((a) => a.evaluator_id));

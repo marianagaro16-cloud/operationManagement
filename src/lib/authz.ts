@@ -18,11 +18,24 @@ export const ROLES = ['owner', 'admin', 'manager', 'power_user', 'production_man
 export type Role = (typeof ROLES)[number];
 
 /**
- * The two teams. Mirrors the `team` enum in
+ * The teams. Mirrors the `team` enum in
  * `supabase/migrations/20261012090100_production_manager_and_teams.sql`.
  */
-export const TEAMS = ['production', 'operations'] as const;
+export const TEAMS = ['production', 'operations', 'sales'] as const;
 export type Team = (typeof TEAMS)[number];
+
+/** The i18n key naming a team. Ask this rather than comparing with one team. */
+export function teamLabelKey(team: Team): 'roles.teamProduction' | 'roles.teamOperations' | 'roles.teamSales' {
+  return team === 'production' ? 'roles.teamProduction' : team === 'sales' ? 'roles.teamSales' : 'roles.teamOperations';
+}
+
+/**
+ * Sales: whoever is on the Ventas team, and Admin and Owners. Mirrors
+ * is_sales() in SQL, which guards the sales section's data.
+ */
+export function isSales(role: Role, team: Team): boolean {
+  return team === 'sales' || role === 'admin' || role === 'owner';
+}
 
 /**
  * The hierarchy as a number.

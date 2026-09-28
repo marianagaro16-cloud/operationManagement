@@ -19,12 +19,13 @@ import { TEAMS, type Team } from '@/lib/authz';
 import type { Category, Task } from '@/types/database';
 import type { OneOffPerson } from '@/components/calendar/one-off-dialog';
 import { PeoplePicker } from '@/components/tasks/people-picker';
+import { teamLabelKey } from '@/lib/authz';
 
 type TaskRow = Task & { frequency: Frequency; category: Category | null; assignee_ids: string[] };
 
 function useTeamLabel() {
   const { t } = useI18n();
-  return (team: Team) => (team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations'));
+  return (team: Team) => (t(teamLabelKey(team)));
 }
 
 const EMPTY: TaskInput = {

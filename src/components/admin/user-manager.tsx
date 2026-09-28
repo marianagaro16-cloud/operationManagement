@@ -12,6 +12,7 @@ import { deleteUser, setUserRole, setUserStatus, setUserTeam } from '@/server/ac
 import { resetUserPassword } from '@/server/password-actions';
 import { ROLES, TEAMS, mayChangeAccount, type Role, type Team } from '@/lib/authz';
 import type { Profile, UserStatus } from '@/types/database';
+import { teamLabelKey } from '@/lib/authz';
 
 const STATUS_TONE = {
   pending: 'warn',
@@ -120,7 +121,7 @@ export function UserManager({
   };
 
   const teamLabel = (team: Team) =>
-    team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations');
+    t(teamLabelKey(team));
 
   function changeTeam(user: Profile, team: Team) {
     if (team === user.team) return;

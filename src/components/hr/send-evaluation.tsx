@@ -15,6 +15,7 @@ import { useEvalError } from './evaluation-parts';
 import type { OneOffPerson } from '@/components/calendar/one-off-dialog';
 import type { Team } from '@/lib/authz';
 import type { HrCriterion, HrWorker } from '@/types/hr';
+import { teamLabelKey } from '@/lib/authz';
 
 interface Question {
   key: string;
@@ -64,7 +65,7 @@ export function SendEvaluation({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const teamLabel = (team: Team) => (team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations'));
+  const teamLabel = (team: Team) => (t(teamLabelKey(team)));
   const teams = [...new Set(criteria.map((c) => c.team))].sort((a) => (a === worker.team ? -1 : 1));
   const filled = questions.filter((q) => q.name.trim());
   const canSend = (picked.length > 0 || filled.length > 0) && evaluators.length > 0 && deadline >= today;

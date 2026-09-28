@@ -19,6 +19,7 @@ import { WorkerDialog, useHrError, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
 import type { HrCriterion, HrEvalRequest, HrEvaluation, HrNoteType, HrStats, HrWorkerFile } from '@/types/hr';
 import { RequestStatus } from './evaluation-parts';
+import { teamLabelKey } from '@/lib/authz';
 
 export type HrTab = 'log' | 'evaluations' | 'app';
 
@@ -57,7 +58,7 @@ export function WorkerFile({
   const { t, formatDate } = useI18n();
   const [editing, setEditing] = useState(false);
   const { worker } = file;
-  const teamLabel = (team: Team) => (team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations'));
+  const teamLabel = (team: Team) => (t(teamLabelKey(team)));
 
   const details = [
     worker.position,

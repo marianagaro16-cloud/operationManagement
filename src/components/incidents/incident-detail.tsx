@@ -36,6 +36,7 @@ import { categoryLabel, typeLabel } from './incident-list';
 import { errorKey } from './incident-dialog';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { noteToPlainLine } from '@/domain/notes';
+import { teamLabelKey } from '@/lib/authz';
 
 /**
  * The incident detail — where the investigation actually happens.
@@ -142,13 +143,13 @@ export function IncidentDetail({
                 >
                   {TEAMS.map((team) => (
                     <option key={team} value={team}>
-                      {team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations')}
+                      {t(teamLabelKey(team))}
                     </option>
                   ))}
                 </Select>
               ) : (
                 <Badge tone="neutral">
-                  {incident.team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations')}
+                  {t(teamLabelKey(incident.team))}
                 </Badge>
               )}
               <span className="text-[12.5px] text-muted">

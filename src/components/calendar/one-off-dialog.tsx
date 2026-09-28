@@ -10,6 +10,7 @@ import { NoteTextarea } from '@/components/ui/note-textarea';
 import { createOneOffTask } from '@/server/planning-actions';
 import { PeoplePicker } from '@/components/tasks/people-picker';
 import type { Team } from '@/lib/authz';
+import { teamLabelKey } from '@/lib/authz';
 
 /** Who a one-off can be given to. The whole team, or one of these. */
 export interface OneOffPerson {
@@ -59,7 +60,7 @@ export function OneOffDialog({
   const [pending, startTransition] = useTransition();
 
   const teamLabel = (value: Team) =>
-    value === 'production' ? t('roles.teamProduction') : t('roles.teamOperations');
+    t(teamLabelKey(value));
 
   // Given to people, the activity belongs to the first one's team: it is
   // their work, and a team they are not on would only hide it from them.

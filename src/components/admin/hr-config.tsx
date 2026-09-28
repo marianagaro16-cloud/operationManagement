@@ -13,6 +13,7 @@ import { saveCriterion, saveNoteType } from '@/server/hr-actions';
 import { TEAMS, type Team } from '@/lib/authz';
 import { localizedName, localizedNameDescription } from '@/lib/localized-content';
 import type { HrCriterion, HrNoteType, HrTranslations } from '@/types/hr';
+import { teamLabelKey } from '@/lib/authz';
 
 type Editing =
   | { kind: 'type'; row: HrNoteType | null }
@@ -26,7 +27,7 @@ type Editing =
 export function HrConfig({ noteTypes, criteria }: { noteTypes: HrNoteType[]; criteria: HrCriterion[] }) {
   const { t, locale } = useI18n();
   const [editing, setEditing] = useState<Editing | null>(null);
-  const teamLabel = (team: Team) => (team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations'));
+  const teamLabel = (team: Team) => (t(teamLabelKey(team)));
 
   const row = (key: string, name: string, active: boolean, extra: string | null, onEdit: () => void) => (
     <li key={key} className="flex items-center gap-3 px-3.5 py-2">
@@ -125,7 +126,7 @@ function ListDialog({ editing, onClose }: { editing: Editing; onClose: () => voi
   const [active, setActive] = useState(editing.row?.is_active ?? true);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const teamLabel = (value: Team) => (value === 'production' ? t('roles.teamProduction') : t('roles.teamOperations'));
+  const teamLabel = (value: Team) => (t(teamLabelKey(value)));
 
   function submit() {
     setError(null);

@@ -161,6 +161,58 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_notes: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          kind: string
+          note_date: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          kind: string
+          note_date: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          kind?: string
+          note_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+        ]
+      }
       customer_specification_types: {
         Row: {
           created_at: string
@@ -5232,6 +5284,7 @@ export type Database = {
         Args: { p_reminder: string }
         Returns: boolean
       }
+      is_sales: { Args: never; Returns: boolean }
       list_reminders: {
         Args: {
           p_creator?: string
@@ -5367,6 +5420,20 @@ export type Database = {
       role_rank: {
         Args: { r: Database["public"]["Enums"]["user_role"] }
         Returns: number
+      }
+      sales_customer_file: { Args: { p_customer_id: string }; Returns: Json }
+      sales_customer_list: {
+        Args: never
+        Returns: {
+          city: string
+          company_name: string
+          company_name_addition: string
+          id: string
+          is_active: boolean
+          last_order: string
+          notes: number
+          orders_90d: number
+        }[]
       }
       set_line_shortfall: {
         Args: {
@@ -5515,7 +5582,7 @@ export type Database = {
         | "monthly"
         | "semiannual"
         | "one_off"
-      team: "production" | "operations"
+      team: "production" | "operations" | "sales"
       user_role:
         | "admin"
         | "user"
@@ -5717,7 +5784,7 @@ export const Constants = {
         "semiannual",
         "one_off",
       ],
-      team: ["production", "operations"],
+      team: ["production", "operations", "sales"],
       user_role: [
         "admin",
         "user",

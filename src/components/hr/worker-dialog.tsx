@@ -10,6 +10,7 @@ import { NoteTextarea } from '@/components/ui/note-textarea';
 import { saveWorker, type WorkerInput } from '@/server/hr-actions';
 import type { Team } from '@/lib/authz';
 import type { HrWorker } from '@/types/hr';
+import { teamLabelKey } from '@/lib/authz';
 
 /** An app account a file can be linked to. */
 export interface HrAccount {
@@ -67,7 +68,7 @@ export function WorkerDialog({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const teamLabel = (team: Team) => (team === 'production' ? t('roles.teamProduction') : t('roles.teamOperations'));
+  const teamLabel = (team: Team) => (t(teamLabelKey(team)));
   const set = (patch: Partial<WorkerInput>) => setForm((f) => ({ ...f, ...patch }));
   const text = (key: keyof WorkerInput) => (form[key] as string | null | undefined) ?? '';
 

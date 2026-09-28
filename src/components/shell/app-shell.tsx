@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, ClipboardCheck, ClipboardList, LayoutDashboard, MoreHorizontal, Package, ScanSearch, Settings, Shield, Truck, UserRound, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, ScanSearch, Settings, Shield, Truck, UserRound, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { SignOutButton } from './sign-out-button';
 import { PresenceBeacon } from './presence-beacon';
 import { FormNoteSubmit } from '@/components/ui/enter-to-save';
 import { InboxLink } from './inbox-link';
-import { atLeast, can, ordersReadOnly, type Permission, type Role } from '@/lib/authz';
+import { atLeast, can, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 
 /**
@@ -117,6 +117,10 @@ export function AppShell({
     // of their own rather than a corner of the management area.
     ...(can(role, held, 'hr.manage')
       ? [{ href: '/hr', label: t('hr.navLabel'), icon: UserRound, primary: false }]
+      : []),
+    // Sales: customers, their files and notes. The Ventas team, Admin and Owners.
+    ...(isSales(role, profile.team as Team)
+      ? [{ href: '/sales', label: t('sales.navLabel'), icon: Handshake, primary: false }]
       : []),
     // The management area opens at power_user; its own nav filters the tabs.
     ...(atLeast(role, 'power_user')
