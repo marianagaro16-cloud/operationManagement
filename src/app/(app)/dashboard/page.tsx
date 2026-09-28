@@ -11,6 +11,8 @@ import { PushPrompt } from '@/components/shell/push-prompt';
 import { getDashboardReminders, getPersonalTasks } from '@/server/reminders';
 import { ReminderWidgets } from '@/components/reminders/reminder-widgets';
 import { canUseReminders } from '@/lib/authz';
+import { getMyPendingEvaluations } from '@/server/hr-evaluations';
+import { PendingEvaluations } from '@/components/hr/pending-evaluations';
 
 // Always render fresh: task and order state change constantly during a shift.
 export const dynamic = 'force-dynamic';
@@ -25,7 +27,7 @@ export default async function DashboardPage() {
   const canManageOrders = viewer?.can('orders.manage') ?? false;
   // Every approved account has reminders and personal tasks, whatever its role.
   const usesReminders = canUseReminders(viewer);
-  const [data, orders, inventory, reminders, personalTasks] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
@@ -33,6 +35,8 @@ export default async function DashboardPage() {
     getInventoryDashboard(1),
     usesReminders ? getDashboardReminders() : null,
     usesReminders ? getPersonalTasks() : null,
+    // Anyone may be asked to evaluate someone.
+    viewer ? getMyPendingEvaluations() : [],
   ]);
 
   const countsToday = [...inventory.overdue, ...inventory.dueToday];
@@ -76,6 +80,7 @@ export default async function DashboardPage() {
       {/* Renders nothing unless a count is due or late, so it never becomes
           empty furniture people learn to scroll past. */}
       <InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} />
+      <PendingEvaluations evaluations={evaluations} />
       {/* Personal follow-ups, in their own cards and their own counts — never
           folded into the summary strip above, which counts team work. */}
       {viewer && reminders && personalTasks && (

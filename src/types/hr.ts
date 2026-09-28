@@ -85,3 +85,59 @@ export interface HrWorkerFile {
   notes: HrNote[];
   evaluations: HrEvaluation[];
 }
+
+/* --------------------- evaluations sent to several people --------------------- */
+
+/** One question of a sent evaluation, as it was when sent. */
+export interface HrEvalItem {
+  id: string;
+  sort_order: number;
+  /** 1-5 with details, or a written answer. */
+  kind: 'scale' | 'text';
+  criterion_id: string | null;
+  name: string;
+  description: string | null;
+  translations: HrTranslations;
+}
+
+/** An evaluation of one worker sent to several people. */
+export interface HrEvalRequest {
+  id: string;
+  worker_id: string;
+  worker_name: string;
+  worker_position: string | null;
+  worker_team: Team;
+  deadline: string;
+  closed_at: string | null;
+  created_at: string;
+  /** Not closed early and the deadline day not over. */
+  open: boolean;
+  invited: number;
+  submitted: number;
+}
+
+/** The combined answers, without names — only once enough people answered. */
+export interface HrEvalOverview {
+  invited: number;
+  submitted: number;
+  shown: boolean;
+  items?: { item_id: string; average: number | null; distribution: number[]; texts: string[] }[];
+  comments?: string[];
+}
+
+export interface HrEvalAnswer {
+  item_id: string;
+  score: number | null;
+  body: string | null;
+}
+
+/** One evaluator's evaluation: theirs to fill in, or — for Admin — to read with the name. */
+export interface HrEvalAssignment {
+  id: string;
+  request_id: string;
+  evaluator_id: string | null;
+  evaluator_name: string | null;
+  comment: string | null;
+  submitted_at: string | null;
+  answers: HrEvalAnswer[];
+}

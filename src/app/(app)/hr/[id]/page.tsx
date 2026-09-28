@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { DateTime } from 'luxon';
 import { getUsers, getViewer } from '@/server/data';
 import { getCriteria, getNoteTypes, getWorkerFile, getWorkerStats, getWorkers } from '@/server/hr';
+import { getWorkerEvalRequests } from '@/server/hr-evaluations';
 import { WorkerFile, type HrTab } from '@/components/hr/worker-file';
 import { displayName } from '@/lib/utils';
 import { TEAMS, incidentScope } from '@/lib/authz';
@@ -38,12 +39,13 @@ export default async function WorkerFilePage({
   const from = searchParams.from && ISO.test(searchParams.from) ? searchParams.from : defaultFrom;
   const to = searchParams.to && ISO.test(searchParams.to) ? searchParams.to : today;
 
-  const [noteTypes, criteria, users, workers, stats] = await Promise.all([
+  const [noteTypes, criteria, users, workers, stats, evalRequests] = await Promise.all([
     getNoteTypes(),
     getCriteria(),
     getUsers(),
     getWorkers(),
     tab === 'app' && file.worker.profile_id ? getWorkerStats(file.worker.id, from, to) : Promise.resolve(null),
+    tab === 'evaluations' ? getWorkerEvalRequests(file.worker.id) : Promise.resolve([]),
   ]);
 
   // An account can have one file; offer those still free, and this worker's own.
@@ -65,6 +67,8 @@ export default async function WorkerFilePage({
         .map((u) => ({ id: u.id, name: displayName(u), team: u.team }))}
       teams={scope ? [scope] : [...TEAMS]}
       today={today}
+      evalRequests={evalRequests}
+      isAdmin={viewer.role === 'admin'}
     />
   );
 }

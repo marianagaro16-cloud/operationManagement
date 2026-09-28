@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, FileText, Pencil, Plus } from 'lucide-react';
+import { ArrowLeft, FileText, Pencil, Plus, Send } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,8 @@ import { localizedName, localizedNameDescription } from '@/lib/localized-content
 import { addEvaluation, addNote, recordNoteAttachment } from '@/server/hr-actions';
 import { WorkerDialog, useHrError, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
-import type { HrCriterion, HrEvaluation, HrNoteType, HrStats, HrWorkerFile } from '@/types/hr';
+import type { HrCriterion, HrEvalRequest, HrEvaluation, HrNoteType, HrStats, HrWorkerFile } from '@/types/hr';
+import { RequestStatus } from './evaluation-parts';
 
 export type HrTab = 'log' | 'evaluations' | 'app';
 
@@ -35,6 +36,8 @@ export function WorkerFile({
   accounts,
   teams,
   today,
+  evalRequests,
+  isAdmin,
 }: {
   file: HrWorkerFile;
   tab: HrTab;
@@ -46,6 +49,10 @@ export function WorkerFile({
   accounts: HrAccount[];
   teams: Team[];
   today: string;
+  /** Evaluations sent to several people about this worker; read on the Evaluations tab. */
+  evalRequests: HrEvalRequest[];
+  /** Only Admin sends them. */
+  isAdmin: boolean;
 }) {
   const { t, formatDate } = useI18n();
   const [editing, setEditing] = useState(false);
@@ -121,7 +128,9 @@ export function WorkerFile({
       </nav>
 
       {tab === 'log' && <LogTab file={file} noteTypes={noteTypes} today={today} />}
-      {tab === 'evaluations' && <EvaluationsTab file={file} criteria={criteria} today={today} />}
+      {tab === 'evaluations' && (
+        <EvaluationsTab file={file} criteria={criteria} today={today} evalRequests={evalRequests} isAdmin={isAdmin} />
+      )}
       {tab === 'app' && <AppTab workerId={worker.id} hasAccount={!!worker.profile_id} stats={stats} period={period} />}
 
       {editing && (
@@ -352,25 +361,72 @@ function NoteDialog({
 
 /* ------------------------------ evaluations ------------------------------ */
 
-function EvaluationsTab({ file, criteria, today }: { file: HrWorkerFile; criteria: HrCriterion[]; today: string }) {
+function EvaluationsTab({
+  file,
+  criteria,
+  today,
+  evalRequests,
+  isAdmin,
+}: {
+  file: HrWorkerFile;
+  criteria: HrCriterion[];
+  today: string;
+  evalRequests: HrEvalRequest[];
+  isAdmin: boolean;
+}) {
   const { t, locale, formatDate } = useI18n();
   const [adding, setAdding] = useState(false);
 
   return (
     <div className="space-y-3">
-      {criteria.length === 0 ? (
-        <p className="text-[12.5px] text-warn">{t('hr.noCriteria')}</p>
-      ) : (
-        <div className="flex justify-end">
-          <Button size="sm" variant="primary" onClick={() => setAdding(true)}>
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            {t('hr.newEvaluation')}
-          </Button>
+      {criteria.length === 0 && <p className="text-[12.5px] text-warn">{t('hr.noCriteria')}</p>}
+      {(criteria.length > 0 || isAdmin) && (
+        <div className="flex flex-wrap justify-end gap-2">
+          {isAdmin && (
+            <Link href={`/hr/${file.worker.id}/send`}>
+              <span className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-[13px] font-medium hover:bg-surface-2">
+                <Send className="h-3.5 w-3.5" aria-hidden />
+                {t('hrEval.send')}
+              </span>
+            </Link>
+          )}
+          {criteria.length > 0 && (
+            <Button size="sm" variant="primary" onClick={() => setAdding(true)}>
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              {t('hr.newEvaluation')}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Sent to several people: each opens its overview. */}
+      {evalRequests.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('hrEval.sent')}</p>
+          <ul className="space-y-2">
+            {evalRequests.map((r) => (
+              <li key={r.id}>
+                <Link href={`/hr/evaluations/${r.id}`} className="block">
+                  <Card className="flex items-center justify-between gap-3 p-3 transition-colors hover:bg-surface-2/60">
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-[12.5px] text-muted">
+                        <span className="tabular font-medium text-fg">{formatDate(r.created_at, 'medium')}</span>
+                        {' · '}
+                        {t('hrEval.answered', { submitted: r.submitted, invited: r.invited })}
+                      </p>
+                      <RequestStatus request={r} />
+                    </div>
+                    <span className="shrink-0 text-[12.5px] font-medium text-accent">{t('hrEval.viewOverview')}</span>
+                  </Card>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
       {file.evaluations.length === 0 ? (
-        <EmptyState title={t('hr.noEvaluations')} />
+        evalRequests.length === 0 && <EmptyState title={t('hr.noEvaluations')} />
       ) : (
         <ul className="space-y-2">
           {file.evaluations.map((e) => {

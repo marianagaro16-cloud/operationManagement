@@ -800,6 +800,186 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_eval_answers: {
+        Row: {
+          assignment_id: string
+          body: string | null
+          item_id: string
+          score: number | null
+        }
+        Insert: {
+          assignment_id: string
+          body?: string | null
+          item_id: string
+          score?: number | null
+        }
+        Update: {
+          assignment_id?: string
+          body?: string | null
+          item_id?: string
+          score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_eval_answers_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "hr_eval_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_eval_answers_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "hr_eval_request_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_eval_assignments: {
+        Row: {
+          comment: string | null
+          created_at: string
+          evaluator_id: string | null
+          id: string
+          reminded_at: string | null
+          request_id: string
+          submitted_at: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          evaluator_id?: string | null
+          id?: string
+          reminded_at?: string | null
+          request_id: string
+          submitted_at?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          evaluator_id?: string | null
+          id?: string
+          reminded_at?: string | null
+          request_id?: string
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_eval_assignments_evaluator_id_fkey"
+            columns: ["evaluator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_eval_assignments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "hr_eval_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_eval_request_items: {
+        Row: {
+          criterion_id: string | null
+          description: string | null
+          id: string
+          kind: string
+          name: string
+          request_id: string
+          sort_order: number
+          translations: Json
+        }
+        Insert: {
+          criterion_id?: string | null
+          description?: string | null
+          id?: string
+          kind: string
+          name: string
+          request_id: string
+          sort_order: number
+          translations?: Json
+        }
+        Update: {
+          criterion_id?: string | null
+          description?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          request_id?: string
+          sort_order?: number
+          translations?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_eval_request_items_criterion_id_fkey"
+            columns: ["criterion_id"]
+            isOneToOne: false
+            referencedRelation: "hr_criteria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_eval_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "hr_eval_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_eval_requests: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          deadline: string
+          id: string
+          worker_id: string
+          worker_name: string
+          worker_position: string | null
+          worker_team: Database["public"]["Enums"]["team"]
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline: string
+          id?: string
+          worker_id: string
+          worker_name: string
+          worker_position?: string | null
+          worker_team: Database["public"]["Enums"]["team"]
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline?: string
+          id?: string
+          worker_id?: string
+          worker_name?: string
+          worker_position?: string | null
+          worker_team?: Database["public"]["Enums"]["team"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_eval_requests_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_eval_requests_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_evaluation_scores: {
         Row: {
           comment: string | null
@@ -4597,6 +4777,10 @@ export type Database = {
       }
     }
     Functions: {
+      activity_team_paused: {
+        Args: { p_team: Database["public"]["Enums"]["team"] }
+        Returns: boolean
+      }
       admin_delete_user: { Args: { p_user_id: string }; Returns: undefined }
       block_occurrence: {
         Args: { p_occurrence_id: string; p_reason: string }
@@ -4747,6 +4931,48 @@ export type Database = {
       }
       hr_can_note: { Args: { p_note_id: string }; Returns: boolean }
       hr_can_worker: { Args: { p_worker_id: string }; Returns: boolean }
+      hr_eval_answer: {
+        Args: {
+          p_answers: Json
+          p_assignment_id: string
+          p_comment: string
+          p_submit: boolean
+        }
+        Returns: undefined
+      }
+      hr_eval_close: { Args: { p_request_id: string }; Returns: undefined }
+      hr_eval_counts: {
+        Args: { p_worker_id: string }
+        Returns: {
+          invited: number
+          request_id: string
+          submitted: number
+        }[]
+      }
+      hr_eval_invite: {
+        Args: { p_evaluators: string[]; p_request_id: string }
+        Returns: Json
+      }
+      hr_eval_is_mine: { Args: { p_request_id: string }; Returns: boolean }
+      hr_eval_is_open: { Args: { p_request_id: string }; Returns: boolean }
+      hr_eval_overview: { Args: { p_request_id: string }; Returns: Json }
+      hr_eval_send: {
+        Args: {
+          p_deadline: string
+          p_evaluators: string[]
+          p_items: Json
+          p_worker_id: string
+        }
+        Returns: Json
+      }
+      hr_eval_set_deadline: {
+        Args: { p_deadline: string; p_request_id: string }
+        Returns: undefined
+      }
+      hr_eval_uninvite: {
+        Args: { p_assignment_id: string }
+        Returns: undefined
+      }
       hr_scope: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       hr_worker_stats: {
         Args: { p_from: string; p_to: string; p_worker_id: string }
