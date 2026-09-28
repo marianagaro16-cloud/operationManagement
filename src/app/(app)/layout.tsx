@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getViewer } from '@/server/data';
 import { getReminderAttentionCount } from '@/server/reminders';
 import { getUnreadInboxCount } from '@/server/inbox';
+import { getMyEvaluationCounts } from '@/server/hr-evaluations';
 import { AppShell } from '@/components/shell/app-shell';
 import { AccountStatusScreen } from '@/components/shell/account-status';
 import { canUseReminders } from '@/lib/authz';
@@ -26,9 +27,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // The in-app signal that a reminder is due: a count on the Reminders nav
   // entry, on every screen.
   // …and unread notifications, as a count on the inbox icon. Both at once.
-  const [reminderAttention, inboxUnread] = await Promise.all([
+  // …and evaluations they were asked to fill in, if ever.
+  const [reminderAttention, inboxUnread, evaluations] = await Promise.all([
     canUseReminders(viewer) ? getReminderAttentionCount() : Promise.resolve(0),
     getUnreadInboxCount(),
+    getMyEvaluationCounts(),
   ]);
 
   return (
@@ -37,6 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       caps={[...viewer.caps]}
       reminderAttention={reminderAttention}
       inboxUnread={inboxUnread}
+      evaluations={evaluations}
     >
       {children}
     </AppShell>

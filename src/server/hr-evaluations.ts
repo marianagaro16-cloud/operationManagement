@@ -168,3 +168,12 @@ export async function getMyEvaluation(assignmentId: string): Promise<MyEvaluatio
 export async function getMyPendingEvaluations(): Promise<MyEvaluation[]> {
   return (await getMyEvaluations()).filter((e) => !e.assignment.submitted_at && e.request.open);
 }
+
+/** For the menu: whether the viewer was ever asked to evaluate, and how many are still to do. */
+export async function getMyEvaluationCounts(): Promise<{ total: number; pending: number }> {
+  const all = await getMyEvaluations();
+  return {
+    total: all.length,
+    pending: all.filter((e) => !e.assignment.submitted_at && e.request.open).length,
+  };
+}

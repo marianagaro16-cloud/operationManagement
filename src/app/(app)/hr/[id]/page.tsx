@@ -63,7 +63,7 @@ export default async function WorkerFilePage({
       stats={stats}
       period={{ from, to }}
       accounts={users
-        .filter((u) => u.status === 'approved' && !linkedElsewhere.has(u.id))
+        .filter((u) => u.status === 'approved' && !linkedElsewhere.has(u.id) && u.id !== viewer.profile.id)
         .map((u) => ({ id: u.id, name: displayName(u), team: u.team }))}
       teams={scope ? [scope] : [...TEAMS]}
       today={today}

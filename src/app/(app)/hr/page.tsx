@@ -23,7 +23,8 @@ export default async function HrPage() {
     <WorkerList
       workers={workers}
       accounts={users
-        .filter((u) => u.status === 'approved')
+        // Nobody files themselves: their own file would be hidden from them.
+        .filter((u) => u.status === 'approved' && u.id !== viewer.profile.id)
         .map((u) => ({ id: u.id, name: displayName(u), team: u.team }))}
       teams={scope ? [scope] : [...TEAMS]}
     />

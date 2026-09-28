@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, ClipboardList, LayoutDashboard, MoreHorizontal, Package, ScanSearch, Settings, Shield, Truck, UserRound, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, ClipboardCheck, ClipboardList, LayoutDashboard, MoreHorizontal, Package, ScanSearch, Settings, Shield, Truck, UserRound, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ export function AppShell({
   caps,
   reminderAttention = 0,
   inboxUnread = 0,
+  evaluations = { total: 0, pending: 0 },
   children,
 }: {
   profile: Profile;
@@ -32,6 +33,8 @@ export function AppShell({
   reminderAttention?: number;
   /** Unread notifications; drawn as a count on the inbox icon in the header. */
   inboxUnread?: number;
+  /** Evaluations of others this viewer was asked to fill in; the entry shows only if there ever were any. */
+  evaluations?: { total: number; pending: number };
   children: ReactNode;
 }) {
   const { t, formatDate } = useI18n();
@@ -64,6 +67,11 @@ export function AppShell({
     // the count below.
     // Every approved account, whatever its role: a personal tool.
     { href: '/reminders', label: t('reminder.navLabel'), icon: BellRing, primary: false, badge: reminderAttention },
+    // Evaluations this person was asked to fill in about others — never
+    // anything about themselves. Only for someone who was ever asked.
+    ...(evaluations.total > 0
+      ? [{ href: '/evaluations', label: t('hrEval.mine'), icon: ClipboardCheck, primary: false, badge: evaluations.pending }]
+      : []),
     // Orders — to prepare, ready, shipped — is the main floor workflow, so it
     // sits high in the bar, for everyone. It replaced the separate Preparation
     // screen; the monthly order book is its All tab, for orders.manage.
