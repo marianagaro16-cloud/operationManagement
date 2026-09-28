@@ -3903,6 +3903,8 @@ export type Database = {
           email: string | null
           id: string
           interest: string | null
+          latitude: number | null
+          longitude: number | null
           lost_note: string | null
           lost_reason_id: string | null
           next_step: string | null
@@ -3929,6 +3931,8 @@ export type Database = {
           email?: string | null
           id?: string
           interest?: string | null
+          latitude?: number | null
+          longitude?: number | null
           lost_note?: string | null
           lost_reason_id?: string | null
           next_step?: string | null
@@ -3955,6 +3959,8 @@ export type Database = {
           email?: string | null
           id?: string
           interest?: string | null
+          latitude?: number | null
+          longitude?: number | null
           lost_note?: string | null
           lost_reason_id?: string | null
           next_step?: string | null
@@ -4555,6 +4561,125 @@ export type Database = {
           {
             foreignKeyName: "sales_quiet_notices_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_start_points: {
+        Row: {
+          city: string | null
+          latitude: number | null
+          longitude: number | null
+          postal_code: string | null
+          street: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          postal_code?: string | null
+          street?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          postal_code?: string | null
+          street?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_start_points_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_visits: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          done_at: string | null
+          id: string
+          planned_time: string | null
+          position: number
+          prospect_id: string | null
+          purpose: string | null
+          salesperson_id: string
+          status: string
+          visit_date: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          done_at?: string | null
+          id?: string
+          planned_time?: string | null
+          position?: number
+          prospect_id?: string | null
+          purpose?: string | null
+          salesperson_id: string
+          status?: string
+          visit_date: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          done_at?: string | null
+          id?: string
+          planned_time?: string | null
+          position?: number
+          prospect_id?: string | null
+          purpose?: string | null
+          salesperson_id?: string
+          status?: string
+          visit_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_visits_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_visits_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_visits_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "sales_visits_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_visits_salesperson_id_fkey"
+            columns: ["salesperson_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

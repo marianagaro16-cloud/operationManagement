@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import type { CustomerFollowUp, CustomerNote, Prospect, ProspectListEntry, ProspectNote, SalesReport, QuietCustomer, SalesCustomerFile, SalesCustomerRow } from '@/types/sales';
+import type { CustomerFollowUp, CustomerNote, Prospect, ProspectListEntry, ProspectNote, SalesReport, SalesVisit, StartPoint, VisitTarget, QuietCustomer, SalesCustomerFile, SalesCustomerRow } from '@/types/sales';
 
 /*
  * Sales reads. The database decides who is sales (is_sales()): the list and
@@ -182,4 +182,81 @@ export async function getSalesReport(month: string): Promise<SalesReport> {
   const { data, error } = await supabase.rpc('sales_report', { p_month: month });
   if (error) throw new Error(error.message);
   return data as unknown as SalesReport;
+}
+
+const VISIT_COLUMNS = `
+  id, visit_date, salesperson_id, planned_time, purpose, position, status,
+  customer:customers ( id, company_name, street, postal_code, city, latitude, longitude ),
+  prospect:prospects ( id, company_name, street, postal_code, city, latitude, longitude )
+`;
+
+type RawPlace = { id: string; company_name: string; street: string | null; postal_code: string | null; city: string | null; latitude: number | null; longitude: number | null };
+
+function toVisit(row: unknown): SalesVisit {
+  const { customer, prospect, ...v } = row as Omit<SalesVisit, 'target'> & { customer: RawPlace | null; prospect: RawPlace | null };
+  const place = (customer ?? prospect)!;
+  return {
+    ...v,
+    target: {
+      kind: customer ? 'customer' : 'prospect',
+      id: place.id,
+      name: place.company_name,
+      street: place.street,
+      postal_code: place.postal_code,
+      city: place.city,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    },
+  };
+}
+
+/** A salesperson's visits on a day, in route order. */
+export async function getVisitDay(salespersonId: string, date: string): Promise<SalesVisit[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('sales_visits')
+    .select(VISIT_COLUMNS)
+    .eq('salesperson_id', salespersonId)
+    .eq('visit_date', date)
+    .order('position')
+    .order('created_at');
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(toVisit);
+}
+
+export async function getStartPoint(userId: string): Promise<StartPoint | null> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('sales_start_points')
+    .select('street, postal_code, city, latitude, longitude')
+    .eq('user_id', userId)
+    .maybeSingle();
+  return (data as StartPoint | null) ?? null;
+}
+
+/**
+ * Everyone who can be visited: active customers and open prospects, with
+ * where they are — for adding a visit, and for finding who is nearby.
+ */
+export async function getVisitablePlaces(): Promise<VisitTarget[]> {
+  const supabase = createClient();
+  const [{ data: customers, error }, { data: prospects, error: prospectsError }] = await Promise.all([
+    supabase
+      .from('customers')
+      .select('id, company_name, street, postal_code, city, latitude, longitude')
+      .eq('is_active', true)
+      .order('company_name'),
+    supabase
+      .from('prospects')
+      .select('id, company_name, street, postal_code, city, latitude, longitude')
+      .not('stage', 'in', '(won,lost)')
+      .order('company_name'),
+  ]);
+  if (error) throw new Error(error.message);
+  if (prospectsError) throw new Error(prospectsError.message);
+  const place = (kind: VisitTarget['kind']) => (p: RawPlace): VisitTarget => ({
+    kind, id: p.id, name: p.company_name, street: p.street, postal_code: p.postal_code, city: p.city,
+    latitude: p.latitude, longitude: p.longitude,
+  });
+  return [...(customers ?? []).map(place('customer')), ...(prospects ?? []).map(place('prospect'))];
 }

@@ -147,3 +147,39 @@ export interface SalesReport {
   types: SalesReportLine[];
   trend: { month: string; quantity: number; kg: number }[];
 }
+
+/* --------------------------------- visits -------------------------------- */
+
+export type VisitStatus = 'planned' | 'done' | 'not_done';
+
+/** Who is visited: a customer or a prospect, with where they are. */
+export interface VisitTarget {
+  kind: 'customer' | 'prospect';
+  id: string;
+  name: string;
+  street: string | null;
+  postal_code: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface SalesVisit {
+  id: string;
+  visit_date: string;
+  salesperson_id: string;
+  planned_time: string | null;
+  purpose: string | null;
+  position: number;
+  status: VisitStatus;
+  target: VisitTarget;
+}
+
+/** Where a salesperson's day starts and ends. */
+export interface StartPoint {
+  street: string | null;
+  postal_code: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}

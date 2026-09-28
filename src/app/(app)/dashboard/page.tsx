@@ -10,12 +10,13 @@ import { InventoryWidget } from '@/components/inventory/inventory-widget';
 import { PushPrompt } from '@/components/shell/push-prompt';
 import { getDashboardReminders, getPersonalTasks } from '@/server/reminders';
 import { ReminderWidgets } from '@/components/reminders/reminder-widgets';
-import { canUseReminders } from '@/lib/authz';
+import { canUseReminders, isSales } from '@/lib/authz';
 import { getMyPendingEvaluations } from '@/server/hr-evaluations';
 import { PendingEvaluations } from '@/components/hr/pending-evaluations';
 import { getUpcomingCelebrations } from '@/server/hr-celebrations';
 import { CelebrationsCard } from '@/components/hr/celebrations-card';
-import { getMyDueProspects, getQuietCustomers } from '@/server/sales';
+import { getMyDueProspects, getQuietCustomers, getStartPoint, getVisitDay } from '@/server/sales';
+import { TodayVisitsCard } from '@/components/sales/today-visits-card';
 import { DueProspectsCard } from '@/components/sales/due-prospects-card';
 import { QuietCustomersCard } from '@/components/sales/quiet-customers-card';
 
@@ -32,7 +33,7 @@ export default async function DashboardPage() {
   const canManageOrders = viewer?.can('orders.manage') ?? false;
   // Every approved account has reminders and personal tasks, whatever its role.
   const usesReminders = canUseReminders(viewer);
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, dueProspects] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, dueProspects, todayVisits, visitStart] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
@@ -48,6 +49,9 @@ export default async function DashboardPage() {
     viewer?.profile.team === 'sales' ? getQuietCustomers() : [],
     // Prospects whose next step is today or overdue, for whoever is responsible.
     viewer ? getMyDueProspects(today) : [],
+    // The viewer's own visits today, with the route: whoever plans visits, in sales.
+    viewer && isSales(viewer.role, viewer.profile.team) ? getVisitDay(viewer.profile.id, today) : [],
+    viewer && isSales(viewer.role, viewer.profile.team) ? getStartPoint(viewer.profile.id) : null,
   ]);
 
   const countsToday = [...inventory.overdue, ...inventory.dueToday];
@@ -93,6 +97,7 @@ export default async function DashboardPage() {
       <InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} />
       <PendingEvaluations evaluations={evaluations} />
       <CelebrationsCard celebrations={celebrations} />
+      <TodayVisitsCard visits={todayVisits} start={visitStart} />
       <DueProspectsCard prospects={dueProspects} today={today} />
       <QuietCustomersCard customers={quiet} />
       {/* Personal follow-ups, in their own cards and their own counts — never
