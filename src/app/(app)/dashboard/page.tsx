@@ -15,6 +15,8 @@ import { getMyPendingEvaluations } from '@/server/hr-evaluations';
 import { PendingEvaluations } from '@/components/hr/pending-evaluations';
 import { getUpcomingCelebrations } from '@/server/hr-celebrations';
 import { CelebrationsCard } from '@/components/hr/celebrations-card';
+import { getQuietCustomers } from '@/server/sales';
+import { QuietCustomersCard } from '@/components/sales/quiet-customers-card';
 
 // Always render fresh: task and order state change constantly during a shift.
 export const dynamic = 'force-dynamic';
@@ -29,7 +31,7 @@ export default async function DashboardPage() {
   const canManageOrders = viewer?.can('orders.manage') ?? false;
   // Every approved account has reminders and personal tasks, whatever its role.
   const usesReminders = canUseReminders(viewer);
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
@@ -41,6 +43,8 @@ export default async function DashboardPage() {
     viewer ? getMyPendingEvaluations() : [],
     // Birthdays and anniversaries of the people whose files the viewer may open.
     viewer?.can('hr.manage') ? getUpcomingCelebrations() : [],
+    // Customers going quiet: the Ventas team's card, not Admin's or the owners'.
+    viewer?.profile.team === 'sales' ? getQuietCustomers() : [],
   ]);
 
   const countsToday = [...inventory.overdue, ...inventory.dueToday];
@@ -86,6 +90,7 @@ export default async function DashboardPage() {
       <InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} />
       <PendingEvaluations evaluations={evaluations} />
       <CelebrationsCard celebrations={celebrations} />
+      <QuietCustomersCard customers={quiet} />
       {/* Personal follow-ups, in their own cards and their own counts — never
           folded into the summary strip above, which counts team work. */}
       {viewer && reminders && personalTasks && (

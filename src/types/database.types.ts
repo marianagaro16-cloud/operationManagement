@@ -4293,6 +4293,32 @@ export type Database = {
           },
         ]
       }
+      sales_quiet_notices: {
+        Row: {
+          sent_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          sent_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          sent_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_quiet_notices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_audit_log: {
         Row: {
           action: string
@@ -5433,6 +5459,38 @@ export type Database = {
           last_order: string
           notes: number
           orders_90d: number
+        }[]
+      }
+      sales_quiet_customers: {
+        Args: never
+        Returns: {
+          change_pct: number
+          city: string
+          company_name: string
+          company_name_addition: string
+          days_since: number
+          id: string
+          last_order: string
+          last30: number
+          late: boolean
+          prev30: number
+          rhythm_days: number
+        }[]
+      }
+      sales_quiet_customers_all: {
+        Args: never
+        Returns: {
+          change_pct: number
+          city: string
+          company_name: string
+          company_name_addition: string
+          days_since: number
+          id: string
+          last_order: string
+          last30: number
+          late: boolean
+          prev30: number
+          rhythm_days: number
         }[]
       }
       set_line_shortfall: {

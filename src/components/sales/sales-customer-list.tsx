@@ -6,7 +6,6 @@ import { ChevronRight, Search } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
 import { Badge, Card, Checkbox, EmptyState, Input } from '@/components/ui/primitives';
-import { PageHeader } from '@/components/shell/app-shell';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import type { SalesCustomerRow } from '@/types/sales';
 
@@ -29,8 +28,6 @@ export function SalesCustomerList({ customers, today }: { customers: SalesCustom
 
   return (
     <>
-      <PageHeader title={t('sales.navLabel')} subtitle={t('sales.subtitle')} />
-
       <div className="mb-3 space-y-2">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-subtle" aria-hidden />

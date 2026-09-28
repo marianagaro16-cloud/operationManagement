@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import type { CustomerFollowUp, CustomerNote, SalesCustomerFile, SalesCustomerRow } from '@/types/sales';
+import type { CustomerFollowUp, CustomerNote, QuietCustomer, SalesCustomerFile, SalesCustomerRow } from '@/types/sales';
 
 /*
  * Sales reads. The database decides who is sales (is_sales()): the list and
@@ -52,4 +52,12 @@ export async function getCustomerFile(customerId: string): Promise<CustomerFileV
     })),
     followUps: (followUps ?? []) as CustomerFollowUp[],
   };
+}
+
+/** Customers going quiet, most overdue first. Empty for anyone not in sales. */
+export async function getQuietCustomers(): Promise<QuietCustomer[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('sales_quiet_customers');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as QuietCustomer[];
 }

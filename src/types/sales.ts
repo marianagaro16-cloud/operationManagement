@@ -55,3 +55,19 @@ export interface CustomerFollowUp {
   title: string;
   next_at: string;
 }
+
+/** A customer going quiet: late against their rhythm, ordering less, or both. */
+export interface QuietCustomer {
+  id: string;
+  company_name: string;
+  company_name_addition: string | null;
+  city: string | null;
+  last_order: string;
+  rhythm_days: number;
+  days_since: number;
+  late: boolean;
+  last30: number;
+  prev30: number;
+  /** Last 30 days against the 30 before, in %; null without the 30 before. */
+  change_pct: number | null;
+}
