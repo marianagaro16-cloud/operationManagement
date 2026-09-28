@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { isPushConfigured } from '@/server/push';
 import { runReminderNotifications } from '@/server/reminder-notify';
 import { runEvaluationDeadlineReminders } from '@/server/hr-eval-notify';
+import { runCelebrationNotices } from '@/server/hr-celebrations';
 
 // web-push needs Node crypto; it cannot run on the Edge runtime.
 export const runtime = 'nodejs';
@@ -35,7 +36,14 @@ export async function GET(request: Request) {
     const result = await runReminderNotifications();
     // Evaluations due today, still unanswered: the same cadence suits them.
     const evaluations = await runEvaluationDeadlineReminders();
-    return NextResponse.json({ ok: true, ...result, evaluationReminders: evaluations.sent });
+    // Birthdays and work anniversaries, from 09:00: 3 days before and on the day.
+    const celebrations = await runCelebrationNotices();
+    return NextResponse.json({
+      ok: true,
+      ...result,
+      evaluationReminders: evaluations.sent,
+      celebrationNotices: celebrations.sent,
+    });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : String(e) },

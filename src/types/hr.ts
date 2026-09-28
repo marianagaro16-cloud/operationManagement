@@ -11,6 +11,7 @@ export interface HrWorker {
   team: Team;
   position: string | null;
   start_date: string | null;
+  birth_date: string | null;
   phone: string | null;
   email: string | null;
   address: string | null;

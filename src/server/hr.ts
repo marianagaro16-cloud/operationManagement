@@ -21,7 +21,7 @@ import type {
  */
 
 const WORKER_COLUMNS =
-  'id, profile_id, name, team, position, start_date, phone, email, address, emergency_contact, is_active, left_on, created_at';
+  'id, profile_id, name, team, position, start_date, birth_date, phone, email, address, emergency_contact, is_active, left_on, created_at';
 
 export async function getWorkers(): Promise<HrWorker[]> {
   const supabase = createClient();

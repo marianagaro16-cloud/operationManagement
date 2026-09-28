@@ -62,6 +62,7 @@ export function WorkerFile({
   const details = [
     worker.position,
     worker.start_date && t('hr.since', { date: formatDate(worker.start_date, 'medium') }),
+    worker.birth_date && t('hr.born', { date: formatDate(worker.birth_date, 'medium') }),
     worker.phone,
     worker.email,
   ].filter(Boolean) as string[];

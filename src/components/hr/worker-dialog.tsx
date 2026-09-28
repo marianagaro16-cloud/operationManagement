@@ -54,6 +54,7 @@ export function WorkerDialog({
           profile_id: worker.profile_id,
           position: worker.position,
           start_date: worker.start_date,
+          birth_date: worker.birth_date,
           phone: worker.phone,
           email: worker.email,
           address: worker.address,
@@ -144,14 +145,24 @@ export function WorkerDialog({
               onChange={(e) => set({ start_date: e.target.value || null })}
             />
           </Field>
-          <Field label={t('hr.phone')} htmlFor="hr-phone">
-            <Input id="hr-phone" type="tel" value={text('phone')} onChange={(e) => set({ phone: e.target.value })} />
+          <Field label={t('hr.birthDate')} htmlFor="hr-birth">
+            <Input
+              id="hr-birth"
+              type="date"
+              value={text('birth_date')}
+              onChange={(e) => set({ birth_date: e.target.value || null })}
+            />
           </Field>
         </div>
 
-        <Field label={t('hr.email')} htmlFor="hr-email">
-          <Input id="hr-email" type="email" value={text('email')} onChange={(e) => set({ email: e.target.value })} />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t('hr.phone')} htmlFor="hr-phone">
+            <Input id="hr-phone" type="tel" value={text('phone')} onChange={(e) => set({ phone: e.target.value })} />
+          </Field>
+          <Field label={t('hr.email')} htmlFor="hr-email">
+            <Input id="hr-email" type="email" value={text('email')} onChange={(e) => set({ email: e.target.value })} />
+          </Field>
+        </div>
 
         <Field label={t('hr.address')} htmlFor="hr-address">
           <NoteTextarea id="hr-address" rows={2} value={text('address')} onChange={(e) => set({ address: e.target.value })} />

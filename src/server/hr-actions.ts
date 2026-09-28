@@ -48,6 +48,7 @@ const workerSchema = z.object({
   profile_id: z.string().uuid().nullable().optional().transform((v) => v ?? null),
   position: optionalText,
   start_date: DATE.nullable().optional().transform((v) => v ?? null),
+  birth_date: DATE.nullable().optional().transform((v) => v ?? null),
   phone: optionalText,
   email: optionalText,
   address: optionalText,

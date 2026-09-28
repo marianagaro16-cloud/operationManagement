@@ -764,6 +764,38 @@ export type Database = {
           },
         ]
       }
+      hr_celebration_notices: {
+        Row: {
+          kind: string
+          on_date: string
+          sent_at: string
+          stage: string
+          worker_id: string
+        }
+        Insert: {
+          kind: string
+          on_date: string
+          sent_at?: string
+          stage: string
+          worker_id: string
+        }
+        Update: {
+          kind?: string
+          on_date?: string
+          sent_at?: string
+          stage?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_celebration_notices_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_criteria: {
         Row: {
           created_at: string
@@ -1206,6 +1238,7 @@ export type Database = {
       hr_workers: {
         Row: {
           address: string | null
+          birth_date: string | null
           created_at: string
           created_by: string | null
           email: string | null
@@ -1223,6 +1256,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          birth_date?: string | null
           created_at?: string
           created_by?: string | null
           email?: string | null
@@ -1240,6 +1274,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          birth_date?: string | null
           created_at?: string
           created_by?: string | null
           email?: string | null
@@ -4931,6 +4966,10 @@ export type Database = {
       }
       hr_can_note: { Args: { p_note_id: string }; Returns: boolean }
       hr_can_worker: { Args: { p_worker_id: string }; Returns: boolean }
+      hr_celebration_recipients: {
+        Args: { p_worker_id: string }
+        Returns: string[]
+      }
       hr_eval_admin_may: { Args: { p_request_id: string }; Returns: boolean }
       hr_eval_answer: {
         Args: {
