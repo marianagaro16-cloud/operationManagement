@@ -85,6 +85,16 @@ export async function ensureOccurrences(
 
   if (error) throw new Error(`Failed to load tasks: ${error.message}`);
 
+  // Days somebody took off the calendar stay off; otherwise they would look
+  // missing and be generated straight back.
+  const { data: removals, error: removalError } = await admin
+    .from('task_day_removals')
+    .select('task_id, due_date')
+    .gte('due_date', from)
+    .lte('due_date', to);
+  if (removalError) throw new Error(`Failed to load removed days: ${removalError.message}`);
+  const removed = new Set((removals ?? []).map((r) => `${r.task_id}|${r.due_date}`));
+
   const rows: {
     task_id: string;
     period_key: string;
@@ -103,6 +113,7 @@ export async function ensureOccurrences(
       continue;
     }
     for (const plan of generateOccurrences(task, from, to)) {
+      if (removed.has(`${task.id}|${plan.dueDate}`)) continue;
       rows.push({
         task_id: task.id,
         period_key: plan.periodKey,

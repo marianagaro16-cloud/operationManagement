@@ -4250,6 +4250,42 @@ export type Database = {
           },
         ]
       }
+      task_day_removals: {
+        Row: {
+          due_date: string
+          removed_at: string
+          removed_by: string | null
+          task_id: string
+        }
+        Insert: {
+          due_date: string
+          removed_at?: string
+          removed_by?: string | null
+          task_id: string
+        }
+        Update: {
+          due_date?: string
+          removed_at?: string
+          removed_by?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_day_removals_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_day_removals_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_occurrences: {
         Row: {
           assignee_id: string | null

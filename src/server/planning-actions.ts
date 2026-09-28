@@ -105,6 +105,14 @@ export async function planTasks(
     }
   }
 
+  // Placing a day by hand undoes an earlier removal of it.
+  const { error: forgetError } = await supabase
+    .from('task_day_removals')
+    .delete()
+    .in('task_id', parsed.data.ids)
+    .in('due_date', parsed.data.dates);
+  if (forgetError) return fail(forgetError);
+
   // A day already on the calendar is left as it is; a new one gets one copy
   // per person of the activity.
   const { data: created, error } = await supabase.rpc('materialise_task_days', { p_rows: rows });
@@ -154,6 +162,14 @@ export async function unplanTask(occurrenceId: string): Promise<ActionResult> {
   const removed = data[0] as unknown as {
     task: { frequency: string; incident_id: string | null } | null;
   };
+  // The daily checklist is generated for every day without one; remembering
+  // the removal keeps this day from being generated straight back.
+  if (removed.task?.frequency === 'daily') {
+    const { error: removalError } = await supabase
+      .from('task_day_removals')
+      .upsert({ task_id: taskId, due_date: dueDate }, { onConflict: 'task_id,due_date' });
+    if (removalError) return fail(removalError);
+  }
   if (removed.task?.frequency === ONE_OFF && removed.task.incident_id === null) {
     const { count } = await supabase
       .from('task_occurrences')
