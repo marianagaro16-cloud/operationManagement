@@ -3779,6 +3779,248 @@ export type Database = {
         }
         Relationships: []
       }
+      prospect_lost_reasons: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prospect_notes: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          note_date: string
+          prospect_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          note_date: string
+          prospect_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          note_date?: string
+          prospect_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospect_notes_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospect_sources: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prospects: {
+        Row: {
+          city: string | null
+          closed_at: string | null
+          company_name: string
+          contact_name: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          customer_type_id: string | null
+          email: string | null
+          id: string
+          interest: string | null
+          lost_note: string | null
+          lost_reason_id: string | null
+          next_step: string | null
+          next_step_notified_on: string | null
+          next_step_on: string | null
+          owner_id: string | null
+          phone: string | null
+          postal_code: string | null
+          source_id: string | null
+          stage: string
+          street: string | null
+          updated_at: string
+          weekly_volume: string | null
+        }
+        Insert: {
+          city?: string | null
+          closed_at?: string | null
+          company_name: string
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_type_id?: string | null
+          email?: string | null
+          id?: string
+          interest?: string | null
+          lost_note?: string | null
+          lost_reason_id?: string | null
+          next_step?: string | null
+          next_step_notified_on?: string | null
+          next_step_on?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          source_id?: string | null
+          stage?: string
+          street?: string | null
+          updated_at?: string
+          weekly_volume?: string | null
+        }
+        Update: {
+          city?: string | null
+          closed_at?: string | null
+          company_name?: string
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_type_id?: string | null
+          email?: string | null
+          id?: string
+          interest?: string | null
+          lost_note?: string | null
+          lost_reason_id?: string | null
+          next_step?: string | null
+          next_step_notified_on?: string | null
+          next_step_on?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          source_id?: string | null
+          stage?: string
+          street?: string | null
+          updated_at?: string
+          weekly_volume?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "prospects_customer_type_id_fkey"
+            columns: ["customer_type_id"]
+            isOneToOne: false
+            referencedRelation: "customer_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospects_lost_reason_id_fkey"
+            columns: ["lost_reason_id"]
+            isOneToOne: false
+            referencedRelation: "prospect_lost_reasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospects_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "prospect_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -5461,6 +5703,11 @@ export type Database = {
           orders_90d: number
         }[]
       }
+      sales_prospect_lose: {
+        Args: { p_note: string; p_prospect_id: string; p_reason_id: string }
+        Returns: undefined
+      }
+      sales_prospect_win: { Args: { p_prospect_id: string }; Returns: string }
       sales_quiet_customers: {
         Args: never
         Returns: {

@@ -3,7 +3,7 @@ import { isPushConfigured } from '@/server/push';
 import { runReminderNotifications } from '@/server/reminder-notify';
 import { runEvaluationDeadlineReminders } from '@/server/hr-eval-notify';
 import { runCelebrationNotices } from '@/server/hr-celebrations';
-import { runQuietCustomersSummary } from '@/server/sales-notify';
+import { runProspectNextSteps, runQuietCustomersSummary } from '@/server/sales-notify';
 
 // web-push needs Node crypto; it cannot run on the Edge runtime.
 export const runtime = 'nodejs';
@@ -41,12 +41,15 @@ export async function GET(request: Request) {
     const celebrations = await runCelebrationNotices();
     // Customers going quiet: the Ventas team's summary, Monday from 09:00.
     const quiet = await runQuietCustomersSummary();
+    // Prospects: each next step on its day, to the responsible salesperson.
+    const nextSteps = await runProspectNextSteps();
     return NextResponse.json({
       ok: true,
       ...result,
       evaluationReminders: evaluations.sent,
       celebrationNotices: celebrations.sent,
       quietCustomersSummary: quiet.sent,
+      prospectNextSteps: nextSteps.sent,
     });
   } catch (e) {
     return NextResponse.json(

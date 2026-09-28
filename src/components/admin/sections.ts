@@ -126,6 +126,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       // The lists behind worker files — note types and evaluation criteria.
       // Admin's alone; the files themselves live in their own section.
       { href: '/admin/hr', label: 'hr.navLabel', permission: 'system.configure' },
+      // The lists behind prospects: how we found them, why one was lost.
+      { href: '/admin/sales', label: 'sales.navLabel', permission: 'system.configure' },
       { href: '/admin/settings', label: 'nav.settings', permission: 'system.configure' },
     ],
   },

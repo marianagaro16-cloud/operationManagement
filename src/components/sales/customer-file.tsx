@@ -28,7 +28,16 @@ const number = (n: number, digits = 0) =>
  * One customer as sales sees them: how they order, what they buy, what went
  * wrong, and the notes of every call and visit — with follow-ups.
  */
-export function CustomerFile({ view, today }: { view: CustomerFileView; today: string }) {
+export function CustomerFile({
+  view,
+  wonFromId,
+  today,
+}: {
+  view: CustomerFileView;
+  /** The prospect this customer was won from: its contact details live there. */
+  wonFromId: string | null;
+  today: string;
+}) {
   const { t, formatDate } = useI18n();
   const { file, notes, followUps } = view;
   const { customer, orders } = file;
@@ -51,8 +60,13 @@ export function CustomerFile({ view, today }: { view: CustomerFileView; today: s
           {!customer.is_active && <Badge tone="neutral">{t('sales.inactive')}</Badge>}
         </div>
         <p className="mt-1 break-words text-[12.5px] text-muted">
-          {[customer.company_name_addition, customer.type, customer.name, address].filter(Boolean).join(' · ')}
+          {[customer.company_name_addition, customer.type, address].filter(Boolean).join(' · ')}
         </p>
+        {wonFromId && (
+          <Link href={`/sales/prospects/${wonFromId}`} className="mt-1 inline-block text-[12.5px] font-medium text-accent hover:underline">
+            {t('sales.wonFrom')}
+          </Link>
+        )}
       </Card>
 
       {/* How they order */}

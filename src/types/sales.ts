@@ -71,3 +71,54 @@ export interface QuietCustomer {
   /** Last 30 days against the 30 before, in %; null without the 30 before. */
   change_pct: number | null;
 }
+
+/* ------------------------------- prospects ------------------------------- */
+
+export const PROSPECT_STAGES = ['new', 'contacted', 'tasting', 'offer', 'won', 'lost'] as const;
+export type ProspectStage = (typeof PROSPECT_STAGES)[number];
+/** The stages a prospect moves through by hand; won and lost have their own actions. */
+export const OPEN_STAGES = ['new', 'contacted', 'tasting', 'offer'] as const satisfies readonly ProspectStage[];
+
+/** An entry of Admin's lists — how we found a prospect, or why one was lost. */
+export interface ProspectListEntry {
+  id: string;
+  name: string;
+  /** German and English overrides; Spanish is in `name`. */
+  translations: Record<string, { name?: string | null }>;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface Prospect {
+  id: string;
+  company_name: string;
+  contact_name: string | null;
+  phone: string | null;
+  email: string | null;
+  street: string | null;
+  postal_code: string | null;
+  city: string | null;
+  customer_type_id: string | null;
+  source_id: string | null;
+  interest: string | null;
+  weekly_volume: string | null;
+  stage: ProspectStage;
+  next_step: string | null;
+  next_step_on: string | null;
+  owner_id: string | null;
+  owner_name: string | null;
+  lost_reason_id: string | null;
+  lost_note: string | null;
+  customer_id: string | null;
+  closed_at: string | null;
+  created_at: string;
+}
+
+export interface ProspectNote {
+  id: string;
+  kind: CustomerNoteKind;
+  note_date: string;
+  body: string;
+  created_at: string;
+  author_name: string | null;
+}

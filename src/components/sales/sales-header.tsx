@@ -5,12 +5,15 @@ import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/shell/app-shell';
 
-/** The Sales section's title and tabs: every customer, and those going quiet. */
-export function SalesHeader({ tab, quietCount }: { tab: 'customers' | 'quiet'; quietCount: number }) {
+/** The Sales section's title and tabs: every customer, those going quiet, and prospects. */
+export type SalesTab = 'customers' | 'quiet' | 'prospects';
+
+export function SalesHeader({ tab, quietCount }: { tab: SalesTab; quietCount: number }) {
   const { t } = useI18n();
   const tabs = [
     { key: 'customers', label: t('sales.tabCustomers'), href: '/sales' },
     { key: 'quiet', label: t('sales.tabQuiet'), href: '/sales?tab=quiet', count: quietCount },
+    { key: 'prospects', label: t('sales.tabProspects'), href: '/sales?tab=prospects' },
   ] as const;
 
   return (
