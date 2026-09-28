@@ -5740,6 +5740,7 @@ export type Database = {
           rhythm_days: number
         }[]
       }
+      sales_report: { Args: { p_month: string }; Returns: Json }
       set_line_shortfall: {
         Args: {
           p_code: string

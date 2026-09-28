@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import type { CustomerFollowUp, CustomerNote, Prospect, ProspectListEntry, ProspectNote, QuietCustomer, SalesCustomerFile, SalesCustomerRow } from '@/types/sales';
+import type { CustomerFollowUp, CustomerNote, Prospect, ProspectListEntry, ProspectNote, SalesReport, QuietCustomer, SalesCustomerFile, SalesCustomerRow } from '@/types/sales';
 
 /*
  * Sales reads. The database decides who is sales (is_sales()): the list and
@@ -174,4 +174,12 @@ export async function getProspectLists(includeInactive = false): Promise<{
     sources: (sources ?? []) as ProspectListEntry[],
     lostReasons: (lostReasons ?? []) as ProspectListEntry[],
   };
+}
+
+/** The sales report for the month containing `month` (YYYY-MM-DD). */
+export async function getSalesReport(month: string): Promise<SalesReport> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('sales_report', { p_month: month });
+  if (error) throw new Error(error.message);
+  return data as unknown as SalesReport;
 }

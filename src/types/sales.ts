@@ -122,3 +122,28 @@ export interface ProspectNote {
   created_at: string;
   author_name: string | null;
 }
+
+/* --------------------------------- report -------------------------------- */
+
+export interface SalesReportLine {
+  id: string | null;
+  name: string;
+  code?: string | null;
+  city?: string | null;
+  customers?: number;
+  quantity: number;
+  kg: number;
+  prev_quantity: number;
+  prev_kg: number;
+}
+
+/** A month against the one before (the same days, while it is running). Units and net kg. */
+export interface SalesReport {
+  period: { from: string; to: string };
+  previous: { from: string; to: string };
+  totals: { quantity: number; kg: number; prev_quantity: number; prev_kg: number; customers: number };
+  customers: SalesReportLine[];
+  products: SalesReportLine[];
+  types: SalesReportLine[];
+  trend: { month: string; quantity: number; kg: number }[];
+}
