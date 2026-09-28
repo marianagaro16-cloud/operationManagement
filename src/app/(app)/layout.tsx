@@ -5,6 +5,7 @@ import { getUnreadInboxCount } from '@/server/inbox';
 import { getMyEvaluationCounts } from '@/server/hr-evaluations';
 import { AppShell } from '@/components/shell/app-shell';
 import { AccountStatusScreen } from '@/components/shell/account-status';
+import { ChoosePasswordScreen } from '@/components/shell/choose-password';
 import { canUseReminders } from '@/lib/authz';
 
 /**
@@ -22,6 +23,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (viewer.profile.status !== 'approved') {
     return <AccountStatusScreen status={viewer.profile.status} />;
+  }
+
+  // After an Admin reset the password, nothing else until they choose their own.
+  if (viewer.profile.must_change_password) {
+    return <ChoosePasswordScreen />;
   }
 
   // The in-app signal that a reminder is due: a count on the Reminders nav

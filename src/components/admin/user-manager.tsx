@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useI18n } from '@/i18n';
 import { displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/dialog';
+import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { Badge, Card, EmptyState, ErrorState, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { deleteUser, setUserRole, setUserStatus, setUserTeam } from '@/server/actions';
+import { resetUserPassword } from '@/server/password-actions';
 import { ROLES, TEAMS, mayChangeAccount, type Role, type Team } from '@/lib/authz';
 import type { Profile, UserStatus } from '@/types/database';
 
@@ -51,6 +52,25 @@ export function UserManager({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // A password reset: whose, then — once — the temporary password to pass on.
+  const [resetting, setResetting] = useState<Profile | null>(null);
+  const [issued, setIssued] = useState<{ user: Profile; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function resetPassword(user: Profile) {
+    setError(null);
+    startTransition(async () => {
+      const res = await resetUserPassword(user.id);
+      setResetting(null);
+      if (!res.ok) {
+        setError(res.error === 'owner_protected' ? t('roles.ownerProtected') : res.error);
+        return;
+      }
+      setCopied(false);
+      setIssued({ user, password: res.data.password });
+    });
+  }
+
   const [confirm, setConfirm] = useState<{
     user: Profile;
     /** A status to set, or 'delete' to remove the account. */
@@ -231,6 +251,9 @@ export function UserManager({
             >
               {t('admin.deactivateUser')}
             </Button>
+            <Button size="sm" variant="ghost" disabled={pending} onClick={() => setResetting(user)}>
+              {t('admin.resetPassword')}
+            </Button>
           </>
         )}
 
@@ -288,6 +311,43 @@ export function UserManager({
           <ul className="divide-y divide-border">{others.map(row)}</ul>
         </Card>
       </section>
+
+      <ConfirmDialog
+        open={resetting !== null}
+        onClose={() => setResetting(null)}
+        loading={pending}
+        title={resetting ? displayName(resetting) : ''}
+        message={resetting ? t('admin.resetPasswordConfirm', { name: displayName(resetting) }) : ''}
+        confirmLabel={t('admin.resetPassword')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={() => resetting && resetPassword(resetting)}
+      />
+
+      {issued && (
+        <Dialog
+          open
+          onClose={() => setIssued(null)}
+          title={t('admin.tempPasswordTitle')}
+          description={t('admin.tempPasswordBody', { name: displayName(issued.user) })}
+          footer={
+            <Button variant="primary" onClick={() => setIssued(null)}>{t('common.close')}</Button>
+          }
+        >
+          <div className="flex items-center gap-2">
+            <code className="flex-1 select-all rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-center font-mono text-[17px] tracking-wide">
+              {issued.password}
+            </code>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                navigator.clipboard?.writeText(issued.password).then(() => setCopied(true), () => {});
+              }}
+            >
+              {copied ? t('admin.copied') : t('admin.copy')}
+            </Button>
+          </div>
+        </Dialog>
+      )}
 
       <ConfirmDialog
         open={confirm !== null}

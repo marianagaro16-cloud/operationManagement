@@ -29,6 +29,8 @@ export interface Profile {
   last_seen_at: string | null;
   /** Set when an admin deleted the user; such profiles only survive for history. */
   deleted_at: string | null;
+  /** Set when an admin reset the password; the app asks for a new one before anything else. */
+  must_change_password: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -3692,6 +3692,7 @@ export type Database = {
           email: string
           id: string
           last_seen_at: string | null
+          must_change_password: boolean
           name: string | null
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["user_status"]
@@ -3704,6 +3705,7 @@ export type Database = {
           email: string
           id: string
           last_seen_at?: string | null
+          must_change_password?: boolean
           name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["user_status"]
@@ -3716,6 +3718,7 @@ export type Database = {
           email?: string
           id?: string
           last_seen_at?: string | null
+          must_change_password?: boolean
           name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["user_status"]
@@ -5356,6 +5359,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      request_password_reset: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
       role_rank: {
         Args: { r: Database["public"]["Enums"]["user_role"] }
