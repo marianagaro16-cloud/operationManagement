@@ -9,7 +9,7 @@ import { ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { createOneOffTask } from '@/server/planning-actions';
 import { PeoplePicker } from '@/components/tasks/people-picker';
-import { TEAMS, type Team } from '@/lib/authz';
+import type { Team } from '@/lib/authz';
 
 /** Who a one-off can be given to. The whole team, or one of these. */
 export interface OneOffPerson {
@@ -35,6 +35,7 @@ export function OneOffDialog({
   date,
   people,
   defaultTeam,
+  teams,
 }: {
   open: boolean;
   onClose: () => void;
@@ -43,12 +44,16 @@ export function OneOffDialog({
   people: OneOffPerson[];
   /** The creator's own team, which is the likely answer. */
   defaultTeam: Team;
+  /** The teams it may belong to: a paused team's work stays off the calendar. */
+  teams: readonly Team[];
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
-  const [team, setTeam] = useState<Team>(defaultTeam);
+  const [team, setTeam] = useState<Team>(teams.includes(defaultTeam) ? defaultTeam : (teams[0] ?? defaultTeam));
+  // A person of a paused team would take the activity into that team.
+  const eligible = people.filter((p) => teams.includes(p.team));
   const [assignees, setAssignees] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -60,7 +65,7 @@ export function OneOffDialog({
   // their work, and a team they are not on would only hide it from them.
   function choosePeople(ids: string[]) {
     setAssignees(ids);
-    const first = people.find((p) => p.id === ids[0]);
+    const first = eligible.find((p) => p.id === ids[0]);
     if (first) setTeam(first.team);
   }
 
@@ -75,7 +80,13 @@ export function OneOffDialog({
         assignee_ids: assignees,
       });
       if (!res.ok) {
-        setError(res.error === 'title_required' ? t('plan.errTitleRequired') : res.error);
+        setError(
+          res.error === 'title_required'
+            ? t('plan.errTitleRequired')
+            : res.error === 'team_paused'
+              ? t('plan.errTeamPaused')
+              : res.error,
+        );
         return;
       }
       setTitle(''); setNotes(''); setAssignees([]);
@@ -112,7 +123,7 @@ export function OneOffDialog({
         </Field>
 
         <Field label={t('plan.oneOffWho')} hint={t('plan.oneOffWhoHint')}>
-          <PeoplePicker people={people} selected={assignees} onChange={choosePeople} />
+          <PeoplePicker people={eligible} selected={assignees} onChange={choosePeople} />
         </Field>
 
         <Field label={t('roles.team')} htmlFor="oneoff-team">
@@ -124,7 +135,7 @@ export function OneOffDialog({
             // the activity out of their sight.
             disabled={assignees.length > 0}
           >
-            {TEAMS.map((value) => (
+            {teams.map((value) => (
               <option key={value} value={value}>{teamLabel(value)}</option>
             ))}
           </Select>

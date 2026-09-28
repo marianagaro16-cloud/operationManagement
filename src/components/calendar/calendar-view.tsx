@@ -47,6 +47,7 @@ export function CalendarView({
   tasks,
   people,
   viewerTeam,
+  activityTeams,
   templates,
   month,
   today,
@@ -57,6 +58,8 @@ export function CalendarView({
   /** Who a one-off can be given to, and the creator's own team. */
   people: OneOffPerson[];
   viewerTeam: Team;
+  /** Teams whose activities may go on the calendar; the rest are paused. */
+  activityTeams: Team[];
   templates: PlannableTemplate[];
   month: string; // YYYY-MM-01
   today: string;
@@ -408,6 +411,7 @@ export function CalendarView({
           date={oneOffFor}
           people={people}
           defaultTeam={viewerTeam}
+          teams={activityTeams}
         />
       )}
 

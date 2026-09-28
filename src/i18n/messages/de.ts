@@ -340,6 +340,7 @@ export const de: Messages = {
     addPerson: 'Person hinzufügen',
     removePerson: '{name} entfernen',
     errTitleRequired: 'Schreibe, was zu tun ist',
+    errTeamPaused: 'Die Aktivitäten dieses Teams sind pausiert und kommen nicht in den Kalender',
     addToDay: 'Arbeit hinzufügen',
     week: 'Woche planen',
     month: 'Monat planen',

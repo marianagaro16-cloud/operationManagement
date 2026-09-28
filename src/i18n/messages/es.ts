@@ -340,6 +340,7 @@ export const es: Messages = {
     addPerson: 'Añadir persona',
     removePerson: 'Quitar a {name}',
     errTitleRequired: 'Escribe qué hay que hacer',
+    errTeamPaused: 'Las actividades de este equipo están en pausa y no van al calendario',
     addToDay: 'Añadir trabajo',
     week: 'Programar la semana',
     month: 'Programar el mes',

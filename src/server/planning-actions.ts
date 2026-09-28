@@ -44,6 +44,7 @@ function fail(error: unknown): { ok: false; error: string } {
   if (message.includes('violates row-level security')) {
     return { ok: false, error: 'not_authorized' };
   }
+  if (message.includes('team_paused')) return { ok: false, error: 'team_paused' };
   if (message.includes('task_occurrences_task_date_person_key')) {
     // Every row in the batch collided; nothing was added.
     return { ok: false, error: 'already_planned' };

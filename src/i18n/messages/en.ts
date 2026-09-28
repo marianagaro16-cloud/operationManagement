@@ -343,6 +343,7 @@ export const en = {
     addPerson: 'Add person',
     removePerson: 'Remove {name}',
     errTitleRequired: 'Write what has to be done',
+    errTeamPaused: "This team's activities are paused and don't go on the calendar",
     addToDay: 'Add work',
     week: 'Plan the week',
     month: 'Plan the month',

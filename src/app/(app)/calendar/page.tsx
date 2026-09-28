@@ -3,6 +3,8 @@ import { getOccurrencesInRange, getTasksForAdmin, getUsers, getViewer } from '@/
 import { displayName } from '@/lib/utils';
 import { getInventories, getInventoryTemplates } from '@/server/inventory';
 import { ensureCalendarWindow } from '@/server/scheduling';
+import { getPausedActivityTeams } from '@/server/paused-teams';
+import { TEAMS } from '@/lib/authz';
 import { BUSINESS_TZ, businessToday, toBusinessDate } from '@/lib/datetime';
 import { CalendarView } from '@/components/calendar/calendar-view';
 import { CalendarHeading } from '@/components/calendar/calendar-heading';
@@ -37,7 +39,7 @@ export default async function CalendarPage({
   // generate for it.
   await ensureCalendarWindow(from, to);
 
-  const [occurrences, inventories, tasks, templates, users] = await Promise.all([
+  const [occurrences, inventories, tasks, templates, users, pausedTeams] = await Promise.all([
     getOccurrencesInRange(from, to),
     // A month of a calendar cannot hold more than this, and the planner needs
     // them all rather than a first page.
@@ -46,7 +48,10 @@ export default async function CalendarPage({
     getInventoryTemplates(),
     // For giving a one-off activity to one person.
     getUsers(),
+    // A paused team's activities cannot go on the calendar, so they are not offered.
+    getPausedActivityTeams(),
   ]);
+  const activityTeams = TEAMS.filter((team) => !pausedTeams.includes(team));
 
   const canPlanInventories = viewer.can('inventory.manage_instances');
 
@@ -63,7 +68,7 @@ export default async function CalendarPage({
           status: i.status,
         }))}
         tasks={tasks
-          .filter((t) => t.is_active)
+          .filter((t) => t.is_active && activityTeams.includes(t.team))
           .map((t) => ({ id: t.id, title: t.title, frequency: t.frequency }))}
         templates={
           canPlanInventories
@@ -74,6 +79,7 @@ export default async function CalendarPage({
           .filter((u) => u.status === 'approved')
           .map((u) => ({ id: u.id, name: displayName(u), team: u.team }))}
         viewerTeam={viewer.profile.team}
+        activityTeams={activityTeams}
         month={toBusinessDate(anchor)}
         today={today}
       />
