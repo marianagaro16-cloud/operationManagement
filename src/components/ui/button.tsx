@@ -36,6 +36,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       disabled={disabled || loading}
+      // How a dialog finds its main action when Enter is pressed.
+      data-variant={variant}
       className={cn(
         'inline-flex items-center rounded-lg font-medium transition-[opacity,background-color,color]',
         'disabled:pointer-events-none disabled:opacity-50 touch-target',

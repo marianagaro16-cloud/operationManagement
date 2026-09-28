@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Checkbox, Select } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
+import { SaveOnEnter } from '@/components/ui/enter-to-save';
 import { setLineShortfall } from '@/server/order-actions';
 import { productLabel, SHORTFALL_CODES, type OrderLine, type ShortfallCode } from '@/types/orders';
 import { noteToPlainLine } from '@/domain/notes';
@@ -132,77 +133,79 @@ export function ShortfallEditor({
   }
 
   return (
-    <div className="mt-2 space-y-2 rounded-lg border border-warn/30 bg-warn/[0.06] p-2.5">
-      {required && (
-        <p className="flex items-center gap-1.5 text-[12.5px] font-medium text-warn">
-          <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
-          {t('prep.shortfallRequired')}
-        </p>
-      )}
-
-      <Select
-        value={code}
-        onChange={(e) => setCode(e.target.value as ShortfallCode | '')}
-        aria-label={t('prep.shortfallReason')}
-        className="text-[13px]"
-      >
-        <option value="" disabled>{t('prep.shortfallChoose')}</option>
-        {SHORTFALL_CODES.map((c) => (
-          <option key={c} value={c}>{label(c)}</option>
-        ))}
-      </Select>
-
-      <NoteTextarea
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder={t('prep.shortfallNotePlaceholder')}
-        rows={1}
-        className="min-h-[38px] text-[13px]"
-        aria-label={t('prep.shortfallNotePlaceholder')}
-      />
-
-      {/* One incident per line: once raised, it is linked instead of offered again. */}
-      {line.shortfall_incident ? (
-        <Link
-          href={`/incidents/${line.shortfall_incident.id}`}
-          className="block text-[12px] font-medium text-accent hover:underline"
+    <SaveOnEnter onSave={save} disabled={pending || !canSave}>
+      <div className="mt-2 space-y-2 rounded-lg border border-warn/30 bg-warn/[0.06] p-2.5">
+        {required && (
+          <p className="flex items-center gap-1.5 text-[12.5px] font-medium text-warn">
+            <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+            {t('prep.shortfallRequired')}
+          </p>
+        )}
+  
+        <Select
+          value={code}
+          onChange={(e) => setCode(e.target.value as ShortfallCode | '')}
+          aria-label={t('prep.shortfallReason')}
+          className="text-[13px]"
         >
-          {t('prep.shortfallIncident', { number: line.shortfall_incident.incident_number })}
-        </Link>
-      ) : (
-        <Checkbox
-          checked={report}
-          onChange={(e) => setReport(e.target.checked)}
-          label={t('prep.shortfallReportIncident')}
-          hint={t('prep.shortfallReportIncidentHint')}
+          <option value="" disabled>{t('prep.shortfallChoose')}</option>
+          {SHORTFALL_CODES.map((c) => (
+            <option key={c} value={c}>{label(c)}</option>
+          ))}
+        </Select>
+  
+        <NoteTextarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder={t('prep.shortfallNotePlaceholder')}
+          rows={1}
+          className="min-h-[38px] text-[13px]"
+          aria-label={t('prep.shortfallNotePlaceholder')}
         />
-      )}
-
-      {error && <p className="text-[12px] text-late">{error}</p>}
-
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="primary" onClick={save} loading={pending} disabled={!canSave}>
-          {t('prep.saveReason')}
-        </Button>
-        {!required && (
-          <Button size="sm" variant="ghost" onClick={onDone} disabled={pending}>
-            {t('common.cancel')}
-          </Button>
-        )}
-        {hasReason && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="ml-auto"
-            disabled={pending}
-            onClick={() => run({
-              order_line_id: line.id, code: null, note: null, report_incident: false, incident_description: null,
-            })}
+  
+        {/* One incident per line: once raised, it is linked instead of offered again. */}
+        {line.shortfall_incident ? (
+          <Link
+            href={`/incidents/${line.shortfall_incident.id}`}
+            className="block text-[12px] font-medium text-accent hover:underline"
           >
-            {t('prep.clearReason')}
-          </Button>
+            {t('prep.shortfallIncident', { number: line.shortfall_incident.incident_number })}
+          </Link>
+        ) : (
+          <Checkbox
+            checked={report}
+            onChange={(e) => setReport(e.target.checked)}
+            label={t('prep.shortfallReportIncident')}
+            hint={t('prep.shortfallReportIncidentHint')}
+          />
         )}
+  
+        {error && <p className="text-[12px] text-late">{error}</p>}
+  
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="primary" onClick={save} loading={pending} disabled={!canSave}>
+            {t('prep.saveReason')}
+          </Button>
+          {!required && (
+            <Button size="sm" variant="ghost" onClick={onDone} disabled={pending}>
+              {t('common.cancel')}
+            </Button>
+          )}
+          {hasReason && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto"
+              disabled={pending}
+              onClick={() => run({
+                order_line_id: line.id, code: null, note: null, report_incident: false, incident_description: null,
+              })}
+            >
+              {t('prep.clearReason')}
+            </Button>
+          )}
+        </div>
       </div>
-    </div>
+    </SaveOnEnter>
   );
 }

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { LanguageSelector } from './language-selector';
 import { SignOutButton } from './sign-out-button';
 import { PresenceBeacon } from './presence-beacon';
+import { FormNoteSubmit } from '@/components/ui/enter-to-save';
 import { InboxLink } from './inbox-link';
 import { atLeast, can, ordersReadOnly, type Permission, type Role } from '@/lib/authz';
 import type { Profile } from '@/types/database';
@@ -161,6 +162,7 @@ export function AppShell({
   return (
     <div className="min-h-dvh bg-bg">
       <PresenceBeacon />
+      <FormNoteSubmit />
 
       {/* ---------------- header ---------------- */}
       <header

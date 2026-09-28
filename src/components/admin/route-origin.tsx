@@ -6,6 +6,7 @@ import { MapPin } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, ErrorState, Field, Input } from '@/components/ui/primitives';
+import { SaveOnEnter } from '@/components/ui/enter-to-save';
 import { saveRouteOrigin } from '@/server/route-actions';
 import type { RouteOrigin } from '@/server/route';
 
@@ -55,32 +56,34 @@ export function RouteOriginCard({ origin }: { origin: RouteOrigin | null }) {
             <p className="text-[13px] font-medium">{t('route.originTitle')}</p>
             <p className="mt-0.5 text-[12.5px] text-muted">{t('route.originHint')}</p>
 
-            <div className="mt-3 space-y-3">
-              <Field label={t('route.originLabel')} htmlFor="origin-label">
-                <Input id="origin-label" value={label} onChange={(e) => setLabel(e.target.value)} />
-              </Field>
-              <Field label={t('master.street')} htmlFor="origin-street">
-                <Input id="origin-street" value={street} onChange={(e) => setStreet(e.target.value)} />
-              </Field>
-              <div className="grid grid-cols-3 gap-3">
-                <Field label={t('master.postalCode')} htmlFor="origin-zip">
-                  <Input id="origin-zip" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} inputMode="numeric" />
+            <SaveOnEnter onSave={submit} disabled={pending}>
+              <div className="mt-3 space-y-3">
+                <Field label={t('route.originLabel')} htmlFor="origin-label">
+                  <Input id="origin-label" value={label} onChange={(e) => setLabel(e.target.value)} />
                 </Field>
-                <div className="col-span-2">
-                  <Field label={t('master.city')} htmlFor="origin-city">
-                    <Input id="origin-city" value={city} onChange={(e) => setCity(e.target.value)} />
+                <Field label={t('master.street')} htmlFor="origin-street">
+                  <Input id="origin-street" value={street} onChange={(e) => setStreet(e.target.value)} />
+                </Field>
+                <div className="grid grid-cols-3 gap-3">
+                  <Field label={t('master.postalCode')} htmlFor="origin-zip">
+                    <Input id="origin-zip" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} inputMode="numeric" />
                   </Field>
+                  <div className="col-span-2">
+                    <Field label={t('master.city')} htmlFor="origin-city">
+                      <Input id="origin-city" value={city} onChange={(e) => setCity(e.target.value)} />
+                    </Field>
+                  </div>
                 </div>
+                <Field label={t('master.country')} htmlFor="origin-country">
+                  <Input
+                    id="origin-country"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value.toUpperCase().slice(0, 2))}
+                    className="max-w-24"
+                  />
+                </Field>
               </div>
-              <Field label={t('master.country')} htmlFor="origin-country">
-                <Input
-                  id="origin-country"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value.toUpperCase().slice(0, 2))}
-                  className="max-w-24"
-                />
-              </Field>
-            </div>
+            </SaveOnEnter>
 
             <Button className="mt-3" variant="secondary" onClick={submit} loading={pending}>
               {t('common.save')}

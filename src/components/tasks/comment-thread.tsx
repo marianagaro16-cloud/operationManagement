@@ -9,6 +9,7 @@ import { displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
+import { SaveOnEnter } from '@/components/ui/enter-to-save';
 import { addComment } from '@/server/actions';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import type { TaskComment } from '@/types/database';
@@ -82,20 +83,22 @@ export function CommentComposer({
   return (
     <div className="mt-2.5 space-y-2 border-t border-border pt-2.5">
       {error && <ErrorState message={error} />}
-      <div className="flex items-end gap-2">
-        <NoteTextarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder={t('task.commentPlaceholder')}
-          className="min-h-[38px] text-[13px]"
-          rows={1}
-          autoFocus
-          aria-label={t('task.addComment')}
-        />
-        <Button size="sm" variant="secondary" onClick={submit} loading={pending} disabled={!body.trim()}>
-          {t('task.postComment')}
-        </Button>
-      </div>
+      <SaveOnEnter onSave={submit} disabled={pending}>
+        <div className="flex items-end gap-2">
+          <NoteTextarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder={t('task.commentPlaceholder')}
+            className="min-h-[38px] text-[13px]"
+            rows={1}
+            autoFocus
+            aria-label={t('task.addComment')}
+          />
+          <Button size="sm" variant="secondary" onClick={submit} loading={pending} disabled={!body.trim()}>
+            {t('task.postComment')}
+          </Button>
+        </div>
+      </SaveOnEnter>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState, ErrorState, Field, Input } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
+import { SaveOnEnter } from '@/components/ui/enter-to-save';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/shell/app-shell';
 import { canAllocate, lineProgress, toQuantity } from '@/domain/orders/progress';
@@ -406,46 +407,48 @@ function PreparationLine({
 
       {/* Touch-friendly lot entry: three fields, one button. */}
       {adding ? (
-        <div className="mt-2 space-y-2 rounded-lg border border-border bg-surface-2/40 p-2.5">
-          <div className="grid grid-cols-2 gap-2">
-            <Field label={t('prep.lotNumber')} htmlFor={`lot-${line.id}`} required>
-              <Input
-                id={`lot-${line.id}`}
-                value={lot}
-                onChange={(e) => setLot(e.target.value)}
-                inputMode="numeric"
-                autoFocus
-              />
-            </Field>
-            <Field label={t('prep.lotQuantity')} htmlFor={`qty-${line.id}`} required>
-              <Input
-                id={`qty-${line.id}`}
-                value={qty}
-                onChange={(e) => setQty(e.target.value)}
-                inputMode="decimal"
-                type="number"
-                min="0"
-                step="any"
-              />
-            </Field>
+        <SaveOnEnter onSave={submitLot} disabled={pending}>
+          <div className="mt-2 space-y-2 rounded-lg border border-border bg-surface-2/40 p-2.5">
+            <div className="grid grid-cols-2 gap-2">
+              <Field label={t('prep.lotNumber')} htmlFor={`lot-${line.id}`} required>
+                <Input
+                  id={`lot-${line.id}`}
+                  value={lot}
+                  onChange={(e) => setLot(e.target.value)}
+                  inputMode="numeric"
+                  autoFocus
+                />
+              </Field>
+              <Field label={t('prep.lotQuantity')} htmlFor={`qty-${line.id}`} required>
+                <Input
+                  id={`qty-${line.id}`}
+                  value={qty}
+                  onChange={(e) => setQty(e.target.value)}
+                  inputMode="decimal"
+                  type="number"
+                  min="0"
+                  step="any"
+                />
+              </Field>
+            </div>
+            <NoteTextarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={t('prep.lotNotePlaceholder')}
+              rows={1}
+              className="min-h-[38px] text-[13px]"
+              aria-label={t('prep.lotNote')}
+            />
+            <div className="flex gap-2">
+              <Button size="sm" variant="primary" onClick={submitLot} loading={pending}>
+                {t('prep.saveLot')}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setAdding(false); setError(null); }}>
+                {t('common.cancel')}
+              </Button>
+            </div>
           </div>
-          <NoteTextarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={t('prep.lotNotePlaceholder')}
-            rows={1}
-            className="min-h-[38px] text-[13px]"
-            aria-label={t('prep.lotNote')}
-          />
-          <div className="flex gap-2">
-            <Button size="sm" variant="primary" onClick={submitLot} loading={pending}>
-              {t('prep.saveLot')}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => { setAdding(false); setError(null); }}>
-              {t('common.cancel')}
-            </Button>
-          </div>
-        </div>
+        </SaveOnEnter>
       ) : (
         !locked && progress.status !== 'complete' && (
           <div className="mt-2 flex flex-wrap gap-2">
