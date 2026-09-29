@@ -21,7 +21,6 @@ import {
   cancelEvent,
   confirmEvent,
   deleteIdea,
-  markEventDone,
   removeCost,
   removeShift,
   saveCost,
@@ -29,7 +28,20 @@ import {
 } from '@/server/event-actions';
 import type { SalesActivity } from '@/types/sales';
 import type { DeliveryMethod, Product } from '@/types/orders';
-import type { EventCost, EventListEntry, EventOrder, EventProduct, EventReturn, EventRow, EventShift, StaffCandidate } from '@/types/events';
+import type {
+  EventContact,
+  EventCost,
+  EventFile,
+  EventListEntry,
+  EventNote,
+  EventOrder,
+  EventProduct,
+  EventReturn,
+  EventRow,
+  EventShift,
+  StaffCandidate,
+} from '@/types/events';
+import { ContactsCard, FilesCard, NotesCard, ResultsCard, ResultsDialog, hasResults } from './event-after';
 import { StageBadge, chf, useEventLabels } from './event-parts';
 import { EventDialog, type EventChoices } from './event-dialog';
 import { EventProducts, deliveryDateOf } from './event-products';
@@ -45,6 +57,9 @@ export function EventView({
   order,
   products,
   returns,
+  notes,
+  files,
+  contacts,
   catalog,
   methods,
   choices,
@@ -59,6 +74,9 @@ export function EventView({
   order: EventOrder | null;
   products: EventProduct[];
   returns: EventReturn[];
+  notes: EventNote[];
+  files: EventFile[];
+  contacts: EventContact[];
   /** Every product, for names; the editor offers the active ones. */
   catalog: Product[];
   methods: DeliveryMethod[];
@@ -172,14 +190,23 @@ export function EventView({
         )}
       </Card>
 
+      {(event.stage === 'done' || hasResults(event)) && (
+        <div className="mb-4">
+          <ResultsCard event={event} />
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
           <Tasks event={event} tasks={tasks} people={choices.people} today={today} live={live} />
+          <ContactsCard event={event} contacts={contacts} today={today} />
           <Staff event={event} shifts={shifts} staff={staff} live={live} />
+          <NotesCard event={event} notes={notes} />
         </div>
         <div className="space-y-4">
           <EventProducts event={event} order={order} products={products} returns={returns} catalog={catalog} methods={methods} />
           <Budget event={event} costs={costs} costTypes={costTypes} />
+          <FilesCard event={event} files={files} />
         </div>
       </div>
 
@@ -202,16 +229,7 @@ export function EventView({
         cancelLabel={t('common.cancel')}
         loading={pending}
       />
-      <ConfirmDialog
-        open={finishing}
-        onClose={() => setFinishing(false)}
-        onConfirm={() => run(() => markEventDone(event.id), () => setFinishing(false))}
-        title={t('event.markDone')}
-        message={t('event.markDoneBody')}
-        confirmLabel={t('event.markDone')}
-        cancelLabel={t('common.cancel')}
-        loading={pending}
-      />
+      {finishing && <ResultsDialog event={event} markDone onClose={() => setFinishing(false)} />}
       <ConfirmDialog
         open={removing}
         onClose={() => setRemoving(false)}

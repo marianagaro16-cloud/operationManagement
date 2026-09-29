@@ -2,8 +2,11 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type { SalesActivity } from '@/types/sales';
 import type {
+  EventContact,
   EventCost,
+  EventFile,
   EventKindTask,
+  EventNote,
   EventListEntry,
   EventOrder,
   EventProduct,
@@ -13,6 +16,7 @@ import type {
   StaffCandidate,
 } from '@/types/events';
 import { getPlannedForEvent } from './sales';
+import { EVENT_BUCKET } from '@/lib/events';
 
 /*
  * Events reads. RLS decides who may (is_sales()): the Ventas team, Admin
@@ -23,6 +27,7 @@ const EVENT_COLUMNS = `
   id, kind_id, name, stage, cancel_reason, start_date, end_date, open_time, close_time,
   place_name, street, postal_code, city, customer_id, owner_id, description,
   delivery_date, delivery_method_id, order_id,
+  result_summary, result_rating, result_repeat, result_visitors, result_samples, result_contacts,
   customer:customers ( company_name ),
   owner:profiles!events_owner_id_fkey ( name, email )
 `;
@@ -52,6 +57,9 @@ export interface EventView {
   order: EventOrder | null;
   products: EventProduct[];
   returns: EventReturn[];
+  notes: EventNote[];
+  files: EventFile[];
+  contacts: EventContact[];
 }
 
 export async function getEvent(id: string): Promise<EventView | null> {
@@ -80,7 +88,13 @@ export async function getEvent(id: string): Promise<EventView | null> {
   const workerName = new Map(workers.filter((w) => w.kind === 'worker').map((w) => [w.id, w.name]));
 
   const event = toEvent(data);
-  const [{ order, products }, returns] = await Promise.all([getEventProducts(event), getEventReturns(id)]);
+  const [{ order, products }, returns, notes, files, contacts] = await Promise.all([
+    getEventProducts(event),
+    getEventReturns(id),
+    getEventNotes(id),
+    getEventFiles(id),
+    getEventContacts(id),
+  ]);
 
   type RawShift = Omit<EventShift, 'person_name'> & { profile: { name: string | null; email: string } | null };
   return {
@@ -88,6 +102,9 @@ export async function getEvent(id: string): Promise<EventView | null> {
     order,
     products,
     returns,
+    notes,
+    files,
+    contacts,
     tasks,
     shifts: ((shifts ?? []) as unknown as RawShift[]).map(({ profile, ...s }) => ({
       ...s,
@@ -207,4 +224,45 @@ async function getEventReturns(eventId: string): Promise<EventReturn[]> {
     back_quantity: Number(r.back_quantity),
     discarded_quantity: Number(r.discarded_quantity),
   }));
+}
+
+async function getEventNotes(eventId: string): Promise<EventNote[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('event_notes')
+    .select('id, body, created_at, author:profiles ( name, email )')
+    .eq('event_id', eventId)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as (Omit<EventNote, 'author'> & { author: { name: string | null; email: string } | null })[]).map(
+    ({ author, ...n }) => ({ ...n, author: author ? author.name || author.email : null }),
+  );
+}
+
+async function getEventFiles(eventId: string): Promise<EventFile[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('event_files')
+    .select('id, storage_path, file_name, mime_type, size_bytes')
+    .eq('event_id', eventId)
+    .order('created_at');
+  if (error) throw new Error(error.message);
+  const rows = data ?? [];
+  const urls = new Map<string, string>();
+  if (rows.length) {
+    const { data: signed } = await supabase.storage.from(EVENT_BUCKET).createSignedUrls(rows.map((r) => r.storage_path), 60 * 60);
+    for (const s of signed ?? []) if (s.path && s.signedUrl) urls.set(s.path, s.signedUrl);
+  }
+  return rows.map(({ storage_path, ...f }) => ({ ...f, url: urls.get(storage_path) ?? null }));
+}
+
+async function getEventContacts(eventId: string): Promise<EventContact[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('prospects')
+    .select('id, company_name, contact_name, stage, customer_id')
+    .eq('event_id', eventId)
+    .order('created_at');
+  if (error) throw new Error(error.message);
+  return data ?? [];
 }

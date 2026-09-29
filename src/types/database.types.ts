@@ -541,6 +541,54 @@ export type Database = {
           },
         ]
       }
+      event_files: {
+        Row: {
+          created_at: string
+          event_id: string
+          file_name: string
+          id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          file_name: string
+          id?: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_files_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_kind_tasks: {
         Row: {
           anchor: string
@@ -608,6 +656,45 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      event_notes: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          event_id: string
+          id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          id?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_notes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       event_products: {
         Row: {
@@ -794,6 +881,12 @@ export type Database = {
           owner_id: string | null
           place_name: string | null
           postal_code: string | null
+          result_contacts: number | null
+          result_rating: number | null
+          result_repeat: string | null
+          result_samples: number | null
+          result_summary: string | null
+          result_visitors: number | null
           stage: string
           start_date: string
           street: string | null
@@ -820,6 +913,12 @@ export type Database = {
           owner_id?: string | null
           place_name?: string | null
           postal_code?: string | null
+          result_contacts?: number | null
+          result_rating?: number | null
+          result_repeat?: string | null
+          result_samples?: number | null
+          result_summary?: string | null
+          result_visitors?: number | null
           stage?: string
           start_date: string
           street?: string | null
@@ -846,6 +945,12 @@ export type Database = {
           owner_id?: string | null
           place_name?: string | null
           postal_code?: string | null
+          result_contacts?: number | null
+          result_rating?: number | null
+          result_repeat?: string | null
+          result_samples?: number | null
+          result_summary?: string | null
+          result_visitors?: number | null
           stage?: string
           start_date?: string
           street?: string | null
@@ -4406,6 +4511,7 @@ export type Database = {
           customer_id: string | null
           customer_type_id: string | null
           email: string | null
+          event_id: string | null
           id: string
           interest: string | null
           latitude: number | null
@@ -4431,6 +4537,7 @@ export type Database = {
           customer_id?: string | null
           customer_type_id?: string | null
           email?: string | null
+          event_id?: string | null
           id?: string
           interest?: string | null
           latitude?: number | null
@@ -4456,6 +4563,7 @@ export type Database = {
           customer_id?: string | null
           customer_type_id?: string | null
           email?: string | null
+          event_id?: string | null
           id?: string
           interest?: string | null
           latitude?: number | null
@@ -4498,6 +4606,13 @@ export type Database = {
             columns: ["customer_type_id"]
             isOneToOne: false
             referencedRelation: "customer_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospects_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
           {

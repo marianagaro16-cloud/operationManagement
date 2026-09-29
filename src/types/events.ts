@@ -45,6 +45,38 @@ export interface EventRow {
   delivery_date: string | null;
   delivery_method_id: string | null;
   order_id: string | null;
+  /** How it went: asked for when it is marked done. */
+  result_summary: string | null;
+  result_rating: number | null;
+  result_repeat: 'yes' | 'no' | 'maybe' | null;
+  result_visitors: number | null;
+  result_samples: number | null;
+  result_contacts: number | null;
+}
+
+export interface EventNote {
+  id: string;
+  body: string;
+  created_at: string;
+  author: string | null;
+}
+
+export interface EventFile {
+  id: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  /** Signed for an hour; null when signing failed. */
+  url: string | null;
+}
+
+/** A prospect met at the event. */
+export interface EventContact {
+  id: string;
+  company_name: string;
+  contact_name: string | null;
+  stage: string;
+  customer_id: string | null;
 }
 
 /** The order made from an event. */

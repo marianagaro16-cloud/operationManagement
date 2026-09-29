@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/shell/app-shell';
 import type { EventRow } from '@/types/events';
 import { StageBadge, useEventLabels } from './event-parts';
 import { EventDialog, type EventChoices } from './event-dialog';
+import { Stars } from './event-after';
 
 /** Every event: what is coming (ideas and confirmed), and what is past or called off. */
 export function EventList({ events, choices, today }: { events: EventRow[]; choices: EventChoices; today: string }) {
@@ -68,6 +69,7 @@ export function EventList({ events, choices, today }: { events: EventRow[]; choi
                       <span className="text-[13.5px] font-medium">{e.name}</span>
                       <StageBadge stage={e.stage} />
                       <span className="text-[12px] text-muted">{labels.entry(choices.kinds, e.kind_id)}</span>
+                      {e.result_rating !== null && <Stars value={e.result_rating} />}
                     </div>
                     <p className="mt-0.5 text-[12.5px] tabular">{labels.dates(e)}</p>
                     <p className="flex flex-wrap gap-x-3 text-[12px] text-muted">

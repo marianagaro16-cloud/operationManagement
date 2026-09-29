@@ -8,6 +8,8 @@ import { BUSINESS_TZ } from '@/lib/datetime';
 import { geocodeAddress } from './geocode';
 import { sendToUser } from './push';
 import type { ActionResult } from './actions';
+import { saveProspect } from './sales-actions';
+import { EVENT_ALLOWED_MIME, EVENT_BUCKET, EVENT_MAX_BYTES } from '@/lib/events';
 
 /*
  * Events writes. Who may is the database's decision (is_sales() in the
@@ -25,7 +27,7 @@ const KNOWN = [
   'not_authorized', 'owner_not_sales', 'owner_required', 'event_not_idea', 'event_not_found',
   'events_dates', 'events_cancel_reason', 'event_shifts_one_person', 'event_shifts_times', 'salesperson_not_sales',
   'event_closed', 'event_order_ready', 'event_order_shipped', 'duplicate_product', 'invalid_quantity', 'invalid_delivery',
-  'product_not_found',
+  'product_not_found', 'prospect_closed', 'first_activity_required',
 ];
 function fail(error: { message: string }): { ok: false; error: string } {
   if (error.message.includes('row-level security')) return { ok: false, error: 'not_authorized' };
@@ -94,14 +96,6 @@ export async function confirmEvent(id: string): Promise<ActionResult<{ tasks: nu
   if (error) return fail(error);
   revalidateEvent(id);
   return { ok: true, data: { tasks: (data as number) ?? 0 } };
-}
-
-export async function markEventDone(id: string): Promise<ActionResult> {
-  const supabase = createClient();
-  const { error } = await supabase.from('events').update({ stage: 'done' }).eq('id', id).eq('stage', 'confirmed');
-  if (error) return fail(error);
-  revalidateEvent(id);
-  return { ok: true, data: undefined };
 }
 
 /**
@@ -319,6 +313,131 @@ export async function removeCost(id: string, eventId: string): Promise<ActionRes
   if (error) return fail(error);
   revalidateEvent(eventId);
   return { ok: true, data: undefined };
+}
+
+/* -------------------------------- results -------------------------------- */
+
+const count = z.number().int().min(0).max(10_000_000).nullable().optional().transform((v) => v ?? null);
+const resultsSchema = z.object({
+  result_summary: text(5000),
+  result_rating: z.number().int().min(1).max(5).nullable().optional().transform((v) => v ?? null),
+  result_repeat: z.enum(['yes', 'no', 'maybe']).nullable().optional().transform((v) => v ?? null),
+  result_visitors: count,
+  result_samples: count,
+  result_contacts: count,
+});
+
+/** How it went — and, when asked, the event is marked done in the same step. */
+export async function saveResults(eventId: string, input: z.input<typeof resultsSchema>, markDone = false): Promise<ActionResult> {
+  const parsed = resultsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'invalid_results' };
+  const supabase = createClient();
+  const { data: event } = await supabase.from('events').select('stage').eq('id', eventId).maybeSingle();
+  if (!event) return { ok: false, error: 'not_authorized' };
+  if (event.stage === 'cancelled' || event.stage === 'idea') return { ok: false, error: 'event_closed' };
+  const { error } = await supabase
+    .from('events')
+    .update({ ...parsed.data, ...(markDone && event.stage === 'confirmed' ? { stage: 'done' } : {}) })
+    .eq('id', eventId);
+  if (error) return fail(error);
+  revalidateEvent(eventId);
+  return { ok: true, data: undefined };
+}
+
+/* --------------------------------- notes --------------------------------- */
+
+/** A note on the event, any time. Permanent. */
+export async function addEventNote(eventId: string, body: string): Promise<ActionResult> {
+  const note = body.trim();
+  if (!note || note.length > 5000 || !uuid.safeParse(eventId).success) return { ok: false, error: 'body_required' };
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase.from('event_notes').insert({ event_id: eventId, body: note, created_by: user?.id ?? null });
+  if (error) return fail(error);
+  revalidateEvent(eventId);
+  return { ok: true, data: undefined };
+}
+
+/* ---------------------------- photos and files --------------------------- */
+
+const fileSchema = z.object({
+  event_id: uuid,
+  storage_path: z.string().min(1).max(300),
+  file_name: z.string().trim().min(1).max(200),
+  mime_type: z.string().refine((m) => EVENT_ALLOWED_MIME.includes(m), { message: 'type_not_allowed' }),
+  size_bytes: z.number().int().positive().max(EVENT_MAX_BYTES),
+});
+
+/**
+ * Records a file the browser already uploaded — straight to storage, since a
+ * server action carries at most 1 MB. The path must sit in the event's folder.
+ */
+export async function recordEventFile(input: z.input<typeof fileSchema>): Promise<ActionResult> {
+  const parsed = fileSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_file' };
+  if (!parsed.data.storage_path.startsWith(`${parsed.data.event_id}/`)) return { ok: false, error: 'invalid_file' };
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase.from('event_files').insert({ ...parsed.data, uploaded_by: user?.id ?? null });
+  if (error) {
+    // A file with no row is invisible and unreclaimable, so it goes back.
+    await supabase.storage.from(EVENT_BUCKET).remove([parsed.data.storage_path]);
+    return fail(error);
+  }
+  revalidateEvent(parsed.data.event_id);
+  return { ok: true, data: undefined };
+}
+
+export async function removeEventFile(id: string, eventId: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('event_files').delete().eq('id', id).select('storage_path');
+  if (error) return fail(error);
+  const path = data?.[0]?.storage_path;
+  if (path) await supabase.storage.from(EVENT_BUCKET).remove([path]);
+  revalidateEvent(eventId);
+  return { ok: true, data: undefined };
+}
+
+/* -------------------------------- contacts ------------------------------- */
+
+const contactSchema = z.object({
+  company_name: z.string().trim().min(1, { message: 'name_required' }).max(200),
+  contact_name: text(200),
+  phone: text(60),
+  email: text(200),
+  interest: text(2000),
+  follow_up: DATE,
+});
+
+/**
+ * Someone met at the event becomes a prospect of the event's responsible
+ * person — source Feria, linked to the event — with a follow-up call planned.
+ */
+export async function addEventContact(eventId: string, input: z.input<typeof contactSchema>): Promise<ActionResult<{ id: string }>> {
+  const parsed = contactSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_contact' };
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: event }, { data: source }, { data: call }] = await Promise.all([
+    supabase.from('events').select('owner_id').eq('id', eventId).maybeSingle(),
+    supabase.from('prospect_sources').select('id').eq('slug', 'fair').maybeSingle(),
+    supabase.from('sales_activity_kinds').select('id').eq('slug', 'call').maybeSingle(),
+  ]);
+  if (!event || !call) return { ok: false, error: 'not_authorized' };
+  const owner = event.owner_id ?? user?.id;
+  if (!owner) return { ok: false, error: 'owner_required' };
+
+  const { follow_up, ...contact } = parsed.data;
+  const res = await saveProspect(
+    { ...contact, source_id: source?.id ?? null, stage: 'new', owner_id: owner },
+    undefined,
+    { kind_id: call.id, activity_date: follow_up },
+  );
+  if (!res.ok) return res;
+  const { error } = await supabase.from('prospects').update({ event_id: eventId }).eq('id', res.data.id);
+  if (error) return fail(error);
+  revalidateEvent(eventId);
+  return { ok: true, data: res.data };
 }
 
 /* ----------------------------- Admin's lists ----------------------------- */

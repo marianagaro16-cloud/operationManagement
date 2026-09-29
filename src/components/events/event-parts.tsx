@@ -46,6 +46,11 @@ export function useEventLabels() {
         case 'duplicate_product': return t('event.errDuplicateProduct');
         case 'invalid_quantity': return t('event.errQuantity');
         case 'invalid_delivery': return t('event.errDelivery');
+        case 'name_required': return t('event.errNameRequired');
+        case 'invalid_results': return t('event.errResults');
+        case 'body_required': return t('event.errNoteEmpty');
+        case 'type_not_allowed':
+        case 'invalid_file': return t('event.errFileGeneric');
         default: return code;
       }
     },
