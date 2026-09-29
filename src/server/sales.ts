@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import type { CustomerFollowUp, CustomerNote, Prospect, ProspectListEntry, ProspectNote, SalesReport, SalesVisit, StartPoint, VisitTarget, QuietCustomer, SalesCustomerFile, SalesCustomerRow } from '@/types/sales';
+import { getRouteOrigin } from './route';
+import type { CustomerFollowUp, CustomerNote, DayEnds, Prospect, ProspectListEntry, ProspectNote, SalesReport, SalesVisit, StartPoint, VisitTarget, QuietCustomer, SalesCustomerFile, SalesCustomerRow } from '@/types/sales';
 
 /*
  * Sales reads. The database decides who is sales (is_sales()): the list and
@@ -259,4 +260,39 @@ export async function getVisitablePlaces(): Promise<VisitTarget[]> {
     latitude: p.latitude, longitude: p.longitude,
   });
   return [...(customers ?? []).map(place('customer')), ...(prospects ?? []).map(place('prospect'))];
+}
+
+/** Where a day starts and ends; home and home when nothing was chosen. */
+export async function getDayEnds(salespersonId: string, date: string): Promise<DayEnds> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('sales_visit_days')
+    .select('start_at, end_at')
+    .eq('salesperson_id', salespersonId)
+    .eq('visit_date', date)
+    .maybeSingle();
+  return (data as DayEnds | null) ?? { start_at: 'home', end_at: 'home' };
+}
+
+/** The office: the company's address, where the delivery round starts. */
+export async function getOfficePoint(): Promise<StartPoint | null> {
+  const origin = await getRouteOrigin();
+  if (!origin) return null;
+  return {
+    street: origin.street,
+    postal_code: origin.postal_code,
+    city: origin.city,
+    latitude: origin.latitude === null ? null : Number(origin.latitude),
+    longitude: origin.longitude === null ? null : Number(origin.longitude),
+  };
+}
+
+/** A day's start and end as places: home or the office. */
+export async function getDayRoutePoints(salespersonId: string, date: string): Promise<{
+  ends: DayEnds;
+  home: StartPoint | null;
+  office: StartPoint | null;
+}> {
+  const [ends, home, office] = await Promise.all([getDayEnds(salespersonId, date), getStartPoint(salespersonId), getOfficePoint()]);
+  return { ends, home, office };
 }

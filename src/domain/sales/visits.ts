@@ -47,14 +47,17 @@ function stopText(place: VisitPlace): string {
 }
 
 /**
- * The day as Google Maps links, in the order given, from the start address
- * and back to it. Several links when there are more stops than one link holds.
+ * The day as Google Maps links, in the order given, from where it starts to
+ * where it ends — home or the office, not necessarily the same. Several links
+ * when there are more stops than one link holds.
  */
-export function visitRouteLinks(places: VisitPlace[], start: VisitPlace | null): string[] {
+export function visitRouteLinks(places: VisitPlace[], start: VisitPlace | null, end: VisitPlace | null = start): string[] {
+  const endText = end ? stopText(end) : '';
   return googleMapsLegs({
     origin: start ? stopText(start) || null : null,
-    stops: places.map(stopText),
-    returnToOrigin: true,
+    // The end is the last stop: a destination, not a return to the origin.
+    stops: [...places.map(stopText), ...(endText ? [endText] : [])],
+    returnToOrigin: false,
   });
 }
 

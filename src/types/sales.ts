@@ -183,3 +183,10 @@ export interface StartPoint {
   latitude: number | null;
   longitude: number | null;
 }
+
+/** Where a day of visits starts and where it ends. */
+export type DayEnd = 'home' | 'office';
+export interface DayEnds {
+  start_at: DayEnd;
+  end_at: DayEnd;
+}

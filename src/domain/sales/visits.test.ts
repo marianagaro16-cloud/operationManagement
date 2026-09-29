@@ -56,6 +56,15 @@ describe('visitRouteLinks', () => {
     expect(url.searchParams.get('waypoints')).toBe('Near 1, Zürich|Far 1, Zürich');
   });
 
+  it('can end somewhere else than it starts', () => {
+    const office = at('office', 47.39, 8.49, 'Aargauerstrasse 250');
+    const [link] = visitRouteLinks([near], start, office);
+    const url = new URL(link);
+    expect(url.searchParams.get('origin')).toBe('Bahnhofstrasse 1, Zürich');
+    expect(url.searchParams.get('waypoints')).toBe('Near 1, Zürich');
+    expect(url.searchParams.get('destination')).toBe('Aargauerstrasse 250, Zürich');
+  });
+
   it('falls back to coordinates when a place has no address', () => {
     const [link] = visitRouteLinks([at('x', 47.1, 8.2)], start);
     expect(new URL(link).searchParams.get('waypoints')).toBe('47.1,8.2');

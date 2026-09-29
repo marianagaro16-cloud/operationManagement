@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DateTime } from 'luxon';
 import {
-  ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight, Clock, Home, Map, MapPinOff, Plus, Route, Trash2, X,
+  ArrowDown, ArrowUp, Building2, Check, ChevronLeft, ChevronRight, Clock, Home, Map, MapPinOff, Plus, Route, Trash2, X,
 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -16,8 +16,8 @@ import { Badge, Card, EmptyState, ErrorState, Field, Input, Select } from '@/com
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { formatAddress } from '@/domain/orders/route';
 import { nearbyPlaces, orderVisits, visitRouteLinks } from '@/domain/sales/visits';
-import { addVisit, recordVisit, removeVisit, saveStartPoint, setVisitOrder } from '@/server/sales-actions';
-import type { Prospect, QuietCustomer, SalesVisit, StartPoint, VisitTarget } from '@/types/sales';
+import { addVisit, recordVisit, removeVisit, saveStartPoint, setDayEnds, setVisitOrder } from '@/server/sales-actions';
+import type { DayEnd, DayEnds, Prospect, QuietCustomer, SalesVisit, StartPoint, VisitTarget } from '@/types/sales';
 
 const shift = (date: string, days: number) =>
   DateTime.fromISO(date, { zone: BUSINESS_TZ }).plus({ days }).toISODate()!;
@@ -35,7 +35,9 @@ export function VisitsView({
   salespersonId,
   people,
   visits,
-  start,
+  home,
+  office,
+  ends,
   places,
   quiet,
   dueProspects,
@@ -45,7 +47,11 @@ export function VisitsView({
   salespersonId: string;
   people: { id: string; name: string }[];
   visits: SalesVisit[];
-  start: StartPoint | null;
+  /** The salesperson's own address. */
+  home: StartPoint | null;
+  /** The company's, where the delivery round starts. */
+  office: StartPoint | null;
+  ends: DayEnds;
   places: VisitTarget[];
   quiet: QuietCustomer[];
   dueProspects: Prospect[];
@@ -70,8 +76,13 @@ export function VisitsView({
     });
   };
 
-  const startPlace = start ? { id: 'start', ...start } : null;
-  const links = visitRouteLinks(visits.map((v) => v.target), startPlace);
+  const pointOf = (which: DayEnd) => {
+    const p = which === 'home' ? home : office;
+    return p ? { id: which, ...p } : null;
+  };
+  const startPlace = pointOf(ends.start_at);
+  const endPlace = pointOf(ends.end_at);
+  const links = visitRouteLinks(visits.map((v) => v.target), startPlace, endPlace);
   const unplaced = visits.filter((v) => v.target.latitude === null).length;
 
   function propose() {
@@ -135,17 +146,56 @@ export function VisitsView({
       </div>
       <p className="-mt-2 text-[13px] font-medium capitalize">{formatDate(date, 'weekday')}</p>
 
-      {/* Where the day starts and ends */}
-      <Card className="flex items-center gap-3 p-3">
-        <Home className="h-4 w-4 shrink-0 text-muted" aria-hidden />
-        <span className="min-w-0 flex-1 text-[12.5px]">
-          <span className="text-muted">{t('sales.visitStart')}: </span>
-          {start && formatAddress(start) ? formatAddress(start) : <span className="text-warn">{t('sales.visitNoStart')}</span>}
-          {start && formatAddress(start) && start.latitude === null && (
-            <span className="block text-[12px] text-warn">{t('sales.visitStartUnplaced')}</span>
-          )}
-        </span>
-        <Button size="sm" variant="ghost" onClick={() => setEditingStart(true)}>{t('common.edit')}</Button>
+      {/* Where the day starts and ends: home or the office */}
+      <Card className="space-y-2.5 p-3">
+        {(['start_at', 'end_at'] as const).map((which) => {
+          const chosen = ends[which];
+          const point = chosen === 'home' ? home : office;
+          const label = which === 'start_at' ? t('sales.visitStartLabel') : t('sales.visitEndLabel');
+          return (
+            <div key={which} className="flex flex-wrap items-center gap-2">
+              <span className="w-16 shrink-0 text-[12.5px] font-medium text-muted">{label}</span>
+              <div className="flex gap-1 rounded-lg border border-border p-0.5" role="radiogroup" aria-label={label}>
+                {(['home', 'office'] as const).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    role="radio"
+                    aria-checked={chosen === option}
+                    disabled={pending}
+                    onClick={() =>
+                      chosen !== option &&
+                      run(() => setDayEnds({ salesperson_id: salespersonId, visit_date: date, ...ends, [which]: option }))
+                    }
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[12.5px] font-medium',
+                      chosen === option ? 'bg-accent text-accent-fg' : 'text-muted hover:text-fg',
+                    )}
+                  >
+                    {option === 'home' ? <Home className="h-3.5 w-3.5" aria-hidden /> : <Building2 className="h-3.5 w-3.5" aria-hidden />}
+                    {option === 'home' ? t('sales.visitHome') : t('sales.visitOffice')}
+                  </button>
+                ))}
+              </div>
+              <span className="min-w-0 flex-1 truncate text-[12px] text-muted">
+                {point && formatAddress(point) ? (
+                  formatAddress(point)
+                ) : (
+                  <span className="text-warn">{chosen === 'home' ? t('sales.visitNoStart') : t('sales.visitNoOffice')}</span>
+                )}
+                {point && formatAddress(point) && point.latitude === null && (
+                  <span className="ml-1 text-warn">· {t('sales.visitUnplaced')}</span>
+                )}
+              </span>
+            </div>
+          );
+        })}
+        <div className="flex justify-end">
+          <Button size="sm" variant="ghost" onClick={() => setEditingStart(true)}>
+            <Home className="h-3.5 w-3.5" aria-hidden />
+            {t('sales.visitEditHome')}
+          </Button>
+        </div>
       </Card>
 
       {error && <ErrorState message={error} />}
@@ -237,7 +287,7 @@ export function VisitsView({
                   {links.length === 1 ? t('sales.visitOpenRoute') : t('sales.visitOpenLeg', { n: i + 1 })}
                 </a>
               ))}
-              {!start?.latitude && <span className="text-[12px] text-muted">{t('sales.visitRouteNoStart')}</span>}
+              {startPlace?.latitude == null && <span className="text-[12px] text-muted">{t('sales.visitRouteNoStart')}</span>}
               {unplaced > 0 && <span className="text-[12px] text-warn">{t('sales.visitUnplacedCount', { count: unplaced })}</span>}
             </div>
           )}
@@ -276,7 +326,7 @@ export function VisitsView({
         />
       )}
       {recording && <RecordDialog visit={recording} today={today} onClose={() => setRecording(null)} />}
-      {editingStart && <StartDialog userId={salespersonId} start={start} onClose={() => setEditingStart(false)} />}
+      {editingStart && <StartDialog userId={salespersonId} start={home} onClose={() => setEditingStart(false)} />}
     </div>
   );
 }
@@ -529,7 +579,7 @@ function StartDialog({ userId, start, onClose }: { userId: string; start: StartP
     <Dialog
       open
       onClose={onClose}
-      title={t('sales.visitStart')}
+      title={t('sales.visitHomeAddress')}
       description={t('sales.visitStartHint')}
       footer={
         <>

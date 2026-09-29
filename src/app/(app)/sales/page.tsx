@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getViewer } from '@/server/data';
-import { getCustomerTypes, getProspectLists, getProspects, getQuietCustomers, getSalesCustomers, getSalesPeople, getSalesReport, getStartPoint, getVisitDay, getVisitablePlaces } from '@/server/sales';
+import { getCustomerTypes, getProspectLists, getProspects, getQuietCustomers, getSalesCustomers, getSalesPeople, getSalesReport, getDayRoutePoints, getVisitDay, getVisitablePlaces } from '@/server/sales';
 import { VisitsView } from '@/components/sales/visits';
 import { SalesReportView } from '@/components/sales/sales-report';
 import { SalesCustomerList } from '@/components/sales/sales-customer-list';
@@ -88,7 +88,7 @@ async function VisitsTab({
   prospects: Awaited<ReturnType<typeof getProspects>>;
 }) {
   if (!person) return null;
-  const [visits, start, places] = await Promise.all([getVisitDay(person, date), getStartPoint(person), getVisitablePlaces()]);
+  const [visits, points, places] = await Promise.all([getVisitDay(person, date), getDayRoutePoints(person, date), getVisitablePlaces()]);
   return (
     <VisitsView
       date={date}
@@ -96,7 +96,9 @@ async function VisitsTab({
       salespersonId={person}
       people={people}
       visits={visits}
-      start={start}
+      home={points.home}
+      office={points.office}
+      ends={points.ends}
       places={places}
       quiet={quiet}
       // This person's open prospects whose next step is due by that day.

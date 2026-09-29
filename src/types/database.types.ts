@@ -4605,6 +4605,35 @@ export type Database = {
           },
         ]
       }
+      sales_visit_days: {
+        Row: {
+          end_at: string
+          salesperson_id: string
+          start_at: string
+          visit_date: string
+        }
+        Insert: {
+          end_at?: string
+          salesperson_id: string
+          start_at?: string
+          visit_date: string
+        }
+        Update: {
+          end_at?: string
+          salesperson_id?: string
+          start_at?: string
+          visit_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_visit_days_salesperson_id_fkey"
+            columns: ["salesperson_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_visits: {
         Row: {
           created_at: string

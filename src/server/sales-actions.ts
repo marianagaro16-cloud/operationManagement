@@ -385,3 +385,21 @@ export async function recordVisit(input: z.input<typeof resultSchema>): Promise<
   revalidateVisits();
   return { ok: true, data: { followUp } };
 }
+
+const dayEndsSchema = z.object({
+  salesperson_id: z.string().uuid(),
+  visit_date: DATE,
+  start_at: z.enum(['home', 'office']),
+  end_at: z.enum(['home', 'office']),
+});
+
+/** Where a day of visits starts and ends: home or the office. */
+export async function setDayEnds(input: z.input<typeof dayEndsSchema>): Promise<ActionResult> {
+  const parsed = dayEndsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'invalid_visit' };
+  const supabase = createClient();
+  const { error } = await supabase.from('sales_visit_days').upsert(parsed.data);
+  if (error) return visitFail(error);
+  revalidateVisits();
+  return { ok: true, data: undefined };
+}

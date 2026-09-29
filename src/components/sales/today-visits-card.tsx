@@ -5,13 +5,27 @@ import { Check, Clock, Map, MapPin, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Card } from '@/components/ui/primitives';
 import { visitRouteLinks } from '@/domain/sales/visits';
-import type { SalesVisit, StartPoint } from '@/types/sales';
+import type { DayEnds, SalesVisit, StartPoint } from '@/types/sales';
 
 /** The viewer's visits today, in route order, with the route. Nothing when there are none. */
-export function TodayVisitsCard({ visits, start }: { visits: SalesVisit[]; start: StartPoint | null }) {
+export function TodayVisitsCard({
+  visits,
+  points,
+}: {
+  visits: SalesVisit[];
+  points: { ends: DayEnds; home: StartPoint | null; office: StartPoint | null } | null;
+}) {
   const { t } = useI18n();
   if (visits.length === 0) return null;
-  const links = visitRouteLinks(visits.map((v) => v.target), start ? { id: 'start', ...start } : null);
+  const at = (which: 'home' | 'office') => {
+    const p = points ? (which === 'home' ? points.home : points.office) : null;
+    return p ? { id: which, ...p } : null;
+  };
+  const links = visitRouteLinks(
+    visits.map((v) => v.target),
+    points ? at(points.ends.start_at) : null,
+    points ? at(points.ends.end_at) : null,
+  );
 
   return (
     <section className="mb-6">

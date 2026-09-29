@@ -15,7 +15,7 @@ import { getMyPendingEvaluations } from '@/server/hr-evaluations';
 import { PendingEvaluations } from '@/components/hr/pending-evaluations';
 import { getUpcomingCelebrations } from '@/server/hr-celebrations';
 import { CelebrationsCard } from '@/components/hr/celebrations-card';
-import { getMyDueProspects, getQuietCustomers, getStartPoint, getVisitDay } from '@/server/sales';
+import { getDayRoutePoints, getMyDueProspects, getQuietCustomers, getVisitDay } from '@/server/sales';
 import { TodayVisitsCard } from '@/components/sales/today-visits-card';
 import { DueProspectsCard } from '@/components/sales/due-prospects-card';
 import { QuietCustomersCard } from '@/components/sales/quiet-customers-card';
@@ -51,7 +51,7 @@ export default async function DashboardPage() {
     viewer ? getMyDueProspects(today) : [],
     // The viewer's own visits today, with the route: whoever plans visits, in sales.
     viewer && isSales(viewer.role, viewer.profile.team) ? getVisitDay(viewer.profile.id, today) : [],
-    viewer && isSales(viewer.role, viewer.profile.team) ? getStartPoint(viewer.profile.id) : null,
+    viewer && isSales(viewer.role, viewer.profile.team) ? getDayRoutePoints(viewer.profile.id, today) : null,
   ]);
 
   const countsToday = [...inventory.overdue, ...inventory.dueToday];
@@ -97,7 +97,7 @@ export default async function DashboardPage() {
       <InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} />
       <PendingEvaluations evaluations={evaluations} />
       <CelebrationsCard celebrations={celebrations} />
-      <TodayVisitsCard visits={todayVisits} start={visitStart} />
+      <TodayVisitsCard visits={todayVisits} points={visitStart} />
       <DueProspectsCard prospects={dueProspects} today={today} />
       <QuietCustomersCard customers={quiet} />
       {/* Personal follow-ups, in their own cards and their own counts — never
