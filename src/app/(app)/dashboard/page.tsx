@@ -134,8 +134,9 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* The cards: one column on a phone, a grid on a computer. "Now" first. */}
-      <div className="columns-1 gap-4 md:columns-2 xl:columns-3">
+      {/* The cards: one column on a phone or a narrow window, two on a computer —
+          the page is about 780px wide beside the menu, too narrow for three. "Now" first. */}
+      <div className="columns-1 gap-4 lg:columns-2">
         <Tile><NowCard items={nowItems} /></Tile>
         <Tile>
           <OrderWidgets
