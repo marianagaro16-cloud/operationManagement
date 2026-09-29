@@ -21,7 +21,7 @@ import { overlapping, timeRange } from '@/domain/sales/times';
 import {
   planActivity, recordActivity, removeActivity, saveStartPoint, setDayEnds, setRouteOrder, updateActivity,
 } from '@/server/sales-actions';
-import { KindBadge, useKinds } from './activity-kind';
+import { KindBadge, KindIcon, useKinds } from './activity-kind';
 import { PlanFields, emptyPlan, toPlanInput, type PlanDraft } from './plan-fields';
 import type {
   ActivityKind, DayEnd, DayEnds, QuietCustomer, SalesActivity, StartPoint, VisitTarget,
@@ -61,6 +61,7 @@ export function PlanningView({
   salespersonId,
   people,
   activities,
+  week,
   counts,
   home,
   office,
@@ -73,7 +74,10 @@ export function PlanningView({
   today: string;
   salespersonId: string;
   people: { id: string; name: string }[];
+  /** The chosen day's activities. */
   activities: SalesActivity[];
+  /** The whole week's, Monday to Sunday — the computer's week view. */
+  week: SalesActivity[];
   counts: Record<string, { planned: number; total: number }>;
   home: StartPoint | null;
   office: StartPoint | null;
@@ -86,7 +90,7 @@ export function PlanningView({
   const router = useRouter();
   const k = useKinds(kinds);
   const placeText = usePlaceText();
-  const [planning, setPlanning] = useState<VisitTarget | 'new' | null>(null);
+  const [planning, setPlanning] = useState<{ target: VisitTarget | null; date: string } | null>(null);
   const [editing, setEditing] = useState<SalesActivity | null>(null);
   const [recording, setRecording] = useState<SalesActivity | null>(null);
   const [editingHome, setEditingHome] = useState(false);
@@ -162,6 +166,22 @@ export function PlanningView({
         )}
       </div>
 
+      {/* The computer: the whole week at once, seven columns. */}
+      <WeekGrid
+        week={week}
+        date={date}
+        today={today}
+        kinds={kinds}
+        pending={pending}
+        onSelect={(d) => go({ date: d })}
+        onPlan={(d) => setPlanning({ target: null, date: d })}
+        onRecord={setRecording}
+        onEdit={setEditing}
+        onRemove={(a) => run(() => removeActivity(a.id))}
+      />
+
+      {/* The phone: the strip, and one day at a time. */}
+      <div className="space-y-4 lg:hidden">
       <div className="grid grid-cols-7 gap-1" role="tablist" aria-label={t('sales.planWeek')}>
         {weekOf(date).map((d) => {
           const c = counts[d];
@@ -189,14 +209,17 @@ export function PlanningView({
         })}
       </div>
 
+      </div>
+
       {error && <ErrorState message={error} />}
 
+      <div className="space-y-4 lg:hidden">
       {/* The day */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[15px] font-semibold capitalize">
           {formatDate(date, 'weekday')} <span className="text-[12px] font-normal tabular text-muted">{activities.length}</span>
         </h2>
-        <Button size="sm" variant="primary" onClick={() => setPlanning('new')}>
+        <Button size="sm" variant="primary" onClick={() => setPlanning({ target: null, date })}>
           <Plus className="h-3.5 w-3.5" aria-hidden />
           {t('sales.planAdd')}
         </Button>
@@ -265,8 +288,12 @@ export function PlanningView({
           })}
         </Card>
       )}
+      </div>
 
-      {/* The route: only when the day has visits */}
+      {/* The route of the chosen day: only when it has visits */}
+      {visits.length > 0 && (
+        <p className="hidden text-[13px] font-medium capitalize text-muted lg:block">{formatDate(date, 'weekday')}</p>
+      )}
       {visits.length > 0 && (
         <Card className="space-y-3 p-3.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -362,23 +389,23 @@ export function PlanningView({
               target: placeOf(q.id),
               detail: q.late ? t('sales.quietLate', { days: q.days_since, rhythm: q.rhythm_days }) : `${q.change_pct}%`,
             }))}
-            onPlan={setPlanning}
+            onPlan={(target) => setPlanning({ target, date })}
           />
           <Suggestions
             title={t('sales.visitSuggestNearby')}
             items={nearby.map((n) => ({ target: n.place, detail: `${n.km.toFixed(1)} km` }))}
-            onPlan={setPlanning}
+            onPlan={(target) => setPlanning({ target, date })}
           />
         </Card>
       )}
 
       {planning && (
         <PlanDialog
-          target={planning === 'new' ? null : planning}
+          target={planning.target}
           places={places}
           kinds={kinds}
           salespersonId={salespersonId}
-          date={date}
+          date={planning.date}
           today={today}
           onClose={() => setPlanning(null)}
         />
@@ -716,5 +743,129 @@ function HomeDialog({ userId, home, onClose }: { userId: string; home: StartPoin
         </div>
       </div>
     </Dialog>
+  );
+}
+
+/**
+ * The week on a computer: Monday to Sunday side by side, each day's
+ * activities by time, with the result, edit and remove at hand and a "+"
+ * to plan on that day. Choosing a day shows its visit route below.
+ */
+function WeekGrid({
+  week,
+  date,
+  today,
+  kinds,
+  pending,
+  onSelect,
+  onPlan,
+  onRecord,
+  onEdit,
+  onRemove,
+}: {
+  week: SalesActivity[];
+  date: string;
+  today: string;
+  kinds: ActivityKind[];
+  pending: boolean;
+  onSelect: (day: string) => void;
+  onPlan: (day: string) => void;
+  onRecord: (a: SalesActivity) => void;
+  onEdit: (a: SalesActivity) => void;
+  onRemove: (a: SalesActivity) => void;
+}) {
+  const { t, formatDate } = useI18n();
+  const k = useKinds(kinds);
+  return (
+    <div className="hidden grid-cols-7 gap-2 lg:grid">
+      {weekOf(date).map((d) => {
+        const list = week.filter((a) => a.activity_date === d);
+        const crossing = overlapping(
+          list.filter((a) => a.status === 'planned').map((a) => ({ id: a.id, start: a.activity_time, end: a.activity_end })),
+        );
+        const selected = d === date;
+        return (
+          <div
+            key={d}
+            className={cn(
+              'flex min-w-0 flex-col rounded-xl border bg-surface',
+              selected ? 'border-accent' : d === today ? 'border-accent/40' : 'border-border',
+            )}
+          >
+            <div className="flex items-center justify-between gap-1 border-b border-border px-2 py-1.5">
+              <button
+                type="button"
+                onClick={() => onSelect(d)}
+                aria-pressed={selected}
+                className="min-w-0 text-left"
+              >
+                <span className={cn('block text-[11px] font-medium uppercase', d === today ? 'text-accent' : 'text-muted')}>
+                  {formatDate(d, 'weekday').split(/[\s,]/)[0]}
+                </span>
+                <span className="block text-[15px] font-semibold leading-tight tabular">{formatDate(d, 'short')}</span>
+              </button>
+              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" aria-label={t('sales.planAdd')} onClick={() => onPlan(d)}>
+                <Plus className="h-4 w-4" aria-hidden />
+              </Button>
+            </div>
+            <div className="flex-1 space-y-1.5 p-1.5">
+              {list.length === 0 && <p className="px-1 py-2 text-center text-[11.5px] text-subtle">—</p>}
+              {list.map((a) => {
+                const kind = k.get(a.kind_id);
+                const range = timeRange(a.activity_time, a.activity_end);
+                return (
+                  <div
+                    key={a.id}
+                    className={cn(
+                      'rounded-lg border border-border bg-surface-2/40 px-2 py-1.5',
+                      a.status !== 'planned' && 'opacity-60',
+                      crossing.has(a.id) && 'border-warn/50',
+                    )}
+                  >
+                    <div className="flex items-center gap-1 text-[11.5px] font-semibold tabular">
+                      {kind && <KindIcon icon={kind.icon} className="h-3 w-3 shrink-0 text-accent" />}
+                      <span className="truncate">{range ?? k.name(a.kind_id)}</span>
+                      {a.status === 'done' && <Check className="ml-auto h-3.5 w-3.5 shrink-0 text-done" aria-label={t('sales.visitDone')} />}
+                      {a.status === 'not_done' && <X className="ml-auto h-3.5 w-3.5 shrink-0 text-muted" aria-label={t('sales.visitNotDone')} />}
+                      {crossing.has(a.id) && (
+                        <AlertTriangle className="ml-auto h-3.5 w-3.5 shrink-0 text-warn" aria-label={t('sales.planOverlapsShort')} />
+                      )}
+                    </div>
+                    {a.target ? (
+                      <Link href={targetHref(a.target)} className="line-clamp-2 break-words text-[12.5px] font-medium leading-snug hover:text-accent">
+                        {a.target.name}
+                      </Link>
+                    ) : (
+                      <p className="line-clamp-2 break-words text-[12.5px] font-medium leading-snug">{a.title}</p>
+                    )}
+                    {range && <p className="truncate text-[11px] text-muted">{k.name(a.kind_id)}</p>}
+                    {a.status === 'planned' && (
+                      <div className="mt-1 flex items-center gap-0.5">
+                        <Button size="sm" variant="primary" className="h-6 px-2 text-[11px]" onClick={() => onRecord(a)}>
+                          {t('sales.visitRecord')}
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" aria-label={t('common.edit')} onClick={() => onEdit(a)}>
+                          <Pencil className="h-3 w-3" aria-hidden />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 text-muted hover:text-late"
+                          aria-label={t('sales.planRemove')}
+                          disabled={pending}
+                          onClick={() => onRemove(a)}
+                        >
+                          <Trash2 className="h-3 w-3" aria-hidden />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

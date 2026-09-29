@@ -367,3 +367,20 @@ export async function getDayRoutePoints(salespersonId: string, date: string): Pr
   const [ends, home, office] = await Promise.all([getDayEnds(salespersonId, date), getStartPoint(salespersonId), getOfficePoint()]);
   return { ends, home, office };
 }
+
+/** A salesperson's activities over a range of days — the week view — by day, then time. */
+export async function getPlanRange(salespersonId: string, from: string, to: string): Promise<SalesActivity[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('sales_activities')
+    .select(ACTIVITY_COLUMNS)
+    .eq('salesperson_id', salespersonId)
+    .gte('activity_date', from)
+    .lte('activity_date', to)
+    .order('activity_date')
+    .order('activity_time', { nullsFirst: false })
+    .order('position')
+    .order('created_at');
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(toActivity);
+}

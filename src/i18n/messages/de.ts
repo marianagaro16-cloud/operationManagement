@@ -1599,6 +1599,7 @@ export const de: Messages = {
     errFileType: '{name} ist kein Foto und kein PDF.',
   },
   sales: {
+    planOverlapsShort: 'Überschneidet sich mit einer anderen Aktivität',
     planEnd: 'Bis',
     planEndBefore: 'Muss nach dem Beginn liegen',
     planOverlaps: 'Überschneidet sich mit {with}',

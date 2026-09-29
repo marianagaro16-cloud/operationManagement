@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, ScanSearch, Settings, Shield, Truck, UserRound, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
@@ -39,6 +39,9 @@ export function AppShell({
 }) {
   const { t, formatDate } = useI18n();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Sales planning's week needs the whole screen: seven days side by side.
+  const frame = pathname === '/sales' && searchParams.get('tab') === 'planning' ? 'max-w-[1600px]' : 'max-w-5xl';
   const [menuOpen, setMenuOpen] = useState(false);
   /** The phone's More sheet. Separate from the account menu in the header. */
   const [moreOpen, setMoreOpen] = useState(false);
@@ -185,7 +188,7 @@ export function AppShell({
           menuOpen ? 'z-40' : 'z-20',
         )}
       >
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4">
+        <div className={`mx-auto flex h-14 ${frame} items-center gap-3 px-4`}>
           {/* The greeting is a greeting: it belongs on the screen you land on.
               Everywhere else this 56px bar is the only persistent thing on a
               phone, and it was spending all of it saying good afternoon while
@@ -282,7 +285,7 @@ export function AppShell({
         />
       )}
 
-      <div className="mx-auto flex max-w-5xl gap-6 px-4">
+      <div className={`mx-auto flex ${frame} gap-6 px-4`}>
         {/* ---------------- sidebar (md+) ---------------- */}
         <nav className="hidden w-44 shrink-0 py-6 md:block">
           <ul className="sticky top-20 space-y-0.5">

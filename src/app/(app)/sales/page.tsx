@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { DateTime } from 'luxon';
 import { getViewer } from '@/server/data';
 import {
-  getActivityKinds, getCustomerTypes, getDayRoutePoints, getPlanCounts, getPlanDay, getProspectLists, getProspects,
+  getActivityKinds, getCustomerTypes, getDayRoutePoints, getPlanCounts, getPlanDay, getPlanRange, getProspectLists, getProspects,
   getQuietCustomers, getSalesCustomers, getSalesPeople, getSalesReport, getVisitablePlaces,
 } from '@/server/sales';
 import { PlanningView } from '@/components/sales/planning';
@@ -98,8 +98,9 @@ async function PlanningTab({
 }) {
   if (!person) return null;
   const monday = DateTime.fromISO(date, { zone: BUSINESS_TZ }).startOf('week');
-  const [activities, counts, points, places] = await Promise.all([
+  const [activities, week, counts, points, places] = await Promise.all([
     getPlanDay(person, date),
+    getPlanRange(person, monday.toISODate()!, monday.plus({ days: 6 }).toISODate()!),
     getPlanCounts(person, monday.toISODate()!, monday.plus({ days: 6 }).toISODate()!),
     getDayRoutePoints(person, date),
     getVisitablePlaces(),
@@ -111,6 +112,7 @@ async function PlanningTab({
       salespersonId={person}
       people={people}
       activities={activities}
+      week={week}
       counts={counts}
       home={points.home}
       office={points.office}

@@ -1631,6 +1631,7 @@ export const en = {
     errFileType: '{name} is not a photo or PDF.',
   },
   sales: {
+    planOverlapsShort: 'Overlaps with another activity',
     planEnd: 'Until',
     planEndBefore: 'Must be after the start',
     planOverlaps: 'Overlaps with {with}',
