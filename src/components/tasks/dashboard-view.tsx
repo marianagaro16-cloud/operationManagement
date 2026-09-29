@@ -47,7 +47,7 @@ export function DashboardView({
 
       {/* ---------------- overdue ---------------- */}
       {overdue.length > 0 && (
-        <section>
+        <section id="overdue" className="scroll-mt-20">
           <SectionHeading
             title={t('dashboard.overdueTitle')}
             subtitle={t('dashboard.overdueSubtitle')}
@@ -71,7 +71,7 @@ export function DashboardView({
           late and must not be read as such. Not date-bucketed — a block from
           last week is still a block. */}
       {blocked.length > 0 && (
-        <section>
+        <section id="blocked" className="scroll-mt-20">
           <SectionHeading
             title={t('task.blockedTitle')}
             subtitle={t('task.blockedSubtitle')}
@@ -91,14 +91,14 @@ export function DashboardView({
       )}
 
       {/* ---------------- today ---------------- */}
-      <section>
+      <section id="today" className="scroll-mt-20">
         <SectionHeading title={t('dashboard.todayTitle')} subtitle={t('dashboard.todaySubtitle')} />
 
         {total > 0 && (
           <div className="mb-3 rounded-xl border border-border bg-surface p-3.5 shadow-card">
             <div className="mb-2 flex items-baseline justify-between">
               {/* Explicitly "Tasks", not the day. The day is reconciled by
-                  DaySummaryStrip above, which also counts orders and counts;
+                  figures at the top, which also count orders and counts;
                   an unqualified 100% here was read as the whole shift. */}
               <span className="text-[13px] font-medium tabular">
                 {t('dashboard.todayProgress', { done, total })}

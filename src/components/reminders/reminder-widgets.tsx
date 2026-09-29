@@ -44,7 +44,9 @@ export function ReminderWidgets({
   ];
 
   return (
-    <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
+    // Two tiles of the dashboard grid, each placed on its own.
+    <>
+      <div className="mb-4 break-inside-avoid">
       <Card className="px-3.5 py-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <Link href="/reminders" className="flex items-center gap-1.5 text-[13.5px] font-semibold hover:underline">
@@ -84,9 +86,12 @@ export function ReminderWidgets({
           </ul>
         )}
       </Card>
+      </div>
 
-      <PersonalTasksCard open={tasks.open} closed={tasks.closed} nowIso={nowIso} />
-    </div>
+      <div className="mb-4 break-inside-avoid">
+        <PersonalTasksCard open={tasks.open} closed={tasks.closed} nowIso={nowIso} />
+      </div>
+    </>
   );
 }
 

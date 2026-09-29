@@ -1,16 +1,15 @@
+import type { ReactNode } from 'react';
 import { getDashboardData, getViewer } from '@/server/data';
 import { getOrderDashboardSummary } from '@/server/orders';
 import { getInventoryDashboard } from '@/server/inventory';
 import { businessToday } from '@/lib/datetime';
 import { DashboardView } from '@/components/tasks/dashboard-view';
-import { DaySummaryStrip } from '@/components/tasks/day-summary-strip';
 import { OrderWidgets } from '@/components/orders/order-widgets';
-import { UrgentAlert } from '@/components/orders/urgent-alert';
 import { InventoryWidget } from '@/components/inventory/inventory-widget';
 import { PushPrompt } from '@/components/shell/push-prompt';
 import { getDashboardReminders, getPersonalTasks } from '@/server/reminders';
 import { ReminderWidgets } from '@/components/reminders/reminder-widgets';
-import { canUseReminders, isSales } from '@/lib/authz';
+import { canUseReminders, isAdminRole, isSales } from '@/lib/authz';
 import { getMyPendingEvaluations } from '@/server/hr-evaluations';
 import { PendingEvaluations } from '@/components/hr/pending-evaluations';
 import { getUpcomingCelebrations } from '@/server/hr-celebrations';
@@ -19,10 +18,29 @@ import { getDayRoutePoints, getMyDueProspects, getQuietCustomers, getVisitDay } 
 import { TodayVisitsCard } from '@/components/sales/today-visits-card';
 import { DueProspectsCard } from '@/components/sales/due-prospects-card';
 import { QuietCustomersCard } from '@/components/sales/quiet-customers-card';
+import { getBusinessFigures } from '@/server/dashboard';
+import { BusinessFigures, Greeting, NowCard, ProgressFigures } from '@/components/dashboard/dashboard-top';
+import { buildNowItems } from '@/domain/dashboard/now';
+import { compareUrgency, deliveryUrgency } from '@/domain/orders/urgency';
+import { personalTaskPhase } from '@/domain/reminders/schedule';
 
 // Always render fresh: task and order state change constantly during a shift.
 export const dynamic = 'force-dynamic';
 
+/** A tile of the card grid; takes no room when its card renders nothing. */
+function Tile({ children }: { children: ReactNode }) {
+  return <div className="mb-4 break-inside-avoid empty:hidden [&>*]:mb-0">{children}</div>;
+}
+
+/**
+ * The dashboard, top to bottom: who and when; the figures — how the business
+ * is going for owners and Admin, today's progress for everyone else; then
+ * "Now", only what is late or due, most urgent first; the cards, in a grid on
+ * a computer; and the day's activities, full width.
+ *
+ * Fixed per role: every card still appears only for whom it applies, and
+ * only when there is something in it.
+ */
 export default async function DashboardPage() {
   const today = businessToday();
   const viewer = await getViewer();
@@ -33,7 +51,11 @@ export default async function DashboardPage() {
   const canManageOrders = viewer?.can('orders.manage') ?? false;
   // Every approved account has reminders and personal tasks, whatever its role.
   const usesReminders = canUseReminders(viewer);
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, dueProspects, todayVisits, visitStart] = await Promise.all([
+  const owner = isAdminRole(viewer?.role);
+  const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
+  const inSalesTeam = viewer?.profile.team === 'sales';
+
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, dueProspects, todayVisits, visitPoints, business] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
@@ -46,15 +68,42 @@ export default async function DashboardPage() {
     // Birthdays and anniversaries of the people whose files the viewer may open.
     viewer?.can('hr.manage') ? getUpcomingCelebrations() : [],
     // Customers going quiet: the Ventas team's card, not Admin's or the owners'.
-    viewer?.profile.team === 'sales' ? getQuietCustomers() : [],
+    inSalesTeam ? getQuietCustomers() : [],
     // Prospects whose next step is today or overdue, for whoever is responsible.
     viewer ? getMyDueProspects(today) : [],
     // The viewer's own visits today, with the route: whoever plans visits, in sales.
-    viewer && isSales(viewer.role, viewer.profile.team) ? getVisitDay(viewer.profile.id, today) : [],
-    viewer && isSales(viewer.role, viewer.profile.team) ? getDayRoutePoints(viewer.profile.id, today) : null,
+    sales && viewer ? getVisitDay(viewer.profile.id, today) : [],
+    sales && viewer ? getDayRoutePoints(viewer.profile.id, today) : null,
+    // How the business is going: owners and Admin.
+    owner ? getBusinessFigures(today) : null,
   ]);
 
+  // ---- what the figures and "Now" count ----
+  const todayAll = [...data.dailyToday, ...data.extraToday];
+  const activities = { done: todayAll.filter((o) => o.status !== 'pending').length, total: todayAll.length };
   const countsToday = [...inventory.overdue, ...inventory.dueToday];
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const urgentOrders = [...orders.toPrepare, ...orders.carriedOver]
+    .map((o) => ({ o, u: deliveryUrgency(o.delivery_date, o.delivery_time, Boolean(o.ready_at), now) }))
+    .filter((x) => x.u.isAlert)
+    .sort((a, b) => compareUrgency(a.u, b.u))
+    .map((x) => ({ name: x.o.customer.name, late: x.u.level === 'overdue' || x.u.level === 'critical' }));
+
+  const nowItems = buildNowItems({
+    overdueActivities: data.overdue.length,
+    blockedActivities: plans ? data.blocked.length : 0,
+    urgentOrders,
+    overdueCounts: inventory.overdue.length,
+    countsToday: inventory.dueToday.filter((r) => r.status === 'in_progress').length,
+    overdueReminders: reminders?.overdueTotal ?? 0,
+    overduePersonalTasks: (personalTasks?.open ?? []).filter(
+      (task) => personalTaskPhase(task.status, task.due_date, task.due_time, nowIso) === 'overdue',
+    ).length,
+    prospectStepsLate: dueProspects.filter((p) => p.next_step_on && p.next_step_on < today).length,
+    prospectStepsToday: dueProspects.filter((p) => p.next_step_on === today).length,
+    evaluationsDue: evaluations.filter((e) => e.request.deadline === today).length,
+  });
 
   return (
     <>
@@ -62,55 +111,63 @@ export default async function DashboardPage() {
           comes to them — once, dismissible, and enabling in a single tap. */}
       <PushPrompt />
 
-      {/* The one place the three streams are reconciled. Above the widgets,
-          because it is the question they each answer only a third of. */}
-      <DaySummaryStrip
-        tasks={{
-          done: data.dailyToday.filter((o) => o.status !== 'pending').length
-            + data.extraToday.filter((o) => o.status !== 'pending').length,
-          total: data.dailyToday.length + data.extraToday.length,
-        }}
-        prepare={{
-          done: orders.toPrepare.filter((o) => o.ready_at).length,
-          total: orders.toPrepare.length,
-        }}
-        counts={{
-          done: countsToday.filter((r) => r.status !== 'in_progress').length,
-          total: countsToday.length,
-        }}
-      />
+      <Greeting name={viewer?.profile.name ?? null} today={today} />
 
-      {/* Deadline pressure outranks everything else on the page. Carried-over
-          work is included: an order left short yesterday and delivering this
-          morning is exactly what this alert exists for, and it used to be
-          invisible here because the query matched today's date exactly. */}
-      <UrgentAlert orders={[...orders.toPrepare, ...orders.carriedOver]} />
-      {/* Orders summarise into two tiles; today's TASKS remain the focus. */}
-      <OrderWidgets
-        toPrepare={orders.toPrepare}
-        carriedOver={orders.carriedOver}
-        delivering={orders.delivering}
-        canManage={canManageOrders}
-      />
-      {/* Renders nothing unless a count is due or late, so it never becomes
-          empty furniture people learn to scroll past. */}
-      <InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} />
-      <PendingEvaluations evaluations={evaluations} />
-      <CelebrationsCard celebrations={celebrations} />
-      <TodayVisitsCard visits={todayVisits} points={visitStart} />
-      <DueProspectsCard prospects={dueProspects} today={today} />
-      <QuietCustomersCard customers={quiet} />
-      {/* Personal follow-ups, in their own cards and their own counts — never
-          folded into the summary strip above, which counts team work. */}
-      {viewer && reminders && personalTasks && (
-        <ReminderWidgets
-          viewerId={viewer.profile.id}
-          reminders={reminders}
-          tasks={personalTasks}
-          nowIso={new Date().toISOString()}
+      {business ? (
+        <BusinessFigures
+          orders={{
+            total: orders.delivering.length,
+            ready: orders.delivering.filter((o) => o.ready_at).length,
+            shipped: orders.delivering.filter((o) => o.shipped_at).length,
+          }}
+          sales={business.sales}
+          incidents={business.incidents}
+          activities={{ ...activities, overdue: data.overdue.length, blocked: data.blocked.length }}
+        />
+      ) : (
+        <ProgressFigures
+          activities={activities}
+          prepare={{ done: orders.toPrepare.filter((o) => o.ready_at).length, total: orders.toPrepare.length }}
+          counts={{ done: countsToday.filter((r) => r.status !== 'in_progress').length, total: countsToday.length }}
+          visits={sales ? { done: todayVisits.filter((v) => v.status !== 'planned').length, total: todayVisits.length } : undefined}
+          prospectSteps={sales ? dueProspects.length : undefined}
         />
       )}
-      <DashboardView data={data} showUpcoming={plans} canSkip={plans} />
+
+      {/* The cards: one column on a phone, a grid on a computer. "Now" first. */}
+      <div className="columns-1 gap-4 md:columns-2 xl:columns-3">
+        <Tile><NowCard items={nowItems} /></Tile>
+        <Tile>
+          <OrderWidgets
+            toPrepare={orders.toPrepare}
+            carriedOver={orders.carriedOver}
+            delivering={orders.delivering}
+            canManage={canManageOrders}
+          />
+        </Tile>
+        <Tile><TodayVisitsCard visits={todayVisits} points={visitPoints} /></Tile>
+        <Tile><DueProspectsCard prospects={dueProspects} today={today} /></Tile>
+        {/* Renders nothing unless a count is due or late, so it never becomes
+            empty furniture people learn to scroll past. */}
+        <Tile><InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} /></Tile>
+        <Tile><PendingEvaluations evaluations={evaluations} /></Tile>
+        <Tile><QuietCustomersCard customers={quiet} /></Tile>
+        <Tile><CelebrationsCard celebrations={celebrations} /></Tile>
+        {/* Personal follow-ups, in their own cards and their own counts — never
+            folded into the figures above, which count team work. */}
+        {viewer && reminders && personalTasks && (
+          <ReminderWidgets
+            viewerId={viewer.profile.id}
+            reminders={reminders}
+            tasks={personalTasks}
+            nowIso={nowIso}
+          />
+        )}
+      </div>
+
+      <div className="mt-2">
+        <DashboardView data={data} showUpcoming={plans} canSkip={plans} />
+      </div>
     </>
   );
 }
