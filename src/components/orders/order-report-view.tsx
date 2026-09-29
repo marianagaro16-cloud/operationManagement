@@ -292,7 +292,7 @@ export function OrderReportView({
 
           {/* Anything the headline hides */}
           {(report.cancelled > 0 || report.draft > 0 || report.samples > 0
-            || report.replacements > 0 || report.sponsorships > 0 || report.consignments > 0
+            || report.replacements > 0 || report.sponsorships > 0 || report.consignments > 0 || report.events > 0
             || report.shortLines > 0) && (
             <div className="flex flex-wrap gap-1.5">
               {report.cancelled > 0 && (
@@ -317,6 +317,9 @@ export function OrderReportView({
                   giveaway, which is why it is counted on its own. */}
               {report.consignments > 0 && (
                 <Badge tone="neutral">{t('orders.typeConsignment')}: {report.consignments}</Badge>
+              )}
+              {report.events > 0 && (
+                <Badge tone="neutral">{t('orders.typeEvent')}: {report.events}</Badge>
               )}
               {report.shortLines > 0 && (
                 <Badge tone="warn">

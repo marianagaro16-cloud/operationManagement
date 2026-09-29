@@ -28,9 +28,11 @@ import {
   updateEventTask,
 } from '@/server/event-actions';
 import type { SalesActivity } from '@/types/sales';
-import type { EventCost, EventListEntry, EventRow, EventShift, StaffCandidate } from '@/types/events';
+import type { DeliveryMethod, Product } from '@/types/orders';
+import type { EventCost, EventListEntry, EventOrder, EventProduct, EventReturn, EventRow, EventShift, StaffCandidate } from '@/types/events';
 import { StageBadge, chf, useEventLabels } from './event-parts';
 import { EventDialog, type EventChoices } from './event-dialog';
+import { EventProducts, deliveryDateOf } from './event-products';
 
 type Busy = (fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) => void;
 
@@ -40,6 +42,11 @@ export function EventView({
   tasks,
   shifts,
   costs,
+  order,
+  products,
+  returns,
+  catalog,
+  methods,
   choices,
   staff,
   costTypes,
@@ -49,12 +56,18 @@ export function EventView({
   tasks: SalesActivity[];
   shifts: EventShift[];
   costs: EventCost[];
+  order: EventOrder | null;
+  products: EventProduct[];
+  returns: EventReturn[];
+  /** Every product, for names; the editor offers the active ones. */
+  catalog: Product[];
+  methods: DeliveryMethod[];
   choices: EventChoices;
   staff: StaffCandidate[];
   costTypes: EventListEntry[];
   today: string;
 }) {
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
   const router = useRouter();
   const labels = useEventLabels();
   const [editing, setEditing] = useState(false);
@@ -164,7 +177,10 @@ export function EventView({
           <Tasks event={event} tasks={tasks} people={choices.people} today={today} live={live} />
           <Staff event={event} shifts={shifts} staff={staff} live={live} />
         </div>
-        <Budget event={event} costs={costs} costTypes={costTypes} />
+        <div className="space-y-4">
+          <EventProducts event={event} order={order} products={products} returns={returns} catalog={catalog} methods={methods} />
+          <Budget event={event} costs={costs} costTypes={costTypes} />
+        </div>
       </div>
 
       {editing && <EventDialog event={event} choices={choices} today={today} onClose={() => setEditing(false)} />}
@@ -173,7 +189,15 @@ export function EventView({
         onClose={() => setConfirming(false)}
         onConfirm={() => run(() => confirmEvent(event.id), () => setConfirming(false))}
         title={t('event.confirm')}
-        message={event.owner_id ? t('event.confirmBody', { name: event.owner_name ?? '' }) : t('event.errOwnerRequired')}
+        message={
+          event.owner_id
+            ? [
+                t('event.confirmBody', { name: event.owner_name ?? '' }),
+                products.length > 0 &&
+                  t('event.confirmOrder', { count: products.length, date: formatDate(deliveryDateOf(event, null), 'weekday') }),
+              ].filter(Boolean).join(' ')
+            : t('event.errOwnerRequired')
+        }
         confirmLabel={t('event.confirm')}
         cancelLabel={t('common.cancel')}
         loading={pending}
@@ -207,7 +231,13 @@ export function EventView({
         destructive
         loading={pending}
       />
-      {cancelling && <CancelDialog eventId={event.id} onClose={() => setCancelling(false)} />}
+      {cancelling && (
+        <CancelDialog
+          eventId={event.id}
+          order={order?.status === 'confirmed' ? order : null}
+          onClose={() => setCancelling(false)}
+        />
+      )}
     </>
   );
 }
@@ -233,7 +263,7 @@ function Section({ title, action, children }: { title: string; action?: ReactNod
   );
 }
 
-function CancelDialog({ eventId, onClose }: { eventId: string; onClose: () => void }) {
+function CancelDialog({ eventId, order, onClose }: { eventId: string; order: EventOrder | null; onClose: () => void }) {
   const { t } = useI18n();
   const router = useRouter();
   const labels = useEventLabels();
@@ -266,6 +296,13 @@ function CancelDialog({ eventId, onClose }: { eventId: string; onClose: () => vo
     >
       <div className="space-y-3.5">
         {error && <ErrorState message={error} />}
+        {order && (
+          <p className={cn('text-[12.5px] font-medium', order.shipped_at ? 'text-warn' : 'text-fg')}>
+            {order.shipped_at
+              ? t('event.cancelOrderKept', { reference: order.reference })
+              : t('event.cancelOrderToo', { reference: order.reference })}
+          </p>
+        )}
         <Field label={t('event.cancelReason')} required htmlFor="event-cancel-reason">
           <NoteTextarea id="event-cancel-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
         </Field>

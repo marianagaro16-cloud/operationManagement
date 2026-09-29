@@ -609,6 +609,111 @@ export type Database = {
         }
         Relationships: []
       }
+      event_products: {
+        Row: {
+          event_id: string
+          id: string
+          note: string | null
+          position: number
+          product_id: string
+          quantity: number
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          note?: string | null
+          position?: number
+          product_id: string
+          quantity: number
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          note?: string | null
+          position?: number
+          product_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_products_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "event_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_returns: {
+        Row: {
+          back_quantity: number
+          discarded_quantity: number
+          event_id: string
+          product_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          back_quantity?: number
+          discarded_quantity?: number
+          event_id: string
+          product_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          back_quantity?: number
+          discarded_quantity?: number
+          event_id?: string
+          product_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_returns_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_returns_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "event_returns_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_returns_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_shifts: {
         Row: {
           created_at: string
@@ -675,6 +780,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_id: string | null
+          delivery_date: string | null
+          delivery_method_id: string | null
           description: string | null
           end_date: string
           id: string
@@ -683,6 +790,7 @@ export type Database = {
           longitude: number | null
           name: string
           open_time: string | null
+          order_id: string | null
           owner_id: string | null
           place_name: string | null
           postal_code: string | null
@@ -698,6 +806,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
+          delivery_date?: string | null
+          delivery_method_id?: string | null
           description?: string | null
           end_date: string
           id?: string
@@ -706,6 +816,7 @@ export type Database = {
           longitude?: number | null
           name: string
           open_time?: string | null
+          order_id?: string | null
           owner_id?: string | null
           place_name?: string | null
           postal_code?: string | null
@@ -721,6 +832,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
+          delivery_date?: string | null
+          delivery_method_id?: string | null
           description?: string | null
           end_date?: string
           id?: string
@@ -729,6 +842,7 @@ export type Database = {
           longitude?: number | null
           name?: string
           open_time?: string | null
+          order_id?: string | null
           owner_id?: string | null
           place_name?: string | null
           postal_code?: string | null
@@ -760,10 +874,31 @@ export type Database = {
             referencedColumns: ["customer_id"]
           },
           {
+            foreignKeyName: "events_delivery_method_id_fkey"
+            columns: ["delivery_method_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_methods"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "events_kind_id_fkey"
             columns: ["kind_id"]
             isOneToOne: false
             referencedRelation: "event_kinds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
@@ -5870,7 +6005,21 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      event_cancel: {
+        Args: { p_event_id: string; p_reason: string }
+        Returns: string
+      }
       event_confirm: { Args: { p_event_id: string }; Returns: number }
+      event_customer_id: { Args: never; Returns: string }
+      event_make_order: { Args: { p_event_id: string }; Returns: string }
+      event_set_delivery: {
+        Args: { p_date: string; p_event_id: string; p_method_id: string }
+        Returns: undefined
+      }
+      event_set_products: {
+        Args: { p_event_id: string; p_lines: Json }
+        Returns: undefined
+      }
       event_staff_workers: {
         Args: never
         Returns: {
@@ -6514,6 +6663,7 @@ export type Database = {
         | "replacement"
         | "sponsorship"
         | "consignment"
+        | "event"
       schedule_source: "auto" | "manual"
       task_frequency:
         | "daily"
@@ -6714,6 +6864,7 @@ export const Constants = {
         "replacement",
         "sponsorship",
         "consignment",
+        "event",
       ],
       schedule_source: ["auto", "manual"],
       task_frequency: [

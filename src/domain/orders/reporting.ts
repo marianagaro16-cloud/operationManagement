@@ -258,6 +258,8 @@ export interface OrderReport {
    * because nothing was given away.
    */
   consignments: number;
+  /** Taken to one of our events: not trade, not given to a customer. */
+  events: number;
   customersServed: number;
   lines: number;
 
@@ -546,6 +548,7 @@ export function computeOrderReport(
     replacements: counted.filter((o) => o.order_type === 'replacement').length,
     sponsorships: counted.filter((o) => o.order_type === 'sponsorship').length,
     consignments: counted.filter((o) => o.order_type === 'consignment').length,
+    events: counted.filter((o) => o.order_type === 'event').length,
     customersServed: customers.size,
     lines,
     totalOrdered: round3(totalOrdered),

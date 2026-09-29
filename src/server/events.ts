@@ -1,7 +1,17 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type { SalesActivity } from '@/types/sales';
-import type { EventCost, EventKindTask, EventListEntry, EventRow, EventShift, StaffCandidate } from '@/types/events';
+import type {
+  EventCost,
+  EventKindTask,
+  EventListEntry,
+  EventOrder,
+  EventProduct,
+  EventReturn,
+  EventRow,
+  EventShift,
+  StaffCandidate,
+} from '@/types/events';
 import { getPlannedForEvent } from './sales';
 
 /*
@@ -12,6 +22,7 @@ import { getPlannedForEvent } from './sales';
 const EVENT_COLUMNS = `
   id, kind_id, name, stage, cancel_reason, start_date, end_date, open_time, close_time,
   place_name, street, postal_code, city, customer_id, owner_id, description,
+  delivery_date, delivery_method_id, order_id,
   customer:customers ( company_name ),
   owner:profiles!events_owner_id_fkey ( name, email )
 `;
@@ -38,6 +49,9 @@ export interface EventView {
   tasks: SalesActivity[];
   shifts: EventShift[];
   costs: EventCost[];
+  order: EventOrder | null;
+  products: EventProduct[];
+  returns: EventReturn[];
 }
 
 export async function getEvent(id: string): Promise<EventView | null> {
@@ -65,9 +79,15 @@ export async function getEvent(id: string): Promise<EventView | null> {
   const workers = await getStaffCandidates();
   const workerName = new Map(workers.filter((w) => w.kind === 'worker').map((w) => [w.id, w.name]));
 
+  const event = toEvent(data);
+  const [{ order, products }, returns] = await Promise.all([getEventProducts(event), getEventReturns(id)]);
+
   type RawShift = Omit<EventShift, 'person_name'> & { profile: { name: string | null; email: string } | null };
   return {
-    event: toEvent(data),
+    event,
+    order,
+    products,
+    returns,
     tasks,
     shifts: ((shifts ?? []) as unknown as RawShift[]).map(({ profile, ...s }) => ({
       ...s,
@@ -131,4 +151,60 @@ export async function getEventCustomers(): Promise<{ id: string; name: string }[
   const { data, error } = await supabase.from('customers').select('id, company_name').eq('is_active', true).order('company_name');
   if (error) throw new Error(error.message);
   return (data ?? []).map((c) => ({ id: c.id, name: c.company_name }));
+}
+
+/**
+ * What we take: the order's lines once the event has a live order (with what
+ * was prepared, once it is ready), the event's own list before that.
+ */
+async function getEventProducts(event: EventRow): Promise<{ order: EventOrder | null; products: EventProduct[] }> {
+  const supabase = createClient();
+  if (event.order_id) {
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select(
+        'id, reference, status, ready_at, shipped_at, delivery_date, delivery_method_id, lines:order_lines ( product_id, ordered_quantity, note, position, allocations:lot_allocations ( quantity ) )',
+      )
+      .eq('id', event.order_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (order) {
+      const { lines, ...header } = order as unknown as EventOrder & {
+        lines: { product_id: string; ordered_quantity: number | string; note: string | null; position: number; allocations: { quantity: number | string }[] }[];
+      };
+      const done = !!header.ready_at;
+      return {
+        order: header,
+        products: [...lines]
+          .sort((a, b) => a.position - b.position)
+          .map((l) => ({
+            product_id: l.product_id,
+            quantity: Number(l.ordered_quantity),
+            note: l.note,
+            prepared: done ? l.allocations.reduce((n, a) => n + Number(a.quantity), 0) : null,
+          })),
+      };
+    }
+  }
+  const { data, error } = await supabase
+    .from('event_products')
+    .select('product_id, quantity, note')
+    .eq('event_id', event.id)
+    .order('position');
+  if (error) throw new Error(error.message);
+  return { order: null, products: (data ?? []).map((p) => ({ ...p, quantity: Number(p.quantity), prepared: null })) };
+}
+
+async function getEventReturns(eventId: string): Promise<EventReturn[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('event_returns')
+    .select('product_id, back_quantity, discarded_quantity')
+    .eq('event_id', eventId);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({
+    product_id: r.product_id,
+    back_quantity: Number(r.back_quantity),
+    discarded_quantity: Number(r.discarded_quantity),
+  }));
 }

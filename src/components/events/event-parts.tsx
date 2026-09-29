@@ -40,6 +40,12 @@ export function useEventLabels() {
         case 'events_dates': return t('event.errDates');
         case 'events_cancel_reason': return t('event.errCancelReason');
         case 'event_shifts_times': return t('event.errShiftTimes');
+        case 'event_closed': return t('event.errClosed');
+        case 'event_order_ready': return t('event.errOrderReady');
+        case 'event_order_shipped': return t('event.errOrderShipped');
+        case 'duplicate_product': return t('event.errDuplicateProduct');
+        case 'invalid_quantity': return t('event.errQuantity');
+        case 'invalid_delivery': return t('event.errDelivery');
         default: return code;
       }
     },

@@ -14,9 +14,10 @@ export type OrderStatus = 'draft' | 'confirmed' | 'cancelled';
  * fair, where no future order is expected of the recipient and none is the
  * point. Independent of `replaces_incident_id`, which records WHICH incident
  * prompted the delivery — a redelivery the customer still pays for is a sale
- * with an incident attached.
+ * with an incident attached. 'event' is what we take to one of our events,
+ * made from the event; not a sale.
  */
-export type OrderType = 'sale' | 'consignment' | 'sample' | 'replacement' | 'sponsorship';
+export type OrderType = 'sale' | 'consignment' | 'sample' | 'replacement' | 'sponsorship' | 'event';
 
 /**
  * Why a product was prepared short, or not sent at all. A fixed list so the

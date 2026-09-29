@@ -29,6 +29,8 @@ const TONES: Partial<Record<OrderType, Tone>> = {
   // one something went wrong to cause.
   replacement: 'warn',
   sponsorship: 'accent',
+  // Ours, taken to one of our events.
+  event: 'neutral',
 };
 
 export function OrderTypeBadge({ type }: { type: OrderType }) {

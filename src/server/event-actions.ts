@@ -24,6 +24,8 @@ const uuid = z.string().uuid();
 const KNOWN = [
   'not_authorized', 'owner_not_sales', 'owner_required', 'event_not_idea', 'event_not_found',
   'events_dates', 'events_cancel_reason', 'event_shifts_one_person', 'event_shifts_times', 'salesperson_not_sales',
+  'event_closed', 'event_order_ready', 'event_order_shipped', 'duplicate_product', 'invalid_quantity', 'invalid_delivery',
+  'product_not_found',
 ];
 function fail(error: { message: string }): { ok: false; error: string } {
   if (error.message.includes('row-level security')) return { ok: false, error: 'not_authorized' };
@@ -33,6 +35,7 @@ function revalidateEvent(id?: string) {
   revalidatePath('/events');
   if (id) revalidatePath(`/events/${id}`);
   revalidatePath('/sales');
+  revalidatePath('/orders');
   revalidatePath('/dashboard');
 }
 
@@ -101,14 +104,75 @@ export async function markEventDone(id: string): Promise<ActionResult> {
   return { ok: true, data: undefined };
 }
 
-/** Cancelled, with a reason; what was still planned for it comes off the plans. */
-export async function cancelEvent(id: string, reason: string): Promise<ActionResult> {
+/**
+ * Cancelled, with a reason: what was still planned for it comes off the
+ * plans, and its order is cancelled — unless it already left ('kept').
+ */
+export async function cancelEvent(id: string, reason: string): Promise<ActionResult<{ order: 'none' | 'cancelled' | 'kept' }>> {
   if (!reason.trim()) return { ok: false, error: 'events_cancel_reason' };
   const supabase = createClient();
-  const { error } = await supabase.from('events').update({ stage: 'cancelled', cancel_reason: reason.trim() }).eq('id', id);
+  const { data, error } = await supabase.rpc('event_cancel', { p_event_id: id, p_reason: reason.trim() });
   if (error) return fail(error);
-  await supabase.from('sales_activities').delete().eq('event_id', id).eq('status', 'planned');
   revalidateEvent(id);
+  return { ok: true, data: { order: (data as 'none' | 'cancelled' | 'kept') ?? 'none' } };
+}
+
+/* ------------------------------- products -------------------------------- */
+
+const productsSchema = z
+  .array(
+    z.object({
+      product_id: uuid,
+      quantity: z.number().positive({ message: 'invalid_quantity' }).max(1_000_000),
+      note: text(500),
+    }),
+  )
+  .max(200)
+  .refine((lines) => new Set(lines.map((l) => l.product_id)).size === lines.length, { message: 'duplicate_product' });
+
+/** What we take. Once the event has an order, this changes the order's lines. */
+export async function setEventProducts(eventId: string, lines: z.input<typeof productsSchema>): Promise<ActionResult> {
+  const parsed = productsSchema.safeParse(lines);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_quantity' };
+  const supabase = createClient();
+  const { error } = await supabase.rpc('event_set_products', { p_event_id: eventId, p_lines: parsed.data });
+  if (error) return fail(error);
+  revalidateEvent(eventId);
+  return { ok: true, data: undefined };
+}
+
+/** When and how it goes — on the order too, until it has left. */
+export async function setEventDelivery(eventId: string, date: string, methodId: string): Promise<ActionResult> {
+  if (!DATE.safeParse(date).success || !uuid.safeParse(methodId).success) return { ok: false, error: 'invalid_delivery' };
+  const supabase = createClient();
+  const { error } = await supabase.rpc('event_set_delivery', { p_event_id: eventId, p_date: date, p_method_id: methodId });
+  if (error) return fail(error);
+  revalidateEvent(eventId);
+  return { ok: true, data: undefined };
+}
+
+const returnsSchema = z
+  .array(
+    z.object({
+      product_id: uuid,
+      back_quantity: z.number().min(0).max(1_000_000),
+      discarded_quantity: z.number().min(0).max(1_000_000),
+    }),
+  )
+  .max(200);
+
+/** Per product: what came back in good condition, and what was thrown away. Recorded only. */
+export async function saveReturns(eventId: string, rows: z.input<typeof returnsSchema>): Promise<ActionResult> {
+  const parsed = returnsSchema.safeParse(rows);
+  if (!parsed.success || !uuid.safeParse(eventId).success) return { ok: false, error: 'invalid_quantity' };
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase.from('event_returns').upsert(
+    parsed.data.map((r) => ({ ...r, event_id: eventId, updated_by: user?.id ?? null })),
+    { onConflict: 'event_id,product_id' },
+  );
+  if (error) return fail(error);
+  revalidateEvent(eventId);
   return { ok: true, data: undefined };
 }
 

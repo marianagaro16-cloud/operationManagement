@@ -41,6 +41,37 @@ export interface EventRow {
   owner_id: string | null;
   owner_name: string | null;
   description: string | null;
+  /** When what we take goes; null until chosen: the day before the start. */
+  delivery_date: string | null;
+  delivery_method_id: string | null;
+  order_id: string | null;
+}
+
+/** The order made from an event. */
+export interface EventOrder {
+  id: string;
+  reference: number;
+  status: 'draft' | 'confirmed' | 'cancelled';
+  ready_at: string | null;
+  shipped_at: string | null;
+  delivery_date: string;
+  delivery_method_id: string;
+}
+
+/** What we take: the event's list while it has no order, the order's lines after. */
+export interface EventProduct {
+  product_id: string;
+  quantity: number;
+  note: string | null;
+  /** What was prepared, once the order is ready; null before. */
+  prepared: number | null;
+}
+
+/** Per product, after the event. */
+export interface EventReturn {
+  product_id: string;
+  back_quantity: number;
+  discarded_quantity: number;
 }
 
 export interface EventShift {

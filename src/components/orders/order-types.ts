@@ -18,6 +18,8 @@ export const ORDER_TYPES: readonly OrderType[] = [
   'sample',
   'replacement',
   'sponsorship',
+  // Made from an event; last, since it is rarely entered by hand.
+  'event',
 ] as const;
 
 export const ORDER_TYPE_LABEL: Record<OrderType, MessageKey> = {
@@ -26,6 +28,7 @@ export const ORDER_TYPE_LABEL: Record<OrderType, MessageKey> = {
   sample: 'orders.typeSample',
   replacement: 'orders.typeReplacement',
   sponsorship: 'orders.typeSponsorship',
+  event: 'orders.typeEvent',
 };
 
 /** A filter value from a URL, or undefined when it is not a type we know. */
