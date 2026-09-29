@@ -194,6 +194,8 @@ export interface SalesActivity {
   status: ActivityStatus;
   /** About a customer or a prospect; null for a free one. */
   target: VisitTarget | null;
+  /** The event it is a task of, if any. */
+  event: { id: string; name: string } | null;
 }
 
 /** Where a salesperson's day starts and ends. */

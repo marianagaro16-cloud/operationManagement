@@ -200,7 +200,8 @@ export async function getSalesReport(month: string): Promise<SalesReport> {
 const ACTIVITY_COLUMNS = `
   id, salesperson_id, kind_id, activity_date, activity_time, activity_end, title, place, place_detail, position, status,
   customer:customers ( id, company_name, street, postal_code, city, latitude, longitude ),
-  prospect:prospects ( id, company_name, street, postal_code, city, latitude, longitude )
+  prospect:prospects ( id, company_name, street, postal_code, city, latitude, longitude ),
+  event:events ( id, name )
 `;
 
 type RawPlace = { id: string; company_name: string; street: string | null; postal_code: string | null; city: string | null; latitude: number | null; longitude: number | null };
@@ -381,6 +382,19 @@ export async function getPlanRange(salespersonId: string, from: string, to: stri
     .order('activity_time', { nullsFirst: false })
     .order('position')
     .order('created_at');
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(toActivity);
+}
+
+/** An event's tasks — its planned activities — by deadline; done ones included. */
+export async function getPlannedForEvent(eventId: string): Promise<SalesActivity[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('sales_activities')
+    .select(ACTIVITY_COLUMNS)
+    .eq('event_id', eventId)
+    .order('activity_date')
+    .order('activity_time', { nullsFirst: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map(toActivity);
 }

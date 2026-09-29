@@ -251,6 +251,11 @@ export function PlanningView({
                     {a.status === 'not_done' && <Badge tone="neutral"><X className="h-3 w-3" aria-hidden />{t('sales.visitNotDone')}</Badge>}
                   </div>
                   {a.target && a.title && <p className="text-[12px]">{a.title}</p>}
+                  {a.event && (
+                    <Link href={`/events/${a.event.id}`} className="block truncate text-[12px] text-accent hover:underline">
+                      {t('event.taskOf', { name: a.event.name })}
+                    </Link>
+                  )}
                   {where && <p className="truncate text-[12px] text-muted">{where}</p>}
                   {crossing.has(a.id) && (
                     <p className="flex items-center gap-1 text-[12px] font-medium text-warn">
@@ -834,6 +839,10 @@ function WeekGrid({
                     {a.target ? (
                       <Link href={targetHref(a.target)} className="line-clamp-2 break-words text-[12.5px] font-medium leading-snug hover:text-accent">
                         {a.target.name}
+                      </Link>
+                    ) : a.event ? (
+                      <Link href={`/events/${a.event.id}`} title={a.event.name} className="line-clamp-2 break-words text-[12.5px] font-medium leading-snug hover:text-accent">
+                        {a.title}
                       </Link>
                     ) : (
                       <p className="line-clamp-2 break-words text-[12.5px] font-medium leading-snug">{a.title}</p>

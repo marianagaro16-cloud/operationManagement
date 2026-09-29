@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, ScanSearch, Settings, Shield, Truck, UserRound, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, ScanSearch, Settings, Shield, Truck, UserRound, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -125,6 +125,10 @@ export function AppShell({
     ...(isSales(role, profile.team as Team)
       ? [{ href: '/sales', label: t('sales.navLabel'), icon: Handshake, primary: false }]
       : []),
+    // Events: fairs, markets, events with customers and our own. Same people as Sales.
+    ...(isSales(role, profile.team as Team)
+      ? [{ href: '/events', label: t('event.navLabel'), icon: PartyPopper, primary: false }]
+      : []),
     // The management area opens at power_user; its own nav filters the tabs.
     ...(atLeast(role, 'power_user')
       ? [{ href: '/admin', label: t('nav.manage'), icon: Shield, primary: false }]
@@ -134,7 +138,7 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/reminders', '/hr'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/reminders', '/hr', '/events'];
   const active = (href: string) =>
     SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
 

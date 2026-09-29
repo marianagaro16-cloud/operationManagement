@@ -466,6 +466,315 @@ export type Database = {
         }
         Relationships: []
       }
+      event_cost_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      event_costs: {
+        Row: {
+          actual_amount: number | null
+          created_at: string
+          description: string | null
+          event_id: string
+          id: string
+          planned_amount: number | null
+          type_id: string
+        }
+        Insert: {
+          actual_amount?: number | null
+          created_at?: string
+          description?: string | null
+          event_id: string
+          id?: string
+          planned_amount?: number | null
+          type_id: string
+        }
+        Update: {
+          actual_amount?: number | null
+          created_at?: string
+          description?: string | null
+          event_id?: string
+          id?: string
+          planned_amount?: number | null
+          type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_costs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_costs_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "event_cost_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_kind_tasks: {
+        Row: {
+          anchor: string
+          days: number
+          id: string
+          kind_id: string
+          sort_order: number
+          title: string
+          translations: Json
+        }
+        Insert: {
+          anchor?: string
+          days?: number
+          id?: string
+          kind_id: string
+          sort_order?: number
+          title: string
+          translations?: Json
+        }
+        Update: {
+          anchor?: string
+          days?: number
+          id?: string
+          kind_id?: string
+          sort_order?: number
+          title?: string
+          translations?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_kind_tasks_kind_id_fkey"
+            columns: ["kind_id"]
+            isOneToOne: false
+            referencedRelation: "event_kinds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_kinds: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      event_shifts: {
+        Row: {
+          created_at: string
+          end_time: string | null
+          event_id: string
+          hr_worker_id: string | null
+          id: string
+          note: string | null
+          profile_id: string | null
+          shift_date: string
+          start_time: string | null
+        }
+        Insert: {
+          created_at?: string
+          end_time?: string | null
+          event_id: string
+          hr_worker_id?: string | null
+          id?: string
+          note?: string | null
+          profile_id?: string | null
+          shift_date: string
+          start_time?: string | null
+        }
+        Update: {
+          created_at?: string
+          end_time?: string | null
+          event_id?: string
+          hr_worker_id?: string | null
+          id?: string
+          note?: string | null
+          profile_id?: string | null
+          shift_date?: string
+          start_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_shifts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_shifts_hr_worker_id_fkey"
+            columns: ["hr_worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_shifts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          cancel_reason: string | null
+          city: string | null
+          close_time: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          description: string | null
+          end_date: string
+          id: string
+          kind_id: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+          open_time: string | null
+          owner_id: string | null
+          place_name: string | null
+          postal_code: string | null
+          stage: string
+          start_date: string
+          street: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancel_reason?: string | null
+          city?: string | null
+          close_time?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          description?: string | null
+          end_date: string
+          id?: string
+          kind_id: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          open_time?: string | null
+          owner_id?: string | null
+          place_name?: string | null
+          postal_code?: string | null
+          stage?: string
+          start_date: string
+          street?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancel_reason?: string | null
+          city?: string | null
+          close_time?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          kind_id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          open_time?: string | null
+          owner_id?: string | null
+          place_name?: string | null
+          postal_code?: string | null
+          stage?: string
+          start_date?: string
+          street?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "events_kind_id_fkey"
+            columns: ["kind_id"]
+            isOneToOne: false
+            referencedRelation: "event_kinds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goods_reception_assignees: {
         Row: {
           assigned_at: string
@@ -4602,6 +4911,7 @@ export type Database = {
           created_by: string | null
           customer_id: string | null
           done_at: string | null
+          event_id: string | null
           follows_id: string | null
           id: string
           kind_id: string
@@ -4622,6 +4932,7 @@ export type Database = {
           created_by?: string | null
           customer_id?: string | null
           done_at?: string | null
+          event_id?: string | null
           follows_id?: string | null
           id?: string
           kind_id: string
@@ -4642,6 +4953,7 @@ export type Database = {
           created_by?: string | null
           customer_id?: string | null
           done_at?: string | null
+          event_id?: string | null
           follows_id?: string | null
           id?: string
           kind_id?: string
@@ -4675,6 +4987,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lot_allocation_search"
             referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "sales_activities_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "sales_activities_follows_id_fkey"
@@ -5550,6 +5869,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      event_confirm: { Args: { p_event_id: string }; Returns: number }
+      event_staff_workers: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+          team: Database["public"]["Enums"]["team"]
+        }[]
       }
       generate_order_from_template: {
         Args: { p_delivery_date: string; p_template_id: string }

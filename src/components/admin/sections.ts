@@ -128,6 +128,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       { href: '/admin/hr', label: 'hr.navLabel', permission: 'system.configure' },
       // The lists behind prospects: how we found them, why one was lost.
       { href: '/admin/sales', label: 'sales.navLabel', permission: 'system.configure' },
+      // The lists behind events: their kinds with standard tasks, and cost types.
+      { href: '/admin/events', label: 'event.navLabel', permission: 'system.configure' },
       { href: '/admin/settings', label: 'nav.settings', permission: 'system.configure' },
     ],
   },

@@ -55,7 +55,10 @@ export function TodayPlanCard({
                 {timeRange(a.activity_time, a.activity_end) ?? '—'}
               </span>
               {kind && <KindIcon icon={kind.icon} className="h-4 w-4 shrink-0 text-accent" />}
-              <span className="min-w-0 flex-1 truncate text-[13.5px]">{a.target?.name ?? a.title}</span>
+              <span className="min-w-0 flex-1 truncate text-[13.5px]">
+                {a.target?.name ?? a.title}
+                {a.event && <span className="text-[12px] text-muted"> · {a.event.name}</span>}
+              </span>
               {a.status === 'done' && <Check className="h-4 w-4 text-done" aria-label={t('sales.visitDone')} />}
               {a.status === 'not_done' && <X className="h-4 w-4 text-muted" aria-label={t('sales.visitNotDone')} />}
             </div>
