@@ -10,28 +10,26 @@ import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { Badge, Card, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteText } from '@/components/ui/note';
 import { NoteTextarea } from '@/components/ui/note-textarea';
-import { addProspectNote, loseProspect, winProspect } from '@/server/sales-actions';
-import { NOTE_KINDS, type CustomerNoteKind, type Prospect, type ProspectListEntry, type ProspectNote } from '@/types/sales';
-import { NextStep, useProspectError, useProspectLabels } from './prospect-parts';
+import { loseProspect, winProspect } from '@/server/sales-actions';
+import type { Prospect, ProspectListEntry, ProspectNote, SalesActivity } from '@/types/sales';
+import { useProspectError, useProspectLabels } from './prospect-parts';
 import { ProspectDialog, type ProspectChoices } from './prospect-dialog';
-
-const KIND_KEY = {
-  call: 'sales.kindCall',
-  visit: 'sales.kindVisit',
-  message: 'sales.kindMessage',
-  offer: 'sales.kindOffer',
-} as const;
+import { KindBadge, useKinds } from './activity-kind';
+import { NoteDialog, PlanForTargetDialog, PlannedList } from './target-plan';
 
 /** One prospect: who they are, where it stands, what is next, and every note. */
 export function ProspectView({
   prospect,
   notes,
+  planned,
   choices,
   customerTypeName,
   today,
 }: {
   prospect: Prospect;
   notes: ProspectNote[];
+  /** What is still planned with them; every open prospect has something. */
+  planned: SalesActivity[];
   choices: ProspectChoices;
   customerTypeName: string | null;
   today: string;
@@ -44,6 +42,8 @@ export function ProspectView({
   const [winning, setWinning] = useState(false);
   const [losing, setLosing] = useState(false);
   const [noting, setNoting] = useState(false);
+  const [planning, setPlanning] = useState(false);
+  const k = useKinds(choices.kinds);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const open = !prospect.closed_at;
@@ -94,12 +94,7 @@ export function ProspectView({
           )}
         </div>
 
-        {open ? (
-          <div className="mt-3 rounded-lg border border-accent/25 bg-accent/[0.04] px-3 py-2">
-            <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('sales.nextStep')}</p>
-            <NextStep step={prospect.next_step} on={prospect.next_step_on} today={today} />
-          </div>
-        ) : (
+        {open ? null : (
           <div className="mt-3 text-[12.5px] text-muted">
             {t('sales.closedOn', { date: formatDate(prospect.closed_at!, 'medium') })}
             {prospect.lost_reason_id && ` · ${labels.entry(choices.lostReasons, prospect.lost_reason_id)}`}
@@ -126,6 +121,10 @@ export function ProspectView({
         )}
         {error && <div className="mt-3"><ErrorState message={error} /></div>}
       </Card>
+
+      {open && (
+        <PlannedList planned={planned} kinds={choices.kinds} today={today} onPlan={() => setPlanning(true)} requireOne />
+      )}
 
       <Card className="mb-4 p-3.5 sm:p-4">
         <h2 className="mb-2 text-[14px] font-semibold">{t('sales.details')}</h2>
@@ -156,7 +155,7 @@ export function ProspectView({
             <li key={n.id}>
               <Card className="p-3">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
-                  <Badge tone="accent">{t(KIND_KEY[n.kind])}</Badge>
+                  <KindBadge kind={k.get(n.kind_id)} />
                   <span className="tabular font-medium text-fg">{formatDate(n.note_date, 'medium')}</span>
                   {n.author_name && <span>{t('sales.by', { name: n.author_name })}</span>}
                 </div>
@@ -170,7 +169,16 @@ export function ProspectView({
       )}
 
       {editing && <ProspectDialog prospect={prospect} choices={choices} today={today} onClose={() => setEditing(false)} />}
-      {noting && <ProspectNoteDialog prospectId={prospect.id} today={today} onClose={() => setNoting(false)} />}
+      {noting && <NoteDialog target={{ kind: 'prospect', id: prospect.id }} kinds={choices.kinds} today={today} onClose={() => setNoting(false)} />}
+      {planning && (
+        <PlanForTargetDialog
+          target={{ kind: 'prospect', id: prospect.id }}
+          salespersonId={prospect.owner_id ?? choices.viewerId}
+          kinds={choices.kinds}
+          today={today}
+          onClose={() => setPlanning(false)}
+        />
+      )}
       {losing && <LoseDialog prospectId={prospect.id} reasons={choices.lostReasons} onClose={() => setLosing(false)} />}
       <ConfirmDialog
         open={winning}
@@ -183,59 +191,6 @@ export function ProspectView({
         loading={pending}
       />
     </>
-  );
-}
-
-function ProspectNoteDialog({ prospectId, today, onClose }: { prospectId: string; today: string; onClose: () => void }) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const [kind, setKind] = useState<CustomerNoteKind>('call');
-  const [date, setDate] = useState(today);
-  const [body, setBody] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  function submit() {
-    if (!body.trim()) return;
-    setError(null);
-    startTransition(async () => {
-      const res = await addProspectNote({ prospect_id: prospectId, kind, note_date: date, body });
-      if (!res.ok) return setError(res.error);
-      router.refresh();
-      onClose();
-    });
-  }
-
-  return (
-    <Dialog
-      open
-      onClose={onClose}
-      title={t('sales.newNote')}
-      description={t('sales.notePermanent')}
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
-          <Button variant="primary" onClick={submit} loading={pending} disabled={!body.trim()}>{t('common.save')}</Button>
-        </>
-      }
-    >
-      <div className="space-y-3.5">
-        {error && <ErrorState message={error} />}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t('sales.noteKind')} htmlFor="pn-kind">
-            <Select id="pn-kind" value={kind} onChange={(e) => setKind(e.target.value as CustomerNoteKind)}>
-              {NOTE_KINDS.map((k) => <option key={k} value={k}>{t(KIND_KEY[k])}</option>)}
-            </Select>
-          </Field>
-          <Field label={t('sales.noteDate')} htmlFor="pn-date">
-            <Input id="pn-date" type="date" max={today} value={date} onChange={(e) => setDate(e.target.value)} />
-          </Field>
-        </div>
-        <Field label={t('sales.noteBody')} htmlFor="pn-body" required>
-          <NoteTextarea id="pn-body" rows={4} value={body} onChange={(e) => setBody(e.target.value)} autoFocus />
-        </Field>
-      </div>
-    </Dialog>
   );
 }
 

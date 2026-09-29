@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { getViewer } from '@/server/data';
-import { getCustomerTypes, getProspectLists, getProspect, getSalesPeople } from '@/server/sales';
+import { getActivityKinds, getCustomerTypes, getPlannedFor, getProspectLists, getProspect, getSalesPeople } from '@/server/sales';
 import { ProspectView } from '@/components/sales/prospect-view';
 import { isSales } from '@/lib/authz';
 import { businessToday } from '@/lib/datetime';
@@ -11,11 +11,13 @@ export default async function ProspectPage({ params }: { params: { id: string } 
   const viewer = await getViewer();
   if (!viewer || !isSales(viewer.role, viewer.profile.team)) redirect('/dashboard');
 
-  const [found, people, customerTypes, lists] = await Promise.all([
+  const [found, people, customerTypes, lists, kinds, planned] = await Promise.all([
     getProspect(params.id),
     getSalesPeople(),
     getCustomerTypes(),
     getProspectLists(true),
+    getActivityKinds(true),
+    getPlannedFor({ prospectId: params.id }),
   ]);
   if (!found) notFound();
 
@@ -23,7 +25,8 @@ export default async function ProspectPage({ params }: { params: { id: string } 
     <ProspectView
       prospect={found.prospect}
       notes={found.notes}
-      choices={{ people, customerTypes, ...lists, viewerId: viewer.profile.id }}
+      planned={planned}
+      choices={{ people, customerTypes, ...lists, kinds, viewerId: viewer.profile.id }}
       customerTypeName={customerTypes.find((c) => c.id === found.prospect.customer_type_id)?.name ?? null}
       today={businessToday()}
     />

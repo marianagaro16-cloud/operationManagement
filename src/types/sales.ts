@@ -1,7 +1,24 @@
 /** Sales: the customer file and its notes. Quantities and kg only — there are no prices. */
 
-export const NOTE_KINDS = ['call', 'visit', 'message', 'offer'] as const;
-export type CustomerNoteKind = (typeof NOTE_KINDS)[number];
+/** The icons a kind can wear. */
+export const KIND_ICONS = ['phone', 'calendar', 'mail', 'map-pin', 'message-circle', 'tag', 'star', 'file-text', 'circle'] as const;
+export type KindIcon = (typeof KIND_ICONS)[number];
+
+/**
+ * A kind of sales activity — call, appointment, email, visit, WhatsApp… —
+ * Admin's list, shared by the planning and the notes. 'visit' goes on the
+ * route; 'appointment' has a place; the rest are 'plain'.
+ */
+export interface ActivityKind {
+  id: string;
+  slug: string;
+  name: string;
+  translations: Record<string, { name?: string | null }>;
+  icon: KindIcon;
+  behavior: 'plain' | 'visit' | 'appointment';
+  sort_order: number;
+  is_active: boolean;
+}
 
 export interface SalesCustomerRow {
   id: string;
@@ -42,18 +59,11 @@ export interface SalesCustomerFile {
 
 export interface CustomerNote {
   id: string;
-  kind: CustomerNoteKind;
+  kind_id: string;
   note_date: string;
   body: string;
   created_at: string;
   author_name: string | null;
-}
-
-/** An open follow-up — a reminder linked to the customer, the viewer's own. */
-export interface CustomerFollowUp {
-  id: string;
-  title: string;
-  next_at: string;
 }
 
 /** A customer going quiet: late against their rhythm, ordering less, or both. */
@@ -103,8 +113,6 @@ export interface Prospect {
   interest: string | null;
   weekly_volume: string | null;
   stage: ProspectStage;
-  next_step: string | null;
-  next_step_on: string | null;
   owner_id: string | null;
   owner_name: string | null;
   lost_reason_id: string | null;
@@ -112,11 +120,13 @@ export interface Prospect {
   customer_id: string | null;
   closed_at: string | null;
   created_at: string;
+  /** The soonest activity still planned with them; null when nothing is — which needs fixing. */
+  next: { kind_id: string; date: string; time: string | null; title: string | null } | null;
 }
 
 export interface ProspectNote {
   id: string;
-  kind: CustomerNoteKind;
+  kind_id: string;
   note_date: string;
   body: string;
   created_at: string;
@@ -148,11 +158,13 @@ export interface SalesReport {
   trend: { month: string; quantity: number; kg: number }[];
 }
 
-/* --------------------------------- visits -------------------------------- */
+/* -------------------------------- planning ------------------------------- */
 
-export type VisitStatus = 'planned' | 'done' | 'not_done';
+export type ActivityStatus = 'planned' | 'done' | 'not_done';
+/** Where an appointment takes place. */
+export type AppointmentPlace = 'theirs' | 'office' | 'online' | 'other';
 
-/** Who is visited: a customer or a prospect, with where they are. */
+/** Who an activity is about: a customer or a prospect, with where they are. */
 export interface VisitTarget {
   kind: 'customer' | 'prospect';
   id: string;
@@ -164,15 +176,20 @@ export interface VisitTarget {
   longitude: number | null;
 }
 
-export interface SalesVisit {
+/** A planned sales activity: a call, an appointment, a visit… on a day, maybe at a time. */
+export interface SalesActivity {
   id: string;
-  visit_date: string;
   salesperson_id: string;
-  planned_time: string | null;
-  purpose: string | null;
+  kind_id: string;
+  activity_date: string;
+  activity_time: string | null;
+  title: string | null;
+  place: AppointmentPlace | null;
+  place_detail: string | null;
   position: number;
-  status: VisitStatus;
-  target: VisitTarget;
+  status: ActivityStatus;
+  /** About a customer or a prospect; null for a free one. */
+  target: VisitTarget | null;
 }
 
 /** Where a salesperson's day starts and ends. */

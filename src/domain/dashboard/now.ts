@@ -19,8 +19,8 @@ export type NowKind =
   | 'countsToday'
   | 'overdueReminders'
   | 'overduePersonalTasks'
-  | 'prospectStepsLate'
-  | 'prospectStepsToday'
+  | 'planLate'
+  | 'planToday'
   | 'evaluationsDue';
 
 /** late: past its moment. today: due now or today. */
@@ -45,8 +45,9 @@ export interface NowInput {
   countsToday: number;
   overdueReminders: number;
   overduePersonalTasks: number;
-  prospectStepsLate: number;
-  prospectStepsToday: number;
+  /** The viewer's planned sales activities: from before today, and still to do today. */
+  planLate: number;
+  planToday: number;
   /** Evaluations to fill in whose deadline is today. */
   evaluationsDue: number;
 }
@@ -62,10 +63,10 @@ const ORDER: NowKind[] = [
   'overdueCounts',
   'overdueReminders',
   'overduePersonalTasks',
-  'prospectStepsLate',
+  'planLate',
   'evaluationsDue',
   'countsToday',
-  'prospectStepsToday',
+  'planToday',
   'blockedActivities',
 ];
 
@@ -77,10 +78,10 @@ export function buildNowItems(input: NowInput): NowItem[] {
     { kind: 'overdueCounts', level: 'late', count: input.overdueCounts, href: '/inventory' },
     { kind: 'overdueReminders', level: 'late', count: input.overdueReminders, href: '/reminders' },
     { kind: 'overduePersonalTasks', level: 'late', count: input.overduePersonalTasks, href: '/reminders/tasks' },
-    { kind: 'prospectStepsLate', level: 'late', count: input.prospectStepsLate, href: '/sales?tab=prospects' },
+    { kind: 'planLate', level: 'late', count: input.planLate, href: '/sales?tab=planning' },
     { kind: 'evaluationsDue', level: 'today', count: input.evaluationsDue, href: '/evaluations' },
     { kind: 'countsToday', level: 'today', count: input.countsToday, href: '/inventory' },
-    { kind: 'prospectStepsToday', level: 'today', count: input.prospectStepsToday, href: '/sales?tab=prospects' },
+    { kind: 'planToday', level: 'today', count: input.planToday, href: '/sales?tab=planning' },
     // Blocked is not late — it waits on something else — but it needs eyes.
     { kind: 'blockedActivities', level: 'today', count: input.blockedActivities, href: '#blocked' },
   ];

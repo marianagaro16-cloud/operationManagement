@@ -8,8 +8,9 @@ import { Dialog } from '@/components/ui/dialog';
 import { ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { saveProspect, type ProspectInput } from '@/server/sales-actions';
-import { OPEN_STAGES, type Prospect, type ProspectListEntry } from '@/types/sales';
+import { OPEN_STAGES, type ActivityKind, type Prospect, type ProspectListEntry } from '@/types/sales';
 import { useProspectError, useProspectLabels } from './prospect-parts';
+import { PlanFields, emptyPlan, toPlanInput, type PlanDraft } from './plan-fields';
 
 export interface ProspectChoices {
   people: { id: string; name: string }[];
@@ -17,11 +18,16 @@ export interface ProspectChoices {
   /** Admin's lists, inactive entries included so an old choice still reads. */
   sources: ProspectListEntry[];
   lostReasons: ProspectListEntry[];
+  /** The kinds of activity, for planning the first one. */
+  kinds: ActivityKind[];
   /** The viewer, responsible by default when they are in sales. */
   viewerId: string;
 }
 
-/** Create a prospect, or change an open one: details, stage and the next step. */
+/**
+ * Create a prospect — with its first planned activity, since every open
+ * prospect has something planned — or change an open one's details and stage.
+ */
 export function ProspectDialog({
   prospect,
   choices,
@@ -53,24 +59,24 @@ export function ProspectDialog({
           interest: prospect.interest,
           weekly_volume: prospect.weekly_volume,
           stage: prospect.stage as ProspectInput['stage'],
-          next_step: prospect.next_step ?? '',
-          next_step_on: prospect.next_step_on ?? today,
           owner_id: prospect.owner_id ?? defaultOwner,
         }
-      : { company_name: '', stage: 'new', next_step: '', next_step_on: today, owner_id: defaultOwner },
+      : { company_name: '', stage: 'new', owner_id: defaultOwner },
   );
+  const [first, setFirst] = useState<PlanDraft>(emptyPlan(today, choices.kinds));
+  const firstPlan = prospect ? null : toPlanInput(first, choices.kinds);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const set = (patch: Partial<ProspectInput>) => setForm((f) => ({ ...f, ...patch }));
   const text = (key: keyof ProspectInput) => (form[key] as string | null | undefined) ?? '';
-  const ready = form.company_name.trim() && form.next_step.trim() && form.next_step_on && form.owner_id;
+  const ready = form.company_name.trim() && form.owner_id && (prospect || firstPlan);
 
   function submit() {
     if (!ready) return;
     setError(null);
     startTransition(async () => {
-      const res = await saveProspect(form, prospect?.id);
+      const res = await saveProspect(form, prospect?.id, firstPlan ?? undefined);
       if (!res.ok) return setError(errorText(res.error));
       onClose();
       if (!prospect) router.push(`/sales/prospects/${res.data.id}`);
@@ -111,22 +117,12 @@ export function ProspectDialog({
           </Field>
         </div>
 
-        <div className="rounded-lg border border-accent/25 bg-accent/[0.04] p-3">
-          <div className="grid grid-cols-[1fr_auto] gap-3">
-            <Field label={t('sales.nextStep')} htmlFor="p-next" required>
-              <Input
-                id="p-next"
-                placeholder={t('sales.nextStepPlaceholder')}
-                value={form.next_step}
-                onChange={(e) => set({ next_step: e.target.value })}
-              />
-            </Field>
-            <Field label={t('sales.nextStepOn')} htmlFor="p-next-on" required>
-              <Input id="p-next-on" type="date" value={form.next_step_on} onChange={(e) => set({ next_step_on: e.target.value })} />
-            </Field>
+        {!prospect && (
+          <div className="rounded-lg border border-accent/25 bg-accent/[0.04] p-3">
+            <p className="mb-2 text-[12.5px] font-medium">{t('sales.firstActivity')}</p>
+            <PlanFields draft={first} onChange={setFirst} kinds={choices.kinds} today={today} idPrefix="first" />
           </div>
-          <p className="mt-1.5 text-[12px] text-muted">{t('sales.nextStepHint')}</p>
-        </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('sales.contactName')} htmlFor="p-contact">

@@ -1,7 +1,10 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { getRouteOrigin } from './route';
-import type { CustomerFollowUp, CustomerNote, DayEnds, Prospect, ProspectListEntry, ProspectNote, SalesReport, SalesVisit, StartPoint, VisitTarget, QuietCustomer, SalesCustomerFile, SalesCustomerRow } from '@/types/sales';
+import type {
+  ActivityKind, CustomerNote, DayEnds, Prospect, ProspectListEntry, ProspectNote, QuietCustomer, SalesActivity,
+  SalesCustomerFile, SalesCustomerRow, SalesReport, StartPoint, VisitTarget,
+} from '@/types/sales';
 
 /*
  * Sales reads. The database decides who is sales (is_sales()): the list and
@@ -19,26 +22,21 @@ export async function getSalesCustomers(): Promise<SalesCustomerRow[]> {
 export interface CustomerFileView {
   file: SalesCustomerFile;
   notes: CustomerNote[];
-  followUps: CustomerFollowUp[];
+  /** What is planned with this customer, soonest first. */
+  planned: SalesActivity[];
 }
 
 export async function getCustomerFile(customerId: string): Promise<CustomerFileView | null> {
   const supabase = createClient();
-  const [{ data: file, error }, { data: notes, error: notesError }, { data: followUps }] = await Promise.all([
+  const [{ data: file, error }, { data: notes, error: notesError }, planned] = await Promise.all([
     supabase.rpc('sales_customer_file', { p_customer_id: customerId }),
     supabase
       .from('customer_notes')
-      .select('id, kind, note_date, body, created_at, author:profiles!customer_notes_created_by_fkey ( name, email )')
+      .select('id, kind_id, note_date, body, created_at, author:profiles!customer_notes_created_by_fkey ( name, email )')
       .eq('customer_id', customerId)
       .order('note_date', { ascending: false })
       .order('created_at', { ascending: false }),
-    // Reminders are private to their participants: these are the viewer's own.
-    supabase
-      .from('reminders')
-      .select('id, title, next_at')
-      .eq('customer_id', customerId)
-      .eq('status', 'open')
-      .order('next_at'),
+    getPlannedFor({ customerId }),
   ]);
   if (error) return null;
   if (!file) return null;
@@ -51,7 +49,7 @@ export async function getCustomerFile(customerId: string): Promise<CustomerFileV
       ...n,
       author_name: author ? author.name || author.email : null,
     })),
-    followUps: (followUps ?? []) as CustomerFollowUp[],
+    planned,
   };
 }
 
@@ -65,7 +63,7 @@ export async function getQuietCustomers(): Promise<QuietCustomer[]> {
 
 const PROSPECT_COLUMNS = `
   id, company_name, contact_name, phone, email, street, postal_code, city, customer_type_id,
-  source_id, interest, weekly_volume, stage, next_step, next_step_on, owner_id,
+  source_id, interest, weekly_volume, stage, owner_id,
   lost_reason_id, lost_note, customer_id, closed_at, created_at,
   owner:profiles!prospects_owner_id_fkey ( name, email )
 `;
@@ -73,21 +71,51 @@ const PROSPECT_COLUMNS = `
 type Person = { name: string | null; email: string } | null;
 const personName = (p: Person) => (p ? p.name || p.email : null);
 
-function toProspect(row: unknown): Prospect {
-  const { owner, ...p } = row as Omit<Prospect, 'owner_name'> & { owner: Person };
+function toProspect(row: unknown): Omit<Prospect, 'next'> {
+  const { owner, ...p } = row as Omit<Prospect, 'owner_name' | 'next'> & { owner: Person };
   return { ...p, owner_name: personName(owner) };
 }
 
-/** Every prospect, the soonest next step first. Closed ones last. */
+/** Each open prospect's soonest planned activity. */
+async function nextPlanned(prospectIds: string[]): Promise<Map<string, Prospect['next']>> {
+  const next = new Map<string, Prospect['next']>();
+  if (prospectIds.length === 0) return next;
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('sales_activities')
+    .select('prospect_id, kind_id, activity_date, activity_time, title')
+    .in('prospect_id', prospectIds)
+    .eq('status', 'planned')
+    .order('activity_date')
+    .order('activity_time', { nullsFirst: false });
+  for (const a of data ?? []) {
+    if (a.prospect_id && !next.has(a.prospect_id)) {
+      next.set(a.prospect_id, { kind_id: a.kind_id, date: a.activity_date, time: a.activity_time, title: a.title });
+    }
+  }
+  return next;
+}
+
+/** Every prospect with its next planned activity, the soonest first; closed ones last. */
 export async function getProspects(): Promise<Prospect[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('prospects')
     .select(PROSPECT_COLUMNS)
-    .order('next_step_on', { ascending: true, nullsFirst: false })
-    .order('closed_at', { ascending: false, nullsFirst: true });
+    .order('closed_at', { ascending: false, nullsFirst: true })
+    .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
-  return (data ?? []).map(toProspect);
+  const prospects = (data ?? []).map(toProspect);
+  const next = await nextPlanned(prospects.filter((p) => !p.closed_at).map((p) => p.id));
+  return prospects
+    .map((p) => ({ ...p, next: next.get(p.id) ?? null }))
+    .sort((a, b) => {
+      if (!!a.closed_at !== !!b.closed_at) return a.closed_at ? 1 : -1;
+      // Nothing planned first — it needs a plan — then the soonest.
+      const ka = a.next ? a.next.date + (a.next.time ?? '99') : '';
+      const kb = b.next ? b.next.date + (b.next.time ?? '99') : '';
+      return ka.localeCompare(kb);
+    });
 }
 
 export async function getProspect(id: string): Promise<{ prospect: Prospect; notes: ProspectNote[] } | null> {
@@ -96,7 +124,7 @@ export async function getProspect(id: string): Promise<{ prospect: Prospect; not
     supabase.from('prospects').select(PROSPECT_COLUMNS).eq('id', id).maybeSingle(),
     supabase
       .from('prospect_notes')
-      .select('id, kind, note_date, body, created_at, author:profiles!prospect_notes_created_by_fkey ( name, email )')
+      .select('id, kind_id, note_date, body, created_at, author:profiles!prospect_notes_created_by_fkey ( name, email )')
       .eq('prospect_id', id)
       .order('note_date', { ascending: false })
       .order('created_at', { ascending: false }),
@@ -104,34 +132,18 @@ export async function getProspect(id: string): Promise<{ prospect: Prospect; not
   if (!data) return null;
   if (error) throw new Error(error.message);
   return {
-    prospect: toProspect(data),
+    prospect: { ...toProspect(data), next: null },
     notes: ((notes ?? []) as unknown as (Omit<ProspectNote, 'author_name'> & { author: Person })[]).map(
       ({ author, ...n }) => ({ ...n, author_name: personName(author) }),
     ),
   };
 }
 
-/** The viewer's open prospects whose next step is today or overdue — the dashboard card. */
-export async function getMyDueProspects(today: string): Promise<Prospect[]> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
-  const { data, error } = await supabase
-    .from('prospects')
-    .select(PROSPECT_COLUMNS)
-    .eq('owner_id', user.id)
-    .not('stage', 'in', '(won,lost)')
-    .lte('next_step_on', today)
-    .order('next_step_on');
-  if (error) return [];
-  return (data ?? []).map(toProspect);
-}
-
 /** The prospect a customer was won from, if any: its contact details live there. */
 export async function getWonFrom(customerId: string): Promise<Prospect | null> {
   const supabase = createClient();
   const { data } = await supabase.from('prospects').select(PROSPECT_COLUMNS).eq('customer_id', customerId).maybeSingle();
-  return data ? toProspect(data) : null;
+  return data ? { ...toProspect(data), next: null } : null;
 }
 
 /** Who can be responsible for a prospect: the Ventas team, Admin and Owners. */
@@ -185,44 +197,103 @@ export async function getSalesReport(month: string): Promise<SalesReport> {
   return data as unknown as SalesReport;
 }
 
-const VISIT_COLUMNS = `
-  id, visit_date, salesperson_id, planned_time, purpose, position, status,
+const ACTIVITY_COLUMNS = `
+  id, salesperson_id, kind_id, activity_date, activity_time, title, place, place_detail, position, status,
   customer:customers ( id, company_name, street, postal_code, city, latitude, longitude ),
   prospect:prospects ( id, company_name, street, postal_code, city, latitude, longitude )
 `;
 
 type RawPlace = { id: string; company_name: string; street: string | null; postal_code: string | null; city: string | null; latitude: number | null; longitude: number | null };
 
-function toVisit(row: unknown): SalesVisit {
-  const { customer, prospect, ...v } = row as Omit<SalesVisit, 'target'> & { customer: RawPlace | null; prospect: RawPlace | null };
-  const place = (customer ?? prospect)!;
+function toActivity(row: unknown): SalesActivity {
+  const { customer, prospect, ...a } = row as Omit<SalesActivity, 'target'> & { customer: RawPlace | null; prospect: RawPlace | null };
+  const place = customer ?? prospect;
   return {
-    ...v,
-    target: {
-      kind: customer ? 'customer' : 'prospect',
-      id: place.id,
-      name: place.company_name,
-      street: place.street,
-      postal_code: place.postal_code,
-      city: place.city,
-      latitude: place.latitude,
-      longitude: place.longitude,
-    },
+    ...a,
+    target: place
+      ? {
+          kind: customer ? 'customer' : 'prospect',
+          id: place.id,
+          name: place.company_name,
+          street: place.street,
+          postal_code: place.postal_code,
+          city: place.city,
+          latitude: place.latitude,
+          longitude: place.longitude,
+        }
+      : null,
   };
 }
 
-/** A salesperson's visits on a day, in route order. */
-export async function getVisitDay(salespersonId: string, date: string): Promise<SalesVisit[]> {
+/** A salesperson's activities on a day: by time, then those without one; visits in route order. */
+export async function getPlanDay(salespersonId: string, date: string): Promise<SalesActivity[]> {
   const supabase = createClient();
   const { data, error } = await supabase
-    .from('sales_visits')
-    .select(VISIT_COLUMNS)
+    .from('sales_activities')
+    .select(ACTIVITY_COLUMNS)
     .eq('salesperson_id', salespersonId)
-    .eq('visit_date', date)
+    .eq('activity_date', date)
+    .order('activity_time', { nullsFirst: false })
     .order('position')
     .order('created_at');
   if (error) throw new Error(error.message);
-  return (data ?? []).map(toVisit);
+  return (data ?? []).map(toActivity);
+}
+
+/** How many activities a salesperson has on each day of a range — the week strip. */
+export async function getPlanCounts(salespersonId: string, from: string, to: string): Promise<Record<string, { planned: number; total: number }>> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('sales_activities')
+    .select('activity_date, status')
+    .eq('salesperson_id', salespersonId)
+    .gte('activity_date', from)
+    .lte('activity_date', to);
+  const counts: Record<string, { planned: number; total: number }> = {};
+  for (const a of data ?? []) {
+    const c = (counts[a.activity_date] ??= { planned: 0, total: 0 });
+    c.total++;
+    if (a.status === 'planned') c.planned++;
+  }
+  return counts;
+}
+
+/** What is still planned with a customer or a prospect, soonest first. */
+export async function getPlannedFor(target: { customerId?: string; prospectId?: string }): Promise<SalesActivity[]> {
+  const supabase = createClient();
+  let query = supabase.from('sales_activities').select(ACTIVITY_COLUMNS).eq('status', 'planned');
+  query = target.customerId ? query.eq('customer_id', target.customerId) : query.eq('prospect_id', target.prospectId!);
+  const { data, error } = await query.order('activity_date').order('activity_time', { nullsFirst: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(toActivity);
+}
+
+/** The viewer's own activities still planned from before today — late. */
+export async function countMyLateActivities(today: string): Promise<number> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 0;
+  const { count } = await supabase
+    .from('sales_activities')
+    .select('id', { count: 'exact', head: true })
+    .eq('salesperson_id', user.id)
+    .eq('status', 'planned')
+    .lt('activity_date', today);
+  return count ?? 0;
+}
+
+/** Admin's list of activity kinds, shared by the planning and the notes. */
+export async function getActivityKinds(includeInactive = false): Promise<ActivityKind[]> {
+  const supabase = createClient();
+  let query = supabase
+    .from('sales_activity_kinds')
+    .select('id, slug, name, translations, icon, behavior, sort_order, is_active')
+    .order('sort_order')
+    .order('name');
+  if (!includeInactive) query = query.eq('is_active', true);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ActivityKind[];
 }
 
 export async function getStartPoint(userId: string): Promise<StartPoint | null> {

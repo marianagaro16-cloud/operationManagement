@@ -14,9 +14,8 @@ import { getMyPendingEvaluations } from '@/server/hr-evaluations';
 import { PendingEvaluations } from '@/components/hr/pending-evaluations';
 import { getUpcomingCelebrations } from '@/server/hr-celebrations';
 import { CelebrationsCard } from '@/components/hr/celebrations-card';
-import { getDayRoutePoints, getMyDueProspects, getQuietCustomers, getVisitDay } from '@/server/sales';
-import { TodayVisitsCard } from '@/components/sales/today-visits-card';
-import { DueProspectsCard } from '@/components/sales/due-prospects-card';
+import { countMyLateActivities, getActivityKinds, getDayRoutePoints, getPlanDay, getQuietCustomers } from '@/server/sales';
+import { TodayPlanCard } from '@/components/sales/today-plan-card';
 import { QuietCustomersCard } from '@/components/sales/quiet-customers-card';
 import { getBusinessFigures } from '@/server/dashboard';
 import { BusinessFigures, Greeting, NowCard, ProgressFigures } from '@/components/dashboard/dashboard-top';
@@ -55,7 +54,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, dueProspects, todayVisits, visitPoints, business] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
@@ -69,11 +68,11 @@ export default async function DashboardPage() {
     viewer?.can('hr.manage') ? getUpcomingCelebrations() : [],
     // Customers going quiet: the Ventas team's card, not Admin's or the owners'.
     inSalesTeam ? getQuietCustomers() : [],
-    // Prospects whose next step is today or overdue, for whoever is responsible.
-    viewer ? getMyDueProspects(today) : [],
-    // The viewer's own visits today, with the route: whoever plans visits, in sales.
-    sales && viewer ? getVisitDay(viewer.profile.id, today) : [],
+    // The viewer's own sales plan today, what is still planned from before, and the route.
+    sales && viewer ? getPlanDay(viewer.profile.id, today) : [],
+    sales ? countMyLateActivities(today) : 0,
     sales && viewer ? getDayRoutePoints(viewer.profile.id, today) : null,
+    sales ? getActivityKinds(true) : [],
     // How the business is going: owners and Admin.
     owner ? getBusinessFigures(today) : null,
   ]);
@@ -100,8 +99,8 @@ export default async function DashboardPage() {
     overduePersonalTasks: (personalTasks?.open ?? []).filter(
       (task) => personalTaskPhase(task.status, task.due_date, task.due_time, nowIso) === 'overdue',
     ).length,
-    prospectStepsLate: dueProspects.filter((p) => p.next_step_on && p.next_step_on < today).length,
-    prospectStepsToday: dueProspects.filter((p) => p.next_step_on === today).length,
+    planLate,
+    planToday: todayPlan.filter((a) => a.status === 'planned').length,
     evaluationsDue: evaluations.filter((e) => e.request.deadline === today).length,
   });
 
@@ -129,8 +128,8 @@ export default async function DashboardPage() {
           activities={activities}
           prepare={{ done: orders.toPrepare.filter((o) => o.ready_at).length, total: orders.toPrepare.length }}
           counts={{ done: countsToday.filter((r) => r.status !== 'in_progress').length, total: countsToday.length }}
-          visits={sales ? { done: todayVisits.filter((v) => v.status !== 'planned').length, total: todayVisits.length } : undefined}
-          prospectSteps={sales ? dueProspects.length : undefined}
+          plan={sales ? { done: todayPlan.filter((a) => a.status !== 'planned').length, total: todayPlan.length } : undefined}
+          planLate={sales ? planLate : undefined}
         />
       )}
 
@@ -146,8 +145,7 @@ export default async function DashboardPage() {
             canManage={canManageOrders}
           />
         </Tile>
-        <Tile><TodayVisitsCard visits={todayVisits} points={visitPoints} /></Tile>
-        <Tile><DueProspectsCard prospects={dueProspects} today={today} /></Tile>
+        <Tile><TodayPlanCard activities={todayPlan} kinds={kinds} points={visitPoints} /></Tile>
         {/* Renders nothing unless a count is due or late, so it never becomes
             empty furniture people learn to scroll past. */}
         <Tile><InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} /></Tile>

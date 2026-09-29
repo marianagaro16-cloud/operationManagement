@@ -9,8 +9,8 @@ const none: NowInput = {
   countsToday: 0,
   overdueReminders: 0,
   overduePersonalTasks: 0,
-  prospectStepsLate: 0,
-  prospectStepsToday: 0,
+  planLate: 0,
+  planToday: 0,
   evaluationsDue: 0,
 };
 

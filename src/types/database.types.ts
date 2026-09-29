@@ -168,7 +168,7 @@ export type Database = {
           created_by: string | null
           customer_id: string
           id: string
-          kind: string
+          kind_id: string
           note_date: string
         }
         Insert: {
@@ -177,7 +177,7 @@ export type Database = {
           created_by?: string | null
           customer_id: string
           id?: string
-          kind: string
+          kind_id: string
           note_date: string
         }
         Update: {
@@ -186,7 +186,7 @@ export type Database = {
           created_by?: string | null
           customer_id?: string
           id?: string
-          kind?: string
+          kind_id?: string
           note_date?: string
         }
         Relationships: [
@@ -210,6 +210,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lot_allocation_search"
             referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "customer_notes_kind_id_fkey"
+            columns: ["kind_id"]
+            isOneToOne: false
+            referencedRelation: "sales_activity_kinds"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3818,7 +3825,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
-          kind: string
+          kind_id: string
           note_date: string
           prospect_id: string
         }
@@ -3827,7 +3834,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
-          kind: string
+          kind_id: string
           note_date: string
           prospect_id: string
         }
@@ -3836,7 +3843,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
-          kind?: string
+          kind_id?: string
           note_date?: string
           prospect_id?: string
         }
@@ -3846,6 +3853,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospect_notes_kind_id_fkey"
+            columns: ["kind_id"]
+            isOneToOne: false
+            referencedRelation: "sales_activity_kinds"
             referencedColumns: ["id"]
           },
           {
@@ -3907,9 +3921,6 @@ export type Database = {
           longitude: number | null
           lost_note: string | null
           lost_reason_id: string | null
-          next_step: string | null
-          next_step_notified_on: string | null
-          next_step_on: string | null
           owner_id: string | null
           phone: string | null
           postal_code: string | null
@@ -3935,9 +3946,6 @@ export type Database = {
           longitude?: number | null
           lost_note?: string | null
           lost_reason_id?: string | null
-          next_step?: string | null
-          next_step_notified_on?: string | null
-          next_step_on?: string | null
           owner_id?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -3963,9 +3971,6 @@ export type Database = {
           longitude?: number | null
           lost_note?: string | null
           lost_reason_id?: string | null
-          next_step?: string | null
-          next_step_notified_on?: string | null
-          next_step_on?: string | null
           owner_id?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -4541,6 +4546,181 @@ export type Database = {
           },
         ]
       }
+      sales_activities: {
+        Row: {
+          activity_date: string
+          activity_time: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          done_at: string | null
+          follows_id: string | null
+          id: string
+          kind_id: string
+          place: string | null
+          place_detail: string | null
+          position: number
+          prospect_id: string | null
+          reminded_at: string | null
+          salesperson_id: string
+          status: string
+          title: string | null
+        }
+        Insert: {
+          activity_date: string
+          activity_time?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          done_at?: string | null
+          follows_id?: string | null
+          id?: string
+          kind_id: string
+          place?: string | null
+          place_detail?: string | null
+          position?: number
+          prospect_id?: string | null
+          reminded_at?: string | null
+          salesperson_id: string
+          status?: string
+          title?: string | null
+        }
+        Update: {
+          activity_date?: string
+          activity_time?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          done_at?: string | null
+          follows_id?: string | null
+          id?: string
+          kind_id?: string
+          place?: string | null
+          place_detail?: string | null
+          position?: number
+          prospect_id?: string | null
+          reminded_at?: string | null
+          salesperson_id?: string
+          status?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_activities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_activities_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_activities_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "sales_activities_follows_id_fkey"
+            columns: ["follows_id"]
+            isOneToOne: false
+            referencedRelation: "sales_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_activities_kind_id_fkey"
+            columns: ["kind_id"]
+            isOneToOne: false
+            referencedRelation: "sales_activity_kinds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_activities_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_activities_salesperson_id_fkey"
+            columns: ["salesperson_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_activity_kinds: {
+        Row: {
+          behavior: string
+          created_at: string
+          icon: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          behavior?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          behavior?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sales_plan_notices: {
+        Row: {
+          day: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          day: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          day?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_plan_notices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_quiet_notices: {
         Row: {
           sent_at: string
@@ -4627,87 +4807,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sales_visit_days_salesperson_id_fkey"
-            columns: ["salesperson_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sales_visits: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          customer_id: string | null
-          done_at: string | null
-          id: string
-          planned_time: string | null
-          position: number
-          prospect_id: string | null
-          purpose: string | null
-          salesperson_id: string
-          status: string
-          visit_date: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          customer_id?: string | null
-          done_at?: string | null
-          id?: string
-          planned_time?: string | null
-          position?: number
-          prospect_id?: string | null
-          purpose?: string | null
-          salesperson_id: string
-          status?: string
-          visit_date: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          customer_id?: string | null
-          done_at?: string | null
-          id?: string
-          planned_time?: string | null
-          position?: number
-          prospect_id?: string | null
-          purpose?: string | null
-          salesperson_id?: string
-          status?: string
-          visit_date?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sales_visits_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_visits_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_visits_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "lot_allocation_search"
-            referencedColumns: ["customer_id"]
-          },
-          {
-            foreignKeyName: "sales_visits_prospect_id_fkey"
-            columns: ["prospect_id"]
-            isOneToOne: false
-            referencedRelation: "prospects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_visits_salesperson_id_fkey"
             columns: ["salesperson_id"]
             isOneToOne: false
             referencedRelation: "profiles"

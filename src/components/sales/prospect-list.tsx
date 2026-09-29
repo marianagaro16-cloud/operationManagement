@@ -7,7 +7,7 @@ import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState } from '@/components/ui/primitives';
 import { OPEN_STAGES, type Prospect } from '@/types/sales';
-import { NextStep, useProspectLabels } from './prospect-parts';
+import { NextPlanned, useProspectLabels } from './prospect-parts';
 import { ProspectDialog, type ProspectChoices } from './prospect-dialog';
 
 /** Open prospects by stage, soonest next step first; the closed ones after. */
@@ -45,7 +45,7 @@ export function ProspectList({
             <span>{t('sales.closedOn', { date: formatDate(p.closed_at, 'medium') })}</span>
           </span>
         ) : (
-          <NextStep step={p.next_step} on={p.next_step_on} today={today} />
+          <NextPlanned next={p.next} kinds={choices.kinds} today={today} />
         )}
       </span>
       {p.owner_name && !p.closed_at && (

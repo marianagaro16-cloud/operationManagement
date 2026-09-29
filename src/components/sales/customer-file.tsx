@@ -1,47 +1,45 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, BellRing, Plus } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
-import { Dialog } from '@/components/ui/dialog';
-import { Badge, Card, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { Badge, Card, EmptyState } from '@/components/ui/primitives';
 import { NoteText } from '@/components/ui/note';
-import { NoteTextarea } from '@/components/ui/note-textarea';
-import { addCustomerNote } from '@/server/sales-actions';
-import { NOTE_KINDS, type Amount, type CustomerNoteKind } from '@/types/sales';
+import { KindBadge, useKinds } from './activity-kind';
+import { NoteDialog, PlanForTargetDialog, PlannedList } from './target-plan';
+import type { ActivityKind, Amount } from '@/types/sales';
 import type { CustomerFileView } from '@/server/sales';
-
-const KIND_KEY = {
-  call: 'sales.kindCall',
-  visit: 'sales.kindVisit',
-  message: 'sales.kindMessage',
-  offer: 'sales.kindOffer',
-} as const;
 
 const number = (n: number, digits = 0) =>
   new Intl.NumberFormat('de-CH', { maximumFractionDigits: digits }).format(Number(n));
 
 /**
  * One customer as sales sees them: how they order, what they buy, what went
- * wrong, and the notes of every call and visit — with follow-ups.
+ * wrong, the notes of every call and visit, and what is planned with them.
  */
 export function CustomerFile({
   view,
   wonFromId,
+  kinds,
+  viewerId,
   today,
 }: {
   view: CustomerFileView;
   /** The prospect this customer was won from: its contact details live there. */
   wonFromId: string | null;
+  kinds: ActivityKind[];
+  /** Who plans from here: the viewer. */
+  viewerId: string;
   today: string;
 }) {
   const { t, formatDate } = useI18n();
-  const { file, notes, followUps } = view;
+  const k = useKinds(kinds);
+  const { file, notes, planned } = view;
   const { customer, orders } = file;
   const [adding, setAdding] = useState(false);
+  const [planning, setPlanning] = useState(false);
 
   const address = [customer.street, [customer.postal_code, customer.city].filter(Boolean).join(' ')]
     .filter(Boolean)
@@ -161,22 +159,7 @@ export function CustomerFile({
         </Button>
       </div>
 
-      {followUps.length > 0 && (
-        <Card className="mb-3 p-3">
-          <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('sales.followUps')}</p>
-          <ul className="space-y-1">
-            {followUps.map((f) => (
-              <li key={f.id}>
-                <Link href={`/reminders/${f.id}`} className="flex items-center gap-2 text-[12.5px] hover:text-accent">
-                  <BellRing className="h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
-                  <span className="tabular">{formatDate(f.next_at, 'weekday')}</span>
-                  <span className="truncate text-muted">{f.title}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+      <PlannedList planned={planned} kinds={kinds} today={today} onPlan={() => setPlanning(true)} />
 
       {notes.length === 0 ? (
         <EmptyState title={t('sales.noNotes')} />
@@ -186,7 +169,7 @@ export function CustomerFile({
             <li key={n.id}>
               <Card className="p-3">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
-                  <Badge tone="accent">{t(KIND_KEY[n.kind])}</Badge>
+                  <KindBadge kind={k.get(n.kind_id)} />
                   <span className="tabular font-medium text-fg">{formatDate(n.note_date, 'medium')}</span>
                   {n.author_name && <span>{t('sales.by', { name: n.author_name })}</span>}
                 </div>
@@ -199,7 +182,16 @@ export function CustomerFile({
         </ul>
       )}
 
-      {adding && <NoteDialog customerId={customer.id} today={today} onClose={() => setAdding(false)} />}
+      {adding && <NoteDialog target={{ kind: 'customer', id: customer.id }} kinds={kinds} today={today} onClose={() => setAdding(false)} />}
+      {planning && (
+        <PlanForTargetDialog
+          target={{ kind: 'customer', id: customer.id }}
+          salespersonId={viewerId}
+          kinds={kinds}
+          today={today}
+          onClose={() => setPlanning(false)}
+        />
+      )}
     </>
   );
 }
@@ -232,73 +224,5 @@ function PeriodCompare({ now, before }: { now: Amount; before: Amount }) {
         {qtyChange ? t('sales.vsPrev30', { change: qtyChange }) : t('sales.noPrev')}
       </p>
     </div>
-  );
-}
-
-function NoteDialog({ customerId, today, onClose }: { customerId: string; today: string; onClose: () => void }) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const [kind, setKind] = useState<CustomerNoteKind>('call');
-  const [date, setDate] = useState(today);
-  const [body, setBody] = useState('');
-  const [followUp, setFollowUp] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  function submit() {
-    if (!body.trim()) return;
-    setError(null);
-    startTransition(async () => {
-      const res = await addCustomerNote({
-        customer_id: customerId,
-        kind,
-        note_date: date,
-        body,
-        follow_up_on: followUp || null,
-      });
-      if (!res.ok) return setError(res.error);
-      router.refresh();
-      if (res.data.followUp === 'failed') return setError(t('sales.followUpFailed'));
-      onClose();
-    });
-  }
-
-  return (
-    <Dialog
-      open
-      onClose={onClose}
-      title={t('sales.newNote')}
-      description={t('sales.notePermanent')}
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
-          <Button variant="primary" onClick={submit} loading={pending} disabled={!body.trim()}>
-            {t('common.save')}
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-3.5">
-        {error && <ErrorState message={error} />}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t('sales.noteKind')} htmlFor="note-kind">
-            <Select id="note-kind" value={kind} onChange={(e) => setKind(e.target.value as CustomerNoteKind)}>
-              {NOTE_KINDS.map((k) => (
-                <option key={k} value={k}>{t(KIND_KEY[k])}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label={t('sales.noteDate')} htmlFor="note-date">
-            <Input id="note-date" type="date" max={today} value={date} onChange={(e) => setDate(e.target.value)} />
-          </Field>
-        </div>
-        <Field label={t('sales.noteBody')} htmlFor="note-body" required>
-          <NoteTextarea id="note-body" rows={4} value={body} onChange={(e) => setBody(e.target.value)} autoFocus />
-        </Field>
-        <Field label={t('sales.followUp')} hint={t('sales.followUpHint')} htmlFor="note-follow">
-          <Input id="note-follow" type="date" min={today} value={followUp} onChange={(e) => setFollowUp(e.target.value)} className="max-w-48" />
-        </Field>
-      </div>
-    </Dialog>
   );
 }

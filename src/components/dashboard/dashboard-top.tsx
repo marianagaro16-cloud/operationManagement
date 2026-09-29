@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { DateTime } from 'luxon';
 import {
-  AlertTriangle, ArrowDownRight, ArrowUpRight, Ban, Bell, Boxes, CheckCircle2, ChevronRight, ClipboardCheck,
+  AlertTriangle, ArrowDownRight, ArrowUpRight, Ban, Bell, Boxes, CalendarCheck, CheckCircle2, ChevronRight, ClipboardCheck,
   ClipboardList, ListTodo, MapPin, Package, Target, TrendingUp, Zap,
 } from 'lucide-react';
 import { useI18n } from '@/i18n';
@@ -87,8 +87,8 @@ const NOW_ICON: Record<NowKind, typeof Zap> = {
   countsToday: Boxes,
   overdueReminders: Bell,
   overduePersonalTasks: ListTodo,
-  prospectStepsLate: Target,
-  prospectStepsToday: Target,
+  planLate: CalendarCheck,
+  planToday: CalendarCheck,
   evaluationsDue: ClipboardCheck,
 };
 
@@ -214,15 +214,15 @@ export function ProgressFigures({
   activities,
   prepare,
   counts,
-  visits,
-  prospectSteps,
+  plan,
+  planLate,
 }: {
   activities: Count;
   prepare: Count;
   counts: Count;
-  /** Sales people: today's visits, and prospect steps due. */
-  visits?: Count;
-  prospectSteps?: number;
+  /** Sales people: today's plan, and what is still planned from before. */
+  plan?: Count;
+  planLate?: number;
 }) {
   const { t } = useI18n();
   const count = (key: string, icon: ReactNode, label: string, c: Count, href: string, hint: string): Figure => ({
@@ -232,15 +232,15 @@ export function ProgressFigures({
     activities.total > 0 && count('activities', <CheckCircle2 className="h-4 w-4" aria-hidden />, t('dashboard.streamTasks'), activities, '#today', t('dashboard.figDone')),
     prepare.total > 0 && count('prepare', <ClipboardList className="h-4 w-4" aria-hidden />, t('dashboard.streamPrepare'), prepare, '/orders?tab=to_prepare', t('dashboard.figReady')),
     counts.total > 0 && count('counts', <Boxes className="h-4 w-4" aria-hidden />, t('dashboard.streamCounts'), counts, '/inventory', t('dashboard.figDone')),
-    visits && visits.total > 0 && count('visits', <MapPin className="h-4 w-4" aria-hidden />, t('sales.visitsToday'), visits, '/sales?tab=visits', t('dashboard.figDone')),
-    prospectSteps !== undefined && prospectSteps > 0 && {
-      key: 'prospects',
-      icon: <Target className="h-4 w-4" aria-hidden />,
-      label: t('sales.dueTitle'),
-      value: String(prospectSteps),
-      hint: t('dashboard.figProspectsHint'),
-      href: '/sales?tab=prospects',
-      tone: 'neutral' as const,
+    plan && plan.total > 0 && count('plan', <CalendarCheck className="h-4 w-4" aria-hidden />, t('sales.planToday'), plan, '/sales?tab=planning', t('dashboard.figDone')),
+    planLate !== undefined && planLate > 0 && {
+      key: 'planLate',
+      icon: <AlertTriangle className="h-4 w-4" aria-hidden />,
+      label: t('dashboard.now_planLate'),
+      value: String(planLate),
+      hint: t('dashboard.figPlanLateHint'),
+      href: '/sales?tab=planning',
+      tone: 'late' as const,
     },
   ].filter(Boolean) as Figure[];
   return <FigureRow figures={figures} />;

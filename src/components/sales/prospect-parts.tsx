@@ -2,7 +2,9 @@
 
 import { useI18n } from '@/i18n';
 import { localizedName } from '@/lib/localized-content';
-import type { ProspectListEntry, ProspectStage } from '@/types/sales';
+import { AlertTriangle } from 'lucide-react';
+import { KindIcon, useKinds } from './activity-kind';
+import type { ActivityKind, Prospect, ProspectListEntry, ProspectStage } from '@/types/sales';
 
 /* Names for the prospect vocabulary, and the next step's urgency. */
 
@@ -31,8 +33,7 @@ export function useProspectError() {
   const { t } = useI18n();
   return (error: string) => {
     switch (error) {
-      case 'next_step_required':
-      case 'prospects_open_has_next_step': return t('sales.errNextStep');
+      case 'first_activity_required': return t('sales.errFirstActivity');
       case 'owner_required': return t('sales.errOwner');
       case 'owner_not_sales': return t('sales.errOwnerNotSales');
       case 'prospect_closed': return t('sales.errClosed');
@@ -42,19 +43,41 @@ export function useProspectError() {
   };
 }
 
-/** The next step with its date: red when overdue, highlighted today. */
-export function NextStep({ step, on, today }: { step: string | null; on: string | null; today: string }) {
+/**
+ * A prospect's next planned activity: red when overdue, highlighted today,
+ * and a warning when nothing is planned — every open prospect needs something.
+ */
+export function NextPlanned({
+  next,
+  kinds,
+  today,
+}: {
+  next: Prospect['next'];
+  kinds: ActivityKind[];
+  today: string;
+}) {
   const { t, formatDate } = useI18n();
-  if (!step || !on) return null;
-  const overdue = on < today;
-  const isToday = on === today;
+  const k = useKinds(kinds);
+  if (!next) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[12px] font-medium text-late">
+        <AlertTriangle className="h-3 w-3" aria-hidden />
+        {t('sales.planNothing')}
+      </span>
+    );
+  }
+  const overdue = next.date < today;
+  const isToday = next.date === today;
+  const kind = k.get(next.kind_id);
   return (
-    <span className="block truncate text-[12px]">
+    <span className="flex min-w-0 items-center gap-1.5 text-[12px]">
+      {kind && <KindIcon icon={kind.icon} className="h-3 w-3 shrink-0 text-accent" />}
       <span className={overdue ? 'font-semibold text-late' : isToday ? 'font-semibold text-accent' : 'text-muted'}>
         {overdue ? `${t('sales.overdue')} · ` : ''}
-        {isToday ? t('common.today') : formatDate(on, 'weekday')}
+        {isToday ? t('common.today') : formatDate(next.date, 'weekday')}
+        {next.time && ` ${next.time.slice(0, 5)}`}
       </span>
-      <span className="text-muted"> · {step}</span>
+      <span className="truncate text-muted">· {k.name(next.kind_id)}{next.title ? ` · ${next.title}` : ''}</span>
     </span>
   );
 }
