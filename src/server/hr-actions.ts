@@ -240,6 +240,8 @@ export async function saveNoteType(input: z.input<typeof noteTypeSchema>, id?: s
 
 const criterionSchema = z.object({
   team: z.enum(TEAMS),
+  /** A template's criterion; null for the team's general ones. */
+  template_id: z.string().uuid().nullable().optional().transform((v) => v ?? null),
   name: z.string().trim().min(1, { message: 'name_required' }).max(100),
   description: optionalText,
   translations: translationsSchema,
@@ -257,6 +259,28 @@ export async function saveCriterion(input: z.input<typeof criterionSchema>, id?:
     : await supabase.from('hr_criteria').insert(parsed.data);
   if (error) return fail(error);
 
+  revalidatePath('/admin/hr');
+  revalidatePath('/hr', 'layout');
+  return { ok: true, data: undefined };
+}
+
+const templateSchema = z.object({
+  team: z.enum(TEAMS),
+  name: z.string().trim().min(1, { message: 'name_required' }).max(100),
+  translations: translationsSchema,
+  sort_order: z.number().int().default(100),
+  is_active: z.boolean().default(true),
+});
+
+/** An evaluation template: criteria for one job of a team (RLS: is_admin). */
+export async function saveEvalTemplate(input: z.input<typeof templateSchema>, id?: string): Promise<ActionResult> {
+  const parsed = templateSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_template' };
+  const supabase = createClient();
+  const { error } = id
+    ? await supabase.from('hr_eval_templates').update(parsed.data).eq('id', id)
+    : await supabase.from('hr_eval_templates').insert(parsed.data);
+  if (error) return fail(error);
   revalidatePath('/admin/hr');
   revalidatePath('/hr', 'layout');
   return { ok: true, data: undefined };

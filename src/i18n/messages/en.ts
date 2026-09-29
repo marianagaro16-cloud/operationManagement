@@ -1549,6 +1549,11 @@ export const en = {
     },
   },
   hr: {
+    template: 'Template',
+    templateGeneral: "Team's general criteria",
+    templates: 'Evaluation templates',
+    templatesHint: "Criteria for a specific job, instead of the team's general ones.",
+    newTemplate: 'New template',
     navLabel: 'Human resources',
     subtitle: 'Each worker\'s file: log, evaluations and what they did in the app.',
     newWorker: 'New worker',

@@ -3,6 +3,7 @@ import type { BusinessDate } from '@/lib/datetime';
 import { HR_BUCKET } from '@/lib/hr';
 import type {
   HrCriterion,
+  HrEvalTemplate,
   HrEvaluation,
   HrNote,
   HrNoteType,
@@ -140,7 +141,7 @@ export async function getCriteria(includeInactive = false): Promise<HrCriterion[
   const supabase = createClient();
   let query = supabase
     .from('hr_criteria')
-    .select('id, team, name, description, translations, sort_order, is_active')
+    .select('id, team, template_id, name, description, translations, sort_order, is_active')
     .order('team')
     .order('sort_order')
     .order('name');
@@ -164,4 +165,19 @@ export async function getWorkerStats(
   });
   if (error) throw new Error(error.message);
   return (data as HrStats | null) ?? null;
+}
+
+/** Evaluation templates: criteria for a job of a team. */
+export async function getEvalTemplates(includeInactive = false): Promise<HrEvalTemplate[]> {
+  const supabase = createClient();
+  let query = supabase
+    .from('hr_eval_templates')
+    .select('id, team, name, translations, sort_order, is_active')
+    .order('team')
+    .order('sort_order')
+    .order('name');
+  if (!includeInactive) query = query.eq('is_active', true);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as HrEvalTemplate[];
 }

@@ -864,6 +864,7 @@ export type Database = {
           name: string
           sort_order: number
           team: Database["public"]["Enums"]["team"]
+          template_id: string | null
           translations: Json
           updated_at: string
         }
@@ -875,6 +876,7 @@ export type Database = {
           name: string
           sort_order?: number
           team: Database["public"]["Enums"]["team"]
+          template_id?: string | null
           translations?: Json
           updated_at?: string
         }
@@ -886,10 +888,19 @@ export type Database = {
           name?: string
           sort_order?: number
           team?: Database["public"]["Enums"]["team"]
+          template_id?: string | null
           translations?: Json
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "hr_criteria_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "hr_eval_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hr_eval_answers: {
         Row: {
@@ -1070,6 +1081,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      hr_eval_templates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          team: Database["public"]["Enums"]["team"]
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          team: Database["public"]["Enums"]["team"]
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          team?: Database["public"]["Enums"]["team"]
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       hr_evaluation_scores: {
         Row: {

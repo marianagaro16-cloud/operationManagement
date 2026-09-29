@@ -1517,6 +1517,11 @@ export const de: Messages = {
     },
   },
   hr: {
+    template: 'Vorlage',
+    templateGeneral: 'Allgemein fürs Team',
+    templates: 'Bewertungsvorlagen',
+    templatesHint: 'Kriterien für eine bestimmte Stelle statt der allgemeinen des Teams.',
+    newTemplate: 'Neue Vorlage',
     navLabel: 'Personal',
     subtitle: 'Die Akte jeder Person: Protokoll, Beurteilungen und was sie in der App gemacht hat.',
     newWorker: 'Neue Person',

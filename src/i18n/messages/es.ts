@@ -1517,6 +1517,11 @@ export const es: Messages = {
     },
   },
   hr: {
+    template: 'Plantilla',
+    templateGeneral: 'General del equipo',
+    templates: 'Plantillas de evaluación',
+    templatesHint: 'Criterios para un puesto concreto, en lugar de los generales del equipo.',
+    newTemplate: 'Nueva plantilla',
     navLabel: 'Recursos humanos',
     subtitle: 'El expediente de cada trabajador: bitácora, evaluaciones y lo que hizo en la app.',
     newWorker: 'Nuevo trabajador',

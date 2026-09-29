@@ -17,7 +17,7 @@ import { localizedName, localizedNameDescription } from '@/lib/localized-content
 import { addEvaluation, addNote, recordNoteAttachment } from '@/server/hr-actions';
 import { WorkerDialog, useHrError, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
-import type { HrCriterion, HrEvalRequest, HrEvaluation, HrNoteType, HrStats, HrWorkerFile } from '@/types/hr';
+import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrNoteType, HrStats, HrWorkerFile } from '@/types/hr';
 import { RequestStatus } from './evaluation-parts';
 import { teamLabelKey } from '@/lib/authz';
 
@@ -32,6 +32,7 @@ export function WorkerFile({
   tab,
   noteTypes,
   criteria,
+  templates,
   stats,
   period,
   accounts,
@@ -43,8 +44,10 @@ export function WorkerFile({
   file: HrWorkerFile;
   tab: HrTab;
   noteTypes: HrNoteType[];
-  /** The active criteria of this worker's team. */
+  /** The active criteria of this worker's team: the general ones and every template's. */
   criteria: HrCriterion[];
+  /** The team's evaluation templates — criteria for one job. */
+  templates: HrEvalTemplate[];
   stats: HrStats | null;
   period: { from: string; to: string };
   accounts: HrAccount[];
@@ -131,7 +134,7 @@ export function WorkerFile({
 
       {tab === 'log' && <LogTab file={file} noteTypes={noteTypes} today={today} />}
       {tab === 'evaluations' && (
-        <EvaluationsTab file={file} criteria={criteria} today={today} evalRequests={evalRequests} isAdmin={isAdmin} />
+        <EvaluationsTab file={file} criteria={criteria} templates={templates} today={today} evalRequests={evalRequests} isAdmin={isAdmin} />
       )}
       {tab === 'app' && <AppTab workerId={worker.id} hasAccount={!!worker.profile_id} stats={stats} period={period} />}
 
@@ -366,12 +369,14 @@ function NoteDialog({
 function EvaluationsTab({
   file,
   criteria,
+  templates,
   today,
   evalRequests,
   isAdmin,
 }: {
   file: HrWorkerFile;
   criteria: HrCriterion[];
+  templates: HrEvalTemplate[];
   today: string;
   evalRequests: HrEvalRequest[];
   isAdmin: boolean;
@@ -487,6 +492,8 @@ function EvaluationsTab({
         <EvaluationDialog
           workerId={file.worker.id}
           criteria={criteria}
+          templates={templates}
+          position={file.worker.position}
           previous={file.evaluations[0] ?? null}
           today={today}
           onClose={() => setAdding(false)}
@@ -498,13 +505,19 @@ function EvaluationsTab({
 
 function EvaluationDialog({
   workerId,
-  criteria,
+  criteria: allCriteria,
+  templates,
+  position,
   previous,
   today,
   onClose,
 }: {
   workerId: string;
+  /** The team's general criteria and every template's. */
   criteria: HrCriterion[];
+  templates: HrEvalTemplate[];
+  /** The worker's position: a template of the same name is the likely choice. */
+  position: string | null;
   /** The last evaluation, whose goals this one checks. */
   previous: HrEvaluation | null;
   today: string;
@@ -523,7 +536,12 @@ function EvaluationDialog({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const complete = criteria.every((c) => scores[c.id]);
+  // General, or a template: the one named like the worker's position, if any.
+  const [templateId, setTemplateId] = useState<string>(
+    templates.find((tpl) => position && tpl.name.trim().toLowerCase() === position.trim().toLowerCase())?.id ?? '',
+  );
+  const criteria = allCriteria.filter((c) => (c.template_id ?? '') === templateId);
+  const complete = criteria.length > 0 && criteria.every((c) => scores[c.id]);
 
   function submit() {
     setError(null);
@@ -566,6 +584,14 @@ function EvaluationDialog({
         <Field label={t('hr.evaluatedOn')} htmlFor="eval-date">
           <Input id="eval-date" type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} />
         </Field>
+        {templates.length > 0 && (
+          <Field label={t('hr.template')} htmlFor="eval-template">
+            <Select id="eval-template" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
+              <option value="">{t('hr.templateGeneral')}</option>
+              {templates.map((tpl) => <option key={tpl.id} value={tpl.id}>{localizedName(tpl, locale)}</option>)}
+            </Select>
+          </Field>
+        )}
 
         {previous?.goals && (
           <div className="rounded-lg bg-surface-2 px-3 py-2">

@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { getUsers, getViewer } from '@/server/data';
-import { getCriteria, getWorkerFile } from '@/server/hr';
+import { getCriteria, getEvalTemplates, getWorkerFile } from '@/server/hr';
 import { SendEvaluation } from '@/components/hr/send-evaluation';
 import { displayName } from '@/lib/utils';
 import { addDays, businessToday } from '@/lib/datetime';
@@ -13,7 +13,7 @@ export default async function SendEvaluationPage({ params }: { params: { id: str
   const viewer = await getViewer();
   if (!isAdminRole(viewer?.role)) redirect('/dashboard');
 
-  const [file, criteria, users] = await Promise.all([getWorkerFile(params.id), getCriteria(), getUsers()]);
+  const [file, criteria, users, templates] = await Promise.all([getWorkerFile(params.id), getCriteria(), getUsers(), getEvalTemplates()]);
   if (!file) notFound();
   const today = businessToday();
 
@@ -21,6 +21,7 @@ export default async function SendEvaluationPage({ params }: { params: { id: str
     <SendEvaluation
       worker={file.worker}
       criteria={criteria}
+      templates={templates}
       // Nobody evaluates themselves.
       people={users
         .filter((u) => u.status === 'approved' && u.id !== file.worker.profile_id)

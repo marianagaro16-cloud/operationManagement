@@ -14,7 +14,7 @@ import { sendEvaluation } from '@/server/hr-eval-actions';
 import { useEvalError } from './evaluation-parts';
 import type { OneOffPerson } from '@/components/calendar/one-off-dialog';
 import type { Team } from '@/lib/authz';
-import type { HrCriterion, HrWorker } from '@/types/hr';
+import type { HrCriterion, HrEvalTemplate, HrWorker } from '@/types/hr';
 import { teamLabelKey } from '@/lib/authz';
 
 interface Question {
@@ -42,13 +42,16 @@ const blankQuestion = (): Question => ({
 export function SendEvaluation({
   worker,
   criteria,
+  templates,
   people,
   defaultDeadline,
   today,
 }: {
   worker: HrWorker;
-  /** Every active criterion, of every team. */
+  /** Every active criterion, of every team: general ones and every template's. */
   criteria: HrCriterion[];
+  /** The templates — criteria for one job — shown as their own groups. */
+  templates: HrEvalTemplate[];
   /** Approved accounts, the worker's own left out. */
   people: OneOffPerson[];
   defaultDeadline: string;
@@ -58,7 +61,15 @@ export function SendEvaluation({
   const router = useRouter();
   const errorText = useEvalError();
   // The worker's own team's criteria are the likely answer.
-  const [picked, setPicked] = useState<string[]>(criteria.filter((c) => c.team === worker.team).map((c) => c.id));
+  // Ticked at the start: the template named like the worker's position, else their team's general criteria.
+  const ownTemplate = templates.find(
+    (tpl) => tpl.team === worker.team && worker.position && tpl.name.trim().toLowerCase() === worker.position.trim().toLowerCase(),
+  );
+  const [picked, setPicked] = useState<string[]>(
+    criteria
+      .filter((c) => (ownTemplate ? c.template_id === ownTemplate.id : c.team === worker.team && !c.template_id))
+      .map((c) => c.id),
+  );
   const [questions, setQuestions] = useState<Question[]>([]);
   const [evaluators, setEvaluators] = useState<string[]>([]);
   const [deadline, setDeadline] = useState(defaultDeadline);
@@ -116,10 +127,19 @@ export function SendEvaluation({
               <p className="text-[12px] text-muted">{t('hrEval.criteriaHint')}</p>
             </div>
             {criteria.length === 0 && <p className="text-[12.5px] text-muted">{t('hr.noCriteria')}</p>}
-            {teams.map((team) => (
-              <div key={team} className="space-y-2">
-                <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">{teamLabel(team)}</p>
-                {criteria.filter((c) => c.team === team).map((c) => (
+            {teams.flatMap((team) => [
+              { key: team, title: teamLabel(team), list: criteria.filter((c) => c.team === team && !c.template_id) },
+              ...templates
+                .filter((tpl) => tpl.team === team)
+                .map((tpl) => ({
+                  key: tpl.id,
+                  title: `${teamLabel(team)} · ${localizedName(tpl, locale)}`,
+                  list: criteria.filter((c) => c.template_id === tpl.id),
+                })),
+            ]).filter((g) => g.list.length > 0).map((group) => (
+              <div key={group.key} className="space-y-2">
+                <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">{group.title}</p>
+                {group.list.map((c) => (
                   <Checkbox
                     key={c.id}
                     label={localizedName(c, locale)}

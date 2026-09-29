@@ -30,9 +30,21 @@ export interface HrNoteType {
   is_active: boolean;
 }
 
+/** A named set of criteria for one job of a team — e.g. "Encargado de turno de producción". */
+export interface HrEvalTemplate {
+  id: string;
+  team: Team;
+  name: string;
+  translations: HrTranslations;
+  sort_order: number;
+  is_active: boolean;
+}
+
 export interface HrCriterion {
   id: string;
   team: Team;
+  /** The template it belongs to; null for the team's general criteria. */
+  template_id: string | null;
   name: string;
   description: string | null;
   translations: HrTranslations;
