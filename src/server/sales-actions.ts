@@ -20,7 +20,7 @@ const text = (max: number) => z.string().trim().max(max).nullable().optional().t
 const KNOWN = [
   'not_authorized', 'prospect_closed', 'owner_not_sales', 'use_win_or_lose', 'lost_reason_required',
   'prospect_not_found', 'salesperson_not_sales', 'activity_recorded', 'kind_behavior_fixed',
-  'sales_activities_one_target', 'sales_activities_free_has_title',
+  'sales_activities_one_target', 'sales_activities_free_has_title', 'sales_activities_end_after_start',
 ];
 
 function fail(error: { message: string }): { ok: false; error: string } {
@@ -37,23 +37,30 @@ function revalidateSales(...paths: string[]) {
 /* ------------------------------- planning ------------------------------- */
 
 /** A planned activity as the forms send it. */
-const planSchema = z.object({
-  kind_id: z.string().uuid({ message: 'kind_required' }),
-  activity_date: DATE,
-  activity_time: TIME.nullable().optional().transform((v) => v ?? null),
-  title: text(300),
-  place: z.enum(['theirs', 'office', 'online', 'other']).nullable().optional().transform((v) => v ?? null),
-  place_detail: text(500),
+const planFields = z.object({
+    kind_id: z.string().uuid({ message: 'kind_required' }),
+    activity_date: DATE,
+    activity_time: TIME.nullable().optional().transform((v) => v ?? null),
+    activity_end: TIME.nullable().optional().transform((v) => v ?? null),
+    title: text(300),
+    place: z.enum(['theirs', 'office', 'online', 'other']).nullable().optional().transform((v) => v ?? null),
+    place_detail: text(500),
 });
+
+// Until a time only after the start, and only with one.
+const endAfterStart = (p: { activity_time: string | null; activity_end: string | null }) =>
+  !p.activity_end || (!!p.activity_time && p.activity_end.slice(0, 5) > p.activity_time.slice(0, 5));
+
+const planSchema = planFields.refine(endAfterStart, { message: 'end_before_start' });
 
 export type PlanInput = z.input<typeof planSchema>;
 
-const activitySchema = planSchema.extend({
+const activitySchema = planFields.extend({
   salesperson_id: z.string().uuid(),
   customer_id: z.string().uuid().nullable().optional().transform((v) => v ?? null),
   prospect_id: z.string().uuid().nullable().optional().transform((v) => v ?? null),
   follows_id: z.string().uuid().nullable().optional().transform((v) => v ?? null),
-});
+}).refine(endAfterStart, { message: 'end_before_start' });
 
 /** Plan an activity: at the end of the day's route when it is a visit. */
 async function insertActivity(input: z.output<typeof activitySchema>): Promise<ActionResult<{ id: string }>> {
@@ -367,6 +374,7 @@ export async function saveProspectListEntry(
 
 const kindSchema = listEntrySchema.extend({
   icon: z.enum(['phone', 'calendar', 'mail', 'map-pin', 'message-circle', 'tag', 'star', 'file-text', 'circle']),
+  default_minutes: z.number().int().min(5).max(600).default(30),
 });
 
 /**

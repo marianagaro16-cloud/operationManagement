@@ -4596,6 +4596,7 @@ export type Database = {
       sales_activities: {
         Row: {
           activity_date: string
+          activity_end: string | null
           activity_time: string | null
           created_at: string
           created_by: string | null
@@ -4615,6 +4616,7 @@ export type Database = {
         }
         Insert: {
           activity_date: string
+          activity_end?: string | null
           activity_time?: string | null
           created_at?: string
           created_by?: string | null
@@ -4634,6 +4636,7 @@ export type Database = {
         }
         Update: {
           activity_date?: string
+          activity_end?: string | null
           activity_time?: string | null
           created_at?: string
           created_by?: string | null
@@ -4707,6 +4710,7 @@ export type Database = {
         Row: {
           behavior: string
           created_at: string
+          default_minutes: number
           icon: string
           id: string
           is_active: boolean
@@ -4719,6 +4723,7 @@ export type Database = {
         Insert: {
           behavior?: string
           created_at?: string
+          default_minutes?: number
           icon?: string
           id?: string
           is_active?: boolean
@@ -4731,6 +4736,7 @@ export type Database = {
         Update: {
           behavior?: string
           created_at?: string
+          default_minutes?: number
           icon?: string
           id?: string
           is_active?: boolean

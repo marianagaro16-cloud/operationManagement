@@ -15,7 +15,7 @@ import { KindIcon } from '@/components/sales/activity-kind';
 import { KIND_ICONS, type ActivityKind, type KindIcon as KindIconName, type ProspectListEntry } from '@/types/sales';
 
 type List = 'sources' | 'lost_reasons' | 'kinds';
-type Row = ProspectListEntry & Partial<Pick<ActivityKind, 'icon' | 'behavior'>>;
+type Row = ProspectListEntry & Partial<Pick<ActivityKind, 'icon' | 'behavior' | 'default_minutes'>>;
 type Editing = { list: List; row: Row | null };
 
 /**
@@ -89,6 +89,7 @@ function EntryDialog({ editing, onClose }: { editing: Editing; onClose: () => vo
   const [sortOrder, setSortOrder] = useState(String(editing.row?.sort_order ?? 100));
   const [active, setActive] = useState(editing.row?.is_active ?? true);
   const [icon, setIcon] = useState<KindIconName>(editing.row?.icon ?? 'circle');
+  const [minutes, setMinutes] = useState(String(editing.row?.default_minutes ?? 30));
   const isKind = editing.list === 'kinds';
   // Visit and Appointment behave; they stay on.
   const fixed = !!editing.row?.behavior && editing.row.behavior !== 'plain';
@@ -106,7 +107,7 @@ function EntryDialog({ editing, onClose }: { editing: Editing; onClose: () => vo
         is_active: fixed ? true : active,
       };
       const res = editing.list === 'kinds'
-        ? await saveActivityKind({ ...entry, icon }, editing.row?.id)
+        ? await saveActivityKind({ ...entry, icon, default_minutes: Math.min(Math.max(Number(minutes) || 30, 5), 600) }, editing.row?.id)
         : await saveProspectListEntry(editing.list, entry, editing.row?.id);
       if (!res.ok) return setError(res.error === 'not_authorized' ? t('hr.errNotAuthorized') : res.error);
       onClose();
@@ -150,6 +151,20 @@ function EntryDialog({ editing, onClose }: { editing: Editing; onClose: () => vo
                 {KIND_ICONS.map((i) => <option key={i} value={i}>{i}</option>)}
               </Select>
             </div>
+          </Field>
+        )}
+        {isKind && (
+          <Field label={t('sales.kindMinutes')} hint={t('sales.kindMinutesHint')} htmlFor="sales-entry-minutes">
+            <Input
+              id="sales-entry-minutes"
+              type="number"
+              inputMode="numeric"
+              min={5}
+              max={600}
+              value={minutes}
+              onChange={(e) => setMinutes(e.target.value)}
+              className="max-w-28"
+            />
           </Field>
         )}
         {fixed ? (

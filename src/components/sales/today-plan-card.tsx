@@ -5,6 +5,7 @@ import { CalendarCheck, Check, Map, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Card } from '@/components/ui/primitives';
 import { visitRouteLinks } from '@/domain/sales/visits';
+import { timeRange } from '@/domain/sales/times';
 import { KindIcon, useKinds } from './activity-kind';
 import type { ActivityKind, DayEnds, SalesActivity, StartPoint } from '@/types/sales';
 
@@ -50,8 +51,8 @@ export function TodayPlanCard({
           const kind = k.get(a.kind_id);
           return (
             <div key={a.id} className="flex items-center gap-2.5 px-3.5 py-2">
-              <span className="w-10 shrink-0 text-[12px] font-semibold tabular text-muted">
-                {a.activity_time ? a.activity_time.slice(0, 5) : '—'}
+              <span className="w-[4.75rem] shrink-0 text-[12px] font-semibold tabular text-muted">
+                {timeRange(a.activity_time, a.activity_end) ?? '—'}
               </span>
               {kind && <KindIcon icon={kind.icon} className="h-4 w-4 shrink-0 text-accent" />}
               <span className="min-w-0 flex-1 truncate text-[13.5px]">{a.target?.name ?? a.title}</span>

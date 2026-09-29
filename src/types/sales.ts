@@ -16,6 +16,8 @@ export interface ActivityKind {
   translations: Record<string, { name?: string | null }>;
   icon: KindIcon;
   behavior: 'plain' | 'visit' | 'appointment';
+  /** How long it usually takes: fills the end in when a start is set. */
+  default_minutes: number;
   sort_order: number;
   is_active: boolean;
 }
@@ -121,7 +123,7 @@ export interface Prospect {
   closed_at: string | null;
   created_at: string;
   /** The soonest activity still planned with them; null when nothing is — which needs fixing. */
-  next: { kind_id: string; date: string; time: string | null; title: string | null } | null;
+  next: { kind_id: string; date: string; time: string | null; end: string | null; title: string | null } | null;
 }
 
 export interface ProspectNote {
@@ -183,6 +185,8 @@ export interface SalesActivity {
   kind_id: string;
   activity_date: string;
   activity_time: string | null;
+  /** Until when; only with a start. */
+  activity_end: string | null;
   title: string | null;
   place: AppointmentPlace | null;
   place_detail: string | null;

@@ -4,6 +4,7 @@ import { useI18n } from '@/i18n';
 import { localizedName } from '@/lib/localized-content';
 import { AlertTriangle } from 'lucide-react';
 import { KindIcon, useKinds } from './activity-kind';
+import { timeRange } from '@/domain/sales/times';
 import type { ActivityKind, Prospect, ProspectListEntry, ProspectStage } from '@/types/sales';
 
 /* Names for the prospect vocabulary, and the next step's urgency. */
@@ -75,7 +76,7 @@ export function NextPlanned({
       <span className={overdue ? 'font-semibold text-late' : isToday ? 'font-semibold text-accent' : 'text-muted'}>
         {overdue ? `${t('sales.overdue')} · ` : ''}
         {isToday ? t('common.today') : formatDate(next.date, 'weekday')}
-        {next.time && ` ${next.time.slice(0, 5)}`}
+        {next.time && ` ${timeRange(next.time, next.end)}`}
       </span>
       <span className="truncate text-muted">· {k.name(next.kind_id)}{next.title ? ` · ${next.title}` : ''}</span>
     </span>

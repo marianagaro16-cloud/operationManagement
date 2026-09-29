@@ -1599,6 +1599,11 @@ export const de: Messages = {
     errFileType: '{name} ist kein Foto und kein PDF.',
   },
   sales: {
+    planEnd: 'Bis',
+    planEndBefore: 'Muss nach dem Beginn liegen',
+    planOverlaps: 'Überschneidet sich mit {with}',
+    kindMinutes: 'Übliche Dauer (Min.)',
+    kindMinutesHint: 'Füllt die Endzeit aus, wenn eine Startzeit gesetzt wird.',
     tabPlanning: 'Planung',
     planAdd: 'Aktivität planen',
     planShort: 'Planen',

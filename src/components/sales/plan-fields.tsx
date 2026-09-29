@@ -4,6 +4,7 @@ import { useI18n } from '@/i18n';
 import { Field, Input, Select } from '@/components/ui/primitives';
 import { useKinds } from './activity-kind';
 import type { PlanInput } from '@/server/sales-actions';
+import { addMinutes } from '@/domain/sales/times';
 import type { ActivityKind, AppointmentPlace } from '@/types/sales';
 
 /** A plan being filled in; every field a string, as the inputs hold them. */
@@ -11,6 +12,8 @@ export interface PlanDraft {
   kind_id: string;
   activity_date: string;
   activity_time: string;
+  /** Until when; filled in from the kind's usual length when a start is set. */
+  activity_end: string;
   title: string;
   place: AppointmentPlace | '';
   place_detail: string;
@@ -20,6 +23,7 @@ export const emptyPlan = (date: string, kinds: ActivityKind[]): PlanDraft => ({
   kind_id: kinds.find((k) => k.is_active)?.id ?? '',
   activity_date: date,
   activity_time: '',
+  activity_end: '',
   title: '',
   place: '',
   place_detail: '',
@@ -34,6 +38,7 @@ export function toPlanInput(d: PlanDraft, kinds: ActivityKind[], needsTitle = fa
     kind_id: d.kind_id,
     activity_date: d.activity_date,
     activity_time: d.activity_time || null,
+    activity_end: d.activity_time && d.activity_end && d.activity_end > d.activity_time ? d.activity_end : null,
     title: d.title.trim() || null,
     place: appointment && d.place ? d.place : null,
     place_detail: appointment && d.place_detail.trim() ? d.place_detail.trim() : null,
@@ -65,13 +70,23 @@ export function PlanFields({
   const { t } = useI18n();
   const k = useKinds(kinds);
   const set = (patch: Partial<PlanDraft>) => onChange({ ...draft, ...patch });
+  // The end follows the start by the kind's usual length, until someone sets it by hand.
+  const usual = (kindId: string) => k.get(kindId)?.default_minutes ?? 30;
+  const endFor = (start: string, kindId: string) => (start ? addMinutes(start, usual(kindId)) : '');
+  const endIsUsual = !draft.activity_end || draft.activity_end === endFor(draft.activity_time, draft.kind_id);
   const appointment = k.get(draft.kind_id)?.behavior === 'appointment';
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-[1fr_auto_auto] gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_auto]">
         <Field label={t('sales.planKind')} htmlFor={`${idPrefix}-kind`}>
-          <Select id={`${idPrefix}-kind`} value={draft.kind_id} onChange={(e) => set({ kind_id: e.target.value })}>
+          <Select
+            id={`${idPrefix}-kind`}
+            value={draft.kind_id}
+            onChange={(e) =>
+              set({ kind_id: e.target.value, ...(endIsUsual ? { activity_end: endFor(draft.activity_time, e.target.value) } : {}) })
+            }
+          >
             {k.choices(draft.kind_id).map((kind) => (
               <option key={kind.id} value={kind.id}>{k.name(kind.id)}</option>
             ))}
@@ -80,8 +95,33 @@ export function PlanFields({
         <Field label={t('sales.planDate')} htmlFor={`${idPrefix}-date`}>
           <Input id={`${idPrefix}-date`} type="date" min={today} value={draft.activity_date} onChange={(e) => set({ activity_date: e.target.value })} />
         </Field>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
         <Field label={t('sales.planTime')} htmlFor={`${idPrefix}-time`}>
-          <Input id={`${idPrefix}-time`} type="time" value={draft.activity_time} onChange={(e) => set({ activity_time: e.target.value })} className="w-28" />
+          <Input
+            id={`${idPrefix}-time`}
+            type="time"
+            value={draft.activity_time}
+            onChange={(e) =>
+              set({
+                activity_time: e.target.value,
+                ...(endIsUsual || !e.target.value ? { activity_end: endFor(e.target.value, draft.kind_id) } : {}),
+              })
+            }
+          />
+        </Field>
+        <Field
+          label={t('sales.planEnd')}
+          htmlFor={`${idPrefix}-end`}
+          error={draft.activity_time && draft.activity_end && draft.activity_end <= draft.activity_time ? t('sales.planEndBefore') : undefined}
+        >
+          <Input
+            id={`${idPrefix}-end`}
+            type="time"
+            value={draft.activity_end}
+            disabled={!draft.activity_time}
+            onChange={(e) => set({ activity_end: e.target.value })}
+          />
         </Field>
       </div>
       <Field label={titleLabel ?? t('sales.planTitle')} htmlFor={`${idPrefix}-title`} required={titleRequired}>

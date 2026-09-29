@@ -3,6 +3,7 @@ import { DateTime } from 'luxon';
 import { createAdminClient } from '@/lib/supabase/server';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { sendToUser } from './push';
+import { timeRange } from '@/domain/sales/times';
 
 /*
  * Sales notices. The weekly summary of customers going quiet, for the Ventas team: Monday
@@ -73,6 +74,7 @@ type PlannedRow = {
   salesperson_id: string;
   kind_id: string;
   activity_time: string | null;
+  activity_end: string | null;
   title: string | null;
   customer: { company_name: string } | null;
   prospect: { company_name: string } | null;
@@ -93,7 +95,7 @@ export async function runPlanNotices(now = new Date()): Promise<{ summaries: num
     admin.from('sales_activity_kinds').select('id, name'),
     admin
       .from('sales_activities')
-      .select('id, salesperson_id, kind_id, activity_time, title, customer:customers ( company_name ), prospect:prospects ( company_name )')
+      .select('id, salesperson_id, kind_id, activity_time, activity_end, title, customer:customers ( company_name ), prospect:prospects ( company_name )')
       .eq('activity_date', today)
       .eq('status', 'planned'),
   ]);
@@ -149,7 +151,7 @@ export async function runPlanNotices(now = new Date()): Promise<{ summaries: num
     if (!claimed?.length) continue;
     try {
       await sendToUser(r.salesperson_id, {
-        title: `${kindName.get(r.kind_id) ?? ''} a las ${r.activity_time!.slice(0, 5)}`,
+        title: `${kindName.get(r.kind_id) ?? ''} ${timeRange(r.activity_time, r.activity_end)}`,
         body: about(r),
         url: '/sales?tab=planning',
         tag: `plan-activity-${r.id}`,

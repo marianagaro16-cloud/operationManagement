@@ -12,6 +12,7 @@ import { Card, ErrorState, Field, Input, Select } from '@/components/ui/primitiv
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { addNote, planActivity } from '@/server/sales-actions';
 import { KindBadge, useKinds } from './activity-kind';
+import { timeRange } from '@/domain/sales/times';
 import { PlanFields, emptyPlan, toPlanInput, type PlanDraft } from './plan-fields';
 import type { ActivityKind, SalesActivity } from '@/types/sales';
 
@@ -65,7 +66,7 @@ export function PlannedList({
             <li key={a.id} className="flex flex-wrap items-center gap-2 text-[12.5px]">
               <span className={a.activity_date < today ? 'font-semibold tabular text-late' : 'tabular'}>
                 {formatDate(a.activity_date, 'weekday')}
-                {a.activity_time && ` · ${a.activity_time.slice(0, 5)}`}
+                {a.activity_time && ` · ${timeRange(a.activity_time, a.activity_end)}`}
               </span>
               <KindBadge kind={k.get(a.kind_id)} />
               {a.title && <span className="truncate text-muted">{a.title}</span>}

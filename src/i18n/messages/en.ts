@@ -1631,6 +1631,11 @@ export const en = {
     errFileType: '{name} is not a photo or PDF.',
   },
   sales: {
+    planEnd: 'Until',
+    planEndBefore: 'Must be after the start',
+    planOverlaps: 'Overlaps with {with}',
+    kindMinutes: 'Usual length (min)',
+    kindMinutesHint: 'Fills in the end time when a start time is set.',
     tabPlanning: 'Planning',
     planAdd: 'Plan activity',
     planShort: 'Plan',

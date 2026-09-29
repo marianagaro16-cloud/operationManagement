@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DateTime } from 'luxon';
 import {
-  ArrowDown, ArrowUp, Building2, CalendarPlus, Check, ChevronLeft, ChevronRight, Clock, Home, Map, MapPinOff,
+  AlertTriangle, ArrowDown, ArrowUp, Building2, CalendarPlus, Check, ChevronLeft, ChevronRight, Clock, Home, Map, MapPinOff,
   Pencil, Plus, Route, Trash2, X,
 } from 'lucide-react';
 import { useI18n } from '@/i18n';
@@ -17,6 +17,7 @@ import { Badge, Card, EmptyState, ErrorState, Field, Input, Select } from '@/com
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { formatAddress } from '@/domain/orders/route';
 import { nearbyPlaces, orderVisits, visitRouteLinks } from '@/domain/sales/visits';
+import { overlapping, timeRange } from '@/domain/sales/times';
 import {
   planActivity, recordActivity, removeActivity, saveStartPoint, setDayEnds, setRouteOrder, updateActivity,
 } from '@/server/sales-actions';
@@ -135,6 +136,10 @@ export function PlanningView({
     [places, activities],
   );
   const placeOf = (id: string) => places.find((p) => p.kind === 'customer' && p.id === id);
+  // What crosses what in time, among what is still planned.
+  const crossing = overlapping(
+    activities.filter((a) => a.status === 'planned').map((a) => ({ id: a.id, start: a.activity_time, end: a.activity_end, a })),
+  );
 
   return (
     <div className="space-y-4">
@@ -206,8 +211,9 @@ export function PlanningView({
             const where = placeText(a);
             return (
               <div key={a.id} className={cn('flex items-start gap-3 px-3 py-2.5', a.status !== 'planned' && 'opacity-70')}>
-                <span className="mt-0.5 w-11 shrink-0 text-[12.5px] font-semibold tabular">
+                <span className="mt-0.5 w-11 shrink-0 text-[12.5px] font-semibold leading-tight tabular">
                   {a.activity_time ? a.activity_time.slice(0, 5) : <span className="text-subtle">—</span>}
+                  {a.activity_end && <span className="block text-[11.5px] font-normal text-muted">{a.activity_end.slice(0, 5)}</span>}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -223,6 +229,14 @@ export function PlanningView({
                   </div>
                   {a.target && a.title && <p className="text-[12px]">{a.title}</p>}
                   {where && <p className="truncate text-[12px] text-muted">{where}</p>}
+                  {crossing.has(a.id) && (
+                    <p className="flex items-center gap-1 text-[12px] font-medium text-warn">
+                      <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
+                      {t('sales.planOverlaps', {
+                        with: crossing.get(a.id)!.map((o) => `${o.a.target?.name ?? o.a.title ?? ''} (${timeRange(o.start, o.end)})`).join(', '),
+                      })}
+                    </p>
+                  )}
                   {kind?.behavior === 'visit' && a.target && (
                     <p className="truncate text-[12px] text-muted">
                       {formatAddress(a.target) || '—'}
@@ -305,7 +319,7 @@ export function PlanningView({
               <li key={v.id} className="flex items-center gap-2 px-2.5 py-1.5">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[12px] font-semibold tabular text-accent">{i + 1}</span>
                 <span className="min-w-0 flex-1 truncate text-[13px]">{v.target!.name}</span>
-                {v.activity_time && <span className="inline-flex items-center gap-0.5 text-[12px] tabular text-muted"><Clock className="h-3 w-3" aria-hidden />{v.activity_time.slice(0, 5)}</span>}
+                {v.activity_time && <span className="inline-flex items-center gap-0.5 text-[12px] tabular text-muted"><Clock className="h-3 w-3" aria-hidden />{timeRange(v.activity_time, v.activity_end)}</span>}
                 <Button size="icon" variant="ghost" className="h-7 w-7" aria-label={t('sales.visitUp')} disabled={pending || i === 0} onClick={() => move(i, -1)}>
                   <ArrowUp className="h-3.5 w-3.5" aria-hidden />
                 </Button>
@@ -539,6 +553,7 @@ function EditDialog({ activity, kinds, today, onClose }: { activity: SalesActivi
     kind_id: activity.kind_id,
     activity_date: activity.activity_date,
     activity_time: activity.activity_time?.slice(0, 5) ?? '',
+    activity_end: activity.activity_end?.slice(0, 5) ?? '',
     title: activity.title ?? '',
     place: activity.place ?? '',
     place_detail: activity.place_detail ?? '',

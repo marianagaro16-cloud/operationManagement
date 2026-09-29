@@ -83,14 +83,14 @@ async function nextPlanned(prospectIds: string[]): Promise<Map<string, Prospect[
   const supabase = createClient();
   const { data } = await supabase
     .from('sales_activities')
-    .select('prospect_id, kind_id, activity_date, activity_time, title')
+    .select('prospect_id, kind_id, activity_date, activity_time, activity_end, title')
     .in('prospect_id', prospectIds)
     .eq('status', 'planned')
     .order('activity_date')
     .order('activity_time', { nullsFirst: false });
   for (const a of data ?? []) {
     if (a.prospect_id && !next.has(a.prospect_id)) {
-      next.set(a.prospect_id, { kind_id: a.kind_id, date: a.activity_date, time: a.activity_time, title: a.title });
+      next.set(a.prospect_id, { kind_id: a.kind_id, date: a.activity_date, time: a.activity_time, end: a.activity_end, title: a.title });
     }
   }
   return next;
@@ -198,7 +198,7 @@ export async function getSalesReport(month: string): Promise<SalesReport> {
 }
 
 const ACTIVITY_COLUMNS = `
-  id, salesperson_id, kind_id, activity_date, activity_time, title, place, place_detail, position, status,
+  id, salesperson_id, kind_id, activity_date, activity_time, activity_end, title, place, place_detail, position, status,
   customer:customers ( id, company_name, street, postal_code, city, latitude, longitude ),
   prospect:prospects ( id, company_name, street, postal_code, city, latitude, longitude )
 `;
@@ -287,7 +287,7 @@ export async function getActivityKinds(includeInactive = false): Promise<Activit
   const supabase = createClient();
   let query = supabase
     .from('sales_activity_kinds')
-    .select('id, slug, name, translations, icon, behavior, sort_order, is_active')
+    .select('id, slug, name, translations, icon, behavior, default_minutes, sort_order, is_active')
     .order('sort_order')
     .order('name');
   if (!includeInactive) query = query.eq('is_active', true);
