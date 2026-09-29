@@ -3750,6 +3750,7 @@ export type Database = {
           deleted_at: string | null
           email: string
           id: string
+          job_title: string | null
           last_seen_at: string | null
           must_change_password: boolean
           name: string | null
@@ -3763,6 +3764,7 @@ export type Database = {
           deleted_at?: string | null
           email: string
           id: string
+          job_title?: string | null
           last_seen_at?: string | null
           must_change_password?: boolean
           name?: string | null
@@ -3776,6 +3778,7 @@ export type Database = {
           deleted_at?: string | null
           email?: string
           id?: string
+          job_title?: string | null
           last_seen_at?: string | null
           must_change_password?: boolean
           name?: string | null

@@ -209,6 +209,9 @@ export const de: Messages = {
     inactive: 'Inaktiv',
   },
   admin: {
+    jobTitle: 'Funktion',
+    jobTitleHint: 'Wie die Stelle heisst. Nur ein Name: Was die Person darf, bestimmt die Rolle.',
+    jobTitlePlaceholder: 'z. B. Schichtleiter Produktion',
     resetPassword: 'Passwort zurücksetzen',
     resetPasswordConfirm: 'Für {name} wird ein vorläufiges Passwort erstellt. Das aktuelle funktioniert dann nicht mehr, und bei der Anmeldung muss ein neues gewählt werden.',
     tempPasswordTitle: 'Vorläufiges Passwort',

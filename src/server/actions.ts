@@ -325,3 +325,13 @@ export async function generateHorizon(
     return fail(e);
   }
 }
+
+/** Name someone's job. Admin-only, like the role; it grants nothing. */
+export async function setUserJobTitle(userId: string, title: string | null): Promise<ActionResult> {
+  const clean = title?.trim().slice(0, 100) || null;
+  const supabase = createClient();
+  const { error } = await supabase.from('profiles').update({ job_title: clean }).eq('id', userId);
+  if (error) return fail(error);
+  revalidatePath('/admin/users');
+  return { ok: true, data: undefined };
+}

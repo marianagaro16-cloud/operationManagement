@@ -31,6 +31,8 @@ export interface Profile {
   deleted_at: string | null;
   /** Set when an admin reset the password; the app asks for a new one before anything else. */
   must_change_password: boolean;
+  /** What the job is called — "Encargado de turno de producción". Access comes from the role, never from this. */
+  job_title: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -6,9 +6,9 @@ import { useI18n } from '@/i18n';
 import { displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
-import { Badge, Card, EmptyState, ErrorState, Select } from '@/components/ui/primitives';
+import { Badge, Card, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { deleteUser, setUserRole, setUserStatus, setUserTeam } from '@/server/actions';
+import { deleteUser, setUserJobTitle, setUserRole, setUserStatus, setUserTeam } from '@/server/actions';
 import { resetUserPassword } from '@/server/password-actions';
 import { ROLES, TEAMS, mayChangeAccount, type Role, type Team } from '@/lib/authz';
 import type { Profile, UserStatus } from '@/types/database';
@@ -53,6 +53,24 @@ export function UserManager({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // A job title being edited: whose, and the text.
+  const [titling, setTitling] = useState<Profile | null>(null);
+  const [titleText, setTitleText] = useState('');
+  function openTitle(user: Profile | null) {
+    setTitling(user);
+    setTitleText(user?.job_title ?? '');
+  }
+  function saveTitle() {
+    if (!titling) return;
+    const user = titling;
+    startTransition(async () => {
+      const res = await setUserJobTitle(user.id, titleText);
+      if (!res.ok) setError(res.error === 'owner_protected' ? t('roles.ownerProtected') : res.error);
+      setTitling(null);
+      router.refresh();
+    });
+  }
+
   // A password reset: whose, then — once — the temporary password to pass on.
   const [resetting, setResetting] = useState<Profile | null>(null);
   const [issued, setIssued] = useState<{ user: Profile; password: string } | null>(null);
@@ -181,6 +199,18 @@ export function UserManager({
       <div className="min-w-[11rem] flex-1">
         <p className="truncate text-[13.5px] font-medium">{user.name ?? '—'}</p>
         <p className="truncate text-[12px] text-muted">{user.email}</p>
+        {/* The job's name: says what they are, grants nothing. */}
+        {mayChangeAccount(currentUserRole, user.role) ? (
+          <button
+            type="button"
+            onClick={() => openTitle(user)}
+            className="mt-0.5 block max-w-full truncate text-left text-[12px] text-accent hover:underline"
+          >
+            {user.job_title || `+ ${t('admin.jobTitle')}`}
+          </button>
+        ) : (
+          user.job_title && <p className="mt-0.5 truncate text-[12px] text-muted">{user.job_title}</p>
+        )}
       </div>
 
       <Badge tone={ROLE_TONE[user.role]}>{roleLabel(user.role)}</Badge>
@@ -312,6 +342,31 @@ export function UserManager({
           <ul className="divide-y divide-border">{others.map(row)}</ul>
         </Card>
       </section>
+
+      {titling && (
+        <Dialog
+          open
+          onClose={() => setTitling(null)}
+          title={displayName(titling)}
+          description={t('admin.jobTitleHint')}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setTitling(null)} disabled={pending}>{t('common.cancel')}</Button>
+              <Button variant="primary" onClick={saveTitle} loading={pending}>{t('common.save')}</Button>
+            </>
+          }
+        >
+          <Field label={t('admin.jobTitle')} htmlFor="job-title">
+            <Input
+              id="job-title"
+              value={titleText}
+              onChange={(e) => setTitleText(e.target.value)}
+              placeholder={t('admin.jobTitlePlaceholder')}
+              autoFocus
+            />
+          </Field>
+        </Dialog>
+      )}
 
       <ConfirmDialog
         open={resetting !== null}

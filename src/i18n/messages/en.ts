@@ -211,6 +211,9 @@ export const en = {
     inactive: 'Inactive',
   },
   admin: {
+    jobTitle: 'Job title',
+    jobTitleHint: 'What their job is called. It is only a name: what they can do is decided by the role.',
+    jobTitlePlaceholder: 'e.g. Production shift lead',
     resetPassword: 'Reset password',
     resetPasswordConfirm: 'A temporary password will be created for {name}. The current one stops working and, on signing in, they will have to choose a new one.',
     tempPasswordTitle: 'Temporary password',
