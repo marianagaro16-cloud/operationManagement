@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, CalendarOff, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, ScanSearch, Settings, Shield, Truck, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, CalendarOff, CalendarRange, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, ScanSearch, Settings, Shield, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -81,6 +81,8 @@ export function AppShell({
   const nav: NavItem[] = [
     // ---- my day ----
     { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, primary: true, group: 'day' },
+    // Everything with a day, from every part of the app, in one week.
+    { href: '/agenda', label: t('agenda.title'), icon: CalendarRange, primary: false, group: 'day' },
     // Every approved account, whatever its role: a personal tool. Not in the
     // phone's bar: its slots are the floor workflows; a due reminder announces
     // itself with a push and with the count below.
