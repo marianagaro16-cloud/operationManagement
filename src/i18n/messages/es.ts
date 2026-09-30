@@ -2765,6 +2765,12 @@ export const es: Messages = {
     act_handover_removed: 'punto de entrega quitado',
   },
   meeting: {
+    saveAnyway: 'Guardar igualmente',
+    conflictsTitle: 'A esa hora:',
+    conflictActivity: '{name} tiene {what} {times}',
+    conflictMeeting: '{name} está en otra reunión: {what} {times}',
+    conflictAway: '{name} está ausente',
+    conflictsFirstOnly: 'Revisado para la primera reunión de la serie.',
     navLabel: 'Reuniones',
     subtitle: 'Reuniones internas: las que organizas y a las que te invitan',
     one: 'Reunión',

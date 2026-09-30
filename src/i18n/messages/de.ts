@@ -2765,6 +2765,12 @@ export const de: Messages = {
     act_handover_removed: 'Übergabepunkt entfernt',
   },
   meeting: {
+    saveAnyway: 'Trotzdem speichern',
+    conflictsTitle: 'Zu dieser Zeit:',
+    conflictActivity: '{name} hat {what} {times}',
+    conflictMeeting: '{name} ist in einer anderen Besprechung: {what} {times}',
+    conflictAway: '{name} ist abwesend',
+    conflictsFirstOnly: 'Für die erste Besprechung der Serie geprüft.',
     navLabel: 'Besprechungen',
     subtitle: 'Interne Besprechungen: die du organisierst und zu denen du eingeladen bist',
     one: 'Besprechung',

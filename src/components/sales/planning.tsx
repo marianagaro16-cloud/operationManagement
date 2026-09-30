@@ -153,10 +153,15 @@ export function PlanningView({
     [places, activities],
   );
   const placeOf = (id: string) => places.find((p) => p.kind === 'customer' && p.id === id);
-  // What crosses what in time, among what is still planned.
-  const crossing = overlapping(
-    activities.filter((a) => a.status === 'planned').map((a) => ({ id: a.id, start: a.activity_time, end: a.activity_end, a })),
-  );
+  // What crosses what in time, among what is still planned — meetings included.
+  const crossing = overlapping([
+    ...activities
+      .filter((a) => a.status === 'planned')
+      .map((a) => ({ id: a.id, start: a.activity_time, end: a.activity_end, label: a.target?.name ?? a.title ?? '' })),
+    ...meetings
+      .filter((m) => m.meeting_date === date)
+      .map((m) => ({ id: `meeting-${m.id}`, start: m.start_time, end: m.end_time, label: `${t('meeting.one')}: ${m.title}` })),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -284,7 +289,7 @@ export function PlanningView({
                     <p className="flex items-center gap-1 text-[12px] font-medium text-warn">
                       <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
                       {t('sales.planOverlaps', {
-                        with: crossing.get(a.id)!.map((o) => `${o.a.target?.name ?? o.a.title ?? ''} (${timeRange(o.start, o.end)})`).join(', '),
+                        with: crossing.get(a.id)!.map((o) => `${o.label} (${timeRange(o.start, o.end)})`).join(', '),
                       })}
                     </p>
                   )}
@@ -889,9 +894,10 @@ function WeekGrid({
     <div className="hidden grid-cols-7 gap-2 lg:grid">
       {weekOf(date).map((d) => {
         const list = week.filter((a) => a.activity_date === d);
-        const crossing = overlapping(
-          list.filter((a) => a.status === 'planned').map((a) => ({ id: a.id, start: a.activity_time, end: a.activity_end })),
-        );
+        const crossing = overlapping([
+          ...list.filter((a) => a.status === 'planned').map((a) => ({ id: a.id, start: a.activity_time, end: a.activity_end })),
+          ...meetings.filter((m) => m.meeting_date === d).map((m) => ({ id: `meeting-${m.id}`, start: m.start_time, end: m.end_time })),
+        ]);
         const selected = d === date;
         return (
           <div

@@ -7474,6 +7474,26 @@ export type Database = {
       }
       mark_inbox_read: { Args: { p_ids?: string[] }; Returns: undefined }
       materialise_task_days: { Args: { p_rows: Json }; Returns: number }
+      meeting_conflicts: {
+        Args: {
+          p_date: string
+          p_end: string
+          p_exclude?: string
+          p_people: string[]
+          p_start: string
+        }
+        Returns: {
+          end_date: string
+          end_time: string
+          first_day: string
+          kind: string
+          label: string
+          last_day: string
+          profile_id: string
+          start_date: string
+          start_time: string
+        }[]
+      }
       my_team: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       next_goods_reception_report_version: {
         Args: { p_month: string }

@@ -6,6 +6,7 @@ import { DateTime } from 'luxon';
 import { createClient } from '@/lib/supabase/server';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 import { SERIES_AHEAD_WEEKS, seriesDates, weekdayOf } from '@/domain/meetings/series';
+import { DEFAULT_HOURS, coverageConflicts, type WorkingHours } from '@/domain/absences/coverage';
 import { sendToUser, sendToUsers } from './push';
 import type { ActionResult } from './actions';
 
@@ -360,4 +361,65 @@ export async function saveMinutes(id: string, minutes: string): Promise<ActionRe
   }
   revalidateMeetings(id);
   return { ok: true, data: undefined };
+}
+
+export interface MeetingConflict {
+  profile_id: string;
+  name: string;
+  kind: 'activity' | 'meeting' | 'absence';
+  /** The activity's kind or the other meeting's title; nothing for an absence. */
+  label: string | null;
+  start: string | null;
+  end: string | null;
+}
+
+/**
+ * Who is busy then: a sales activity, another meeting, or away. Warnings for
+ * the organiser before saving — never a refusal.
+ */
+export async function checkMeetingConflicts(input: {
+  date: string;
+  start: string;
+  end: string;
+  people: string[];
+  excludeId?: string | null;
+}): Promise<ActionResult<MeetingConflict[]>> {
+  const parsed = z
+    .object({ date: DATE, start: TIME, end: TIME, people: z.array(uuid).max(60), excludeId: uuid.nullable().optional() })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'invalid_meeting' };
+  const v = parsed.data;
+  if (!v.people.length || hm(v.end) <= hm(v.start)) return { ok: true, data: [] };
+  const supabase = createClient();
+  const [{ data, error }, { data: names }, { data: settings }] = await Promise.all([
+    supabase.rpc('meeting_conflicts', { p_people: v.people, p_date: v.date, p_start: v.start, p_end: v.end, p_exclude: v.excludeId ?? undefined }),
+    supabase.from('profiles').select('id, name, email').in('id', v.people),
+    supabase.from('app_settings').select('value').eq('key', 'absences.hours').maybeSingle(),
+  ]);
+  if (error) return fail(error);
+  const nameOf = new Map((names ?? []).map((p) => [p.id, p.name || p.email]));
+  const hours = { ...DEFAULT_HOURS, ...((settings?.value as Partial<WorkingHours> | undefined) ?? {}) };
+  type Row = {
+    profile_id: string; kind: MeetingConflict['kind']; label: string | null; start_time: string | null; end_time: string | null;
+    start_date: string | null; end_date: string | null; first_day: 'full' | 'afternoon' | null; last_day: 'full' | 'morning' | null;
+  };
+  const out: MeetingConflict[] = [];
+  for (const r of (data ?? []) as Row[]) {
+    if (r.kind === 'absence') {
+      // Away then? Its hours decide — someone away only in the morning can meet in the afternoon.
+      const span = { start_date: r.start_date!, end_date: r.end_date!, first_day: r.first_day ?? 'full', last_day: r.last_day ?? 'full', start_time: r.start_time, end_time: r.end_time };
+      if (!coverageConflicts({ date: v.date, start: hm(v.start), end: hm(v.end) }, [span], [], hours).length) continue;
+      out.push({ profile_id: r.profile_id, name: nameOf.get(r.profile_id) ?? '—', kind: 'absence', label: null, start: null, end: null });
+    } else {
+      out.push({
+        profile_id: r.profile_id,
+        name: nameOf.get(r.profile_id) ?? '—',
+        kind: r.kind,
+        label: r.label,
+        start: r.start_time ? hm(r.start_time) : null,
+        end: r.end_time ? hm(r.end_time) : null,
+      });
+    }
+  }
+  return { ok: true, data: out.sort((a, b) => a.name.localeCompare(b.name)) };
 }

@@ -2797,6 +2797,12 @@ export const en = {
     act_handover_removed: 'handover item removed',
   },
   meeting: {
+    saveAnyway: 'Save anyway',
+    conflictsTitle: 'At that time:',
+    conflictActivity: '{name} has {what} {times}',
+    conflictMeeting: '{name} is in another meeting: {what} {times}',
+    conflictAway: '{name} is away',
+    conflictsFirstOnly: 'Checked for the first meeting of the series.',
     navLabel: 'Meetings',
     subtitle: 'Internal meetings: the ones you organise and are invited to',
     one: 'Meeting',

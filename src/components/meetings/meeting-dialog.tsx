@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
-import { createMeeting, updateMeeting, updateSeries } from '@/server/meeting-actions';
+import { checkMeetingConflicts, createMeeting, updateMeeting, updateSeries, type MeetingConflict } from '@/server/meeting-actions';
 import type { Meeting, MeetingPlace, MeetingSeries } from '@/types/meetings';
 import { hm, useMeetingLabels } from './meeting-parts';
 
@@ -50,16 +50,29 @@ export function MeetingDialog({
   const [repeat, setRepeat] = useState<Repeat>(scope === 'series' && series ? (String(series.interval_weeks) as Repeat) : 'none');
   const [until, setUntil] = useState(scope === 'series' ? series?.until ?? '' : '');
   const [error, setError] = useState<string | null>(null);
+  /** Who is busy then — shown before saving; saving anyway is the organiser's call. */
+  const [conflicts, setConflicts] = useState<MeetingConflict[] | null>(null);
   const [pending, startTransition] = useTransition();
   const organizerId = meeting?.organizer_id ?? viewerId;
   const others = people.filter((p) => p.id !== organizerId);
   const showRepeat = !meeting || scope === 'series';
   const ready = !!title.trim() && !!date && !!start && !!end && end > start && (!until || until >= date);
 
-  function submit() {
+  function submit(force = false) {
     if (!ready) return;
     setError(null);
     startTransition(async () => {
+      if (!force) {
+        const check = await checkMeetingConflicts({
+          date,
+          start,
+          end,
+          people: [organizerId, ...invitees],
+          // Changing one meeting: not against itself.
+          excludeId: meeting && scope !== 'series' ? meeting.id : null,
+        });
+        if (check.ok && check.data.length) return setConflicts(check.data);
+      }
       const input = {
         title,
         agenda,
@@ -93,12 +106,36 @@ export function MeetingDialog({
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
-          <Button variant="primary" onClick={submit} loading={pending} disabled={!ready}>{meeting ? t('common.save') : t('meeting.invite')}</Button>
+          {conflicts ? (
+            <Button variant="primary" onClick={() => submit(true)} loading={pending}>{t('meeting.saveAnyway')}</Button>
+          ) : (
+            <Button variant="primary" onClick={() => submit()} loading={pending} disabled={!ready}>{meeting ? t('common.save') : t('meeting.invite')}</Button>
+          )}
         </>
       }
     >
-      <div className="space-y-3.5">
+      <div className="space-y-3.5" onChangeCapture={() => conflicts && setConflicts(null)} onClickCapture={(e) => {
+        // A person added or removed also takes back the warning: it is checked again on saving.
+        if (conflicts && (e.target as HTMLElement).closest('[aria-pressed]')) setConflicts(null);
+      }}>
         {error && <ErrorState message={error} />}
+        {conflicts && (
+          <div className="rounded-lg border border-warn/40 bg-warn/[0.06] p-2.5">
+            <p className="mb-1 text-[12.5px] font-semibold text-warn">{t('meeting.conflictsTitle')}</p>
+            <ul className="space-y-0.5 text-[12.5px] text-warn">
+              {conflicts.map((c, i) => (
+                <li key={i}>
+                  ⚠ {c.kind === 'absence'
+                    ? t('meeting.conflictAway', { name: c.name })
+                    : c.kind === 'meeting'
+                      ? t('meeting.conflictMeeting', { name: c.name, what: c.label ?? '', times: `${c.start}–${c.end}` })
+                      : t('meeting.conflictActivity', { name: c.name, what: c.label ?? '', times: `${c.start}–${c.end}` })}
+                </li>
+              ))}
+            </ul>
+            {scope === 'series' || (!meeting && repeat !== 'none') ? <p className="mt-1 text-[11.5px] text-muted">{t('meeting.conflictsFirstOnly')}</p> : null}
+          </div>
+        )}
         <Field label={t('meeting.title')} required htmlFor="meeting-title">
           <Input id="meeting-title" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
         </Field>
