@@ -39,6 +39,207 @@ export type Database = {
   }
   public: {
     Tables: {
+      absence_approvers: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          profile_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          profile_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_approvers_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_approvers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_events: {
+        Row: {
+          absence_id: string
+          action: string
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          id: number
+        }
+        Insert: {
+          absence_id: string
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: number
+        }
+        Update: {
+          absence_id?: string
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_events_absence_id_fkey"
+            columns: ["absence_id"]
+            isOneToOne: false
+            referencedRelation: "absences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      absences: {
+        Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          end_date: string
+          first_day: string
+          id: string
+          last_day: string
+          note: string | null
+          profile_id: string
+          rejection_reason: string | null
+          start_date: string
+          status: string
+          type_id: string
+          updated_at: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          end_date: string
+          first_day?: string
+          id?: string
+          last_day?: string
+          note?: string | null
+          profile_id: string
+          rejection_reason?: string | null
+          start_date: string
+          status?: string
+          type_id: string
+          updated_at?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          end_date?: string
+          first_day?: string
+          id?: string
+          last_day?: string
+          note?: string | null
+          profile_id?: string
+          rejection_reason?: string | null
+          start_date?: string
+          status?: string
+          type_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absences_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absences_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absences_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absences_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "absence_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           key: string
@@ -6053,6 +6254,23 @@ export type Database = {
       }
     }
     Functions: {
+      absence_calendar: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          end_date: string
+          first_day: string
+          id: string
+          last_day: string
+          person_name: string
+          profile_id: string
+          start_date: string
+        }[]
+      }
+      absence_cancel: { Args: { p_absence_id: string }; Returns: undefined }
+      absence_decide: {
+        Args: { p_absence_id: string; p_approve: boolean; p_reason?: string }
+        Returns: undefined
+      }
       activity_team_paused: {
         Args: { p_team: Database["public"]["Enums"]["team"] }
         Returns: boolean
@@ -6479,6 +6697,7 @@ export type Database = {
         Args: { p_template_id: string }
         Returns: undefined
       }
+      is_absence_approver: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_approved: { Args: never; Returns: boolean }
       is_assigned_to_task: { Args: { p_task_id: string }; Returns: boolean }

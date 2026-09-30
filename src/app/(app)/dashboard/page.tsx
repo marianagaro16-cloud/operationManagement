@@ -20,6 +20,7 @@ import { QuietCustomersCard } from '@/components/sales/quiet-customers-card';
 import { getBusinessFigures } from '@/server/dashboard';
 import { BusinessFigures, Greeting, NowCard, ProgressFigures } from '@/components/dashboard/dashboard-top';
 import { buildNowItems } from '@/domain/dashboard/now';
+import { countPendingAbsences } from '@/server/absences';
 import { compareUrgency, deliveryUrgency } from '@/domain/orders/urgency';
 import { personalTaskPhase } from '@/domain/reminders/schedule';
 
@@ -54,7 +55,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
@@ -75,6 +76,8 @@ export default async function DashboardPage() {
     sales ? getActivityKinds(true) : [],
     // How the business is going: owners and Admin.
     owner ? getBusinessFigures(today) : null,
+    // Requests waiting for the viewer's decision: RLS returns none to anyone who is not an approver.
+    viewer ? countPendingAbsences() : 0,
   ]);
 
   // ---- what the figures and "Now" count ----
@@ -102,6 +105,7 @@ export default async function DashboardPage() {
     planLate,
     planToday: todayPlan.filter((a) => a.status === 'planned').length,
     evaluationsDue: evaluations.filter((e) => e.request.deadline === today).length,
+    absencesToApprove,
   });
 
   return (

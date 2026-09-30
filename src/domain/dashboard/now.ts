@@ -21,7 +21,8 @@ export type NowKind =
   | 'overduePersonalTasks'
   | 'planLate'
   | 'planToday'
-  | 'evaluationsDue';
+  | 'evaluationsDue'
+  | 'absencesToApprove';
 
 /** late: past its moment. today: due now or today. */
 export type NowLevel = 'late' | 'today';
@@ -50,6 +51,8 @@ export interface NowInput {
   planToday: number;
   /** Evaluations to fill in whose deadline is today. */
   evaluationsDue: number;
+  /** Absence requests waiting for the viewer's decision; approvers only. */
+  absencesToApprove: number;
 }
 
 /**
@@ -65,6 +68,7 @@ const ORDER: NowKind[] = [
   'overduePersonalTasks',
   'planLate',
   'evaluationsDue',
+  'absencesToApprove',
   'countsToday',
   'planToday',
   'blockedActivities',
@@ -80,6 +84,7 @@ export function buildNowItems(input: NowInput): NowItem[] {
     { kind: 'overduePersonalTasks', level: 'late', count: input.overduePersonalTasks, href: '/reminders/tasks' },
     { kind: 'planLate', level: 'late', count: input.planLate, href: '/sales?tab=planning' },
     { kind: 'evaluationsDue', level: 'today', count: input.evaluationsDue, href: '/evaluations' },
+    { kind: 'absencesToApprove', level: 'today', count: input.absencesToApprove, href: '/absences?tab=approve' },
     { kind: 'countsToday', level: 'today', count: input.countsToday, href: '/inventory' },
     { kind: 'planToday', level: 'today', count: input.planToday, href: '/sales?tab=planning' },
     // Blocked is not late — it waits on something else — but it needs eyes.

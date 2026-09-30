@@ -12,6 +12,7 @@ const none: NowInput = {
   planLate: 0,
   planToday: 0,
   evaluationsDue: 0,
+  absencesToApprove: 0,
 };
 
 describe('buildNowItems', () => {
