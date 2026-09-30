@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
+import { useRef, useState, useTransition, useEffect } from 'react';
 import { FileSpreadsheet, Keyboard, Mail, UserRound } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
@@ -15,6 +15,7 @@ import type { PreviewLine } from '@/domain/orders/import/pipeline';
 import { businessToday } from '@/lib/datetime';
 import { productLabel, type Customer, type DeliveryMethod, type Order, type OrderType, type Product } from '@/types/orders';
 import { saveOrder } from '@/server/order-actions';
+import { customerHasPendingPayments } from '@/server/collection-actions';
 import { ImportPanel, type ImportMethod } from './import-panel';
 import { ORDER_TYPES, ORDER_TYPE_LABEL } from './order-types';
 import { OrderLineEditor, emptyLine, type DraftLine } from './order-line-editor';
@@ -85,6 +86,19 @@ export function OrderDialog({
   const today = businessToday();
 
   const [customerId, setCustomerId] = useState(order?.customer_id ?? initial?.customer_id ?? '');
+  // A customer in collection: said, never blocked.
+  const [pendingPayments, setPendingPayments] = useState(false);
+  useEffect(() => {
+    let live = true;
+    if (!customerId) {
+      setPendingPayments(false);
+      return;
+    }
+    customerHasPendingPayments(customerId).then((yes) => live && setPendingPayments(yes));
+    return () => {
+      live = false;
+    };
+  }, [customerId]);
   const [deliveryDate, setDeliveryDate] = useState(order?.delivery_date ?? today);
   // Postgres returns TIME as "HH:MM:SS"; <input type="time"> wants "HH:MM".
   const [deliveryTime, setDeliveryTime] = useState(order?.delivery_time?.slice(0, 5) ?? '');
@@ -317,6 +331,11 @@ export function OrderDialog({
             )}
           />
         </Field>
+        {pendingPayments && (
+          <p className="-mt-1.5 flex items-center gap-1.5 rounded-lg border border-warn/40 bg-warn/[0.06] px-3 py-2 text-[12.5px] font-medium text-warn">
+            ⚠ {t('collection.orderWarning')}
+          </p>
+        )}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Field label={t('orders.deliveryDate')} required htmlFor="o-delivery">

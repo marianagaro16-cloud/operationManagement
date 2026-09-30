@@ -132,6 +132,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       { href: '/admin/events', label: 'event.navLabel', permission: 'system.configure' },
       // Absence types, and who approves absences.
       { href: '/admin/absences', label: 'absence.navLabel', permission: 'system.configure' },
+      // Who works collections, and the agencies.
+      { href: '/admin/collections', label: 'collection.navLabel', permission: 'system.configure' },
       { href: '/admin/settings', label: 'nav.settings', permission: 'system.configure' },
     ],
   },

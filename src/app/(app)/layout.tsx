@@ -3,6 +3,7 @@ import { getViewer } from '@/server/data';
 import { getReminderAttentionCount } from '@/server/reminders';
 import { getUnreadInboxCount } from '@/server/inbox';
 import { getMyEvaluationCounts } from '@/server/hr-evaluations';
+import { isCollections } from '@/server/collections';
 import { AppShell } from '@/components/shell/app-shell';
 import { AccountStatusScreen } from '@/components/shell/account-status';
 import { ChoosePasswordScreen } from '@/components/shell/choose-password';
@@ -34,10 +35,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // entry, on every screen.
   // …and unread notifications, as a count on the inbox icon. Both at once.
   // …and evaluations they were asked to fill in, if ever.
-  const [reminderAttention, inboxUnread, evaluations] = await Promise.all([
+  const [reminderAttention, inboxUnread, evaluations, collections] = await Promise.all([
     canUseReminders(viewer) ? getReminderAttentionCount() : Promise.resolve(0),
     getUnreadInboxCount(),
     getMyEvaluationCounts(),
+    isCollections(),
   ]);
 
   return (
@@ -47,6 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       reminderAttention={reminderAttention}
       inboxUnread={inboxUnread}
       evaluations={evaluations}
+      collections={collections}
     >
       {children}
     </AppShell>

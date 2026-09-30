@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DateTime } from 'luxon';
 import {
-  BellRing, Boxes, Check, ChevronLeft, ChevronRight, ClipboardList, Handshake, ListTodo, Plane, Plus, ShieldCheck, Users, X,
+  BellRing, Boxes, Check, ChevronLeft, ChevronRight, ClipboardList, Handshake, ListTodo, Plane, Plus, Receipt, ShieldCheck, Users, X,
 } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,7 @@ const ICON: Record<AgendaKind, typeof Check> = {
   absence: Plane,
   reminder: BellRing,
   personal: ListTodo,
+  collection: Receipt,
 };
 
 const TONE: Record<AgendaKind, string> = {
@@ -43,6 +44,7 @@ const TONE: Record<AgendaKind, string> = {
   absence: 'border-l-skipped',
   reminder: 'border-l-subtle',
   personal: 'border-l-subtle',
+  collection: 'border-l-late',
 };
 
 const weekOf = (date: string) => {
@@ -276,6 +278,8 @@ export function Entry({ item: i, kinds, compact = false }: { item: AgendaItem; k
   const kindName = t(`agenda.kind_${i.kind}` as MessageKey);
   const salesKind = i.kind === 'sales' && i.detail ? kinds.find((k) => k.id === i.detail) : undefined;
 
+  // A follow-up: "promise:1250.00" or "follow_up:1250.00".
+  const [collectionWhat, collectionOpen] = i.kind === 'collection' && i.detail ? i.detail.split(':') : [null, null];
   const title =
     i.kind === 'absence'
       ? t('agenda.away')
@@ -293,6 +297,8 @@ export function Entry({ item: i, kinds, compact = false }: { item: AgendaItem; k
           ? t(i.detail === 'morning' ? 'absence.morning' : 'absence.afternoon')
           : i.kind === 'meeting' && i.detail === 'cancelled'
             ? t('meeting.cancelled')
+            : i.kind === 'collection' && collectionOpen
+              ? `${collectionWhat === 'promise' ? t('agenda.checkPromise') : t('agenda.followUpCall')} · CHF ${new Intl.NumberFormat('de-CH', { minimumFractionDigits: 2 }).format(Number(collectionOpen))}`
             : salesKind
               ? localizedName(salesKind, locale)
               : i.kind === 'meeting'

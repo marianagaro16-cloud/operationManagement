@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState } from '@/components/ui/primitives';
 import { NoteText } from '@/components/ui/note';
 import { NoteStar } from './note-star';
+import { StageBadge as CollectionStageBadge, chf } from '@/components/collections/collection-parts';
+import type { CollectionCaseRow } from '@/types/collections';
 import { KindBadge, useKinds } from './activity-kind';
 import { NoteDialog, PlanForTargetDialog, PlannedList } from './target-plan';
 import type { ActivityKind, Amount } from '@/types/sales';
@@ -26,7 +28,10 @@ export function CustomerFile({
   kinds,
   viewerId,
   today,
+  collections,
 }: {
+  /** Payments pending — and, for the collections team, the cases. */
+  collections: { flagged: boolean; cases: CollectionCaseRow[] | null };
   view: CustomerFileView;
   /** The prospect this customer was won from: its contact details live there. */
   wonFromId: string | null;
@@ -57,6 +62,7 @@ export function CustomerFile({
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="break-words text-xl font-semibold leading-tight">{customer.company_name}</h1>
           {!customer.is_active && <Badge tone="neutral">{t('sales.inactive')}</Badge>}
+          {collections.flagged && <Badge tone="late">{t('collection.flag')}</Badge>}
         </div>
         <p className="mt-1 break-words text-[12.5px] text-muted">
           {[customer.company_name_addition, customer.type, address].filter(Boolean).join(' · ')}
@@ -67,6 +73,26 @@ export function CustomerFile({
           </Link>
         )}
       </Card>
+
+      {collections.cases && collections.cases.length > 0 && (
+        <Card className="mb-4 p-3">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <h2 className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('collection.navLabel')}</h2>
+            <Link href="/collections" className="text-[12px] font-medium text-accent hover:underline">{t('collection.navLabel')}</Link>
+          </div>
+          <ul className="divide-y divide-border">
+            {collections.cases.map((c) => (
+              <li key={c.id}>
+                <Link href={`/collections/${c.id}`} className="flex items-center gap-2 py-1.5 text-[13px] hover:text-accent">
+                  <CollectionStageBadge stage={c.stage} />
+                  <span className="min-w-0 flex-1 truncate text-muted">{formatDate(c.created_at.slice(0, 10), 'short')}</span>
+                  <span className="font-medium tabular">{chf(c.closed_at ? c.total : c.open)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {/* How they order */}
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">

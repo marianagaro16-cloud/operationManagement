@@ -24,7 +24,8 @@ export type NowKind =
   | 'evaluationsDue'
   | 'absencesToApprove'
   | 'coverageGaps'
-  | 'meetingInvites';
+  | 'meetingInvites'
+  | 'collectionFollowUps';
 
 /** late: past its moment. today: due now or today. */
 export type NowLevel = 'late' | 'today';
@@ -59,6 +60,8 @@ export interface NowInput {
   coverageGaps: number;
   /** Meeting invitations not yet answered. */
   meetingInvites: number;
+  /** Collection cases of the viewer due for follow-up today or before. */
+  collectionFollowUps: number;
 }
 
 /**
@@ -77,6 +80,7 @@ const ORDER: NowKind[] = [
   'absencesToApprove',
   'coverageGaps',
   'meetingInvites',
+  'collectionFollowUps',
   'countsToday',
   'planToday',
   'blockedActivities',
@@ -95,6 +99,7 @@ export function buildNowItems(input: NowInput): NowItem[] {
     { kind: 'absencesToApprove', level: 'today', count: input.absencesToApprove, href: '/absences?tab=approve' },
     { kind: 'coverageGaps', level: 'today', count: input.coverageGaps, href: '/absences?tab=calendar' },
     { kind: 'meetingInvites', level: 'today', count: input.meetingInvites, href: '/meetings' },
+    { kind: 'collectionFollowUps', level: 'today', count: input.collectionFollowUps, href: '/collections' },
     { kind: 'countsToday', level: 'today', count: input.countsToday, href: '/inventory' },
     { kind: 'planToday', level: 'today', count: input.planToday, href: '/sales?tab=planning' },
     // Blocked is not late — it waits on something else — but it needs eyes.

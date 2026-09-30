@@ -2,7 +2,7 @@ import type { MeetingResponse } from './meetings';
 
 /** One person's agenda: everything with a day, from every part of the app. */
 
-export type AgendaKind = 'activity' | 'inventory' | 'sales' | 'meeting' | 'coverage' | 'absence' | 'reminder' | 'personal';
+export type AgendaKind = 'activity' | 'inventory' | 'sales' | 'meeting' | 'coverage' | 'absence' | 'reminder' | 'personal' | 'collection';
 
 export interface AgendaItem {
   /** Unique across kinds. */

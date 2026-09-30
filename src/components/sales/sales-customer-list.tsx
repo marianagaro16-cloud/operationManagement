@@ -10,7 +10,16 @@ import { BUSINESS_TZ } from '@/lib/datetime';
 import type { SalesCustomerRow } from '@/types/sales';
 
 /** Every customer, those ordering most recently first. */
-export function SalesCustomerList({ customers, today }: { customers: SalesCustomerRow[]; today: string }) {
+export function SalesCustomerList({
+  customers,
+  today,
+  flagged = [],
+}: {
+  customers: SalesCustomerRow[];
+  today: string;
+  /** Customers with payments pending. */
+  flagged?: string[];
+}) {
   const { t } = useI18n();
   const [query, setQuery] = useState('');
   const [showInactive, setShowInactive] = useState(false);
@@ -56,6 +65,7 @@ export function SalesCustomerList({ customers, today }: { customers: SalesCustom
                 <span className="flex items-center gap-1.5">
                   <span className="truncate text-[13.5px] font-medium">{c.company_name}</span>
                   {!c.is_active && <Badge tone="neutral">{t('sales.inactive')}</Badge>}
+                  {flagged.includes(c.id) && <Badge tone="late">{t('collection.flag')}</Badge>}
                 </span>
                 <span className="block truncate text-[12px] text-muted">
                   {[c.company_name_addition, c.city].filter(Boolean).join(' · ')}

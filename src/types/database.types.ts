@@ -401,6 +401,313 @@ export type Database = {
         }
         Relationships: []
       }
+      collection_agencies: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      collection_cases: {
+        Row: {
+          agency_id: string | null
+          agency_reference: string | null
+          agency_sent_on: string | null
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          next_follow_up: string | null
+          note: string | null
+          promised_on: string | null
+          responsible_id: string | null
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id?: string | null
+          agency_reference?: string | null
+          agency_sent_on?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          next_follow_up?: string | null
+          note?: string | null
+          promised_on?: string | null
+          responsible_id?: string | null
+          stage?: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string | null
+          agency_reference?: string | null
+          agency_sent_on?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          next_follow_up?: string | null
+          note?: string | null
+          promised_on?: string | null
+          responsible_id?: string | null
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_cases_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "collection_agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_cases_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_cases_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_cases_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "collection_cases_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_events: {
+        Row: {
+          body: string | null
+          case_id: string
+          created_at: string
+          created_by: string | null
+          detail: Json
+          happened_on: string
+          id: number
+          kind: string
+        }
+        Insert: {
+          body?: string | null
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          detail?: Json
+          happened_on?: string
+          id?: number
+          kind: string
+        }
+        Update: {
+          body?: string | null
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          detail?: Json
+          happened_on?: string
+          id?: number
+          kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "collection_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_invoices: {
+        Row: {
+          amount: number
+          case_id: string
+          created_at: string
+          due_date: string | null
+          id: string
+          invoice_number: string
+        }
+        Insert: {
+          amount: number
+          case_id: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_number: string
+        }
+        Update: {
+          amount?: number
+          case_id?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_invoices_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "collection_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_notices: {
+        Row: {
+          case_id: string
+          kind: string
+          on_date: string
+          sent_at: string
+        }
+        Insert: {
+          case_id: string
+          kind: string
+          on_date: string
+          sent_at?: string
+        }
+        Update: {
+          case_id?: string
+          kind?: string
+          on_date?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_notices_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "collection_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_payments: {
+        Row: {
+          amount: number
+          case_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          paid_on: string
+          via_agency: boolean
+        }
+        Insert: {
+          amount: number
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          paid_on: string
+          via_agency?: boolean
+        }
+        Update: {
+          amount?: number
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          paid_on?: string
+          via_agency?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_payments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "collection_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_payments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_team: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          profile_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          profile_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_team_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_team_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coverage_assignments: {
         Row: {
           absence_id: string
@@ -7234,6 +7541,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      collection_flagged_customers: { Args: never; Returns: string[] }
       complete_occurrence: {
         Args: { p_occurrence_id: string }
         Returns: {
@@ -7595,6 +7903,7 @@ export type Database = {
         Args: { r: Database["public"]["Enums"]["user_role"] }
         Returns: boolean
       }
+      is_collections: { Args: never; Returns: boolean }
       is_goods_reception_assignee: { Args: never; Returns: boolean }
       is_owner: { Args: never; Returns: boolean }
       is_owner_account: { Args: { p_profile_id: string }; Returns: boolean }

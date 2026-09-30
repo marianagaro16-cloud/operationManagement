@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, CalendarOff, CalendarRange, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, ScanSearch, Settings, Shield, Truck, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, CalendarOff, CalendarRange, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -36,8 +36,11 @@ export function AppShell({
   reminderAttention = 0,
   inboxUnread = 0,
   evaluations = { total: 0, pending: 0 },
+  collections = false,
   children,
 }: {
+  /** On the collections team: the Cobranza entry. */
+  collections?: boolean;
   profile: Profile;
   caps: Permission[];
   /** Reminders due or overdue for this viewer; drawn as a count on the nav entry. */
@@ -124,6 +127,10 @@ export function AppShell({
           { href: '/events', label: t('event.navLabel'), icon: PartyPopper, primary: false, group: 'customers' as const },
         ]
       : []),
+    // Collections: unpaid invoices followed up, and handed to an agency. The collections team only.
+    ...(collections
+      ? [{ href: '/collections', label: t('collection.navLabel'), icon: Receipt, primary: false, group: 'customers' as const }]
+      : []),
 
     // ---- the team ----
     // Absences: who is away and who covers them — everyone sees it.
@@ -149,7 +156,7 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/reminders', '/hr', '/events', '/absences', '/meetings'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/reminders', '/hr', '/events', '/absences', '/meetings', '/collections'];
   const active = (href: string) =>
     SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
 

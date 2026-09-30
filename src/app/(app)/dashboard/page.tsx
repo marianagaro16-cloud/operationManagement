@@ -26,6 +26,7 @@ import { CoveringNowCard } from '@/components/absences/covering-now-card';
 import { getAgenda } from '@/server/agenda';
 import { TodayCard } from '@/components/agenda/today-card';
 import { countUnansweredInvites } from '@/server/meetings';
+import { countFollowUpsDue } from '@/server/collections';
 import { CoverageTodayCard } from '@/components/absences/coverage-today-card';
 import { compareUrgency, deliveryUrgency } from '@/domain/orders/urgency';
 import { personalTaskPhase } from '@/domain/reminders/schedule';
@@ -61,7 +62,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
@@ -94,6 +95,8 @@ export default async function DashboardPage() {
     viewer ? countUnansweredInvites(viewer.profile.id, today) : 0,
     // "Hoy": the viewer's day from the agenda.
     viewer ? getAgenda(viewer.profile.id, today, today, true, today) : [],
+    // Collection cases due for follow-up: RLS returns none outside the team.
+    viewer ? countFollowUpsDue(viewer.profile.id, today) : 0,
   ]);
 
   // ---- what the figures and "Now" count ----
@@ -125,6 +128,7 @@ export default async function DashboardPage() {
     absencesToApprove,
     coverageGaps,
     meetingInvites,
+    collectionFollowUps,
   });
 
   // Whom the viewer covers today; while it lasts, that person's work is theirs to do.
@@ -142,7 +146,7 @@ export default async function DashboardPage() {
 
       {/* The viewer's day first. What is late from before is counted in "Ahora", not repeated here. */}
       <TodayCard
-        items={agendaToday.filter((i) => !(i.kind === 'activity' && i.late))}
+        items={agendaToday.filter((i) => !((i.kind === 'activity' || i.kind === 'collection') && i.late))}
         today={today}
         kinds={kinds}
         extra={

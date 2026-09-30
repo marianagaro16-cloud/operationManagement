@@ -34,7 +34,7 @@ export async function getAgenda(personId: string, from: string, to: string, own:
   const supabase = createClient();
   const items: AgendaItem[] = [];
 
-  const [occ, overdue, inv, sales, meetings, coverage, away, reminders, personal] = await Promise.all([
+  const [occ, overdue, inv, sales, meetings, coverage, away, reminders, personal, collections] = await Promise.all([
     supabase
       .from('task_occurrences')
       .select('id, effective_due_date, status, task:tasks!inner ( title, translations )')
@@ -84,6 +84,14 @@ export async function getAgenda(personId: string, from: string, to: string, own:
           .gte('due_date', from)
           .lte('due_date', to)
       : Promise.resolve({ data: [] }),
+    // Collection follow-ups of their cases — the team only (RLS); late ones show today.
+    supabase
+      .from('collection_cases')
+      .select('id, stage, next_follow_up, customer:customers ( company_name ), invoices:collection_invoices ( amount ), payments:collection_payments ( amount )')
+      .eq('responsible_id', personId)
+      .is('closed_at', null)
+      .lte('next_follow_up', to)
+      .gte('next_follow_up', today >= from && today <= to ? '1900-01-01' : from),
   ]);
 
   // ---- activities ----
@@ -178,6 +186,23 @@ export async function getAgenda(personId: string, from: string, to: string, own:
     items.push({
       key: `personal-${p.id}`, kind: 'personal', id: p.id, date: p.due_date, start: p.due_time?.slice(0, 5) ?? null, end: null,
       title: p.title, detail: null, href: '/reminders/tasks', done, late: !done && p.due_date < today, action: done ? null : 'complete_personal',
+    });
+  }
+
+  // ---- collection follow-ups ----
+  type Case = {
+    id: string; stage: string; next_follow_up: string; customer: { company_name: string } | null;
+    invoices: { amount: number | string }[] | null; payments: { amount: number | string }[] | null;
+  };
+  for (const c of ((collections.data ?? []) as unknown as Case[])) {
+    const late = c.next_follow_up < today;
+    const open = (c.invoices ?? []).reduce((s, i) => s + Number(i.amount), 0) - (c.payments ?? []).reduce((s, p) => s + Number(p.amount), 0);
+    items.push({
+      key: `collection-${c.id}`, kind: 'collection', id: c.id,
+      // Late ones on today, where they are to be done.
+      date: late && today >= from && today <= to ? today : c.next_follow_up, start: null, end: null,
+      title: c.customer?.company_name ?? '', detail: `${c.stage === 'promise' ? 'promise' : 'follow_up'}:${Math.max(open, 0).toFixed(2)}`,
+      href: `/collections/${c.id}`, done: false, late, action: null,
     });
   }
 

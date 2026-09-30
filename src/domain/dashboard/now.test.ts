@@ -15,6 +15,7 @@ const none: NowInput = {
   absencesToApprove: 0,
   coverageGaps: 0,
   meetingInvites: 0,
+  collectionFollowUps: 0,
 };
 
 describe('buildNowItems', () => {
