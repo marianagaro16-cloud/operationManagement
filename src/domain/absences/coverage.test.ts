@@ -86,3 +86,28 @@ describe('daysAwayIn', () => {
     expect(daysAwayIn(a, '2026-10-12', '2026-10-12', DEFAULT_HOURS)).toBe(1);
   });
 });
+
+describe('absences by the hour', () => {
+  // Wednesday 14 October 2026, doctor 10:00–12:00.
+  const doctor: AbsenceSpan = { start_date: '2026-10-14', end_date: '2026-10-14', first_day: 'full', last_day: 'full', start_time: '10:00:00', end_time: '12:00:00' };
+  it('needs covering only those hours', () => {
+    expect(requiredWindow(doctor, '2026-10-14', DEFAULT_HOURS)).toEqual({ start: '10:00', end: '12:00' });
+    expect(absenceGaps(doctor, DEFAULT_HOURS, [{ cover_date: '2026-10-14', start_time: '10:00', end_time: '12:00' }])).toEqual([]);
+  });
+  it('stays within the working day', () => {
+    const early = { ...doctor, start_time: '07:00', end_time: '09:00' };
+    expect(requiredWindow(early, '2026-10-14', DEFAULT_HOURS)).toEqual({ start: '08:00', end: '09:00' });
+  });
+  it('counts its share of the day', () => {
+    expect(daysAwayIn(doctor, '2026-10-01', '2026-10-31', DEFAULT_HOURS)).toBe(0.2);
+  });
+  it('lets the person cover someone outside those hours', () => {
+    expect(coverageConflicts({ date: '2026-10-14', start: '13:00', end: '18:00' }, [doctor], [], DEFAULT_HOURS)).toEqual([]);
+    expect(coverageConflicts({ date: '2026-10-14', start: '08:00', end: '11:00' }, [doctor], [], DEFAULT_HOURS)).toHaveLength(1);
+  });
+  it('takes a start time on the first day and an end time on the last', () => {
+    const trip: AbsenceSpan = { start_date: '2026-10-14', end_date: '2026-10-15', first_day: 'full', last_day: 'full', start_time: '15:00', end_time: '10:00' };
+    expect(requiredWindow(trip, '2026-10-14', DEFAULT_HOURS)).toEqual({ start: '15:00', end: '18:00' });
+    expect(requiredWindow(trip, '2026-10-15', DEFAULT_HOURS)).toEqual({ start: '08:00', end: '10:00' });
+  });
+});

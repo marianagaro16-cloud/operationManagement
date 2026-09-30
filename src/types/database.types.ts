@@ -186,6 +186,7 @@ export type Database = {
           decided_at: string | null
           decided_by: string | null
           end_date: string
+          end_time: string | null
           first_day: string
           id: string
           last_day: string
@@ -193,6 +194,7 @@ export type Database = {
           profile_id: string
           rejection_reason: string | null
           start_date: string
+          start_time: string | null
           status: string
           type_id: string
           updated_at: string
@@ -205,6 +207,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           end_date: string
+          end_time?: string | null
           first_day?: string
           id?: string
           last_day?: string
@@ -212,6 +215,7 @@ export type Database = {
           profile_id: string
           rejection_reason?: string | null
           start_date: string
+          start_time?: string | null
           status?: string
           type_id: string
           updated_at?: string
@@ -224,6 +228,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           end_date?: string
+          end_time?: string | null
           first_day?: string
           id?: string
           last_day?: string
@@ -231,6 +236,7 @@ export type Database = {
           profile_id?: string
           rejection_reason?: string | null
           start_date?: string
+          start_time?: string | null
           status?: string
           type_id?: string
           updated_at?: string
@@ -6679,12 +6685,14 @@ export type Database = {
         Args: { p_absence_id: string }
         Returns: {
           end_date: string
+          end_time: string
           first_day: string
           id: string
           last_day: string
           person_name: string
           profile_id: string
           start_date: string
+          start_time: string
           status: string
         }[]
       }
@@ -6692,12 +6700,14 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: {
           end_date: string
+          end_time: string
           first_day: string
           id: string
           last_day: string
           person_name: string
           profile_id: string
           start_date: string
+          start_time: string
         }[]
       }
       absence_cancel: { Args: { p_absence_id: string }; Returns: undefined }

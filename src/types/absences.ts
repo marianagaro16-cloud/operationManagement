@@ -24,6 +24,10 @@ export interface AbsenceRow {
   end_date: string;
   first_day: AbsenceFirstDay;
   last_day: AbsenceLastDay;
+  /** Away on the first day from this time (instead of the whole day or the afternoon). */
+  start_time: string | null;
+  /** Away on the last day until this time. */
+  end_time: string | null;
   note: string | null;
   status: AbsenceStatus;
   decided_at: string | null;
@@ -42,6 +46,8 @@ export interface AbsenceCalendarEntry {
   end_date: string;
   first_day: AbsenceFirstDay;
   last_day: AbsenceLastDay;
+  start_time: string | null;
+  end_time: string | null;
 }
 
 export interface AbsenceEvent {

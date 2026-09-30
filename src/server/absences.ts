@@ -8,7 +8,7 @@ import type { AbsenceCalendarEntry, AbsenceEvent, AbsenceRow, AbsenceStatus, Abs
  */
 
 const ABSENCE_COLUMNS = `
-  id, profile_id, type_id, start_date, end_date, first_day, last_day, note, status,
+  id, profile_id, type_id, start_date, end_date, first_day, last_day, start_time, end_time, note, status,
   decided_at, rejection_reason, cancelled_at, created_at,
   person:profiles!absences_profile_id_fkey ( name, email ),
   decider:profiles!absences_decided_by_fkey ( name, email )

@@ -24,6 +24,18 @@ export interface AbsenceSpan {
   end_date: string;
   first_day: 'full' | 'afternoon';
   last_day: 'full' | 'morning';
+  /** Away on the first day from this time; takes the place of an afternoon start. */
+  start_time?: string | null;
+  /** Away on the last day until this time; takes the place of a morning end. */
+  end_time?: string | null;
+}
+
+/** When someone is away on one day of their absence: "HH:MM" to "HH:MM", or null for the whole day. */
+function awayOn(a: AbsenceSpan, date: string, noon: string): { from: string | null; to: string | null } {
+  const from =
+    date === a.start_date ? (a.start_time ? hm(a.start_time) : a.first_day === 'afternoon' ? noon : null) : null;
+  const to = date === a.end_date ? (a.end_time ? hm(a.end_time) : a.last_day === 'morning' ? noon : null) : null;
+  return { from, to };
 }
 
 export interface Period {
@@ -51,8 +63,10 @@ export function workingDays(a: AbsenceSpan, hours: WorkingHours): string[] {
 export function requiredWindow(a: AbsenceSpan, date: string, hours: WorkingHours): Period | null {
   if (date < a.start_date || date > a.end_date) return null;
   if (!hours.days.includes(DateTime.fromISO(date, { zone: BUSINESS_TZ }).weekday)) return null;
-  const start = date === a.start_date && a.first_day === 'afternoon' ? hours.noon : hours.start;
-  const end = date === a.end_date && a.last_day === 'morning' ? hours.noon : hours.end;
+  const away = awayOn(a, date, hours.noon);
+  // Within the working day: an absence from 07:00 is covered from 08:00.
+  const start = away.from && toMin(away.from) > toMin(hours.start) ? away.from : hours.start;
+  const end = away.to && toMin(away.to) < toMin(hours.end) ? away.to : hours.end;
   return toMin(end) > toMin(start) ? { start, end } : null;
 }
 
@@ -110,9 +124,10 @@ export function coverageConflicts(
   const period = { start: candidate.start, end: candidate.end };
   for (const a of theirAbsences) {
     if (candidate.date < a.start_date || candidate.date > a.end_date) continue;
-    // Away all day unless the absence only takes half of this day.
-    const from = candidate.date === a.start_date && a.first_day === 'afternoon' ? hours.noon : '00:00';
-    const to = candidate.date === a.end_date && a.last_day === 'morning' ? hours.noon : '23:59';
+    // Away all day unless the absence only takes part of this day.
+    const away = awayOn(a, candidate.date, hours.noon);
+    const from = away.from ?? '00:00';
+    const to = away.to ?? '23:59';
     if (overlaps(period, { start: from, end: to })) out.push({ kind: 'away', start: from, end: to });
   }
   for (const c of theirCoverage) {
@@ -123,14 +138,25 @@ export function coverageConflicts(
   return out;
 }
 
-/** Working days away within a period; a first afternoon or a last morning counts half. */
+/**
+ * Working days away within a period. A first afternoon or a last morning
+ * counts half; a day away only some hours counts its share of the working
+ * day, to the tenth.
+ */
 export function daysAwayIn(a: AbsenceSpan, from: string, to: string, hours: WorkingHours): number {
-  return workingDays(a, hours)
+  const full = toMin(hours.end) - toMin(hours.start);
+  const total = workingDays(a, hours)
     .filter((d) => d >= from && d <= to)
     .reduce((n, d) => {
-      const half = (d === a.start_date && a.first_day === 'afternoon') || (d === a.end_date && a.last_day === 'morning');
-      return n + (half ? 0.5 : 1);
+      const timed = (d === a.start_date && !!a.start_time) || (d === a.end_date && !!a.end_time);
+      if (!timed) {
+        const half = (d === a.start_date && a.first_day === 'afternoon') || (d === a.end_date && a.last_day === 'morning');
+        return n + (half ? 0.5 : 1);
+      }
+      const w = requiredWindow(a, d, hours);
+      return n + (w && full > 0 ? (toMin(w.end) - toMin(w.start)) / full : 0);
     }, 0);
+  return Math.round(total * 10) / 10;
 }
 
 /** Minutes between two "HH:MM". */

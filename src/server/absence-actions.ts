@@ -19,7 +19,7 @@ const uuid = z.string().uuid();
 
 const KNOWN = [
   'not_authorized', 'absence_overlaps', 'absence_own', 'absence_not_pending', 'absence_closed', 'absence_past',
-  'absences_rejection_reason', 'absences_dates', 'absences_halves', 'absence_not_found', 'absence_status_by_rpc',
+  'absences_rejection_reason', 'absences_dates', 'absences_halves', 'absences_times', 'absence_not_found', 'absence_status_by_rpc',
 ];
 function fail(error: { message: string }): { ok: false; error: string } {
   if (error.message.includes('row-level security')) return { ok: false, error: 'not_authorized' };
@@ -37,11 +37,18 @@ const absenceSchema = z
     end_date: DATE,
     first_day: z.enum(['full', 'afternoon']),
     last_day: z.enum(['full', 'morning']),
+    start_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).nullable().optional().transform((v) => v || null),
+    end_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).nullable().optional().transform((v) => v || null),
     note: z.string().trim().max(2000).nullable().optional().transform((v) => v || null),
   })
   .refine((a) => a.end_date >= a.start_date, { message: 'absences_dates' })
   .refine((a) => !(a.start_date === a.end_date && a.first_day === 'afternoon' && a.last_day === 'morning'), {
     message: 'absences_halves',
+  })
+  // A time takes the place of a half on that day; on one day, until after from.
+  .refine((a) => !(a.start_time && a.first_day !== 'full') && !(a.end_time && a.last_day !== 'full'), { message: 'absences_halves' })
+  .refine((a) => a.start_date !== a.end_date || !a.start_time || !a.end_time || a.end_time.slice(0, 5) > a.start_time.slice(0, 5), {
+    message: 'absences_times',
   });
 
 export type AbsenceInput = z.input<typeof absenceSchema>;

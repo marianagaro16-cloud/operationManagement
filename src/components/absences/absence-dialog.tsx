@@ -12,7 +12,14 @@ import { requestAbsence, updateAbsence } from '@/server/absence-actions';
 import type { AbsenceRow, AbsenceType } from '@/types/absences';
 import { useAbsenceLabels } from './absence-parts';
 
-type OneDay = 'full' | 'morning' | 'afternoon';
+/** On a single day: all of it, a half, or some hours. */
+type OneDay = 'full' | 'morning' | 'afternoon' | 'hours';
+/** The first day of several: all of it, from noon, or from a time. */
+type FirstDay = 'full' | 'afternoon' | 'time';
+/** The last day of several: all of it, until noon, or until a time. */
+type LastDay = 'full' | 'morning' | 'time';
+
+const hm = (t: string | null | undefined) => (t ? t.slice(0, 5) : '');
 
 /** Ask for an absence, or change one's own while it waits for a decision. */
 export function AbsenceDialog({
@@ -33,28 +40,48 @@ export function AbsenceDialog({
   const [typeId, setTypeId] = useState(absence?.type_id ?? choices[0]?.id ?? '');
   const [start, setStart] = useState(absence?.start_date ?? today);
   const [end, setEnd] = useState(absence?.end_date ?? today);
-  const [afternoonStart, setAfternoonStart] = useState(absence?.first_day === 'afternoon');
-  const [morningEnd, setMorningEnd] = useState(absence?.last_day === 'morning');
+  const [first, setFirst] = useState<FirstDay>(absence?.start_time ? 'time' : absence?.first_day === 'afternoon' ? 'afternoon' : 'full');
+  const [last, setLast] = useState<LastDay>(absence?.end_time ? 'time' : absence?.last_day === 'morning' ? 'morning' : 'full');
+  const [one, setOne] = useState<OneDay>(
+    absence?.start_time || absence?.end_time
+      ? 'hours'
+      : absence?.first_day === 'afternoon'
+        ? 'afternoon'
+        : absence?.last_day === 'morning'
+          ? 'morning'
+          : 'full',
+  );
+  const [fromTime, setFromTime] = useState(hm(absence?.start_time));
+  const [untilTime, setUntilTime] = useState(hm(absence?.end_time));
   const [note, setNote] = useState(absence?.note ?? '');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const oneDay = start === end;
-  // On a single day: all of it, the morning or the afternoon.
-  const oneDayPart: OneDay = afternoonStart ? 'afternoon' : morningEnd ? 'morning' : 'full';
-  const ready = !!typeId && !!start && !!end && end >= start;
+
+  // What goes to the server, from whichever choices apply.
+  const shape = oneDay
+    ? {
+        first_day: one === 'afternoon' ? ('afternoon' as const) : ('full' as const),
+        last_day: one === 'morning' ? ('morning' as const) : ('full' as const),
+        start_time: one === 'hours' ? fromTime || null : null,
+        end_time: one === 'hours' ? untilTime || null : null,
+      }
+    : {
+        first_day: first === 'afternoon' ? ('afternoon' as const) : ('full' as const),
+        last_day: last === 'morning' ? ('morning' as const) : ('full' as const),
+        start_time: first === 'time' ? fromTime || null : null,
+        end_time: last === 'time' ? untilTime || null : null,
+      };
+  const timesOk = oneDay
+    ? one !== 'hours' || (!!fromTime && !!untilTime && untilTime > fromTime)
+    : (first !== 'time' || !!fromTime) && (last !== 'time' || !!untilTime);
+  const ready = !!typeId && !!start && !!end && end >= start && timesOk;
 
   function submit() {
     if (!ready) return;
     setError(null);
     startTransition(async () => {
-      const input = {
-        type_id: typeId,
-        start_date: start,
-        end_date: end,
-        first_day: afternoonStart ? ('afternoon' as const) : ('full' as const),
-        last_day: morningEnd && !(oneDay && afternoonStart) ? ('morning' as const) : ('full' as const),
-        note,
-      };
+      const input = { type_id: typeId, start_date: start, end_date: end, ...shape, note };
       const res = absence ? await updateAbsence(absence.id, input) : await requestAbsence(input);
       if (!res.ok) return setError(labels.error(res.error));
       onClose();
@@ -102,35 +129,61 @@ export function AbsenceDialog({
             <Input id="absence-end" type="date" min={start} value={end} onChange={(e) => setEnd(e.target.value)} />
           </Field>
         </div>
+
         {oneDay ? (
-          <Field label={t('absence.whichPart')} htmlFor="absence-part">
-            <Select
-              id="absence-part"
-              value={oneDayPart}
-              onChange={(e) => {
-                const v = e.target.value as OneDay;
-                setAfternoonStart(v === 'afternoon');
-                setMorningEnd(v === 'morning');
-              }}
-              className="w-auto"
-            >
-              <option value="full">{t('absence.allDay')}</option>
-              <option value="morning">{t('absence.onlyMorning')}</option>
-              <option value="afternoon">{t('absence.onlyAfternoon')}</option>
-            </Select>
-          </Field>
+          <div className="flex flex-wrap items-end gap-3">
+            <Field label={t('absence.whichPart')} htmlFor="absence-part">
+              <Select id="absence-part" value={one} onChange={(e) => setOne(e.target.value as OneDay)} className="w-auto">
+                <option value="full">{t('absence.allDay')}</option>
+                <option value="morning">{t('absence.onlyMorning')}</option>
+                <option value="afternoon">{t('absence.onlyAfternoon')}</option>
+                <option value="hours">{t('absence.someHours')}</option>
+              </Select>
+            </Field>
+            {one === 'hours' && (
+              <>
+                <Field label={t('absence.fromHour')} htmlFor="absence-from-time">
+                  <Input id="absence-from-time" type="time" value={fromTime} onChange={(e) => setFromTime(e.target.value)} className="w-auto" />
+                </Field>
+                <Field
+                  label={t('absence.untilHour')}
+                  htmlFor="absence-until-time"
+                  error={fromTime && untilTime && untilTime <= fromTime ? t('absence.errTimes') : undefined}
+                >
+                  <Input id="absence-until-time" type="time" value={untilTime} onChange={(e) => setUntilTime(e.target.value)} className="w-auto" />
+                </Field>
+              </>
+            )}
+          </div>
         ) : (
-          <div className="space-y-1.5">
-            <label className="flex items-center gap-2 text-[13px]">
-              <input type="checkbox" className="h-4 w-4 accent-accent" checked={afternoonStart} onChange={(e) => setAfternoonStart(e.target.checked)} />
-              {t('absence.firstAfternoon')}
-            </label>
-            <label className="flex items-center gap-2 text-[13px]">
-              <input type="checkbox" className="h-4 w-4 accent-accent" checked={morningEnd} onChange={(e) => setMorningEnd(e.target.checked)} />
-              {t('absence.lastMorning')}
-            </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Field label={t('absence.firstDay')} htmlFor="absence-first">
+                <Select id="absence-first" value={first} onChange={(e) => setFirst(e.target.value as FirstDay)}>
+                  <option value="full">{t('absence.allDay')}</option>
+                  <option value="afternoon">{t('absence.fromNoon')}</option>
+                  <option value="time">{t('absence.fromAnHour')}</option>
+                </Select>
+              </Field>
+              {first === 'time' && (
+                <Input type="time" aria-label={t('absence.fromHour')} value={fromTime} onChange={(e) => setFromTime(e.target.value)} className="w-auto" />
+              )}
+            </div>
+            <div className="space-y-2">
+              <Field label={t('absence.lastDay')} htmlFor="absence-last">
+                <Select id="absence-last" value={last} onChange={(e) => setLast(e.target.value as LastDay)}>
+                  <option value="full">{t('absence.allDay')}</option>
+                  <option value="morning">{t('absence.untilNoon')}</option>
+                  <option value="time">{t('absence.untilAnHour')}</option>
+                </Select>
+              </Field>
+              {last === 'time' && (
+                <Input type="time" aria-label={t('absence.untilHour')} value={untilTime} onChange={(e) => setUntilTime(e.target.value)} className="w-auto" />
+              )}
+            </div>
           </div>
         )}
+
         <Field label={t('absence.note')} hint={t('absence.notePrivate')} htmlFor="absence-note">
           <NoteTextarea id="absence-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
