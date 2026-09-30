@@ -63,7 +63,11 @@ export const en = {
     deactivatedBody: 'Your account has been deactivated. Contact an administrator to restore access.',
   },
   nav: {
-    dashboard: 'Dashboard',
+    groupDay: 'My day',
+    groupOperation: 'Operations',
+    groupCustomers: 'Customers',
+    groupTeam: 'Team',
+    dashboard: 'Home',
     calendar: 'Work plan',
     admin: 'Admin',
     tasks: 'Tasks',

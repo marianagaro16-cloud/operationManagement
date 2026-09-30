@@ -61,7 +61,11 @@ export const es: Messages = {
     deactivatedBody: 'Tu cuenta ha sido desactivada. Contacta con un administrador para recuperar el acceso.',
   },
   nav: {
-    dashboard: 'Panel',
+    groupDay: 'Mi día',
+    groupOperation: 'Operación',
+    groupCustomers: 'Clientes',
+    groupTeam: 'Equipo',
+    dashboard: 'Inicio',
     calendar: 'Plan de trabajo',
     admin: 'Administración',
     tasks: 'Actividades',

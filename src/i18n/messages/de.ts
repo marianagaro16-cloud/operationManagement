@@ -61,7 +61,11 @@ export const de: Messages = {
     deactivatedBody: 'Ihr Konto wurde deaktiviert. Wenden Sie sich an einen Administrator, um den Zugang wiederherzustellen.',
   },
   nav: {
-    dashboard: 'Übersicht',
+    groupDay: 'Mein Tag',
+    groupOperation: 'Betrieb',
+    groupCustomers: 'Kunden',
+    groupTeam: 'Team',
+    dashboard: 'Start',
     calendar: 'Arbeitsplan',
     admin: 'Verwaltung',
     tasks: 'Aufgaben',

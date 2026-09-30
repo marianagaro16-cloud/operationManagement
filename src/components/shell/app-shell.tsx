@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, CalendarOff, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, ScanSearch, Settings, Shield, Truck, UserRound, Users, X } from 'lucide-react';
-import { useI18n } from '@/i18n';
+import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { LanguageSelector } from './language-selector';
@@ -20,6 +20,16 @@ import { opensManagement } from '@/components/admin/sections';
  * Responsive shell: a bottom tab bar on phones (thumb-reachable, since the
  * operators use this on the warehouse floor) and a sidebar from `md` up.
  */
+type NavGroup = 'day' | 'operation' | 'customers' | 'team' | 'manage';
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; primary: boolean; badge?: number; group: NavGroup };
+const NAV_GROUPS: NavGroup[] = ['day', 'operation', 'customers', 'team', 'manage'];
+const GROUP_LABEL: Record<Exclude<NavGroup, 'manage'>, MessageKey> = {
+  day: 'nav.groupDay',
+  operation: 'nav.groupOperation',
+  customers: 'nav.groupCustomers',
+  team: 'nav.groupTeam',
+};
+
 export function AppShell({
   profile,
   caps,
@@ -62,82 +72,75 @@ export function AppShell({
    * is. Manage matters enormously and is still behind More, because nobody
    * administers the system from a phone in the warehouse.
    */
-  const nav: { href: string; label: string; icon: typeof LayoutDashboard; primary: boolean; badge?: number }[] = [
-    { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, primary: true },
-    // Reminders sit right after the dashboard, where today's tasks are, and
-    // apart from every operational section. Not in the phone's bar: its five
-    // slots are the floor workflows; quick creation is on the dashboard and on
-    // each record, and a due reminder announces itself with a push and with
-    // the count below.
-    // Every approved account, whatever its role: a personal tool.
-    { href: '/reminders', label: t('reminder.navLabel'), icon: BellRing, primary: false, badge: reminderAttention },
+  /*
+   * The menu in four areas — what the app is about: my day, the operation
+   * (from order to delivery), customers, and the team — then management.
+   * Every entry still appears only for whom it applies; a group with nothing
+   * in it is not shown.
+   */
+  const nav: NavItem[] = [
+    // ---- my day ----
+    { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, primary: true, group: 'day' },
+    // Every approved account, whatever its role: a personal tool. Not in the
+    // phone's bar: its slots are the floor workflows; a due reminder announces
+    // itself with a push and with the count below.
+    { href: '/reminders', label: t('reminder.navLabel'), icon: BellRing, primary: false, badge: reminderAttention, group: 'day' },
+    // Internal meetings: everyone with an account is invited to some.
+    { href: '/meetings', label: t('meeting.navLabel'), icon: Users, primary: false, group: 'day' },
+
+    // ---- the operation: from order to delivery ----
+    // Orders — to prepare, ready, shipped — is the main floor workflow, so it
+    // sits high in the bar, for everyone.
+    { href: '/orders', label: t('orders.title'), icon: Package, primary: true, group: 'operation' },
+    // Traceability answers a question about ORDERS — where a lot was used —
+    // so it follows the order book's capability. A read-only order viewer
+    // (the production manager) traces lots too.
+    ...(can(role, held, 'orders.manage') || ordersReadOnly(role)
+      ? [{ href: '/lot-tracker', label: t('lot.title'), icon: ScanSearch, primary: false, group: 'operation' as const }]
+      : []),
+    // Every incident is about a delivery. Whoever manages incidents without
+    // managing orders (the production manager) still needs the log itself.
+    ...(can(role, held, 'orders.manage') || can(role, held, 'incidents.manage')
+      ? [{ href: '/incidents', label: t('incident.navLabel'), icon: AlertTriangle, primary: false, group: 'operation' as const }]
+      : []),
+    // Goods Reception is its own section: a supplier delivery has no customer
+    // order behind it. Every approved user views; the screen decides who adds.
+    { href: '/goods-reception', label: t('gr.navLabel'), icon: Truck, primary: true, group: 'operation' },
+    // Counting happens on the floor, by people who are not admins.
+    { href: '/inventory', label: t('inventory.title'), icon: Boxes, primary: true, group: 'operation' },
+    // The work plan browses future dates, so it belongs to whoever plans work.
+    ...(can(role, held, 'tasks.manage_occurrences')
+      ? [{ href: '/calendar', label: t('nav.calendar'), icon: CalendarDays, primary: false, group: 'operation' as const }]
+      : []),
+
+    // ---- customers ----
+    // Sales: customers, prospects, planning, report, summary. The Ventas team, Admin and Owners.
+    ...(isSales(role, profile.team as Team)
+      ? [
+          { href: '/sales', label: t('sales.navLabel'), icon: Handshake, primary: false, group: 'customers' as const },
+          // Events: fairs, markets, events with customers and our own. Same people as Sales.
+          { href: '/events', label: t('event.navLabel'), icon: PartyPopper, primary: false, group: 'customers' as const },
+        ]
+      : []),
+
+    // ---- the team ----
+    // Absences: who is away and who covers them — everyone sees it.
+    { href: '/absences', label: t('absence.navLabel'), icon: CalendarOff, primary: false, group: 'team' },
     // Evaluations this person was asked to fill in about others — never
     // anything about themselves. Only for someone who was ever asked.
     ...(evaluations.total > 0
-      ? [{ href: '/evaluations', label: t('hrEval.mine'), icon: ClipboardCheck, primary: false, badge: evaluations.pending }]
+      ? [{ href: '/evaluations', label: t('hrEval.mine'), icon: ClipboardCheck, primary: false, badge: evaluations.pending, group: 'team' as const }]
       : []),
-    // Orders — to prepare, ready, shipped — is the main floor workflow, so it
-    // sits high in the bar, for everyone. It replaced the separate Preparation
-    // screen; the monthly order book is its All tab, for orders.manage.
-    { href: '/orders', label: t('orders.title'), icon: Package, primary: true },
-    // Order Control is the ORDER BOOK — customers, dates, quantities, the
-    // definitions themselves. A person on the floor works lot control and
-    // inventory; the order book is not theirs to browse, so it follows the
-    // capability rather than being shown to everyone.
-    // A read-only order viewer (the production manager) traces lots too:
-    // the screen only searches and exports.
-    ...(can(role, held, 'orders.manage') || ordersReadOnly(role)
-      ? [
-          // Traceability sits beside the order book, not inside Inventory:
-          // it answers a question about ORDERS — where a lot was used — and
-          // its one call to action is to open the order and fix it there.
-          { href: '/lot-tracker', label: t('lot.title'), icon: ScanSearch, primary: false },
-        ]
-      : []),
-    // Incidents belong with the order book: every one of them is about a
-    // delivery, and the report they feed is read next to the order reports.
-    // A person on the floor works lot control, and the complaint log is not
-    // their screen — they reach an incident on an order they prepared from
-    // that order's own page. Whoever manages incidents without managing
-    // orders (the production manager) still needs the log itself.
-    ...(can(role, held, 'orders.manage') || can(role, held, 'incidents.manage')
-      ? [{ href: '/incidents', label: t('incident.navLabel'), icon: AlertTriangle, primary: false }]
-      : []),
-    // Goods Reception is a MAIN section, never a corner of Orders: a supplier
-    // delivery has no customer order behind it and often no order at all.
-    // Unconditional, because §11 makes every approved user a viewer — the
-    // screen itself decides whether a New button is offered, which is a
-    // question about assignment rather than about role.
-    { href: '/goods-reception', label: t('gr.navLabel'), icon: Truck, primary: true },
-    // Counting happens on the floor, so inventory sits in the main bar rather
-    // than behind the admin section — the people who do it are not admins.
-    { href: '/inventory', label: t('inventory.title'), icon: Boxes, primary: true },
-    // The calendar browses future dates, so it belongs to whoever plans work,
-    // for the same reason the dashboard hides upcoming work from a plain user.
-    ...(can(role, held, 'tasks.manage_occurrences')
-      ? [{ href: '/calendar', label: t('nav.calendar'), icon: CalendarDays, primary: false }]
-      : []),
-    // Worker files are about people, not configuration, so they are a section
-    // of their own rather than a corner of the management area.
+    // Worker files are about people, not configuration.
     ...(can(role, held, 'hr.manage')
-      ? [{ href: '/hr', label: t('hr.navLabel'), icon: UserRound, primary: false }]
+      ? [{ href: '/hr', label: t('hr.navLabel'), icon: UserRound, primary: false, group: 'team' as const }]
       : []),
-    // Sales: customers, their files and notes. The Ventas team, Admin and Owners.
-    ...(isSales(role, profile.team as Team)
-      ? [{ href: '/sales', label: t('sales.navLabel'), icon: Handshake, primary: false }]
-      : []),
-    // Internal meetings: everyone with an account is invited to some.
-    { href: '/meetings', label: t('meeting.navLabel'), icon: Users, primary: false },
-    // Absences: everyone with an account asks for time off and sees who is away.
-    { href: '/absences', label: t('absence.navLabel'), icon: CalendarOff, primary: false },
-    // Events: fairs, markets, events with customers and our own. Same people as Sales.
-    ...(isSales(role, profile.team as Team)
-      ? [{ href: '/events', label: t('event.navLabel'), icon: PartyPopper, primary: false }]
-      : []),
-    // The management area opens at power_user, or to whoever holds a permission
-    // one of its screens needs (e.g. given for a coverage); its own nav filters the tabs.
+
+    // ---- management ----
+    // Opens at power_user, or to whoever holds a permission one of its
+    // screens needs (e.g. given for a coverage); its own nav filters the tabs.
     ...(opensManagement(role, held, atLeast(role, 'power_user'))
-      ? [{ href: '/admin', label: t('nav.manage'), icon: Shield, primary: false }]
+      ? [{ href: '/admin', label: t('nav.manage'), icon: Shield, primary: false, group: 'manage' as const }]
       : []),
   ];
 
@@ -298,23 +301,36 @@ export function AppShell({
       <div className={`mx-auto flex ${frame} gap-6 px-4`}>
         {/* ---------------- sidebar (md+) ---------------- */}
         <nav className="hidden w-44 shrink-0 py-6 md:block">
-          <ul className="sticky top-20 space-y-0.5">
-            {nav.map(({ href, label, icon: Icon, badge }) => (
-              <li key={href}>
-                <Link
-                  href={href}
-                  className={cn(
-                    'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors',
-                    active(href) ? 'bg-surface-2 text-fg' : 'text-muted hover:bg-surface-2/60 hover:text-fg',
+          <div className="sticky top-20 space-y-3">
+            {NAV_GROUPS.map((group) => {
+              const items = nav.filter((i) => i.group === group);
+              if (items.length === 0) return null;
+              return (
+                <div key={group} className={cn(group === 'manage' && 'border-t border-border pt-3')}>
+                  {group !== 'manage' && (
+                    <p className="mb-0.5 px-2.5 text-[10.5px] font-semibold uppercase tracking-wider text-subtle">{t(GROUP_LABEL[group])}</p>
                   )}
-                >
-                  <Icon className="h-4 w-4" aria-hidden />
-                  {label}
-                  <NavBadge count={badge} />
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  <ul className="space-y-0.5">
+                    {items.map(({ href, label, icon: Icon, badge }) => (
+                      <li key={href}>
+                        <Link
+                          href={href}
+                          className={cn(
+                            'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors',
+                            active(href) ? 'bg-surface-2 text-fg' : 'text-muted hover:bg-surface-2/60 hover:text-fg',
+                          )}
+                        >
+                          <Icon className="h-4 w-4" aria-hidden />
+                          {label}
+                          <NavBadge count={badge} />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
         </nav>
 
         {/* ---------------- content ---------------- */}
@@ -329,9 +345,14 @@ export function AppShell({
       <div className="fixed inset-x-0 bottom-0 z-20 md:hidden">
         {moreOpen && !fitsWithoutMore && (
           <div className="animate-slide-up border-t border-border bg-surface shadow-pop">
-            <ul className="mx-auto max-w-5xl p-2">
-              {secondaryNav.map(({ href, label, icon: Icon, badge }) => (
+            <ul className="mx-auto max-h-[70vh] max-w-5xl overflow-y-auto p-2">
+              {secondaryNav.map(({ href, label, icon: Icon, badge, group }, index) => (
                 <li key={href}>
+                  {/* A group's title above its first entry in the sheet. */}
+                  {group !== 'manage' && secondaryNav.findIndex((i) => i.group === group) === index && (
+                    <p className="px-3 pb-0.5 pt-2 text-[10.5px] font-semibold uppercase tracking-wider text-subtle">{t(GROUP_LABEL[group])}</p>
+                  )}
+                  {group === 'manage' && <div className="my-1.5 border-t border-border" />}
                   <Link
                     href={href}
                     onClick={() => setMoreOpen(false)}
