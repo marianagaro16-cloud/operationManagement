@@ -2944,7 +2944,7 @@ export const de: Messages = {
     agencies: 'Inkassobüros',
     noAgencies: 'Noch keine Büros: Admin erfasst sie unter Verwaltung → Inkasso.',
     new: 'Neuer Fall',
-    newHint: 'Wenn die 3 Mahnungen des Rechnungsprogramms nicht gereicht haben.',
+    newHint: 'Ab der ersten Mahnung des Rechnungsprogramms oder schon in der Nachverfolgung.',
     customer: 'Kunde',
     invoices: 'Rechnungen',
     invoiceNumber: 'Rechnungs-Nr.',

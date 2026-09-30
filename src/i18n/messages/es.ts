@@ -2944,7 +2944,7 @@ export const es: Messages = {
     agencies: 'Agencias de cobranza',
     noAgencies: 'Todavía no hay agencias: Admin las añade en Gestión → Cobranza.',
     new: 'Nuevo caso',
-    newHint: 'Cuando los 3 recordatorios del programa de facturas no bastaron.',
+    newHint: 'Desde el primer recordatorio del programa de facturas, o ya en seguimiento.',
     customer: 'Cliente',
     invoices: 'Facturas',
     invoiceNumber: 'N.º de factura',

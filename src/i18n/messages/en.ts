@@ -2976,7 +2976,7 @@ export const en = {
     agencies: 'Collection agencies',
     noAgencies: 'No agencies yet: Admin adds them in Management → Collections.',
     new: 'New case',
-    newHint: "When the invoicing program's 3 reminders were not enough.",
+    newHint: "From the invoicing program's first reminder, or already in follow-up.",
     customer: 'Customer',
     invoices: 'Invoices',
     invoiceNumber: 'Invoice no.',
