@@ -2925,6 +2925,10 @@ export const en = {
     attachedTitle: 'Sales summary',
   },
   agenda: {
+    today: 'Today',
+    doneOf: '{done} of {total} done',
+    seeWeek: 'See the week',
+    nothingToday: 'Nothing planned for today.',
     title: 'Agenda',
     subtitle: 'Your week: activities, sales, meetings, coverage, absences and reminders',
     whose: 'Whose',

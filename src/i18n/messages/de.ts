@@ -2893,6 +2893,10 @@ export const de: Messages = {
     attachedTitle: 'Verkaufszusammenfassung',
   },
   agenda: {
+    today: 'Heute',
+    doneOf: '{done} von {total} erledigt',
+    seeWeek: 'Woche ansehen',
+    nothingToday: 'Heute ist nichts geplant.',
     title: 'Agenda',
     subtitle: 'Deine Woche: Aktivitäten, Verkauf, Besprechungen, Vertretungen, Abwesenheiten und Erinnerungen',
     whose: 'Wessen',

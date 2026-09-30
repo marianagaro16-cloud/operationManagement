@@ -15,12 +15,15 @@ export function TodayPlanCard({
   kinds,
   points,
   viewerId,
+  routeOnly = false,
 }: {
   /** Whose day it is: activities of others are ones they take part in. */
   viewerId: string;
   activities: SalesActivity[];
   kinds: ActivityKind[];
   points: { ends: DayEnds; home: StartPoint | null; office: StartPoint | null } | null;
+  /** Only the day's route: the activities themselves are in "Hoy". */
+  routeOnly?: boolean;
 }) {
   const { t } = useI18n();
   const k = useKinds(kinds);
@@ -37,6 +40,26 @@ export function TodayPlanCard({
   const links = visits.length
     ? visitRouteLinks(visits.map((v) => v.target!), points ? at(points.ends.start_at) : null, points ? at(points.ends.end_at) : null)
     : [];
+
+  if (routeOnly) {
+    if (!links.length) return null;
+    return (
+      <div className="mt-2 flex flex-wrap gap-2">
+        {links.map((href, i) => (
+          <a
+            key={href}
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-sm font-medium text-accent-fg hover:opacity-90"
+          >
+            <Map className="h-4 w-4" aria-hidden />
+            {links.length === 1 ? t('sales.visitOpenRoute') : t('sales.visitOpenLeg', { n: i + 1 })}
+          </a>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <section>

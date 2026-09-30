@@ -23,8 +23,9 @@ import { buildNowItems } from '@/domain/dashboard/now';
 import { countPendingAbsences } from '@/server/absences';
 import { countCoverageGaps, getCoverageBetween, getCoveredWork, getNeedsCoverIds, getWorkingHours } from '@/server/coverage';
 import { CoveringNowCard } from '@/components/absences/covering-now-card';
-import { countUnansweredInvites, getMeetingsFor } from '@/server/meetings';
-import { MeetingsTodayCard } from '@/components/meetings/meetings-today-card';
+import { getAgenda } from '@/server/agenda';
+import { TodayCard } from '@/components/agenda/today-card';
+import { countUnansweredInvites } from '@/server/meetings';
 import { CoverageTodayCard } from '@/components/absences/coverage-today-card';
 import { compareUrgency, deliveryUrgency } from '@/domain/orders/urgency';
 import { personalTaskPhase } from '@/domain/reminders/schedule';
@@ -60,7 +61,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingsToday, meetingInvites] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
@@ -90,8 +91,9 @@ export default async function DashboardPage() {
     // Upcoming absences with time nobody covers: approvers count all, anyone else their own.
     viewer ? countCoverageGaps(today, viewer.profile.id) : 0,
     // The viewer's meetings today, and invitations not answered yet.
-    viewer ? getMeetingsFor(viewer.profile.id, today, today) : [],
     viewer ? countUnansweredInvites(viewer.profile.id, today) : 0,
+    // "Hoy": the viewer's day from the agenda.
+    viewer ? getAgenda(viewer.profile.id, today, today, true, today) : [],
   ]);
 
   // ---- what the figures and "Now" count ----
@@ -111,13 +113,14 @@ export default async function DashboardPage() {
     blockedActivities: plans ? data.blocked.length : 0,
     urgentOrders,
     overdueCounts: inventory.overdue.length,
-    countsToday: inventory.dueToday.filter((r) => r.status === 'in_progress').length,
+    // Today's counts and sales activities are listed in "Hoy"; "Ahora" keeps what is late or urgent.
+    countsToday: 0,
     overdueReminders: reminders?.overdueTotal ?? 0,
     overduePersonalTasks: (personalTasks?.open ?? []).filter(
       (task) => personalTaskPhase(task.status, task.due_date, task.due_time, nowIso) === 'overdue',
     ).length,
     planLate,
-    planToday: todayPlan.filter((a) => a.status === 'planned').length,
+    planToday: 0,
     evaluationsDue: evaluations.filter((e) => e.request.deadline === today).length,
     absencesToApprove,
     coverageGaps,
@@ -136,6 +139,29 @@ export default async function DashboardPage() {
       <PushPrompt />
 
       <Greeting name={viewer?.profile.name ?? null} today={today} />
+
+      {/* The viewer's day first. What is late from before is counted in "Ahora", not repeated here. */}
+      <TodayCard
+        items={agendaToday.filter((i) => !(i.kind === 'activity' && i.late))}
+        today={today}
+        kinds={kinds}
+        extra={
+          <>
+            {/* The day's visit route, and the work of whoever the viewer covers — each only when there is one. */}
+            <TodayPlanCard activities={todayPlan} kinds={kinds} points={visitPoints} viewerId={viewer?.profile.id ?? ''} routeOnly />
+            {myPeriods.length > 0 && (
+              <div className="mt-4">
+                <CoveringNowCard periods={myPeriods} now={nowHm} activities={coveredWork.activities} inventories={coveredWork.inventories} />
+              </div>
+            )}
+          </>
+        }
+      />
+
+      {/* What is late or urgent. */}
+      <div className="mb-4">
+        <NowCard items={nowItems} />
+      </div>
 
       {business ? (
         <BusinessFigures
@@ -159,15 +185,8 @@ export default async function DashboardPage() {
       )}
 
       {/* The cards: one column on a phone or a narrow window, two on a computer —
-          the page is about 780px wide beside the menu, too narrow for three. "Now" first. */}
+          the page is about 780px wide beside the menu, too narrow for three. */}
       <div className="columns-1 gap-4 lg:columns-2">
-        <Tile><NowCard items={nowItems} /></Tile>
-        {/* Nothing unless the viewer has a meeting today. */}
-        <Tile><MeetingsTodayCard meetings={meetingsToday} viewerId={viewer?.profile.id ?? ''} /></Tile>
-        {/* Nothing unless the viewer covers someone today. */}
-        <Tile>
-          <CoveringNowCard periods={myPeriods} now={nowHm} activities={coveredWork.activities} inventories={coveredWork.inventories} />
-        </Tile>
         <Tile>
           <OrderWidgets
             toPrepare={orders.toPrepare}
@@ -176,7 +195,6 @@ export default async function DashboardPage() {
             canManage={canManageOrders}
           />
         </Tile>
-        <Tile><TodayPlanCard activities={todayPlan} kinds={kinds} points={visitPoints} viewerId={viewer?.profile.id ?? ''} /></Tile>
         {/* Renders nothing unless a count is due or late, so it never becomes
             empty furniture people learn to scroll past. */}
         <Tile><InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} /></Tile>
@@ -201,7 +219,8 @@ export default async function DashboardPage() {
         {viewer && reminders && personalTasks && (
           <ReminderWidgets
             viewerId={viewer.profile.id}
-            reminders={reminders}
+            // Today's reminders are in "Hoy"; the card keeps what is late, what is coming, and quick creation.
+            reminders={{ ...reminders, today: [] }}
             tasks={personalTasks}
             nowIso={nowIso}
           />

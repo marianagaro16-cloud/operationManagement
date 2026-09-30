@@ -153,7 +153,7 @@ export function AgendaView({
   );
 }
 
-function Entry({ item: i, kinds, compact = false }: { item: AgendaItem; kinds: ActivityKind[]; compact?: boolean }) {
+export function Entry({ item: i, kinds, compact = false }: { item: AgendaItem; kinds: ActivityKind[]; compact?: boolean }) {
   const { t, locale, formatDate } = useI18n();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
