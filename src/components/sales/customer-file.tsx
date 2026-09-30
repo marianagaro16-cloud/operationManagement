@@ -31,7 +31,7 @@ export function CustomerFile({
   collections,
 }: {
   /** Payments pending — and, for the collections team, the cases. */
-  collections: { flagged: boolean; cases: CollectionCaseRow[] | null };
+  collections: { flagged: 'reminder' | 'pending' | null; cases: CollectionCaseRow[] | null };
   view: CustomerFileView;
   /** The prospect this customer was won from: its contact details live there. */
   wonFromId: string | null;
@@ -62,7 +62,8 @@ export function CustomerFile({
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="break-words text-xl font-semibold leading-tight">{customer.company_name}</h1>
           {!customer.is_active && <Badge tone="neutral">{t('sales.inactive')}</Badge>}
-          {collections.flagged && <Badge tone="late">{t('collection.flag')}</Badge>}
+          {collections.flagged === 'pending' && <Badge tone="late">{t('collection.flag')}</Badge>}
+          {collections.flagged === 'reminder' && <Badge tone="warn">{t('collection.flagReminder')}</Badge>}
         </div>
         <p className="mt-1 break-words text-[12.5px] text-muted">
           {[customer.company_name_addition, customer.type, address].filter(Boolean).join(' · ')}
@@ -84,7 +85,7 @@ export function CustomerFile({
             {collections.cases.map((c) => (
               <li key={c.id}>
                 <Link href={`/collections/${c.id}`} className="flex items-center gap-2 py-1.5 text-[13px] hover:text-accent">
-                  <CollectionStageBadge stage={c.stage} />
+                  <CollectionStageBadge stage={c.stage} reminders={c.reminders_sent} />
                   <span className="min-w-0 flex-1 truncate text-muted">{formatDate(c.created_at.slice(0, 10), 'short')}</span>
                   <span className="font-medium tabular">{chf(c.closed_at ? c.total : c.open)}</span>
                 </Link>

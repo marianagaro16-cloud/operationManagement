@@ -89,7 +89,7 @@ export function CaseList({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-[13.5px] font-medium">{c.customer_name}</span>
-                    <StageBadge stage={c.stage} />
+                    <StageBadge stage={c.stage} reminders={c.reminders_sent} />
                   </div>
                   <p className="text-[12px] text-muted">
                     {c.responsible_name ?? '—'}
@@ -139,6 +139,9 @@ function NewCaseDialog({
   const [responsible, setResponsible] = useState(team.some((p) => p.id === viewerId) ? viewerId : team[0]?.id ?? '');
   const [invoices, setInvoices] = useState<DraftInvoice[]>([{ invoice_number: '', due_date: '', amount: '' }]);
   const [next, setNext] = useState(today);
+  // Where it starts: at a reminder (1–3) from the invoicing program, or at follow-up.
+  const [start, setStart] = useState<'1' | '2' | '3' | 'follow_up'>('1');
+  const [reminderDate, setReminderDate] = useState(today);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -155,7 +158,9 @@ function NewCaseDialog({
         customer_id: customerId,
         responsible_id: responsible,
         invoices: filled.map((i) => ({ invoice_number: i.invoice_number, due_date: i.due_date || null, amount: amount(i.amount) })),
-        next_follow_up: next || null,
+        next_follow_up: start === 'follow_up' || start === '3' ? next || null : null,
+        reminders_sent: start === 'follow_up' ? 0 : Number(start),
+        reminder_date: start === 'follow_up' ? null : reminderDate,
         note,
       });
       if (!res.ok) return setError(labels.error(res.error));
@@ -210,14 +215,31 @@ function NewCaseDialog({
           </div>
         </Field>
         <div className="grid grid-cols-2 gap-3">
+          <Field label={t('collection.startAt')} htmlFor="collection-start">
+            <Select id="collection-start" value={start} onChange={(e) => setStart(e.target.value as typeof start)}>
+              <option value="1">{t('collection.reminderSent', { n: 1 })}</option>
+              <option value="2">{t('collection.reminderSent', { n: 2 })}</option>
+              <option value="3">{t('collection.reminderSent', { n: 3 })}</option>
+              <option value="follow_up">{t('collection.stageFollowUp')}</option>
+            </Select>
+          </Field>
+          {start !== 'follow_up' && (
+            <Field label={t('collection.sentOn')} htmlFor="collection-reminder-date">
+              <Input id="collection-reminder-date" type="date" max={today} value={reminderDate} onChange={(e) => setReminderDate(e.target.value)} />
+            </Field>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
           <Field label={t('collection.responsible')} required htmlFor="collection-responsible">
             <Select id="collection-responsible" value={responsible} onChange={(e) => setResponsible(e.target.value)}>
               {team.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </Select>
           </Field>
-          <Field label={t('collection.nextFollowUp')} htmlFor="collection-next">
-            <Input id="collection-next" type="date" value={next} onChange={(e) => setNext(e.target.value)} />
-          </Field>
+          {(start === 'follow_up' || start === '3') && (
+            <Field label={t('collection.nextFollowUp')} htmlFor="collection-next">
+              <Input id="collection-next" type="date" value={next} onChange={(e) => setNext(e.target.value)} />
+            </Field>
+          )}
         </div>
         <Field label={t('collection.note')} htmlFor="collection-note">
           <NoteTextarea id="collection-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />

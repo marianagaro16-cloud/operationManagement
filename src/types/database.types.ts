@@ -441,6 +441,7 @@ export type Database = {
           next_follow_up: string | null
           note: string | null
           promised_on: string | null
+          reminders_sent: number
           responsible_id: string | null
           stage: string
           updated_at: string
@@ -457,6 +458,7 @@ export type Database = {
           next_follow_up?: string | null
           note?: string | null
           promised_on?: string | null
+          reminders_sent?: number
           responsible_id?: string | null
           stage?: string
           updated_at?: string
@@ -473,6 +475,7 @@ export type Database = {
           next_follow_up?: string | null
           note?: string | null
           promised_on?: string | null
+          reminders_sent?: number
           responsible_id?: string | null
           stage?: string
           updated_at?: string
@@ -7540,6 +7543,13 @@ export type Database = {
           p_user_agent?: string
         }
         Returns: undefined
+      }
+      collection_customer_flags: {
+        Args: never
+        Returns: {
+          customer_id: string
+          level: string
+        }[]
       }
       collection_flagged_customers: { Args: never; Returns: string[] }
       complete_occurrence: {

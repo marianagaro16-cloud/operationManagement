@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { sendToUser } from './push';
 import type { ActionResult } from './actions';
-import type { CollectionStage } from '@/types/collections';
+import type { CollectionFlag, CollectionStage } from '@/types/collections';
 
 /*
  * Collections writes — the collections team only (RLS: is_collections).
@@ -64,6 +64,9 @@ async function openAmount(caseId: string): Promise<number> {
 const invoiceSchema = z.object({ invoice_number: z.string().trim().min(1).max(60), due_date: optDate, amount: money });
 
 const caseSchema = z.object({
+  /** Where it starts: at a payment reminder (1–3, sent on a day), or at follow-up. */
+  reminders_sent: z.number().int().min(0).max(3).default(0),
+  reminder_date: optDate,
   customer_id: uuid,
   responsible_id: uuid,
   invoices: z.array(invoiceSchema).min(1, { message: 'invoice_required' }).max(100),
@@ -80,14 +83,24 @@ export async function createCase(input: z.input<typeof caseSchema>): Promise<Act
   const uid = await me();
   const { data, error } = await supabase
     .from('collection_cases')
-    .insert({ customer_id: v.customer_id, responsible_id: v.responsible_id, next_follow_up: v.next_follow_up, note: v.note, created_by: uid })
+    .insert({
+      customer_id: v.customer_id,
+      responsible_id: v.responsible_id,
+      // At a reminder while the program's reminders run; at follow-up after the third.
+      stage: v.reminders_sent > 0 && v.reminders_sent < 3 ? 'reminders' : 'follow_up',
+      reminders_sent: v.reminders_sent,
+      next_follow_up: v.next_follow_up,
+      note: v.note,
+      created_by: uid,
+    })
     .select('id')
     .single();
   if (error) return fail(error);
   const id = (data as { id: string }).id;
   const { error: invError } = await supabase.from('collection_invoices').insert(v.invoices.map((i) => ({ ...i, case_id: id })));
   if (invError) return fail(invError);
-  await log(id, 'stage', null, { stage: 'follow_up', opened: true });
+  await log(id, 'stage', null, { stage: v.reminders_sent > 0 && v.reminders_sent < 3 ? 'reminders' : 'follow_up', opened: true });
+  if (v.reminders_sent > 0) await log(id, 'reminder', null, { level: v.reminders_sent }, v.reminder_date ?? undefined);
   if (v.responsible_id !== uid) await tellResponsible(v.responsible_id, id, 'Caso de cobranza asignado');
   revalidateCase(id);
   return { ok: true, data: { id } };
@@ -129,6 +142,28 @@ export async function logContact(caseId: string, input: z.input<typeof contactSc
   return { ok: true, data: undefined };
 }
 
+/**
+ * The invoicing program sent the next payment reminder. After the third, the
+ * case moves to follow-up — calls and emails — from the day given.
+ */
+export async function recordReminder(caseId: string, sentOn: string, nextFollowUp?: string | null): Promise<ActionResult<{ level: number }>> {
+  if (!DATE.safeParse(sentOn).success || (nextFollowUp && !DATE.safeParse(nextFollowUp).success)) return { ok: false, error: 'invalid_date' };
+  const supabase = createClient();
+  const { data: c } = await supabase.from('collection_cases').select('stage, reminders_sent').eq('id', caseId).maybeSingle();
+  if (!c) return { ok: false, error: 'not_authorized' };
+  if (c.stage !== 'reminders' || c.reminders_sent >= 3) return { ok: false, error: 'invalid_stage' };
+  const level = c.reminders_sent + 1;
+  const { error } = await supabase
+    .from('collection_cases')
+    .update(level >= 3 ? { reminders_sent: level, stage: 'follow_up', next_follow_up: nextFollowUp ?? null } : { reminders_sent: level })
+    .eq('id', caseId);
+  if (error) return fail(error);
+  await log(caseId, 'reminder', null, { level }, sentOn);
+  if (level >= 3) await log(caseId, 'stage', null, { stage: 'follow_up', from: 'reminders' });
+  revalidateCase(caseId);
+  return { ok: true, data: { level } };
+}
+
 /** The customer promised to pay by a day: then it is checked. */
 export async function setPromise(caseId: string, promisedOn: string, body: string): Promise<ActionResult> {
   if (!DATE.safeParse(promisedOn).success) return { ok: false, error: 'invalid_date' };
@@ -137,7 +172,7 @@ export async function setPromise(caseId: string, promisedOn: string, body: strin
     .from('collection_cases')
     .update({ stage: 'promise', promised_on: promisedOn, next_follow_up: promisedOn })
     .eq('id', caseId)
-    .in('stage', ['follow_up', 'promise']);
+    .in('stage', ['reminders', 'follow_up', 'promise']);
   if (error) return fail(error);
   await log(caseId, 'promise', body.trim() || null, { promised_on: promisedOn });
   revalidateCase(caseId);
@@ -158,7 +193,7 @@ export async function addPayment(caseId: string, input: { paid_on: string; amoun
   await log(caseId, 'payment', parsed.data.note, { amount: parsed.data.amount, via_agency: viaAgency }, parsed.data.paid_on);
   const open = await openAmount(caseId);
   let closed = false;
-  if (open <= 0 && ['follow_up', 'promise', 'agency'].includes(c.stage)) {
+  if (open <= 0 && ['reminders', 'follow_up', 'promise', 'agency'].includes(c.stage)) {
     const stage = viaAgency ? 'paid_agency' : 'paid';
     await supabase.from('collection_cases').update({ stage }).eq('id', caseId);
     await log(caseId, 'stage', null, { stage });
@@ -268,10 +303,10 @@ export async function saveAgency(input: { name: string; sort_order: number; is_a
   return { ok: true, data: undefined };
 }
 
-/** Does this customer have payments pending? — for the warning when ordering. Anyone may ask; the answer is yes or no. */
-export async function customerHasPendingPayments(customerId: string): Promise<boolean> {
-  if (!uuid.safeParse(customerId).success) return false;
+/** How far a customer is in collections — for the warning when ordering. Anyone may ask; nothing more is said. */
+export async function customerPaymentFlag(customerId: string): Promise<CollectionFlag | null> {
+  if (!uuid.safeParse(customerId).success) return null;
   const supabase = createClient();
-  const { data } = await supabase.rpc('collection_flagged_customers');
-  return ((data ?? []) as unknown as string[]).map(String).includes(customerId);
+  const { data } = await supabase.rpc('collection_customer_flags');
+  return ((data ?? []) as { customer_id: string; level: CollectionFlag }[]).find((r) => r.customer_id === customerId)?.level ?? null;
 }

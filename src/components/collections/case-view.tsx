@@ -3,7 +3,7 @@
 import { useState, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Banknote, Building2, CalendarCheck, Mail, MessageSquare, Phone, Plus, RotateCcw, Trash2, XCircle } from 'lucide-react';
+import { ArrowLeft, Banknote, BellRing, Building2, CalendarCheck, Mail, MessageSquare, Phone, Plus, RotateCcw, Trash2, XCircle } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import {
   addInvoice,
   addPayment,
   logContact,
+  recordReminder,
   removeInvoice,
   sendToAgency,
   setPromise,
@@ -24,7 +25,7 @@ import {
 import type { CollectionAgency, CollectionCaseRow, CollectionEvent, CollectionInvoice, CollectionPayment } from '@/types/collections';
 import { StageBadge, chf, useCollectionLabels } from './collection-parts';
 
-type Open = 'contact' | 'promise' | 'payment' | 'agency' | 'uncollectible' | 'settled' | 'reopen' | 'invoice' | null;
+type Open = 'contact' | 'promise' | 'payment' | 'agency' | 'uncollectible' | 'settled' | 'reopen' | 'invoice' | 'reminder' | 'toFollowUp' | null;
 
 /** One collection case: what is owed, where it stands, what was done, and the next step. */
 export function CaseView({
@@ -51,7 +52,7 @@ export function CaseView({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const closed = !!row.closed_at;
-  const beforeAgency = row.stage === 'follow_up' || row.stage === 'promise';
+  const beforeAgency = row.stage === 'reminders' || row.stage === 'follow_up' || row.stage === 'promise';
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>) => {
     setError(null);
     startTransition(async () => {
@@ -75,7 +76,7 @@ export function CaseView({
               <Link href={`/sales/customers/${row.customer_id}`} className="hover:text-accent">{row.customer_name}</Link>
             </h1>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-[12.5px] text-muted">
-              <StageBadge stage={row.stage} />
+              <StageBadge stage={row.stage} reminders={row.reminders_sent} />
               {row.stage === 'promise' && row.promised_on && t('collection.promisedFor', { date: formatDate(row.promised_on, 'short') })}
               {row.agency_name && (
                 <span>
@@ -115,7 +116,19 @@ export function CaseView({
         {error && <div className="mt-3"><ErrorState message={error} /></div>}
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {!closed && (
+          {row.stage === 'reminders' && row.reminders_sent < 3 && (
+            <Button size="sm" variant="primary" onClick={() => setOpen('reminder')}>
+              <BellRing className="h-3.5 w-3.5" aria-hidden />
+              {t('collection.reminderSent', { n: row.reminders_sent + 1 })}
+            </Button>
+          )}
+          {row.stage === 'reminders' && (
+            <Button size="sm" variant="secondary" onClick={() => setOpen('toFollowUp')}>
+              <Phone className="h-3.5 w-3.5" aria-hidden />
+              {t('collection.toFollowUp')}
+            </Button>
+          )}
+          {!closed && row.stage !== 'reminders' && (
             <Button size="sm" variant="primary" onClick={() => setOpen('contact')}>
               <Phone className="h-3.5 w-3.5" aria-hidden />
               {t('collection.logContact')}
@@ -225,6 +238,8 @@ export function CaseView({
       {open === 'payment' && <PaymentDialog caseId={row.id} open={row.open} today={today} onClose={() => setOpen(null)} />}
       {open === 'agency' && <AgencyDialog caseId={row.id} agencies={agencies} today={today} onClose={() => setOpen(null)} />}
       {open === 'invoice' && <InvoiceDialog caseId={row.id} onClose={() => setOpen(null)} />}
+      {open === 'reminder' && <ReminderDialog caseId={row.id} level={row.reminders_sent + 1} today={today} onClose={() => setOpen(null)} />}
+      {open === 'toFollowUp' && <StageDialog caseId={row.id} stage="follow_up" onClose={() => setOpen(null)} />}
       {(open === 'uncollectible' || open === 'settled' || open === 'reopen') && (
         <StageDialog caseId={row.id} stage={open === 'uncollectible' ? 'uncollectible' : open === 'settled' ? 'paid' : 'follow_up'} onClose={() => setOpen(null)} />
       )}
@@ -244,7 +259,7 @@ function Section({ title, action, children }: { title: string; action?: ReactNod
   );
 }
 
-const EVENT_ICON = { call: Phone, email: Mail, note: MessageSquare, promise: CalendarCheck, payment: Banknote, stage: RotateCcw, agency: Building2, invoice: Plus, responsible: RotateCcw } as const;
+const EVENT_ICON = { reminder: BellRing, call: Phone, email: Mail, note: MessageSquare, promise: CalendarCheck, payment: Banknote, stage: RotateCcw, agency: Building2, invoice: Plus, responsible: RotateCcw } as const;
 
 function History({ events, team, agencies }: { events: CollectionEvent[]; team: { id: string; name: string }[]; agencies: CollectionAgency[] }) {
   const { t, formatDate } = useI18n();
@@ -259,6 +274,7 @@ function History({ events, team, agencies }: { events: CollectionEvent[]; team: 
       case 'agency': return t('collection.evAgency', { name: agencies.find((a) => a.id === d.agency_id)?.name ?? '—' });
       case 'invoice': return d.added ? t('collection.evInvoiceAdded', { number: String(d.added), amount: chf(Number(d.amount)) }) : t('collection.evInvoiceRemoved', { number: String(d.removed) });
       case 'responsible': return t('collection.evResponsible', { name: team.find((p) => p.id === d.responsible_id)?.name ?? '—' });
+      case 'reminder': return t('collection.evReminder', { n: Number(d.level) });
       default: return t(`collection.ev_${e.kind}` as MessageKey);
     }
   };
@@ -470,6 +486,35 @@ function StageDialog({ caseId, stage, onClose }: { caseId: string; stage: 'uncol
       <Field label={t('collection.reason')} required={stage !== 'paid'} htmlFor="stage-reason">
         <NoteTextarea id="stage-reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
       </Field>
+    </Frame>
+  );
+}
+
+/** The program sent the next reminder; after the third, when to call or write first. */
+function ReminderDialog({ caseId, level, today, onClose }: { caseId: string; level: number; today: string; onClose: () => void }) {
+  const { t } = useI18n();
+  const { error, pending, submit } = useSubmit(onClose);
+  const [date, setDate] = useState(today);
+  const [next, setNext] = useState('');
+  const last = level >= 3;
+  return (
+    <Frame
+      title={t('collection.reminderSent', { n: level })}
+      description={last ? t('collection.lastReminderHint') : undefined}
+      onClose={onClose}
+      onSave={() => submit(() => recordReminder(caseId, date, last ? next || null : null))}
+      pending={pending}
+      ready={!!date}
+      error={error}
+    >
+      <Field label={t('collection.sentOn')} required htmlFor="reminder-date">
+        <Input id="reminder-date" type="date" max={today} value={date} onChange={(e) => setDate(e.target.value)} autoFocus />
+      </Field>
+      {last && (
+        <Field label={t('collection.nextFollowUp')} hint={t('collection.nextFollowUpHint')} htmlFor="reminder-next">
+          <Input id="reminder-next" type="date" min={today} value={next} onChange={(e) => setNext(e.target.value)} className="w-auto" />
+        </Field>
+      )}
     </Frame>
   );
 }

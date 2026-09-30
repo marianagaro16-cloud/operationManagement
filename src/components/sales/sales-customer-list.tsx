@@ -13,12 +13,12 @@ import type { SalesCustomerRow } from '@/types/sales';
 export function SalesCustomerList({
   customers,
   today,
-  flagged = [],
+  flagged = {},
 }: {
   customers: SalesCustomerRow[];
   today: string;
-  /** Customers with payments pending. */
-  flagged?: string[];
+  /** Customers with an open collection case, and how far: a reminder, or payments pending. */
+  flagged?: Record<string, 'reminder' | 'pending'>;
 }) {
   const { t } = useI18n();
   const [query, setQuery] = useState('');
@@ -65,7 +65,8 @@ export function SalesCustomerList({
                 <span className="flex items-center gap-1.5">
                   <span className="truncate text-[13.5px] font-medium">{c.company_name}</span>
                   {!c.is_active && <Badge tone="neutral">{t('sales.inactive')}</Badge>}
-                  {flagged.includes(c.id) && <Badge tone="late">{t('collection.flag')}</Badge>}
+                  {flagged[c.id] === 'pending' && <Badge tone="late">{t('collection.flag')}</Badge>}
+                  {flagged[c.id] === 'reminder' && <Badge tone="warn">{t('collection.flagReminder')}</Badge>}
                 </span>
                 <span className="block truncate text-[12px] text-muted">
                   {[c.company_name_addition, c.city].filter(Boolean).join(' · ')}

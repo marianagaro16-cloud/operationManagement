@@ -1,7 +1,10 @@
 /** Collections (Cobranza): following up unpaid invoices. */
 
-export type CollectionStage = 'follow_up' | 'promise' | 'paid' | 'agency' | 'paid_agency' | 'uncollectible';
-export const OPEN_COLLECTION_STAGES: CollectionStage[] = ['follow_up', 'promise', 'agency'];
+export type CollectionStage = 'reminders' | 'follow_up' | 'promise' | 'paid' | 'agency' | 'paid_agency' | 'uncollectible';
+export const OPEN_COLLECTION_STAGES: CollectionStage[] = ['reminders', 'follow_up', 'promise', 'agency'];
+
+/** What everyone else learns of a customer: reminders running, or payments pending. */
+export type CollectionFlag = 'reminder' | 'pending';
 
 export interface CollectionCaseRow {
   id: string;
@@ -10,6 +13,8 @@ export interface CollectionCaseRow {
   responsible_id: string | null;
   responsible_name: string | null;
   stage: CollectionStage;
+  /** The invoicing program's payment reminders sent so far (0–3). */
+  reminders_sent: number;
   promised_on: string | null;
   next_follow_up: string | null;
   agency_id: string | null;
@@ -42,7 +47,7 @@ export interface CollectionPayment {
   note: string | null;
 }
 
-export type CollectionEventKind = 'call' | 'email' | 'note' | 'promise' | 'payment' | 'stage' | 'agency' | 'invoice' | 'responsible';
+export type CollectionEventKind = 'call' | 'email' | 'note' | 'promise' | 'payment' | 'stage' | 'agency' | 'invoice' | 'responsible' | 'reminder';
 
 export interface CollectionEvent {
   id: number;

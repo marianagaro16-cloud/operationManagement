@@ -6,7 +6,8 @@ import type { CollectionStage } from '@/types/collections';
 
 /* What the collections screens share. */
 
-const TONE: Record<CollectionStage, 'warn' | 'accent' | 'done' | 'late' | 'skipped'> = {
+const TONE: Record<CollectionStage, 'warn' | 'accent' | 'done' | 'late' | 'skipped' | 'neutral'> = {
+  reminders: 'neutral',
   follow_up: 'warn',
   promise: 'accent',
   paid: 'done',
@@ -15,9 +16,10 @@ const TONE: Record<CollectionStage, 'warn' | 'accent' | 'done' | 'late' | 'skipp
   uncollectible: 'skipped',
 };
 
-export function StageBadge({ stage }: { stage: CollectionStage }) {
+export function StageBadge({ stage, reminders = 0 }: { stage: CollectionStage; reminders?: number }) {
+  const { t } = useI18n();
   const labels = useCollectionLabels();
-  return <Badge tone={TONE[stage]}>{labels.stage(stage)}</Badge>;
+  return <Badge tone={TONE[stage]}>{stage === 'reminders' ? t('collection.stageReminder', { n: reminders }) : labels.stage(stage)}</Badge>;
 }
 
 /** CHF 1'250.00 */
@@ -30,6 +32,7 @@ export function useCollectionLabels() {
   return {
     stage: (s: CollectionStage) =>
       ({
+        reminders: t('collection.stageReminders'),
         follow_up: t('collection.stageFollowUp'),
         promise: t('collection.stagePromise'),
         paid: t('collection.stagePaid'),

@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type {
+  CollectionFlag,
   CollectionAgency,
   CollectionCaseRow,
   CollectionEvent,
@@ -15,7 +16,7 @@ import type {
  */
 
 const CASE_COLUMNS = `
-  id, customer_id, responsible_id, stage, promised_on, next_follow_up, agency_id, agency_sent_on, agency_reference,
+  id, customer_id, responsible_id, stage, reminders_sent, promised_on, next_follow_up, agency_id, agency_sent_on, agency_reference,
   note, closed_at, created_at,
   customer:customers ( company_name ),
   responsible:profiles!collection_cases_responsible_id_fkey ( name, email ),
@@ -104,11 +105,11 @@ export async function getCase(id: string): Promise<{
   };
 }
 
-/** Customers with payments pending — all anyone outside the team learns. */
-export async function getFlaggedCustomers(): Promise<Set<string>> {
+/** Customers with an open case, and how far: all anyone outside the team learns. */
+export async function getFlaggedCustomers(): Promise<Map<string, CollectionFlag>> {
   const supabase = createClient();
-  const { data } = await supabase.rpc('collection_flagged_customers');
-  return new Set(((data ?? []) as unknown as string[]).map(String));
+  const { data } = await supabase.rpc('collection_customer_flags');
+  return new Map(((data ?? []) as { customer_id: string; level: CollectionFlag }[]).map((r) => [r.customer_id, r.level]));
 }
 
 export async function getCollectionTeam(): Promise<{ id: string; name: string }[]> {

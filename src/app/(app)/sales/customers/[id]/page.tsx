@@ -28,7 +28,7 @@ export default async function SalesCustomerPage({ params }: { params: { id: stri
       kinds={kinds}
       viewerId={viewer.profile.id}
       today={businessToday()}
-      collections={{ flagged: flagged.has(params.id), cases }}
+      collections={{ flagged: flagged.get(params.id) ?? null, cases }}
     />
   );
 }

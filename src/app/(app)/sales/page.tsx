@@ -60,14 +60,14 @@ export default async function SalesPage({
     tab === 'summary' ? buildSummary(sumFrom, sumTo) : Promise.resolve(null),
     tab === 'summary' ? listSummaries() : Promise.resolve([]),
     // Payments pending: a flag, nothing more.
-    tab === 'customers' ? getFlaggedCustomers() : Promise.resolve(new Set<string>()),
+    tab === 'customers' ? getFlaggedCustomers() : Promise.resolve(new Map<string, 'reminder' | 'pending'>()),
   ]);
 
   return (
     <>
       <SalesHeader tab={tab} quietCount={quiet.length} />
       {tab === 'quiet' && <QuietCustomerList customers={quiet} />}
-      {tab === 'customers' && <SalesCustomerList customers={customers} today={today} flagged={[...flagged]} />}
+      {tab === 'customers' && <SalesCustomerList customers={customers} today={today} flagged={Object.fromEntries(flagged)} />}
       {tab === 'planning' && (
         <PlanningTab
           date={date}

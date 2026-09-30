@@ -15,7 +15,7 @@ import type { PreviewLine } from '@/domain/orders/import/pipeline';
 import { businessToday } from '@/lib/datetime';
 import { productLabel, type Customer, type DeliveryMethod, type Order, type OrderType, type Product } from '@/types/orders';
 import { saveOrder } from '@/server/order-actions';
-import { customerHasPendingPayments } from '@/server/collection-actions';
+import { customerPaymentFlag } from '@/server/collection-actions';
 import { ImportPanel, type ImportMethod } from './import-panel';
 import { ORDER_TYPES, ORDER_TYPE_LABEL } from './order-types';
 import { OrderLineEditor, emptyLine, type DraftLine } from './order-line-editor';
@@ -87,14 +87,14 @@ export function OrderDialog({
 
   const [customerId, setCustomerId] = useState(order?.customer_id ?? initial?.customer_id ?? '');
   // A customer in collection: said, never blocked.
-  const [pendingPayments, setPendingPayments] = useState(false);
+  const [pendingPayments, setPendingPayments] = useState<'reminder' | 'pending' | null>(null);
   useEffect(() => {
     let live = true;
     if (!customerId) {
-      setPendingPayments(false);
+      setPendingPayments(null);
       return;
     }
-    customerHasPendingPayments(customerId).then((yes) => live && setPendingPayments(yes));
+    customerPaymentFlag(customerId).then((level) => live && setPendingPayments(level));
     return () => {
       live = false;
     };
@@ -332,8 +332,14 @@ export function OrderDialog({
           />
         </Field>
         {pendingPayments && (
-          <p className="-mt-1.5 flex items-center gap-1.5 rounded-lg border border-warn/40 bg-warn/[0.06] px-3 py-2 text-[12.5px] font-medium text-warn">
-            ⚠ {t('collection.orderWarning')}
+          <p
+            className={
+              pendingPayments === 'pending'
+                ? '-mt-1.5 flex items-center gap-1.5 rounded-lg border border-late/40 bg-late/[0.06] px-3 py-2 text-[12.5px] font-medium text-late'
+                : '-mt-1.5 flex items-center gap-1.5 rounded-lg border border-warn/40 bg-warn/[0.06] px-3 py-2 text-[12.5px] font-medium text-warn'
+            }
+          >
+            ⚠ {pendingPayments === 'pending' ? t('collection.orderWarning') : t('collection.orderWarningReminder')}
           </p>
         )}
 
