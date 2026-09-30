@@ -246,6 +246,8 @@ export function Combobox<T>({
           autoComplete="off"
           disabled={disabled}
           value={displayValue}
+          // A long choice is cut off in the field; hovering shows all of it.
+          title={selected ? getLabel(selected) : undefined}
           // Open with nothing typed, the selection stays readable as the
           // placeholder rather than the field looking emptied.
           placeholder={selected ? getLabel(selected) : (placeholder ?? t('common.search'))}

@@ -98,9 +98,11 @@ export function OrderLineEditor({
 
         return (
           <div key={i}>
-            <div className="flex items-start gap-2">
+            {/* On a phone the product takes the whole line, quantity below it: a
+                product name is long, and next to the quantity it was cut off. */}
+            <div className="flex flex-wrap items-start gap-2 sm:flex-nowrap">
               <Combobox
-                className="min-w-0 flex-1"
+                className="min-w-0 basis-full sm:basis-0 sm:flex-1"
                 handleRef={(h) => { productRefs.current[i] = h; }}
                 items={products}
                 value={line.product_id || null}
@@ -120,7 +122,8 @@ export function OrderLineEditor({
                     <span className="w-12 shrink-0 tabular text-[11.5px] text-subtle">
                       {p.code ?? '—'}
                     </span>
-                    <span className="min-w-0 flex-1 truncate">{productLabel(p)}</span>
+                    {/* Wrapped, not cut: the whole name has to be readable to choose it. */}
+                    <span className="min-w-0 flex-1 break-words">{productLabel(p)}</span>
                   </span>
                 )}
               />
