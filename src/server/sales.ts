@@ -32,7 +32,7 @@ export async function getCustomerFile(customerId: string): Promise<CustomerFileV
     supabase.rpc('sales_customer_file', { p_customer_id: customerId }),
     supabase
       .from('customer_notes')
-      .select('id, kind_id, note_date, body, created_at, author:profiles!customer_notes_created_by_fkey ( name, email )')
+      .select('id, kind_id, note_date, body, starred, created_at, author:profiles!customer_notes_created_by_fkey ( name, email )')
       .eq('customer_id', customerId)
       .order('note_date', { ascending: false })
       .order('created_at', { ascending: false }),
@@ -124,7 +124,7 @@ export async function getProspect(id: string): Promise<{ prospect: Prospect; not
     supabase.from('prospects').select(PROSPECT_COLUMNS).eq('id', id).maybeSingle(),
     supabase
       .from('prospect_notes')
-      .select('id, kind_id, note_date, body, created_at, author:profiles!prospect_notes_created_by_fkey ( name, email )')
+      .select('id, kind_id, note_date, body, starred, created_at, author:profiles!prospect_notes_created_by_fkey ( name, email )')
       .eq('prospect_id', id)
       .order('note_date', { ascending: false })
       .order('created_at', { ascending: false }),

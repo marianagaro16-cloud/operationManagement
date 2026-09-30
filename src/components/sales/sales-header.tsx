@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/shell/app-shell';
 
 /** The Sales section's title and tabs: every customer, those going quiet, and prospects. */
-export type SalesTab = 'customers' | 'quiet' | 'prospects' | 'planning' | 'report';
+export type SalesTab = 'customers' | 'quiet' | 'prospects' | 'planning' | 'report' | 'summary';
 
 export function SalesHeader({ tab, quietCount }: { tab: SalesTab; quietCount: number }) {
   const { t } = useI18n();
@@ -16,6 +16,7 @@ export function SalesHeader({ tab, quietCount }: { tab: SalesTab; quietCount: nu
     { key: 'prospects', label: t('sales.tabProspects'), href: '/sales?tab=prospects' },
     { key: 'planning', label: t('sales.tabPlanning'), href: '/sales?tab=planning' },
     { key: 'report', label: t('sales.tabReport'), href: '/sales?tab=report' },
+    { key: 'summary', label: t('summary.tab'), href: '/sales?tab=summary' },
   ] as const;
 
   return (

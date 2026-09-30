@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { Badge, Card, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteText } from '@/components/ui/note';
+import { NoteStar } from './note-star';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { loseProspect, winProspect } from '@/server/sales-actions';
 import type { Prospect, ProspectListEntry, ProspectNote, SalesActivity } from '@/types/sales';
@@ -158,6 +159,7 @@ export function ProspectView({
                   <KindBadge kind={k.get(n.kind_id)} />
                   <span className="tabular font-medium text-fg">{formatDate(n.note_date, 'medium')}</span>
                   {n.author_name && <span>{t('sales.by', { name: n.author_name })}</span>}
+                  <NoteStar target="prospect" noteId={n.id} starred={n.starred} />
                 </div>
                 <div className="mt-1.5 text-[13px] leading-relaxed">
                   <NoteText text={n.body} />

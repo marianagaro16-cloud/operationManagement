@@ -64,6 +64,8 @@ export interface CustomerNote {
   kind_id: string;
   note_date: string;
   body: string;
+  /** A highlight for the weekly summary. */
+  starred: boolean;
   created_at: string;
   author_name: string | null;
 }
@@ -131,6 +133,8 @@ export interface ProspectNote {
   kind_id: string;
   note_date: string;
   body: string;
+  /** A highlight for the weekly summary. */
+  starred: boolean;
   created_at: string;
   author_name: string | null;
 }

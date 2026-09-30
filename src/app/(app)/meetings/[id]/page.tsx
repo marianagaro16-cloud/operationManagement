@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { getUsers, getViewer } from '@/server/data';
 import { getMeeting } from '@/server/meetings';
+import { getMeetingSummaries } from '@/server/sales-summary';
 import { getAbsenceCalendar } from '@/server/absences';
 import { getWorkingHours } from '@/server/coverage';
 import { coverageConflicts } from '@/domain/absences/coverage';
@@ -19,10 +20,11 @@ export default async function MeetingPage({ params }: { params: { id: string } }
   if (!found) notFound();
   const { meeting, series } = found;
 
-  const [absences, hours, users] = await Promise.all([
+  const [absences, hours, users, summaries] = await Promise.all([
     getAbsenceCalendar(meeting.meeting_date, meeting.meeting_date),
     getWorkingHours(),
     getUsers(),
+    getMeetingSummaries(meeting.id),
   ]);
   // Away then: an approved absence covers the meeting's time.
   const slot = { date: meeting.meeting_date, start: meeting.start_time.slice(0, 5), end: meeting.end_time.slice(0, 5) };
@@ -41,6 +43,7 @@ export default async function MeetingPage({ params }: { params: { id: string } }
       people={users.filter((u) => u.status === 'approved').map((u) => ({ id: u.id, name: displayName(u) }))}
       today={businessToday()}
       nowHm={nowHm}
+      summaries={summaries}
     />
   );
 }

@@ -6,6 +6,8 @@ import {
   getQuietCustomers, getSalesCustomers, getSalesPeople, getSalesReport, getVisitablePlaces,
 } from '@/server/sales';
 import { getMeetingsFor } from '@/server/meetings';
+import { buildSummary, listSummaries } from '@/server/sales-summary';
+import { SummaryTab } from '@/components/summaries/summary-tab';
 import { PlanningView } from '@/components/sales/planning';
 import { SalesReportView } from '@/components/sales/sales-report';
 import { SalesCustomerList } from '@/components/sales/sales-customer-list';
@@ -17,13 +19,17 @@ import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
 
-const TABS: SalesTab[] = ['customers', 'quiet', 'prospects', 'planning', 'report'];
+const TABS: SalesTab[] = ['customers', 'quiet', 'prospects', 'planning', 'report', 'summary'];
 
 /**
  * Sales: every customer, those going quiet, prospects, the planning, and the
  * report. The Ventas team, Admin and Owners.
  */
-export default async function SalesPage({ searchParams }: { searchParams: { tab?: string; month?: string; date?: string; person?: string } }) {
+export default async function SalesPage({
+  searchParams,
+}: {
+  searchParams: { tab?: string; month?: string; date?: string; person?: string; from?: string; to?: string };
+}) {
   const viewer = await getViewer();
   if (!viewer || !isSales(viewer.role, viewer.profile.team)) redirect('/dashboard');
   // An old link to the Visits tab lands on the planning, which replaced it.
@@ -35,8 +41,13 @@ export default async function SalesPage({ searchParams }: { searchParams: { tab?
   // The planning's day: a chosen one, or today.
   const date = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date ?? '') ? searchParams.date! : today;
   const needPeople = tab === 'prospects' || tab === 'planning';
+  // The summary's period: chosen, or this week.
+  const isDate = (v: string | undefined) => /^\d{4}-\d{2}-\d{2}$/.test(v ?? '');
+  const monday = DateTime.fromISO(today, { zone: BUSINESS_TZ }).startOf('week');
+  const sumFrom = isDate(searchParams.from) ? searchParams.from! : monday.toISODate()!;
+  const sumTo = isDate(searchParams.to) && searchParams.to! >= sumFrom ? searchParams.to! : monday.endOf('week').toISODate()!;
 
-  const [customers, quiet, prospects, people, customerTypes, lists, report, kinds] = await Promise.all([
+  const [customers, quiet, prospects, people, customerTypes, lists, report, kinds, summary, previousSummaries] = await Promise.all([
     tab === 'customers' ? getSalesCustomers() : Promise.resolve([]),
     getQuietCustomers(),
     tab === 'prospects' ? getProspects() : Promise.resolve([]),
@@ -45,6 +56,8 @@ export default async function SalesPage({ searchParams }: { searchParams: { tab?
     tab === 'prospects' ? getProspectLists(true) : Promise.resolve({ sources: [], lostReasons: [] }),
     tab === 'report' ? getSalesReport(month) : Promise.resolve(null),
     needPeople ? getActivityKinds(true) : Promise.resolve([]),
+    tab === 'summary' ? buildSummary(sumFrom, sumTo) : Promise.resolve(null),
+    tab === 'summary' ? listSummaries() : Promise.resolve([]),
   ]);
 
   return (
@@ -71,6 +84,9 @@ export default async function SalesPage({ searchParams }: { searchParams: { tab?
           // Every month since history began, the running one first.
           months={[...new Set([`${today.slice(0, 7)}-01`, ...report.trend.map((m) => m.month)])].sort().reverse()}
         />
+      )}
+      {tab === 'summary' && summary && (
+        <SummaryTab content={summary} from={sumFrom} to={sumTo} today={today} previous={previousSummaries} />
       )}
       {tab === 'prospects' && (
         <ProspectList

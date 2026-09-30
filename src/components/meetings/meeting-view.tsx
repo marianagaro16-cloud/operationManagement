@@ -25,7 +25,10 @@ export function MeetingView({
   people,
   today,
   nowHm,
+  summaries,
 }: {
+  /** Sales summaries attached to it. */
+  summaries: { id: string; title: string }[];
   meeting: Meeting;
   series: MeetingSeries | null;
   viewerId: string;
@@ -152,6 +155,18 @@ export function MeetingView({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
+          {summaries.length > 0 && (
+            <Card className="p-3">
+              <h2 className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('summary.attachedTitle')}</h2>
+              <ul className="space-y-1">
+                {summaries.map((s) => (
+                  <li key={s.id}>
+                    <Link href={`/summaries/${s.id}`} className="text-[13px] font-medium text-accent hover:underline">{s.title}</Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           <Card className="p-3">
             <h2 className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('meeting.agenda')}</h2>
             {meeting.agenda ? <NoteText text={meeting.agenda} className="text-[13px]" /> : <p className="text-[12.5px] text-muted">{t('meeting.noAgenda')}</p>}

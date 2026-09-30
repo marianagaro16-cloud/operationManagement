@@ -7,6 +7,7 @@ import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState } from '@/components/ui/primitives';
 import { NoteText } from '@/components/ui/note';
+import { NoteStar } from './note-star';
 import { KindBadge, useKinds } from './activity-kind';
 import { NoteDialog, PlanForTargetDialog, PlannedList } from './target-plan';
 import type { ActivityKind, Amount } from '@/types/sales';
@@ -172,6 +173,7 @@ export function CustomerFile({
                   <KindBadge kind={k.get(n.kind_id)} />
                   <span className="tabular font-medium text-fg">{formatDate(n.note_date, 'medium')}</span>
                   {n.author_name && <span>{t('sales.by', { name: n.author_name })}</span>}
+                  <NoteStar target="customer" noteId={n.id} starred={n.starred} />
                 </div>
                 <div className="mt-1.5 text-[13px] leading-relaxed">
                   <NoteText text={n.body} />

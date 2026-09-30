@@ -621,6 +621,7 @@ export type Database = {
           id: string
           kind_id: string
           note_date: string
+          starred: boolean
         }
         Insert: {
           body: string
@@ -630,6 +631,7 @@ export type Database = {
           id?: string
           kind_id: string
           note_date: string
+          starred?: boolean
         }
         Update: {
           body?: string
@@ -639,6 +641,7 @@ export type Database = {
           id?: string
           kind_id?: string
           note_date?: string
+          starred?: boolean
         }
         Relationships: [
           {
@@ -4210,6 +4213,49 @@ export type Database = {
           },
         ]
       }
+      meeting_summaries: {
+        Row: {
+          attached_at: string
+          attached_by: string | null
+          meeting_id: string
+          summary_id: string
+        }
+        Insert: {
+          attached_at?: string
+          attached_by?: string | null
+          meeting_id: string
+          summary_id: string
+        }
+        Update: {
+          attached_at?: string
+          attached_by?: string | null
+          meeting_id?: string
+          summary_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_summaries_attached_by_fkey"
+            columns: ["attached_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_summaries_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_summaries_summary_id_fkey"
+            columns: ["summary_id"]
+            isOneToOne: false
+            referencedRelation: "sales_summaries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meetings: {
         Row: {
           agenda: string | null
@@ -5327,6 +5373,7 @@ export type Database = {
           kind_id: string
           note_date: string
           prospect_id: string
+          starred: boolean
         }
         Insert: {
           body: string
@@ -5336,6 +5383,7 @@ export type Database = {
           kind_id: string
           note_date: string
           prospect_id: string
+          starred?: boolean
         }
         Update: {
           body?: string
@@ -5345,6 +5393,7 @@ export type Database = {
           kind_id?: string
           note_date?: string
           prospect_id?: string
+          starred?: boolean
         }
         Relationships: [
           {
@@ -6353,6 +6402,87 @@ export type Database = {
           },
         ]
       }
+      sales_summaries: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          period_from: string
+          period_to: string
+          title: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_from: string
+          period_to: string
+          title: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_from?: string
+          period_to?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_summaries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_summary_recipients: {
+        Row: {
+          profile_id: string
+          sent_at: string
+          sent_by: string | null
+          summary_id: string
+        }
+        Insert: {
+          profile_id: string
+          sent_at?: string
+          sent_by?: string | null
+          summary_id: string
+        }
+        Update: {
+          profile_id?: string
+          sent_at?: string
+          sent_by?: string | null
+          summary_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_summary_recipients_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_summary_recipients_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_summary_recipients_summary_id_fkey"
+            columns: ["summary_id"]
+            isOneToOne: false
+            referencedRelation: "sales_summaries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_visit_days: {
         Row: {
           end_at: string
@@ -7054,6 +7184,7 @@ export type Database = {
       can_see_handover: { Args: { p_absence_id: string }; Returns: boolean }
       can_see_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
       can_see_series: { Args: { p_series_id: string }; Returns: boolean }
+      can_see_summary: { Args: { p_summary_id: string }; Returns: boolean }
       can_use_reminders: { Args: never; Returns: boolean }
       can_view_incident:
         | { Args: { p_order_id: string }; Returns: boolean }
