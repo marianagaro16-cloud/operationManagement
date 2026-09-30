@@ -59,6 +59,8 @@ export default async function SalesPage({ searchParams }: { searchParams: { tab?
           people={people}
           quiet={quiet}
           kinds={kinds}
+          viewerId={viewer.profile.id}
+          manages={['admin', 'owner', 'manager', 'power_user'].includes(viewer.role)}
         />
       )}
       {tab === 'report' && report && (
@@ -88,7 +90,12 @@ async function PlanningTab({
   people,
   quiet,
   kinds,
+  viewerId,
+  manages,
 }: {
+  viewerId: string;
+  /** Changes anyone's activities, not only their own. */
+  manages: boolean;
   date: string;
   today: string;
   person: string | undefined;
@@ -120,6 +127,8 @@ async function PlanningTab({
       places={places}
       quiet={quiet}
       kinds={kinds}
+      viewerId={viewerId}
+      manages={manages}
     />
   );
 }

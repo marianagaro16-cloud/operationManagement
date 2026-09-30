@@ -196,6 +196,10 @@ export interface SalesActivity {
   target: VisitTarget | null;
   /** The event it is a task of, if any. */
   event: { id: string; name: string } | null;
+  /** Whose it is: the organiser, who records the result. */
+  organiser_name: string;
+  /** Others from the company taking part; it is in their Planning too. */
+  participants: { id: string; name: string }[];
 }
 
 /** Where a salesperson's day starts and ends. */

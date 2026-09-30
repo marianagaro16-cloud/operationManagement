@@ -201,16 +201,30 @@ const ACTIVITY_COLUMNS = `
   id, salesperson_id, kind_id, activity_date, activity_time, activity_end, title, place, place_detail, position, status,
   customer:customers ( id, company_name, street, postal_code, city, latitude, longitude ),
   prospect:prospects ( id, company_name, street, postal_code, city, latitude, longitude ),
-  event:events ( id, name )
+  event:events ( id, name ),
+  organiser:profiles!sales_activities_salesperson_id_fkey ( name, email ),
+  participants:sales_activity_participants ( profile:profiles!sales_activity_participants_profile_id_fkey ( id, name, email ) )
 `;
 
 type RawPlace = { id: string; company_name: string; street: string | null; postal_code: string | null; city: string | null; latitude: number | null; longitude: number | null };
 
+type RawPerson = { id?: string; name: string | null; email: string };
+
 function toActivity(row: unknown): SalesActivity {
-  const { customer, prospect, ...a } = row as Omit<SalesActivity, 'target'> & { customer: RawPlace | null; prospect: RawPlace | null };
+  const { customer, prospect, organiser, participants, ...a } = row as Omit<SalesActivity, 'target' | 'organiser_name' | 'participants'> & {
+    customer: RawPlace | null;
+    prospect: RawPlace | null;
+    organiser: RawPerson | null;
+    participants: { profile: RawPerson | null }[] | null;
+  };
   const place = customer ?? prospect;
   return {
     ...a,
+    organiser_name: organiser ? organiser.name || organiser.email : '—',
+    participants: (participants ?? [])
+      .map((p) => p.profile)
+      .filter((p): p is RawPerson => !!p)
+      .map((p) => ({ id: p.id!, name: p.name || p.email })),
     target: place
       ? {
           kind: customer ? 'customer' : 'prospect',
@@ -226,13 +240,31 @@ function toActivity(row: unknown): SalesActivity {
   };
 }
 
-/** A salesperson's activities on a day: by time, then those without one; visits in route order. */
+/** The activities someone takes part in, between two days — not their own. */
+async function takingPartIn(profileId: string, from: string, to: string): Promise<string[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('sales_activity_participants')
+    .select('activity_id, activity:sales_activities!inner ( activity_date )')
+    .eq('profile_id', profileId)
+    .gte('activity.activity_date', from)
+    .lte('activity.activity_date', to);
+  return (data ?? []).map((r) => r.activity_id);
+}
+
+/** Their own, and those they take part in. */
+function mineOrWith(profileId: string, ids: string[]): string {
+  return ids.length ? `salesperson_id.eq.${profileId},id.in.(${ids.join(',')})` : `salesperson_id.eq.${profileId}`;
+}
+
+/** A salesperson's activities on a day — and those they take part in: by time, then those without one; visits in route order. */
 export async function getPlanDay(salespersonId: string, date: string): Promise<SalesActivity[]> {
   const supabase = createClient();
+  const ids = await takingPartIn(salespersonId, date, date);
   const { data, error } = await supabase
     .from('sales_activities')
     .select(ACTIVITY_COLUMNS)
-    .eq('salesperson_id', salespersonId)
+    .or(mineOrWith(salespersonId, ids))
     .eq('activity_date', date)
     .order('activity_time', { nullsFirst: false })
     .order('position')
@@ -244,10 +276,11 @@ export async function getPlanDay(salespersonId: string, date: string): Promise<S
 /** How many activities a salesperson has on each day of a range — the week strip. */
 export async function getPlanCounts(salespersonId: string, from: string, to: string): Promise<Record<string, { planned: number; total: number }>> {
   const supabase = createClient();
+  const ids = await takingPartIn(salespersonId, from, to);
   const { data } = await supabase
     .from('sales_activities')
     .select('activity_date, status')
-    .eq('salesperson_id', salespersonId)
+    .or(mineOrWith(salespersonId, ids))
     .gte('activity_date', from)
     .lte('activity_date', to);
   const counts: Record<string, { planned: number; total: number }> = {};
@@ -372,10 +405,11 @@ export async function getDayRoutePoints(salespersonId: string, date: string): Pr
 /** A salesperson's activities over a range of days — the week view — by day, then time. */
 export async function getPlanRange(salespersonId: string, from: string, to: string): Promise<SalesActivity[]> {
   const supabase = createClient();
+  const ids = await takingPartIn(salespersonId, from, to);
   const { data, error } = await supabase
     .from('sales_activities')
     .select(ACTIVITY_COLUMNS)
-    .eq('salesperson_id', salespersonId)
+    .or(mineOrWith(salespersonId, ids))
     .gte('activity_date', from)
     .lte('activity_date', to)
     .order('activity_date')

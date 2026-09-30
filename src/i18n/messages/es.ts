@@ -1604,6 +1604,11 @@ export const es: Messages = {
     errFileType: '{name} no es una foto ni un PDF.',
   },
   sales: {
+    planWith: 'Con quién más',
+    planWithHint: 'Queda también en su planeación y reciben un aviso.',
+    planWithOrganiser: 'Con {name}',
+    planAlsoWith: 'También: {names}',
+    planLeave: 'Quitarme',
     planOverlapsShort: 'Se cruza con otra actividad',
     planEnd: 'Hasta',
     planEndBefore: 'Tiene que ser después del inicio',

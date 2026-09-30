@@ -1636,6 +1636,11 @@ export const en = {
     errFileType: '{name} is not a photo or PDF.',
   },
   sales: {
+    planWith: 'Who else',
+    planWithHint: 'It goes in their planning too, and they are notified.',
+    planWithOrganiser: 'With {name}',
+    planAlsoWith: 'Also: {names}',
+    planLeave: 'Take me off',
     planOverlapsShort: 'Overlaps with another activity',
     planEnd: 'Until',
     planEndBefore: 'Must be after the start',

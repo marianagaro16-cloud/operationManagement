@@ -1604,6 +1604,11 @@ export const de: Messages = {
     errFileType: '{name} ist kein Foto und kein PDF.',
   },
   sales: {
+    planWith: 'Wer noch',
+    planWithHint: 'Es kommt auch in ihre Planung, und sie werden benachrichtigt.',
+    planWithOrganiser: 'Mit {name}',
+    planAlsoWith: 'Auch: {names}',
+    planLeave: 'Mich entfernen',
     planOverlapsShort: 'Überschneidet sich mit einer anderen Aktivität',
     planEnd: 'Bis',
     planEndBefore: 'Muss nach dem Beginn liegen',

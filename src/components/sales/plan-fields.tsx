@@ -153,3 +153,48 @@ export function PlanFields({
     </div>
   );
 }
+
+/**
+ * Who else from the company takes part. It shows in their Planning too, and
+ * they are told; the organiser is not offered — it is theirs already.
+ */
+export function ParticipantsField({
+  people,
+  organiserId,
+  value,
+  onChange,
+}: {
+  people: { id: string; name: string }[];
+  organiserId: string;
+  value: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const { t } = useI18n();
+  const others = people.filter((p) => p.id !== organiserId);
+  if (others.length === 0) return null;
+  const toggle = (id: string) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+  return (
+    <Field label={t('sales.planWith')} hint={t('sales.planWithHint')}>
+      <div className="flex flex-wrap gap-1.5">
+        {others.map((p) => {
+          const on = value.includes(p.id);
+          return (
+            <button
+              key={p.id}
+              type="button"
+              aria-pressed={on}
+              onClick={() => toggle(p.id)}
+              className={
+                on
+                  ? 'rounded-full border border-accent bg-accent/10 px-2.5 py-1 text-[12.5px] font-medium text-accent'
+                  : 'rounded-full border border-border px-2.5 py-1 text-[12.5px] text-muted hover:text-fg'
+              }
+            >
+              {p.name}
+            </button>
+          );
+        })}
+      </div>
+    </Field>
+  );
+}

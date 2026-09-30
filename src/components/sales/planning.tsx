@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { DateTime } from 'luxon';
 import {
   AlertTriangle, ArrowDown, ArrowUp, Building2, CalendarPlus, Check, ChevronLeft, ChevronRight, Clock, Home, Map, MapPinOff,
-  Pencil, Plus, Route, Trash2, X,
+  Pencil, Plus, Route, Trash2, UserMinus, Users, X,
 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -19,10 +19,10 @@ import { formatAddress } from '@/domain/orders/route';
 import { nearbyPlaces, orderVisits, visitRouteLinks } from '@/domain/sales/visits';
 import { overlapping, timeRange } from '@/domain/sales/times';
 import {
-  planActivity, recordActivity, removeActivity, saveStartPoint, setDayEnds, setRouteOrder, updateActivity,
+  leaveActivity, planActivity, recordActivity, removeActivity, saveStartPoint, setDayEnds, setRouteOrder, updateActivity,
 } from '@/server/sales-actions';
 import { KindBadge, KindIcon, useKinds } from './activity-kind';
-import { PlanFields, emptyPlan, toPlanInput, type PlanDraft } from './plan-fields';
+import { ParticipantsField, PlanFields, emptyPlan, toPlanInput, type PlanDraft } from './plan-fields';
 import type {
   ActivityKind, DayEnd, DayEnds, QuietCustomer, SalesActivity, StartPoint, VisitTarget,
 } from '@/types/sales';
@@ -69,7 +69,12 @@ export function PlanningView({
   places,
   quiet,
   kinds,
+  viewerId,
+  manages,
 }: {
+  viewerId: string;
+  /** Changes anyone's activities, not only their own. */
+  manages: boolean;
   date: string;
   today: string;
   salespersonId: string;
@@ -97,6 +102,10 @@ export function PlanningView({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // Someone else's, that this person takes part in: read-only here.
+  const joined = (a: SalesActivity) => a.salesperson_id !== salespersonId;
+  // The organiser changes and records it, or a manager.
+  const canChange = (a: SalesActivity) => !joined(a) && (a.salesperson_id === viewerId || manages);
   const go = (params: { date?: string; person?: string }) =>
     router.push(`/sales?tab=planning&date=${params.date ?? date}&person=${params.person ?? salespersonId}`);
   const run = (action: () => Promise<{ ok: boolean; error?: string }>) => {
@@ -110,7 +119,7 @@ export function PlanningView({
 
   // ---- the day's visits, as a route ----
   const visits = activities
-    .filter((a) => k.get(a.kind_id)?.behavior === 'visit' && a.target)
+    .filter((a) => !joined(a) && k.get(a.kind_id)?.behavior === 'visit' && a.target)
     .sort((a, b) => a.position - b.position);
   const pointOf = (which: DayEnd) => {
     const p = which === 'home' ? home : office;
@@ -178,6 +187,9 @@ export function PlanningView({
         onRecord={setRecording}
         onEdit={setEditing}
         onRemove={(a) => run(() => removeActivity(a.id))}
+        joined={joined}
+        canChange={canChange}
+        onLeave={salespersonId === viewerId ? (a) => run(() => leaveActivity(a.id)) : null}
       />
 
       {/* The phone: the strip, and one day at a time. */}
@@ -251,6 +263,7 @@ export function PlanningView({
                     {a.status === 'not_done' && <Badge tone="neutral"><X className="h-3 w-3" aria-hidden />{t('sales.visitNotDone')}</Badge>}
                   </div>
                   {a.target && a.title && <p className="text-[12px]">{a.title}</p>}
+                  <WithWhom a={a} joined={joined(a)} />
                   {a.event && (
                     <Link href={`/events/${a.event.id}`} className="block truncate text-[12px] text-accent hover:underline">
                       {t('event.taskOf', { name: a.event.name })}
@@ -276,7 +289,15 @@ export function PlanningView({
                       )}
                     </p>
                   )}
-                  {a.status === 'planned' && (
+                  {a.status === 'planned' && joined(a) && salespersonId === viewerId && (
+                    <div className="mt-1.5">
+                      <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(() => leaveActivity(a.id))}>
+                        <UserMinus className="h-3.5 w-3.5" aria-hidden />
+                        {t('sales.planLeave')}
+                      </Button>
+                    </div>
+                  )}
+                  {a.status === 'planned' && canChange(a) && (
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       <Button size="sm" variant="primary" onClick={() => setRecording(a)}>{t('sales.visitRecord')}</Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8" aria-label={t('common.edit')} onClick={() => setEditing(a)}>
@@ -410,12 +431,13 @@ export function PlanningView({
           places={places}
           kinds={kinds}
           salespersonId={salespersonId}
+          people={people}
           date={planning.date}
           today={today}
           onClose={() => setPlanning(null)}
         />
       )}
-      {editing && <EditDialog activity={editing} kinds={kinds} today={today} onClose={() => setEditing(null)} />}
+      {editing && <EditDialog activity={editing} people={people} kinds={kinds} today={today} onClose={() => setEditing(null)} />}
       {recording && <RecordDialog activity={recording} kinds={kinds} today={today} onClose={() => setRecording(null)} />}
       {editingHome && <HomeDialog userId={salespersonId} home={home} onClose={() => setEditingHome(false)} />}
     </div>
@@ -455,12 +477,28 @@ function Suggestions({
   );
 }
 
+/** Who else takes part — or, in a participant's Planning, whose it is. */
+function WithWhom({ a, joined, compact = false }: { a: SalesActivity; joined: boolean; compact?: boolean }) {
+  const { t } = useI18n();
+  if (!joined && a.participants.length === 0) return null;
+  const text = joined
+    ? t('sales.planWithOrganiser', { name: [a.organiser_name, ...a.participants.map((p) => p.name)].join(', ') })
+    : t('sales.planAlsoWith', { names: a.participants.map((p) => p.name).join(', ') });
+  return (
+    <p className={cn('flex items-center gap-1 text-accent', compact ? 'truncate text-[11px]' : 'text-[12px]')} title={text}>
+      <Users className={cn('shrink-0', compact ? 'h-3 w-3' : 'h-3.5 w-3.5')} aria-hidden />
+      <span className={compact ? 'truncate' : undefined}>{text}</span>
+    </p>
+  );
+}
+
 /** Plan an activity: about a customer, a prospect, or nobody (then it says what). */
 function PlanDialog({
   target,
   places,
   kinds,
   salespersonId,
+  people,
   date,
   today,
   onClose,
@@ -469,6 +507,7 @@ function PlanDialog({
   places: VisitTarget[];
   kinds: ActivityKind[];
   salespersonId: string;
+  people: { id: string; name: string }[];
   date: string;
   today: string;
   onClose: () => void;
@@ -476,6 +515,7 @@ function PlanDialog({
   const { t } = useI18n();
   const router = useRouter();
   const [chosen, setChosen] = useState<VisitTarget | null>(target);
+  const [withIds, setWithIds] = useState<string[]>([]);
   const [free, setFree] = useState(false);
   const [query, setQuery] = useState('');
   const [draft, setDraft] = useState<PlanDraft>(emptyPlan(date < today ? today : date, kinds));
@@ -491,12 +531,15 @@ function PlanDialog({
     if (!ready || !plan) return;
     setError(null);
     startTransition(async () => {
-      const res = await planActivity({
-        ...plan,
-        salesperson_id: salespersonId,
-        customer_id: !free && chosen?.kind === 'customer' ? chosen.id : null,
-        prospect_id: !free && chosen?.kind === 'prospect' ? chosen.id : null,
-      });
+      const res = await planActivity(
+        {
+          ...plan,
+          salesperson_id: salespersonId,
+          customer_id: !free && chosen?.kind === 'customer' ? chosen.id : null,
+          prospect_id: !free && chosen?.kind === 'prospect' ? chosen.id : null,
+        },
+        withIds,
+      );
       if (!res.ok) return setError(res.error);
       router.refresh();
       onClose();
@@ -572,15 +615,29 @@ function PlanDialog({
           titleLabel={free ? t('sales.planWhat') : undefined}
           titleRequired={free}
         />
+        <ParticipantsField people={people} organiserId={salespersonId} value={withIds} onChange={setWithIds} />
       </div>
     </Dialog>
   );
 }
 
 /** Move a planned activity, or change what it says. */
-function EditDialog({ activity, kinds, today, onClose }: { activity: SalesActivity; kinds: ActivityKind[]; today: string; onClose: () => void }) {
+function EditDialog({
+  activity,
+  people,
+  kinds,
+  today,
+  onClose,
+}: {
+  activity: SalesActivity;
+  people: { id: string; name: string }[];
+  kinds: ActivityKind[];
+  today: string;
+  onClose: () => void;
+}) {
   const { t } = useI18n();
   const router = useRouter();
+  const [withIds, setWithIds] = useState<string[]>(activity.participants.map((p) => p.id));
   const [draft, setDraft] = useState<PlanDraft>({
     kind_id: activity.kind_id,
     activity_date: activity.activity_date,
@@ -598,7 +655,7 @@ function EditDialog({ activity, kinds, today, onClose }: { activity: SalesActivi
     if (!plan) return;
     setError(null);
     startTransition(async () => {
-      const res = await updateActivity(activity.id, plan);
+      const res = await updateActivity(activity.id, plan, withIds);
       if (!res.ok) return setError(res.error);
       router.refresh();
       onClose();
@@ -621,6 +678,13 @@ function EditDialog({ activity, kinds, today, onClose }: { activity: SalesActivi
       <div className="space-y-3.5">
         {error && <ErrorState message={error} />}
         <PlanFields draft={draft} onChange={setDraft} kinds={kinds} today={today} idPrefix="edit" titleRequired={!activity.target} />
+        <ParticipantsField
+          // Those already on it stay offered, even if no longer in sales.
+          people={[...people, ...activity.participants.filter((p) => !people.some((x) => x.id === p.id))]}
+          organiserId={activity.salesperson_id}
+          value={withIds}
+          onChange={setWithIds}
+        />
       </div>
     </Dialog>
   );
@@ -767,6 +831,9 @@ function WeekGrid({
   onRecord,
   onEdit,
   onRemove,
+  joined,
+  canChange,
+  onLeave,
 }: {
   week: SalesActivity[];
   date: string;
@@ -778,6 +845,11 @@ function WeekGrid({
   onRecord: (a: SalesActivity) => void;
   onEdit: (a: SalesActivity) => void;
   onRemove: (a: SalesActivity) => void;
+  /** Someone else's, that this person takes part in. */
+  joined: (a: SalesActivity) => boolean;
+  canChange: (a: SalesActivity) => boolean;
+  /** Taking yourself off: only in your own Planning. */
+  onLeave: ((a: SalesActivity) => void) | null;
 }) {
   const { t, formatDate } = useI18n();
   const k = useKinds(kinds);
@@ -848,7 +920,14 @@ function WeekGrid({
                       <p className="line-clamp-2 break-words text-[12.5px] font-medium leading-snug">{a.title}</p>
                     )}
                     {range && <p className="truncate text-[11px] text-muted">{k.name(a.kind_id)}</p>}
-                    {a.status === 'planned' && (
+                    <WithWhom a={a} joined={joined(a)} compact />
+                    {a.status === 'planned' && joined(a) && onLeave && (
+                      <Button size="sm" variant="ghost" className="mt-1 h-6 px-1.5 text-[11px]" disabled={pending} onClick={() => onLeave(a)}>
+                        <UserMinus className="h-3 w-3" aria-hidden />
+                        {t('sales.planLeave')}
+                      </Button>
+                    )}
+                    {a.status === 'planned' && canChange(a) && (
                       <div className="mt-1 flex items-center gap-0.5">
                         <Button size="sm" variant="primary" className="h-6 px-2 text-[11px]" onClick={() => onRecord(a)}>
                           {t('sales.visitRecord')}

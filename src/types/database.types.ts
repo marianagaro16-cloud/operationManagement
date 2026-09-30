@@ -5317,6 +5317,49 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_activity_participants: {
+        Row: {
+          activity_id: string
+          added_by: string | null
+          created_at: string
+          profile_id: string
+        }
+        Insert: {
+          activity_id: string
+          added_by?: string | null
+          created_at?: string
+          profile_id: string
+        }
+        Update: {
+          activity_id?: string
+          added_by?: string | null
+          created_at?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_activity_participants_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_activity_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_activity_participants_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_plan_notices: {
         Row: {
           day: string
@@ -6587,6 +6630,7 @@ export type Database = {
         Args: { r: Database["public"]["Enums"]["user_role"] }
         Returns: number
       }
+      sales_can_change: { Args: { p_salesperson_id: string }; Returns: boolean }
       sales_customer_file: { Args: { p_customer_id: string }; Returns: Json }
       sales_customer_list: {
         Args: never

@@ -145,7 +145,7 @@ export default async function DashboardPage() {
             canManage={canManageOrders}
           />
         </Tile>
-        <Tile><TodayPlanCard activities={todayPlan} kinds={kinds} points={visitPoints} /></Tile>
+        <Tile><TodayPlanCard activities={todayPlan} kinds={kinds} points={visitPoints} viewerId={viewer?.profile.id ?? ''} /></Tile>
         {/* Renders nothing unless a count is due or late, so it never becomes
             empty furniture people learn to scroll past. */}
         <Tile><InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} /></Tile>

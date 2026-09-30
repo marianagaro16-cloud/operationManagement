@@ -14,7 +14,10 @@ export function TodayPlanCard({
   activities,
   kinds,
   points,
+  viewerId,
 }: {
+  /** Whose day it is: activities of others are ones they take part in. */
+  viewerId: string;
   activities: SalesActivity[];
   kinds: ActivityKind[];
   points: { ends: DayEnds; home: StartPoint | null; office: StartPoint | null } | null;
@@ -23,8 +26,9 @@ export function TodayPlanCard({
   const k = useKinds(kinds);
   if (activities.length === 0) return null;
 
+  // Their own visits make their route; one they only join is someone else's trip.
   const visits = activities
-    .filter((a) => k.get(a.kind_id)?.behavior === 'visit' && a.target)
+    .filter((a) => a.salesperson_id === viewerId && k.get(a.kind_id)?.behavior === 'visit' && a.target)
     .sort((a, b) => a.position - b.position);
   const at = (which: 'home' | 'office') => {
     const p = points ? (which === 'home' ? points.home : points.office) : null;
@@ -58,6 +62,9 @@ export function TodayPlanCard({
               <span className="min-w-0 flex-1 truncate text-[13.5px]">
                 {a.target?.name ?? a.title}
                 {a.event && <span className="text-[12px] text-muted"> · {a.event.name}</span>}
+                {a.salesperson_id !== viewerId && (
+                  <span className="text-[12px] text-accent"> · {t('sales.planWithOrganiser', { name: a.organiser_name })}</span>
+                )}
               </span>
               {a.status === 'done' && <Check className="h-4 w-4 text-done" aria-label={t('sales.visitDone')} />}
               {a.status === 'not_done' && <X className="h-4 w-4 text-muted" aria-label={t('sales.visitNotDone')} />}
