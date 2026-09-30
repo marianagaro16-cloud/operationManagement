@@ -122,3 +122,18 @@ export function coverageConflicts(
   }
   return out;
 }
+
+/** Working days away within a period; a first afternoon or a last morning counts half. */
+export function daysAwayIn(a: AbsenceSpan, from: string, to: string, hours: WorkingHours): number {
+  return workingDays(a, hours)
+    .filter((d) => d >= from && d <= to)
+    .reduce((n, d) => {
+      const half = (d === a.start_date && a.first_day === 'afternoon') || (d === a.end_date && a.last_day === 'morning');
+      return n + (half ? 0.5 : 1);
+    }, 0);
+}
+
+/** Minutes between two "HH:MM". */
+export function minutesBetween(start: string, end: string): number {
+  return Math.max(toMin(end.slice(0, 5)) - toMin(start.slice(0, 5)), 0);
+}

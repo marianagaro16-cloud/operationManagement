@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_HOURS, absenceGaps, coverageConflicts, gaps, requiredWindow, workingDays, type AbsenceSpan } from './coverage';
+import { DEFAULT_HOURS, absenceGaps, coverageConflicts, daysAwayIn, gaps, requiredWindow, workingDays, type AbsenceSpan } from './coverage';
 
 // Monday 12 October 2026 to Friday 16 October 2026.
 const week: AbsenceSpan = { start_date: '2026-10-12', end_date: '2026-10-16', first_day: 'full', last_day: 'full' };
@@ -75,5 +75,14 @@ describe('coverageConflicts', () => {
     expect(coverageConflicts(candidate, [], theirs, DEFAULT_HOURS)).toEqual([{ kind: 'busy', start: '10:00', end: '14:00', covering: 'Mariana' }]);
     expect(coverageConflicts({ ...candidate, id: 'x' }, [], theirs, DEFAULT_HOURS)).toEqual([]);
     expect(coverageConflicts({ ...candidate, start: '14:00' }, [], theirs, DEFAULT_HOURS)).toEqual([]);
+  });
+});
+
+describe('daysAwayIn', () => {
+  it('counts working days in the period, halves as half', () => {
+    const a: AbsenceSpan = { start_date: '2026-10-09', end_date: '2026-10-13', first_day: 'afternoon', last_day: 'morning' };
+    // Fri 9 (afternoon) + Mon 12 + Tue 13 (morning); the weekend does not count.
+    expect(daysAwayIn(a, '2026-10-01', '2026-10-31', DEFAULT_HOURS)).toBe(2);
+    expect(daysAwayIn(a, '2026-10-12', '2026-10-12', DEFAULT_HOURS)).toBe(1);
   });
 });

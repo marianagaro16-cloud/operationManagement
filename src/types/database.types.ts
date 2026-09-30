@@ -1817,6 +1817,173 @@ export type Database = {
           },
         ]
       }
+      handover_events: {
+        Row: {
+          absence_id: string
+          action: string
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          id: number
+          item_id: string | null
+        }
+        Insert: {
+          absence_id: string
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: number
+          item_id?: string | null
+        }
+        Update: {
+          absence_id?: string
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: number
+          item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handover_events_absence_id_fkey"
+            columns: ["absence_id"]
+            isOneToOne: false
+            referencedRelation: "absences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "handover_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "handover_events_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "handover_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      handover_items: {
+        Row: {
+          absence_id: string
+          body: string | null
+          coverer_note: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          link_id: string | null
+          link_label: string | null
+          link_type: string | null
+          removed_at: string | null
+          sort_order: number
+          status: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          absence_id: string
+          body?: string | null
+          coverer_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link_id?: string | null
+          link_label?: string | null
+          link_type?: string | null
+          removed_at?: string | null
+          sort_order?: number
+          status?: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          absence_id?: string
+          body?: string | null
+          coverer_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link_id?: string | null
+          link_label?: string | null
+          link_type?: string | null
+          removed_at?: string | null
+          sort_order?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handover_items_absence_id_fkey"
+            columns: ["absence_id"]
+            isOneToOne: false
+            referencedRelation: "absences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "handover_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "handover_items_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      handover_sends: {
+        Row: {
+          absence_id: string
+          id: number
+          recipients: number
+          sent_at: string
+          sent_by: string | null
+        }
+        Insert: {
+          absence_id: string
+          id?: number
+          recipients?: number
+          sent_at?: string
+          sent_by?: string | null
+        }
+        Update: {
+          absence_id?: string
+          id?: number
+          recipients?: number
+          sent_at?: string
+          sent_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handover_sends_absence_id_fkey"
+            columns: ["absence_id"]
+            isOneToOne: false
+            referencedRelation: "absences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "handover_sends_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_celebration_notices: {
         Row: {
           kind: string
@@ -6586,6 +6753,7 @@ export type Database = {
       }
       can_manage_incident: { Args: { p_incident_id: string }; Returns: boolean }
       can_plan_coverage: { Args: { p_absence_id: string }; Returns: boolean }
+      can_see_handover: { Args: { p_absence_id: string }; Returns: boolean }
       can_use_reminders: { Args: never; Returns: boolean }
       can_view_incident:
         | { Args: { p_order_id: string }; Returns: boolean }
@@ -6611,6 +6779,7 @@ export type Database = {
         Args: { p_reception_id: string }
         Returns: boolean
       }
+      can_write_handover: { Args: { p_absence_id: string }; Returns: boolean }
       claim_push_subscription: {
         Args: {
           p_auth: string
@@ -6713,6 +6882,10 @@ export type Database = {
         }
       }
       get_viewer: { Args: never; Returns: Json }
+      handover_item_progress: {
+        Args: { p_item_id: string; p_note: string; p_status: string }
+        Returns: undefined
+      }
       has_permission: { Args: { p_key: string }; Returns: boolean }
       hr_can: {
         Args: { p_team: Database["public"]["Enums"]["team"] }

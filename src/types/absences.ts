@@ -70,3 +70,32 @@ export interface CoverageEntry extends CoverageAssignment {
   absent_profile_id: string;
   absent_name: string;
 }
+
+export type HandoverLinkType =
+  | 'customer' | 'order' | 'incident' | 'task' | 'personal_task' | 'reminder' | 'goods_reception' | 'inventory' | 'product';
+export const HANDOVER_LINK_TYPES: HandoverLinkType[] = [
+  'customer', 'order', 'incident', 'goods_reception', 'inventory', 'product', 'task', 'reminder', 'personal_task',
+];
+
+/** Something the people covering should know; maybe about one existing record. */
+export interface HandoverItem {
+  id: string;
+  absence_id: string;
+  title: string;
+  body: string | null;
+  link_type: HandoverLinkType | null;
+  link_id: string | null;
+  /** The record's name when it was linked — all a covering person sees of a private one. */
+  link_label: string | null;
+  status: 'open' | 'in_progress' | 'done';
+  coverer_note: string | null;
+  updated_at: string;
+  updater_name: string | null;
+}
+
+/** Something of the absent person's that falls in the absence — offered for the handover. */
+export interface HandoverSuggestion {
+  type: HandoverLinkType;
+  id: string;
+  label: string;
+}

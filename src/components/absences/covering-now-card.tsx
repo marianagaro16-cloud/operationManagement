@@ -67,6 +67,9 @@ export function CoveringNowCard({
                 </Badge>
               </p>
               {c.note && <p className="text-[12px] text-muted">{c.note}</p>}
+              <Link href={`/absences/${c.absence_id}#handover`} className="text-[12.5px] font-medium text-accent hover:underline">
+                {t('handover.see')}
+              </Link>
               {c.permissions.length > 0 && (
                 <p className="mt-1 flex flex-wrap items-center gap-1 text-[12px] text-muted">
                   {t('coverage.permissionsGiven')}

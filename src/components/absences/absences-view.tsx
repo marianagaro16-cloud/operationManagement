@@ -20,8 +20,10 @@ import { gaps as gapsOf, requiredWindow, type WorkingHours } from '@/domain/abse
 import { AbsenceStatusBadge, useAbsenceLabels } from './absence-parts';
 import { AbsenceDialog } from './absence-dialog';
 import { usePermissionLabel } from './coverage-planner';
+import { AbsenceReportView } from './absence-report-view';
+import type { AbsenceReport } from '@/server/absence-report';
 
-export type AbsenceTab = 'mine' | 'approve' | 'calendar' | 'coverage' | 'all';
+export type AbsenceTab = 'mine' | 'approve' | 'calendar' | 'coverage' | 'all' | 'report';
 
 /**
  * Absences: one's own requests, the ones waiting for a decision (approvers),
@@ -43,7 +45,10 @@ export function AbsencesView({
   myCoverage,
   needsCover,
   hours,
+  report,
 }: {
+  /** For approvers, on the report tab. */
+  report: { data: AbsenceReport; from: string; to: string } | null;
   /** The calendar month's coverage. */
   coverage: CoverageEntry[];
   /** What the viewer covers from today on. */
@@ -72,6 +77,7 @@ export function AbsencesView({
     { key: 'calendar', label: t('absence.tabCalendar'), count: 0 },
     { key: 'coverage', label: t('coverage.tabMine'), count: myCoverage.length },
     ...(approver ? [{ key: 'all', label: t('absence.tabAll'), count: 0 }] : []),
+    ...(approver ? [{ key: 'report', label: t('absenceReport.tab'), count: 0 }] : []),
   ];
 
   return (
@@ -107,6 +113,7 @@ export function AbsencesView({
       {tab === 'approve' && <ApproveList rows={pending} types={types} />}
       {tab === 'calendar' && <MonthView month={month} entries={calendar} today={today} coverage={coverage} needsCover={needsCover} hours={hours} />}
       {tab === 'coverage' && <MyCoverage rows={myCoverage} />}
+      {tab === 'report' && report && <AbsenceReportView report={report.data} from={report.from} to={report.to} types={types} />}
       {tab === 'all' && (
         <>
           <Filters types={types} people={people} />

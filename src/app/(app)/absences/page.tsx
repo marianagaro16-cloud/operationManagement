@@ -9,6 +9,7 @@ import {
   isAbsenceApprover,
 } from '@/server/absences';
 import { AbsencesView, type AbsenceTab } from '@/components/absences/absences-view';
+import { getAbsenceReport } from '@/server/absence-report';
 import { getCoverageBetween, getMyCoverage, getNeedsCoverIds, getWorkingHours } from '@/server/coverage';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 import { displayName } from '@/lib/utils';
@@ -35,14 +36,19 @@ export default async function AbsencesPage({
   const approver = await isAbsenceApprover();
   const wanted = searchParams.tab as AbsenceTab | undefined;
   const tab: AbsenceTab =
-    wanted === 'calendar' || wanted === 'coverage' ? wanted : (wanted === 'approve' || wanted === 'all') && approver ? wanted : 'mine';
+    wanted === 'calendar' || wanted === 'coverage' ? wanted : (wanted === 'approve' || wanted === 'all' || wanted === 'report') && approver ? wanted : 'mine';
 
   const monthStart = DateTime.fromISO(`${searchParams.month ?? today.slice(0, 7)}-01`, { zone: BUSINESS_TZ });
   const month = (monthStart.isValid ? monthStart : DateTime.fromISO(today, { zone: BUSINESS_TZ }).startOf('month')).toFormat('yyyy-MM');
   const first = `${month}-01`;
   const last = DateTime.fromISO(first, { zone: BUSINESS_TZ }).endOf('month').toISODate()!;
 
-  const [types, mine, pending, monthData, all, users, myCoverage, needsCover, hours] = await Promise.all([
+  // The report's period: this month unless chosen.
+  const isDate = (v: string | undefined) => /^\d{4}-\d{2}-\d{2}$/.test(v ?? '');
+  const reportFrom = isDate(searchParams.from) ? searchParams.from! : first;
+  const reportTo = isDate(searchParams.to) && searchParams.to! >= reportFrom ? searchParams.to! : last;
+
+  const [types, mine, pending, monthData, all, users, myCoverage, needsCover, hours, report] = await Promise.all([
     getAbsenceTypes(true),
     tab === 'mine' ? getMyAbsences() : [],
     // The tab's count shows everywhere for an approver.
@@ -63,6 +69,7 @@ export default async function AbsencesPage({
     getMyCoverage(today),
     tab === 'calendar' ? getNeedsCoverIds() : [],
     getWorkingHours(),
+    tab === 'report' ? getAbsenceReport(reportFrom, reportTo) : null,
   ]);
 
   return (
@@ -80,6 +87,7 @@ export default async function AbsencesPage({
       myCoverage={myCoverage}
       needsCover={needsCover}
       hours={hours}
+      report={report ? { data: report, from: reportFrom, to: reportTo } : null}
       all={all}
       people={users.filter((u) => u.status === 'approved').map((u) => ({ id: u.id, name: displayName(u) }))}
     />
