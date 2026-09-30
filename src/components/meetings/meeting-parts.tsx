@@ -31,6 +31,17 @@ export function useMeetingLabels() {
   };
 }
 
+/** "Every month, the first Monday" / "…the last Thursday", in the reader's language. */
+export function useMonthlyLabel() {
+  const { t, locale } = useI18n();
+  return (weekday: number, nth: number) => {
+    // 2024-01-01 was a Monday.
+    const day = new Date(Date.UTC(2024, 0, weekday)).toLocaleDateString(locale, { weekday: 'long', timeZone: 'UTC' });
+    const which = nth === -1 ? t('meeting.nthLast') : [t('meeting.nth1'), t('meeting.nth2'), t('meeting.nth3'), t('meeting.nth4')][nth - 1];
+    return t('meeting.repeatMonthlyOn', { which, day });
+  };
+}
+
 /** An invitee's answer — or "away", when an approved absence covers the meeting. */
 export function ResponseBadge({ response, away }: { response: MeetingResponse; away?: boolean }) {
   const { t } = useI18n();

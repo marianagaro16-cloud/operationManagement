@@ -13,7 +13,7 @@ import { NoteTextarea } from '@/components/ui/note-textarea';
 import { answerMeeting, cancelMeeting, endSeries, saveMinutes } from '@/server/meeting-actions';
 import type { Meeting, MeetingSeries } from '@/types/meetings';
 import { MeetingDialog } from './meeting-dialog';
-import { ResponseBadge, hm, useMeetingLabels } from './meeting-parts';
+import { ResponseBadge, hm, useMeetingLabels, useMonthlyLabel } from './meeting-parts';
 
 /** One meeting: when, where, what; who comes; one's answer; the minutes. */
 export function MeetingView({
@@ -40,6 +40,7 @@ export function MeetingView({
   const { t, formatDate } = useI18n();
   const router = useRouter();
   const labels = useMeetingLabels();
+  const monthlyLabel = useMonthlyLabel();
   const [editing, setEditing] = useState<'one' | 'series' | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [ending, setEnding] = useState(false);
@@ -82,7 +83,9 @@ export function MeetingView({
               {series && (
                 <span className="ml-2 inline-flex items-center gap-1 normal-case text-muted">
                   <Repeat className="h-3.5 w-3.5" aria-hidden />
-                  {series.interval_weeks === 1 ? t('meeting.repeatWeekly') : t('meeting.repeatBiweekly')}
+                  {series.monthly_nth
+                    ? monthlyLabel(series.weekday, series.monthly_nth)
+                    : series.interval_weeks === 1 ? t('meeting.repeatWeekly') : t('meeting.repeatBiweekly')}
                 </span>
               )}
             </p>

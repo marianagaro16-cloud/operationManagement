@@ -16,7 +16,7 @@ export async function ensureMeetingSeries(): Promise<{ made: number }> {
   const horizon = DateTime.fromISO(today, { zone: BUSINESS_TZ }).plus({ weeks: SERIES_AHEAD_WEEKS }).toISODate()!;
   const { data: series, error } = await admin
     .from('meeting_series')
-    .select('id, organizer_id, title, agenda, place, place_detail, weekday, start_time, end_time, interval_weeks, starts_on, until, invitees:meeting_series_invitees ( profile_id )')
+    .select('id, organizer_id, title, agenda, place, place_detail, weekday, start_time, end_time, interval_weeks, monthly_nth, starts_on, until, invitees:meeting_series_invitees ( profile_id )')
     .is('ended_at', null)
     .or(`until.is.null,until.gte.${today}`);
   if (error) throw new Error(`meeting series: ${error.message}`);
@@ -24,7 +24,7 @@ export async function ensureMeetingSeries(): Promise<{ made: number }> {
   let made = 0;
   type S = {
     id: string; organizer_id: string; title: string; agenda: string | null; place: string | null; place_detail: string | null;
-    weekday: number; start_time: string; end_time: string; interval_weeks: 1 | 2; starts_on: string; until: string | null;
+    weekday: number; start_time: string; end_time: string; interval_weeks: 1 | 2; monthly_nth: number | null; starts_on: string; until: string | null;
     invitees: { profile_id: string }[];
   };
   for (const s of (series ?? []) as unknown as S[]) {

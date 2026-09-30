@@ -10,9 +10,10 @@ import { ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { checkMeetingConflicts, createMeeting, updateMeeting, updateSeries, type MeetingConflict } from '@/server/meeting-actions';
 import type { Meeting, MeetingPlace, MeetingSeries } from '@/types/meetings';
-import { hm, useMeetingLabels } from './meeting-parts';
+import { hm, useMeetingLabels, useMonthlyLabel } from './meeting-parts';
+import { monthlyNthOf, weekdayOf } from '@/domain/meetings/series';
 
-type Repeat = 'none' | '1' | '2';
+type Repeat = 'none' | '1' | '2' | 'month';
 
 /**
  * A new meeting (once or repeating), one meeting changed on its own, or a
@@ -47,7 +48,10 @@ export function MeetingDialog({
   const [detail, setDetail] = useState(meeting?.place_detail ?? '');
   const [agenda, setAgenda] = useState(meeting?.agenda ?? '');
   const [invitees, setInvitees] = useState<string[]>(meeting?.invitees.map((i) => i.profile_id) ?? []);
-  const [repeat, setRepeat] = useState<Repeat>(scope === 'series' && series ? (String(series.interval_weeks) as Repeat) : 'none');
+  const [repeat, setRepeat] = useState<Repeat>(
+    scope === 'series' && series ? (series.monthly_nth ? 'month' : (String(series.interval_weeks) as Repeat)) : 'none',
+  );
+  const monthlyLabel = useMonthlyLabel();
   const [until, setUntil] = useState(scope === 'series' ? series?.until ?? '' : '');
   const [error, setError] = useState<string | null>(null);
   /** Who is busy then — shown before saving; saving anyway is the organiser's call. */
@@ -82,7 +86,10 @@ export function MeetingDialog({
         start_time: start,
         end_time: end,
         invitees,
-        repeat: showRepeat && repeat !== 'none' ? { interval_weeks: Number(repeat) as 1 | 2, until: until || null } : null,
+        repeat:
+          showRepeat && repeat !== 'none'
+            ? { interval_weeks: (repeat === '2' ? 2 : 1) as 1 | 2, monthly: repeat === 'month', until: until || null }
+            : null,
       };
       const res = !meeting
         ? await createMeeting(input)
@@ -208,6 +215,8 @@ export function MeetingDialog({
                 {scope !== 'series' && <option value="none">{t('meeting.repeatNone')}</option>}
                 <option value="1">{t('meeting.repeatWeekly')}</option>
                 <option value="2">{t('meeting.repeatBiweekly')}</option>
+                {/* Named from the chosen day: "every month, the first Monday". */}
+                <option value="month">{date ? monthlyLabel(weekdayOf(date), monthlyNthOf(date)) : t('meeting.repeatMonthly')}</option>
               </Select>
             </Field>
             {repeat !== 'none' && (

@@ -4114,6 +4114,7 @@ export type Database = {
           ended_at: string | null
           id: string
           interval_weeks: number
+          monthly_nth: number | null
           organizer_id: string
           place: string | null
           place_detail: string | null
@@ -4132,6 +4133,7 @@ export type Database = {
           ended_at?: string | null
           id?: string
           interval_weeks?: number
+          monthly_nth?: number | null
           organizer_id: string
           place?: string | null
           place_detail?: string | null
@@ -4150,6 +4152,7 @@ export type Database = {
           ended_at?: string | null
           id?: string
           interval_weeks?: number
+          monthly_nth?: number | null
           organizer_id?: string
           place?: string | null
           place_detail?: string | null

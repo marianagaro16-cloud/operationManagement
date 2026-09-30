@@ -2797,6 +2797,13 @@ export const en = {
     act_handover_removed: 'handover item removed',
   },
   meeting: {
+    repeatMonthly: 'Every month',
+    repeatMonthlyOn: 'Every month, on the {which} {day}',
+    nth1: 'first',
+    nth2: 'second',
+    nth3: 'third',
+    nth4: 'fourth',
+    nthLast: 'last',
     saveAnyway: 'Save anyway',
     conflictsTitle: 'At that time:',
     conflictActivity: '{name} has {what} {times}',

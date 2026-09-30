@@ -32,6 +32,8 @@ export interface Meeting {
 export interface MeetingSeries {
   id: string;
   interval_weeks: 1 | 2;
+  /** Monthly on the nth weekday (1–4, or -1 for the last); null repeats by weeks. */
+  monthly_nth: number | null;
   weekday: number;
   starts_on: string;
   until: string | null;

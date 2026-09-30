@@ -2765,6 +2765,13 @@ export const es: Messages = {
     act_handover_removed: 'punto de entrega quitado',
   },
   meeting: {
+    repeatMonthly: 'Cada mes',
+    repeatMonthlyOn: 'Cada mes, el {which} {day}',
+    nth1: 'primer',
+    nth2: 'segundo',
+    nth3: 'tercer',
+    nth4: 'cuarto',
+    nthLast: 'último',
     saveAnyway: 'Guardar igualmente',
     conflictsTitle: 'A esa hora:',
     conflictActivity: '{name} tiene {what} {times}',

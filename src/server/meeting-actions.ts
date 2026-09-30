@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { DateTime } from 'luxon';
 import { createClient } from '@/lib/supabase/server';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
-import { SERIES_AHEAD_WEEKS, seriesDates, weekdayOf } from '@/domain/meetings/series';
+import { SERIES_AHEAD_WEEKS, monthlyNthOf, seriesDates, weekdayOf } from '@/domain/meetings/series';
 import { DEFAULT_HOURS, coverageConflicts, type WorkingHours } from '@/domain/absences/coverage';
 import { sendToUser, sendToUsers } from './push';
 import type { ActionResult } from './actions';
@@ -59,7 +59,12 @@ const meetingSchema = z
     invitees: z.array(uuid).max(60),
     /** Repeats: every one or two weeks on this weekday, maybe until a day. Only when creating or changing a series. */
     repeat: z
-      .object({ interval_weeks: z.union([z.literal(1), z.literal(2)]), until: DATE.nullable().optional().transform((v) => v ?? null) })
+      .object({
+        interval_weeks: z.union([z.literal(1), z.literal(2)]),
+        /** Every month on the same weekday position as its first day (the first Monday, the last Thursday…). */
+        monthly: z.boolean().optional().default(false),
+        until: DATE.nullable().optional().transform((v) => v ?? null),
+      })
       .nullable()
       .optional()
       .transform((v) => v ?? null),
@@ -72,7 +77,14 @@ export type MeetingInput = z.input<typeof meetingSchema>;
 type Fields = { title: string; agenda: string | null; place: 'office' | 'online' | 'other' | null; place_detail: string | null; start_time: string; end_time: string };
 
 /** A series' meetings from a day on, made where missing, with its invitees. */
-async function fillSeries(seriesId: string, organizerId: string, fields: Fields, rule: { weekday: number; interval_weeks: 1 | 2; starts_on: string; until: string | null }, from: string, invitees: string[]) {
+async function fillSeries(
+  seriesId: string,
+  organizerId: string,
+  fields: Fields,
+  rule: { weekday: number; interval_weeks: 1 | 2; monthly_nth: number | null; starts_on: string; until: string | null },
+  from: string,
+  invitees: string[],
+) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const horizon = DateTime.fromISO(businessToday(), { zone: BUSINESS_TZ }).plus({ weeks: SERIES_AHEAD_WEEKS }).toISODate()!;
@@ -125,7 +137,13 @@ export async function createMeeting(input: MeetingInput): Promise<ActionResult<{
     return { ok: true, data: { id } };
   }
 
-  const rule = { weekday: weekdayOf(meeting_date), interval_weeks: repeat.interval_weeks, starts_on: meeting_date, until: repeat.until };
+  const rule = {
+    weekday: weekdayOf(meeting_date),
+    interval_weeks: repeat.interval_weeks,
+    monthly_nth: repeat.monthly ? monthlyNthOf(meeting_date) : null,
+    starts_on: meeting_date,
+    until: repeat.until,
+  };
   const { data: series, error } = await supabase
     .from('meeting_series')
     .insert({ ...fields, ...rule, organizer_id: user.id, created_by: user.id })
@@ -140,7 +158,9 @@ export async function createMeeting(input: MeetingInput): Promise<ActionResult<{
   const filled = await fillSeries(seriesId, user.id, fields, rule, meeting_date, invitees);
   if (!filled.ok) return filled;
   const { data: first } = await supabase.from('meetings').select('id').eq('series_id', seriesId).order('meeting_date').limit(1).maybeSingle();
-  const every = repeat.interval_weeks === 1 ? 'cada semana' : 'cada dos semanas';
+  const every = repeat.monthly
+    ? `cada mes, el ${['', 'primer', 'segundo', 'tercer', 'cuarto'][rule.monthly_nth ?? 0] || 'último'}`
+    : repeat.interval_weeks === 1 ? 'cada semana' : 'cada dos semanas';
   await tell(
     invitees,
     'Te invitaron a una reunión',
@@ -213,13 +233,15 @@ export async function updateSeries(seriesId: string, input: MeetingInput): Promi
   if (!parsed.success || !uuid.safeParse(seriesId).success) return { ok: false, error: parsed.error?.issues[0]?.message ?? 'invalid_meeting' };
   const { invitees: rawInvitees, repeat, meeting_date, ...fields } = parsed.data;
   const supabase = createClient();
-  const { data: series } = await supabase.from('meeting_series').select('organizer_id, interval_weeks, until').eq('id', seriesId).maybeSingle();
+  const { data: series } = await supabase.from('meeting_series').select('organizer_id, interval_weeks, monthly_nth, until').eq('id', seriesId).maybeSingle();
   if (!series) return { ok: false, error: 'not_authorized' };
   const today = businessToday();
   const from = meeting_date > today ? meeting_date : today;
   const rule = {
     weekday: weekdayOf(meeting_date),
     interval_weeks: (repeat?.interval_weeks ?? series.interval_weeks) as 1 | 2,
+    // Monthly stays monthly, at the position of the (maybe new) first day.
+    monthly_nth: (repeat ? repeat.monthly : series.monthly_nth !== null) ? monthlyNthOf(meeting_date) : null,
     starts_on: meeting_date,
     until: repeat ? repeat.until : series.until,
   };

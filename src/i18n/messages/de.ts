@@ -2765,6 +2765,13 @@ export const de: Messages = {
     act_handover_removed: 'Übergabepunkt entfernt',
   },
   meeting: {
+    repeatMonthly: 'Jeden Monat',
+    repeatMonthlyOn: 'Jeden Monat, am {which} {day}',
+    nth1: 'ersten',
+    nth2: 'zweiten',
+    nth3: 'dritten',
+    nth4: 'vierten',
+    nthLast: 'letzten',
     saveAnyway: 'Trotzdem speichern',
     conflictsTitle: 'Zu dieser Zeit:',
     conflictActivity: '{name} hat {what} {times}',

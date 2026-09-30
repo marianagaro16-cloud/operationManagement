@@ -76,7 +76,7 @@ export async function getMeeting(id: string): Promise<{ meeting: Meeting; series
   if (meeting.series_id) {
     const { data: s } = await supabase
       .from('meeting_series')
-      .select('id, interval_weeks, weekday, starts_on, until, ended_at')
+      .select('id, interval_weeks, monthly_nth, weekday, starts_on, until, ended_at')
       .eq('id', meeting.series_id)
       .maybeSingle();
     series = (s as MeetingSeries | null) ?? null;
