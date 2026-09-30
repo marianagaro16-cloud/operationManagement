@@ -4030,6 +4030,288 @@ export type Database = {
           },
         ]
       }
+      meeting_invitees: {
+        Row: {
+          meeting_id: string
+          note: string | null
+          profile_id: string
+          responded_at: string | null
+          response: string
+        }
+        Insert: {
+          meeting_id: string
+          note?: string | null
+          profile_id: string
+          responded_at?: string | null
+          response?: string
+        }
+        Update: {
+          meeting_id?: string
+          note?: string | null
+          profile_id?: string
+          responded_at?: string | null
+          response?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_invitees_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_invitees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_notices: {
+        Row: {
+          kind: string
+          meeting_id: string
+          profile_id: string
+          sent_at: string
+        }
+        Insert: {
+          kind: string
+          meeting_id: string
+          profile_id: string
+          sent_at?: string
+        }
+        Update: {
+          kind?: string
+          meeting_id?: string
+          profile_id?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_notices_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_notices_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_series: {
+        Row: {
+          agenda: string | null
+          created_at: string
+          created_by: string | null
+          end_time: string
+          ended_at: string | null
+          id: string
+          interval_weeks: number
+          organizer_id: string
+          place: string | null
+          place_detail: string | null
+          start_time: string
+          starts_on: string
+          title: string
+          until: string | null
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          agenda?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_time: string
+          ended_at?: string | null
+          id?: string
+          interval_weeks?: number
+          organizer_id: string
+          place?: string | null
+          place_detail?: string | null
+          start_time: string
+          starts_on: string
+          title: string
+          until?: string | null
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          agenda?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_time?: string
+          ended_at?: string | null
+          id?: string
+          interval_weeks?: number
+          organizer_id?: string
+          place?: string | null
+          place_detail?: string | null
+          start_time?: string
+          starts_on?: string
+          title?: string
+          until?: string | null
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_series_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_series_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_series_invitees: {
+        Row: {
+          profile_id: string
+          series_id: string
+        }
+        Insert: {
+          profile_id: string
+          series_id: string
+        }
+        Update: {
+          profile_id?: string
+          series_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_series_invitees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_series_invitees_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          agenda: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          created_by: string | null
+          detached: boolean
+          end_time: string
+          id: string
+          meeting_date: string
+          minutes: string | null
+          minutes_at: string | null
+          minutes_by: string | null
+          organizer_id: string
+          place: string | null
+          place_detail: string | null
+          series_id: string | null
+          start_time: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agenda?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          detached?: boolean
+          end_time: string
+          id?: string
+          meeting_date: string
+          minutes?: string | null
+          minutes_at?: string | null
+          minutes_by?: string | null
+          organizer_id: string
+          place?: string | null
+          place_detail?: string | null
+          series_id?: string | null
+          start_time: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          agenda?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          detached?: boolean
+          end_time?: string
+          id?: string
+          meeting_date?: string
+          minutes?: string | null
+          minutes_at?: string | null
+          minutes_by?: string | null
+          organizer_id?: string
+          place?: string | null
+          place_detail?: string | null
+          series_id?: string | null
+          start_time?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_minutes_by_fkey"
+            columns: ["minutes_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_inbox: {
         Row: {
           body: string
@@ -6761,9 +7043,14 @@ export type Database = {
         Args: { p_assignee_id: string; p_task_id: string }
         Returns: boolean
       }
+      can_change_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
+      can_change_series: { Args: { p_series_id: string }; Returns: boolean }
       can_manage_incident: { Args: { p_incident_id: string }; Returns: boolean }
+      can_organize_meetings: { Args: never; Returns: boolean }
       can_plan_coverage: { Args: { p_absence_id: string }; Returns: boolean }
       can_see_handover: { Args: { p_absence_id: string }; Returns: boolean }
+      can_see_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
+      can_see_series: { Args: { p_series_id: string }; Returns: boolean }
       can_use_reminders: { Args: never; Returns: boolean }
       can_view_incident:
         | { Args: { p_order_id: string }; Returns: boolean }

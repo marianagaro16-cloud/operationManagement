@@ -23,6 +23,8 @@ import { buildNowItems } from '@/domain/dashboard/now';
 import { countPendingAbsences } from '@/server/absences';
 import { countCoverageGaps, getCoverageBetween, getCoveredWork, getNeedsCoverIds, getWorkingHours } from '@/server/coverage';
 import { CoveringNowCard } from '@/components/absences/covering-now-card';
+import { countUnansweredInvites, getMeetingsFor } from '@/server/meetings';
+import { MeetingsTodayCard } from '@/components/meetings/meetings-today-card';
 import { CoverageTodayCard } from '@/components/absences/coverage-today-card';
 import { compareUrgency, deliveryUrgency } from '@/domain/orders/urgency';
 import { personalTaskPhase } from '@/domain/reminders/schedule';
@@ -58,7 +60,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingsToday, meetingInvites] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
@@ -87,6 +89,9 @@ export default async function DashboardPage() {
     viewer ? getWorkingHours() : null,
     // Upcoming absences with time nobody covers: approvers count all, anyone else their own.
     viewer ? countCoverageGaps(today, viewer.profile.id) : 0,
+    // The viewer's meetings today, and invitations not answered yet.
+    viewer ? getMeetingsFor(viewer.profile.id, today, today) : [],
+    viewer ? countUnansweredInvites(viewer.profile.id, today) : 0,
   ]);
 
   // ---- what the figures and "Now" count ----
@@ -116,6 +121,7 @@ export default async function DashboardPage() {
     evaluationsDue: evaluations.filter((e) => e.request.deadline === today).length,
     absencesToApprove,
     coverageGaps,
+    meetingInvites,
   });
 
   // Whom the viewer covers today; while it lasts, that person's work is theirs to do.
@@ -156,6 +162,8 @@ export default async function DashboardPage() {
           the page is about 780px wide beside the menu, too narrow for three. "Now" first. */}
       <div className="columns-1 gap-4 lg:columns-2">
         <Tile><NowCard items={nowItems} /></Tile>
+        {/* Nothing unless the viewer has a meeting today. */}
+        <Tile><MeetingsTodayCard meetings={meetingsToday} viewerId={viewer?.profile.id ?? ''} /></Tile>
         {/* Nothing unless the viewer covers someone today. */}
         <Tile>
           <CoveringNowCard periods={myPeriods} now={nowHm} activities={coveredWork.activities} inventories={coveredWork.inventories} />

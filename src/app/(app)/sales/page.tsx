@@ -5,6 +5,7 @@ import {
   getActivityKinds, getCustomerTypes, getDayRoutePoints, getPlanCounts, getPlanDay, getPlanRange, getProspectLists, getProspects,
   getQuietCustomers, getSalesCustomers, getSalesPeople, getSalesReport, getVisitablePlaces,
 } from '@/server/sales';
+import { getMeetingsFor } from '@/server/meetings';
 import { PlanningView } from '@/components/sales/planning';
 import { SalesReportView } from '@/components/sales/sales-report';
 import { SalesCustomerList } from '@/components/sales/sales-customer-list';
@@ -105,12 +106,13 @@ async function PlanningTab({
 }) {
   if (!person) return null;
   const monday = DateTime.fromISO(date, { zone: BUSINESS_TZ }).startOf('week');
-  const [activities, week, counts, points, places] = await Promise.all([
+  const [activities, week, counts, points, places, meetings] = await Promise.all([
     getPlanDay(person, date),
     getPlanRange(person, monday.toISODate()!, monday.plus({ days: 6 }).toISODate()!),
     getPlanCounts(person, monday.toISODate()!, monday.plus({ days: 6 }).toISODate()!),
     getDayRoutePoints(person, date),
     getVisitablePlaces(),
+    getMeetingsFor(person, monday.toISODate()!, monday.plus({ days: 6 }).toISODate()!),
   ]);
   return (
     <PlanningView
@@ -120,6 +122,7 @@ async function PlanningTab({
       people={people}
       activities={activities}
       week={week}
+      meetings={meetings}
       counts={counts}
       home={points.home}
       office={points.office}

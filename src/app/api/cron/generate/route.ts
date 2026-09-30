@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ensureScheduled } from '@/server/scheduling';
 import { ensureStandingOrders } from '@/server/order-scheduling';
+import { ensureMeetingSeries } from '@/server/meeting-jobs';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +45,15 @@ export async function GET(request: Request) {
       standing = { error: e instanceof Error ? e.message : String(e) };
     }
 
-    return NextResponse.json({ ok: true, ...run, standing });
+    // Repeating meetings, 12 weeks ahead. Kept apart like the standing orders.
+    let meetings: Awaited<ReturnType<typeof ensureMeetingSeries>> | { error: string };
+    try {
+      meetings = await ensureMeetingSeries();
+    } catch (e) {
+      meetings = { error: e instanceof Error ? e.message : String(e) };
+    }
+
+    return NextResponse.json({ ok: true, ...run, standing, meetings });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : String(e) },

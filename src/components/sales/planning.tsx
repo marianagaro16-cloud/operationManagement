@@ -23,6 +23,7 @@ import {
 } from '@/server/sales-actions';
 import { KindBadge, KindIcon, useKinds } from './activity-kind';
 import { ParticipantsField, PlanFields, emptyPlan, toPlanInput, type PlanDraft } from './plan-fields';
+import type { Meeting } from '@/types/meetings';
 import type {
   ActivityKind, DayEnd, DayEnds, QuietCustomer, SalesActivity, StartPoint, VisitTarget,
 } from '@/types/sales';
@@ -62,6 +63,7 @@ export function PlanningView({
   people,
   activities,
   week,
+  meetings,
   counts,
   home,
   office,
@@ -83,6 +85,8 @@ export function PlanningView({
   activities: SalesActivity[];
   /** The whole week's, Monday to Sunday — the computer's week view. */
   week: SalesActivity[];
+  /** This person's internal meetings in the week — shown, changed on their own page. */
+  meetings: Meeting[];
   counts: Record<string, { planned: number; total: number }>;
   home: StartPoint | null;
   office: StartPoint | null;
@@ -178,6 +182,7 @@ export function PlanningView({
       {/* The computer: the whole week at once, seven columns. */}
       <WeekGrid
         week={week}
+        meetings={meetings}
         date={date}
         today={today}
         kinds={kinds}
@@ -237,8 +242,13 @@ export function PlanningView({
         </Button>
       </div>
 
+      {meetings.some((m) => m.meeting_date === date) && (
+        <Card className="mb-2 divide-y divide-border">
+          {meetings.filter((m) => m.meeting_date === date).map((m) => <MeetingLine key={m.id} meeting={m} />)}
+        </Card>
+      )}
       {activities.length === 0 ? (
-        <EmptyState title={t('sales.planNone')} body={t('sales.planNoneBody')} />
+        meetings.some((m) => m.meeting_date === date) ? null : <EmptyState title={t('sales.planNone')} body={t('sales.planNoneBody')} />
       ) : (
         <Card className="divide-y divide-border">
           {activities.map((a) => {
@@ -474,6 +484,26 @@ function Suggestions({
         ))}
       </ul>
     </div>
+  );
+}
+
+/** An internal meeting in the day's list: when, what, where; opens its own page. */
+function MeetingLine({ meeting: m }: { meeting: Meeting }) {
+  const { t } = useI18n();
+  return (
+    <Link href={`/meetings/${m.id}`} className="flex items-start gap-3 px-3 py-2.5 hover:bg-surface-2">
+      <span className="mt-0.5 w-11 shrink-0 text-[12.5px] font-semibold leading-tight tabular">
+        {m.start_time.slice(0, 5)}
+        <span className="block text-[11.5px] font-normal text-muted">{m.end_time.slice(0, 5)}</span>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5">
+          <Badge tone="accent"><Users className="h-3 w-3" aria-hidden />{t('meeting.one')}</Badge>
+          <span className="truncate text-[13.5px] font-medium">{m.title}</span>
+        </span>
+        {m.place_detail && <span className="block truncate text-[12px] text-muted">{m.place_detail}</span>}
+      </span>
+    </Link>
   );
 }
 
@@ -822,6 +852,7 @@ function HomeDialog({ userId, home, onClose }: { userId: string; home: StartPoin
  */
 function WeekGrid({
   week,
+  meetings,
   date,
   today,
   kinds,
@@ -836,6 +867,7 @@ function WeekGrid({
   onLeave,
 }: {
   week: SalesActivity[];
+  meetings: Meeting[];
   date: string;
   today: string;
   kinds: ActivityKind[];
@@ -886,7 +918,22 @@ function WeekGrid({
               </Button>
             </div>
             <div className="flex-1 space-y-1.5 p-1.5">
-              {list.length === 0 && <p className="px-1 py-2 text-center text-[11.5px] text-subtle">—</p>}
+              {meetings.filter((m) => m.meeting_date === d).map((m) => (
+                <Link
+                  key={m.id}
+                  href={`/meetings/${m.id}`}
+                  className="block rounded-lg border border-accent/25 bg-accent/[0.06] px-2 py-1.5 hover:border-accent/50"
+                >
+                  <span className="flex items-center gap-1 text-[11.5px] font-semibold tabular">
+                    <Users className="h-3 w-3 shrink-0 text-accent" aria-hidden />
+                    {m.start_time.slice(0, 5)}–{m.end_time.slice(0, 5)}
+                  </span>
+                  <span className="line-clamp-2 break-words text-[12.5px] font-medium leading-snug">{m.title}</span>
+                </Link>
+              ))}
+              {list.length === 0 && !meetings.some((m) => m.meeting_date === d) && (
+                <p className="px-1 py-2 text-center text-[11.5px] text-subtle">—</p>
+              )}
               {list.map((a) => {
                 const kind = k.get(a.kind_id);
                 const range = timeRange(a.activity_time, a.activity_end);
