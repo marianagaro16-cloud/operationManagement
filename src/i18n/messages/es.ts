@@ -65,6 +65,7 @@ export const es: Messages = {
     groupOperation: 'Operación',
     groupCustomers: 'Clientes',
     groupTeam: 'Equipo',
+    people: 'Personas',
     dashboard: 'Inicio',
     calendar: 'Plan de trabajo',
     admin: 'Administración',

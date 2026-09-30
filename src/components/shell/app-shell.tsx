@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, CalendarOff, CalendarRange, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, Truck, UserRound, Users, X } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,8 @@ import { opensManagement } from '@/components/admin/sections';
  */
 type NavGroup = 'day' | 'operation' | 'customers' | 'team' | 'manage';
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; primary: boolean; badge?: number; group: NavGroup };
-const NAV_GROUPS: NavGroup[] = ['day', 'operation', 'customers', 'team', 'manage'];
+const FOLDED_KEY = 'nav.folded';
+const NAV_GROUPS: NavGroup[] =['day', 'operation', 'customers', 'team', 'manage'];
 const GROUP_LABEL: Record<Exclude<NavGroup, 'manage'>, MessageKey> = {
   day: 'nav.groupDay',
   operation: 'nav.groupOperation',
@@ -84,14 +85,9 @@ export function AppShell({
   const nav: NavItem[] = [
     // ---- my day ----
     { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, primary: true, group: 'day' },
-    // Everything with a day, from every part of the app, in one week.
-    { href: '/agenda', label: t('agenda.title'), icon: CalendarRange, primary: false, group: 'day' },
-    // Every approved account, whatever its role: a personal tool. Not in the
-    // phone's bar: its slots are the floor workflows; a due reminder announces
-    // itself with a push and with the count below.
-    { href: '/reminders', label: t('reminder.navLabel'), icon: BellRing, primary: false, badge: reminderAttention, group: 'day' },
-    // Internal meetings: everyone with an account is invited to some.
-    { href: '/meetings', label: t('meeting.navLabel'), icon: Users, primary: false, group: 'day' },
+    // Everything with a day, from every part of the app, in one week — with
+    // reminders and meetings as its tabs. A due reminder counts here.
+    { href: '/agenda', label: t('agenda.title'), icon: CalendarRange, primary: false, badge: reminderAttention, group: 'day' },
 
     // ---- the operation: from order to delivery ----
     // Orders — to prepare, ready, shipped — is the main floor workflow, so it
@@ -133,17 +129,8 @@ export function AppShell({
       : []),
 
     // ---- the team ----
-    // Absences: who is away and who covers them — everyone sees it.
-    { href: '/absences', label: t('absence.navLabel'), icon: CalendarOff, primary: false, group: 'team' },
-    // Evaluations this person was asked to fill in about others — never
-    // anything about themselves. Only for someone who was ever asked.
-    ...(evaluations.total > 0
-      ? [{ href: '/evaluations', label: t('hrEval.mine'), icon: ClipboardCheck, primary: false, badge: evaluations.pending, group: 'team' as const }]
-      : []),
-    // Worker files are about people, not configuration.
-    ...(can(role, held, 'hr.manage')
-      ? [{ href: '/hr', label: t('hr.navLabel'), icon: UserRound, primary: false, group: 'team' as const }]
-      : []),
+    // One entry; absences, evaluations and worker files are its tabs.
+    { href: '/absences', label: t('nav.people'), icon: Users, primary: false, badge: evaluations.pending, group: 'team' },
 
     // ---- management ----
     // Opens at power_user, or to whoever holds a permission one of its
@@ -156,9 +143,49 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/reminders', '/hr', '/events', '/absences', '/meetings', '/collections'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/events', '/collections'];
+
+  /*
+   * Entries that hold several screens as tabs. The tabs keep their own
+   * addresses, so every link into them still works; the entry stays lit on
+   * any of them.
+   */
+  const TABS: Record<string, { href: string; label: string; icon: typeof LayoutDashboard; badge?: number }[]> = {
+    '/agenda': [
+      { href: '/agenda', label: t('agenda.title'), icon: CalendarRange },
+      { href: '/reminders', label: t('reminder.navLabel'), icon: BellRing, badge: reminderAttention },
+      { href: '/meetings', label: t('meeting.navLabel'), icon: Users },
+    ],
+    '/absences': [
+      { href: '/absences', label: t('absence.navLabel'), icon: CalendarOff },
+      // Evaluations this person was asked to fill in about others — only for someone who was ever asked.
+      ...(evaluations.total > 0 ? [{ href: '/evaluations', label: t('hrEval.mine'), icon: ClipboardCheck, badge: evaluations.pending }] : []),
+      // Worker files are about people, not configuration.
+      ...(can(role, held, 'hr.manage') ? [{ href: '/hr', label: t('hr.navLabel'), icon: UserRound }] : []),
+    ],
+  };
+  const under = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const active = (href: string) =>
-    SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
+    TABS[href] ? TABS[href].some((tab) => under(tab.href)) : SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
+  // The tab row shows on a tab's own screen (and reminders' task list), not on a detail page.
+  const tabs = Object.values(TABS).find((row) => row.length > 1 && row.some((tab) => pathname === tab.href || (tab.href === '/reminders' && pathname === '/reminders/tasks')));
+  const currentTab = Object.values(TABS).flat().find((tab) => under(tab.href));
+
+  /** Groups folded in the sidebar, remembered per browser. */
+  const [folded, setFolded] = useState<NavGroup[]>([]);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(FOLDED_KEY) ?? '[]');
+      if (Array.isArray(saved)) setFolded(saved);
+    } catch {}
+  }, []);
+  const toggleGroup = (group: NavGroup) => {
+    const next = folded.includes(group) ? folded.filter((g) => g !== group) : [...folded, group];
+    setFolded(next);
+    try {
+      localStorage.setItem(FOLDED_KEY, JSON.stringify(next));
+    } catch {}
+  };
 
   const greeting = (() => {
     const hour = Number(
@@ -193,6 +220,7 @@ export function AppShell({
   // than going blank on a route the nav does not own (a detail page, say —
   // those carry their own title and back link in the content).
   const sectionLabel =
+    currentTab?.label ??
     nav.find(({ href }) => active(href))?.label ??
     (pathname === '/settings' ? t('nav.settings') : pathname === '/inbox' ? t('inbox.title') : t('common.appName'));
 
@@ -314,12 +342,24 @@ export function AppShell({
             {NAV_GROUPS.map((group) => {
               const items = nav.filter((i) => i.group === group);
               if (items.length === 0) return null;
+              // The group of the open screen never folds away.
+              const open = group === 'manage' || !folded.includes(group) || items.some(({ href }) => active(href));
               return (
                 <div key={group} className={cn(group === 'manage' && 'border-t border-border pt-3')}>
                   {group !== 'manage' && (
-                    <p className="mb-0.5 px-2.5 text-[10.5px] font-semibold uppercase tracking-wider text-subtle">{t(GROUP_LABEL[group])}</p>
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group)}
+                      aria-expanded={open}
+                      className="group mb-0.5 flex w-full items-center gap-1 rounded px-2.5 text-left text-[10.5px] font-semibold uppercase tracking-wider text-subtle hover:text-fg"
+                    >
+                      {t(GROUP_LABEL[group])}
+                      {/* Something inside a folded group needs attention. */}
+                      {!open && items.some((i) => i.badge) && <span className="h-1.5 w-1.5 rounded-full bg-late" aria-hidden />}
+                      <ChevronDown className={cn('ml-auto h-3 w-3 opacity-0 transition group-hover:opacity-100', !open && '-rotate-90 opacity-100')} aria-hidden />
+                    </button>
                   )}
-                  <ul className="space-y-0.5">
+                  {open && <ul className="space-y-0.5">
                     {items.map(({ href, label, icon: Icon, badge }) => (
                       <li key={href}>
                         <Link
@@ -335,7 +375,7 @@ export function AppShell({
                         </Link>
                       </li>
                     ))}
-                  </ul>
+                  </ul>}
                 </div>
               );
             })}
@@ -343,7 +383,29 @@ export function AppShell({
         </nav>
 
         {/* ---------------- content ---------------- */}
-        <main className="min-w-0 flex-1 py-5 pb-24 md:pb-10">{children}</main>
+        <main className="min-w-0 flex-1 py-5 pb-24 md:pb-10">
+          {tabs && (
+            <div className="-mt-1 mb-4 flex gap-1 overflow-x-auto rounded-lg bg-surface-2 p-1">
+              {tabs.map(({ href, label, icon: Icon, badge }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    'flex min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors',
+                    currentTab?.href === href ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg',
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">{label}</span>
+                  {Boolean(badge) && (
+                    <span className="rounded-full bg-late/15 px-1.5 text-[11px] font-semibold tabular text-late">{badge! > 99 ? '99+' : badge}</span>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
+          {children}
+        </main>
       </div>
 
       {/* ---------------- bottom tabs (mobile) ----------------

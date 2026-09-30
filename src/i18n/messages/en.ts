@@ -67,6 +67,7 @@ export const en = {
     groupOperation: 'Operations',
     groupCustomers: 'Customers',
     groupTeam: 'Team',
+    people: 'People',
     dashboard: 'Home',
     calendar: 'Work plan',
     admin: 'Admin',
