@@ -1,9 +1,11 @@
 import { redirect } from 'next/navigation';
 import { DateTime } from 'luxon';
-import { getViewer } from '@/server/data';
 import { agendaPeople, getAgenda } from '@/server/agenda';
 import { getActivityKinds } from '@/server/sales';
 import { AgendaView } from '@/components/agenda/agenda-view';
+import { canOrganizeMeetings } from '@/server/meetings';
+import { getUsers, getViewer } from '@/server/data';
+import { displayName } from '@/lib/utils';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 import { isSales } from '@/lib/authz';
 
@@ -24,9 +26,13 @@ export default async function AgendaPage({ searchParams }: { searchParams: { dat
   const own = personId === viewer.profile.id;
 
   const monday = DateTime.fromISO(date, { zone: BUSINESS_TZ }).startOf('week');
-  const [items, kinds] = await Promise.all([
+  const sales = isSales(viewer.role, viewer.profile.team);
+  const [items, kinds, organize, users] = await Promise.all([
     getAgenda(personId, monday.toISODate()!, monday.plus({ days: 6 }).toISODate()!, own, today),
-    isSales(viewer.role, viewer.profile.team) ? getActivityKinds(true) : [],
+    sales ? getActivityKinds(true) : [],
+    // Adding from the agenda: only in one's own.
+    own ? canOrganizeMeetings() : false,
+    own ? getUsers() : [],
   ]);
 
   return (
@@ -38,6 +44,15 @@ export default async function AgendaPage({ searchParams }: { searchParams: { dat
       viewerId={viewer.profile.id}
       people={people}
       kinds={kinds}
+      adding={
+        own
+          ? {
+              canOrganize: organize,
+              sales,
+              everyone: users.filter((u) => u.status === 'approved').map((u) => ({ id: u.id, name: displayName(u) })),
+            }
+          : null
+      }
     />
   );
 }

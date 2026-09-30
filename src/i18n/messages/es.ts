@@ -2893,6 +2893,11 @@ export const es: Messages = {
     attachedTitle: 'Resumen de ventas',
   },
   agenda: {
+    add: 'Añadir',
+    addReminder: 'Recordatorio',
+    addPersonal: 'Tarea personal',
+    addMeeting: 'Reunión',
+    addSales: 'Llamada / visita',
     today: 'Hoy',
     doneOf: '{done} de {total} hechas',
     seeWeek: 'Ver la semana',

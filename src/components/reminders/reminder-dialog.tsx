@@ -51,7 +51,10 @@ export function ReminderDialog({
   viewerId,
   reminder,
   link,
+  initialDate,
 }: {
+  /** A new one on this day (at 09:00) — from the agenda. */
+  initialDate?: string;
   open: boolean;
   onClose: () => void;
   onSaved?: (id: string) => void;
@@ -70,6 +73,7 @@ export function ReminderDialog({
       const local = utcToLocal(reminder.due_at, reminder.timezone);
       return { date: local.date, time: local.time };
     }
+    if (initialDate) return { date: initialDate, time: '09:00' };
     const tomorrow = DateTime.now().setZone(zone).plus({ days: 1 });
     return { date: tomorrow.toISODate()!, time: '09:00' };
   };

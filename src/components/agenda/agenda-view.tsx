@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DateTime } from 'luxon';
 import {
-  BellRing, Boxes, Check, ChevronLeft, ChevronRight, ClipboardList, Handshake, ListTodo, Plane, ShieldCheck, Users, X,
+  BellRing, Boxes, Check, ChevronLeft, ChevronRight, ClipboardList, Handshake, ListTodo, Plane, Plus, ShieldCheck, Users, X,
 } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,9 @@ import { setPersonalTaskStatus } from '@/server/reminder-actions';
 import { answerMeeting } from '@/server/meeting-actions';
 import type { AgendaItem, AgendaKind } from '@/types/agenda';
 import type { ActivityKind } from '@/types/sales';
+import { ReminderDialog } from '@/components/reminders/reminder-dialog';
+import { PersonalTaskDialog } from '@/components/reminders/personal-tasks';
+import { MeetingDialog } from '@/components/meetings/meeting-dialog';
 
 const ICON: Record<AgendaKind, typeof Check> = {
   activity: ClipboardList,
@@ -60,7 +63,10 @@ export function AgendaView({
   viewerId,
   people,
   kinds,
+  adding,
 }: {
+  /** Adding from the agenda — only in one's own. */
+  adding: { canOrganize: boolean; sales: boolean; everyone: { id: string; name: string }[] } | null;
   items: AgendaItem[];
   date: string;
   today: string;
@@ -78,6 +84,18 @@ export function AgendaView({
     startNav(() => router.push(`/agenda?date=${next.date ?? date}${(next.person ?? personId) !== viewerId ? `&person=${next.person ?? personId}` : ''}`));
   const shift = (weeks: number) => DateTime.fromISO(date, { zone: BUSINESS_TZ }).plus({ weeks }).toISODate()!;
   const on = (d: string) => items.filter((i) => i.date === d);
+  const [creating, setCreating] = useState<{ what: 'reminder' | 'personal' | 'meeting'; date: string } | null>(null);
+  const add = (d: string, compact = false) =>
+    adding && (
+      <AddMenu
+        compact={compact}
+        canOrganize={adding.canOrganize}
+        sales={adding.sales}
+        onPick={(what) =>
+          what === 'sales' ? router.push(`/sales?tab=planning&date=${d}`) : setCreating({ what, date: d })
+        }
+      />
+    );
 
   return (
     <div className={cn(navigating && 'opacity-60')}>
@@ -105,12 +123,15 @@ export function AgendaView({
       <div className="hidden grid-cols-7 gap-2 lg:grid">
         {days.map((d) => (
           <div key={d} className={cn('flex min-w-0 flex-col rounded-xl border bg-surface', d === today ? 'border-accent' : 'border-border')}>
-            <button type="button" onClick={() => go({ date: d })} className="border-b border-border px-2 py-1.5 text-left">
-              <span className={cn('block text-[11px] font-medium uppercase', d === today ? 'text-accent' : 'text-muted')}>
-                {formatDate(d, 'weekday').split(/[\s,]/)[0]}
-              </span>
-              <span className="block text-[15px] font-semibold leading-tight tabular">{formatDate(d, 'short')}</span>
-            </button>
+            <div className="flex items-center justify-between gap-1 border-b border-border px-2 py-1.5">
+              <button type="button" onClick={() => go({ date: d })} className="min-w-0 text-left">
+                <span className={cn('block text-[11px] font-medium uppercase', d === today ? 'text-accent' : 'text-muted')}>
+                  {formatDate(d, 'weekday').split(/[\s,]/)[0]}
+                </span>
+                <span className="block text-[15px] font-semibold leading-tight tabular">{formatDate(d, 'short')}</span>
+              </button>
+              {add(d, true)}
+            </div>
             <div className="flex-1 space-y-1.5 p-1.5">
               {on(d).length === 0 && <p className="px-1 py-2 text-center text-[11.5px] text-subtle">—</p>}
               {on(d).map((i) => <Entry key={i.key} item={i} kinds={kinds} compact />)}
@@ -140,7 +161,10 @@ export function AgendaView({
             </button>
           ))}
         </div>
-        <p className="text-[13px] font-semibold capitalize">{formatDate(date, 'weekday')}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[13px] font-semibold capitalize">{formatDate(date, 'weekday')}</p>
+          {add(date)}
+        </div>
         {on(date).length === 0 ? (
           <EmptyState title={t('agenda.emptyDay')} />
         ) : (
@@ -149,6 +173,94 @@ export function AgendaView({
           </Card>
         )}
       </div>
+
+      {creating?.what === 'reminder' && (
+        <ReminderDialog
+          open
+          viewerId={viewerId}
+          initialDate={creating.date}
+          onClose={() => setCreating(null)}
+          onSaved={() => {
+            setCreating(null);
+            router.refresh();
+          }}
+        />
+      )}
+      {creating?.what === 'personal' && (
+        <PersonalTaskDialog task={null} initialTitle="" initialDate={creating.date} onClose={() => setCreating(null)} />
+      )}
+      {creating?.what === 'meeting' && adding && (
+        <MeetingDialog
+          meeting={null}
+          series={null}
+          scope={null}
+          people={adding.everyone}
+          viewerId={viewerId}
+          today={today}
+          initialDate={creating.date}
+          onClose={() => setCreating(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** "+" on a day: a reminder, a personal task, a meeting, or a call or visit. */
+function AddMenu({
+  canOrganize,
+  sales,
+  compact,
+  onPick,
+}: {
+  canOrganize: boolean;
+  sales: boolean;
+  compact: boolean;
+  onPick: (what: 'reminder' | 'personal' | 'meeting' | 'sales') => void;
+}) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const options = [
+    { what: 'reminder' as const, label: t('agenda.addReminder'), icon: BellRing },
+    { what: 'personal' as const, label: t('agenda.addPersonal'), icon: ListTodo },
+    ...(canOrganize ? [{ what: 'meeting' as const, label: t('agenda.addMeeting'), icon: Users }] : []),
+    ...(sales ? [{ what: 'sales' as const, label: t('agenda.addSales'), icon: Handshake }] : []),
+  ];
+  return (
+    <div className="relative shrink-0">
+      <Button
+        size={compact ? 'icon' : 'sm'}
+        variant={compact ? 'ghost' : 'secondary'}
+        className={cn(compact && 'h-7 w-7')}
+        aria-label={t('agenda.add')}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <Plus className="h-4 w-4" aria-hidden />
+        {!compact && t('agenda.add')}
+      </Button>
+      {open && (
+        <>
+          {/* A click anywhere else closes it. */}
+          <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-30 cursor-default" onClick={() => setOpen(false)} />
+          <ul className="absolute right-0 z-40 mt-1 w-48 rounded-lg border border-border bg-surface py-1 shadow-pop">
+            {options.map((o) => (
+              <li key={o.what}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    onPick(o.what);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-surface-2"
+                >
+                  <o.icon className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+                  {o.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

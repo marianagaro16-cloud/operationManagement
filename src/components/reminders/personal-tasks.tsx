@@ -501,17 +501,20 @@ function currentLink(task: PersonalTask | null): { type: LinkType; id: string } 
 export function PersonalTaskDialog({
   task,
   initialTitle,
+  initialDate,
   onClose,
 }: {
   task: PersonalTask | null;
   initialTitle: string;
+  /** A new one for this day — from the agenda. */
+  initialDate?: string;
   onClose: () => void;
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const [title, setTitle] = useState(task?.title ?? initialTitle);
   const [notes, setNotes] = useState(task?.notes ?? '');
-  const [date, setDate] = useState(task ? task.due_date ?? '' : DateTime.now().setZone(BUSINESS_TZ).toISODate()!);
+  const [date, setDate] = useState(task ? task.due_date ?? '' : initialDate ?? DateTime.now().setZone(BUSINESS_TZ).toISODate()!);
   const [time, setTime] = useState(task?.due_time?.slice(0, 5) ?? '');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();

@@ -26,8 +26,11 @@ export function MeetingDialog({
   people,
   viewerId,
   today,
+  initialDate,
   onClose,
 }: {
+  /** A new one on this day — from the agenda. */
+  initialDate?: string;
   meeting: Meeting | null;
   series: MeetingSeries | null;
   /** When changing: this one, or the series from today on. */
@@ -41,7 +44,7 @@ export function MeetingDialog({
   const router = useRouter();
   const labels = useMeetingLabels();
   const [title, setTitle] = useState(meeting?.title ?? '');
-  const [date, setDate] = useState(meeting?.meeting_date ?? today);
+  const [date, setDate] = useState(meeting?.meeting_date ?? initialDate ?? today);
   const [start, setStart] = useState(meeting ? hm(meeting.start_time) : '09:00');
   const [end, setEnd] = useState(meeting ? hm(meeting.end_time) : '10:00');
   const [place, setPlace] = useState<MeetingPlace | ''>(meeting?.place ?? 'office');

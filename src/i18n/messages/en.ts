@@ -2925,6 +2925,11 @@ export const en = {
     attachedTitle: 'Sales summary',
   },
   agenda: {
+    add: 'Add',
+    addReminder: 'Reminder',
+    addPersonal: 'Personal task',
+    addMeeting: 'Meeting',
+    addSales: 'Call / visit',
     today: 'Today',
     doneOf: '{done} of {total} done',
     seeWeek: 'See the week',
