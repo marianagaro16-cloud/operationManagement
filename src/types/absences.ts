@@ -61,6 +61,8 @@ export interface CoverageAssignment {
   start_time: string;
   end_time: string;
   note: string | null;
+  /** Permissions given with this period: active for its coverer exactly during it. */
+  permissions: string[];
 }
 
 /** A period with who is away and who covers — the calendar's and the dashboard's. */

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getViewer } from '@/server/data';
 import { AdminNav } from '@/components/admin/admin-nav';
+import { opensManagement } from '@/components/admin/sections';
 
 /**
  * The management-area gate.
@@ -18,7 +19,8 @@ import { AdminNav } from '@/components/admin/admin-nav';
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const viewer = await getViewer();
-  if (!viewer || viewer.profile.status !== 'approved' || !viewer.atLeast('power_user')) {
+  // From Power User up — or holding, right now, a permission one of its screens needs.
+  if (!viewer || viewer.profile.status !== 'approved' || !opensManagement(viewer.role, viewer.caps, viewer.atLeast('power_user'))) {
     redirect('/dashboard');
   }
 

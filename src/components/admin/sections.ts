@@ -186,3 +186,12 @@ export function sectionFor(pathname: string): AdminSection | null {
 export function sectionEntry(screens: AdminScreen[]): string {
   return screens[0]?.href ?? '/admin';
 }
+
+/**
+ * May this viewer enter the management area? From Power User up, as always;
+ * or anyone who holds a permission one of its screens needs — a User given
+ * one for a coverage period, for as long as it lasts.
+ */
+export function opensManagement(role: Role, caps: ReadonlySet<Permission>, atLeastPowerUser: boolean): boolean {
+  return atLeastPowerUser || ADMIN_SECTIONS.some((s) => s.screens.some((screen) => screen.permission !== null && visibleScreens({ ...s, screens: [screen] }, role, caps).length > 0));
+}

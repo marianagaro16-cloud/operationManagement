@@ -4,7 +4,8 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, ArrowLeft, Pencil, Plus, Trash2, UserCheck } from 'lucide-react';
-import { useI18n } from '@/i18n';
+import { useI18n, type MessageKey } from '@/i18n';
+import { permissionKey, type Permission } from '@/lib/authz';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
@@ -31,7 +32,10 @@ export function CoveragePlanner({
   people,
   canPlan,
   needsCover,
+  grantable,
 }: {
+  /** What the viewer may give with a period: any operational one for an approver, else what they hold. */
+  grantable: Permission[];
   absence: AbsenceCalendarEntry;
   status: AbsenceStatus;
   days: PlannerDay[];
@@ -46,6 +50,8 @@ export function CoveragePlanner({
   const [editing, setEditing] = useState<{ date: string; row: CoverageAssignment | null; suggest: Period } | null>(null);
   const [removing, setRemoving] = useState<CoverageAssignment | null>(null);
   const [allWith, setAllWith] = useState('');
+  const [allPerms, setAllPerms] = useState<string[]>([]);
+  const permLabel = usePermissionLabel();
   const [allConflicts, setAllConflicts] = useState<CoverageConflict[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -64,11 +70,12 @@ export function CoveragePlanner({
     if (!allWith) return;
     setError(null);
     startTransition(async () => {
-      const res = await coverAllDays(absence.id, allWith, force);
+      const res = await coverAllDays(absence.id, allWith, force, allPerms);
       if (!res.ok) return setError(labels.error(res.error));
       if (!res.data.saved && res.data.conflicts.length) return setAllConflicts(res.data.conflicts);
       setAllConflicts(null);
       setAllWith('');
+      setAllPerms([]);
       router.refresh();
     });
   }
@@ -106,6 +113,11 @@ export function CoveragePlanner({
             <Button size="sm" variant="secondary" onClick={() => coverAll(false)} disabled={!allWith || pending} loading={pending && !editing}>
               {t('coverage.allApply')}
             </Button>
+            {allWith && grantable.length > 0 && (
+              <div className="basis-full">
+                <PermissionPicker grantable={grantable} value={allPerms} onChange={setAllPerms} />
+              </div>
+            )}
           </div>
         )}
         {allConflicts && (
@@ -145,9 +157,14 @@ export function CoveragePlanner({
                   {d.list.map((c) => (
                     <li key={c.id} className="flex items-center gap-2 text-[13px]">
                       <span className="w-24 shrink-0 tabular text-muted">{hm(c.start_time)}–{hm(c.end_time)}</span>
-                      <span className="min-w-0 flex-1 truncate font-medium">
+                      <span className="min-w-0 flex-1 font-medium">
                         {c.coverer_name}
                         {c.note && <span className="ml-1.5 font-normal text-muted">{c.note}</span>}
+                        {c.permissions.length > 0 && (
+                          <span className="mt-0.5 flex flex-wrap gap-1">
+                            {c.permissions.map((p) => <Badge key={p} tone="accent">{permLabel(p)}</Badge>)}
+                          </span>
+                        )}
                       </span>
                       {plan && (
                         <>
@@ -183,6 +200,7 @@ export function CoveragePlanner({
           row={editing.row}
           suggest={editing.suggest}
           people={people}
+          grantable={grantable}
           onClose={() => setEditing(null)}
         />
       )}
@@ -211,6 +229,55 @@ export function CoveragePlanner({
   );
 }
 
+export function usePermissionLabel() {
+  const { t } = useI18n();
+  return (p: string) => t(`permission.${permissionKey(p as Permission)}` as MessageKey);
+}
+
+/** Which permissions come with a period. Active for its coverer exactly during it. */
+function PermissionPicker({
+  grantable,
+  value,
+  onChange,
+  keep = [],
+}: {
+  grantable: Permission[];
+  value: string[];
+  onChange: (v: string[]) => void;
+  /** Given by someone else: shown, kept, not the viewer's to give again. */
+  keep?: string[];
+}) {
+  const { t } = useI18n();
+  const label = usePermissionLabel();
+  const offered = [...new Set([...grantable, ...keep])];
+  return (
+    <Field label={t('coverage.permissions')} hint={t('coverage.permissionsHint')}>
+      <div className="flex flex-wrap gap-1.5">
+        {offered.map((p) => {
+          const on = value.includes(p);
+          const fixed = !grantable.includes(p as Permission);
+          return (
+            <button
+              key={p}
+              type="button"
+              aria-pressed={on}
+              disabled={fixed}
+              onClick={() => onChange(on ? value.filter((x) => x !== p) : [...value, p])}
+              className={cn(
+                'rounded-full border px-2.5 py-1 text-[12px]',
+                on ? 'border-accent bg-accent/10 font-medium text-accent' : 'border-border text-muted hover:text-fg',
+                fixed && 'opacity-60',
+              )}
+            >
+              {label(p)}
+            </button>
+          );
+        })}
+      </div>
+    </Field>
+  );
+}
+
 export function useConflictText() {
   const { t } = useI18n();
   return (name: string, c: CoverageConflict) =>
@@ -226,8 +293,10 @@ function CoverageDialog({
   row,
   suggest,
   people,
+  grantable,
   onClose,
 }: {
+  grantable: Permission[];
   absenceId: string;
   date: string;
   dates: string[];
@@ -245,6 +314,7 @@ function CoverageDialog({
   const [start, setStart] = useState(row ? hm(row.start_time) : suggest.start);
   const [end, setEnd] = useState(row ? hm(row.end_time) : suggest.end);
   const [note, setNote] = useState(row?.note ?? '');
+  const [perms, setPerms] = useState<string[]>(row?.permissions ?? []);
   const [conflicts, setConflicts] = useState<CoverageConflict[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -259,6 +329,7 @@ function CoverageDialog({
         { absence_id: absenceId, coverer_id: covererId, cover_date: date, start_time: start, end_time: end, note },
         row?.id,
         force,
+        perms,
       );
       if (!res.ok) return setError(labels.error(res.error));
       if (!res.data.saved) return setConflicts(res.data.conflicts);
@@ -318,6 +389,9 @@ function CoverageDialog({
         <Field label={t('coverage.note')} htmlFor="coverage-note">
           <Input id="coverage-note" value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
+        {(grantable.length > 0 || perms.length > 0) && (
+          <PermissionPicker grantable={grantable} value={perms} onChange={setPerms} keep={row?.permissions ?? []} />
+        )}
       </div>
     </Dialog>
   );

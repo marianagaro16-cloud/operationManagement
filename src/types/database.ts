@@ -86,6 +86,8 @@ export interface TaskOccurrence {
   assignee_id: string | null;
   /** The people were chosen by hand for this day, so a change of the activity's people leaves it alone. */
   assignee_manual: boolean;
+  /** Resolved by someone covering its person: that coverage period. */
+  covered_assignment_id?: string | null;
   completed_by: string | null;
   completed_at: string | null;
   skipped_by: string | null;

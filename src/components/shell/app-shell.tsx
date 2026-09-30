@@ -14,6 +14,7 @@ import { FormNoteSubmit } from '@/components/ui/enter-to-save';
 import { InboxLink } from './inbox-link';
 import { atLeast, can, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
 import type { Profile } from '@/types/database';
+import { opensManagement } from '@/components/admin/sections';
 
 /**
  * Responsive shell: a bottom tab bar on phones (thumb-reachable, since the
@@ -131,8 +132,9 @@ export function AppShell({
     ...(isSales(role, profile.team as Team)
       ? [{ href: '/events', label: t('event.navLabel'), icon: PartyPopper, primary: false }]
       : []),
-    // The management area opens at power_user; its own nav filters the tabs.
-    ...(atLeast(role, 'power_user')
+    // The management area opens at power_user, or to whoever holds a permission
+    // one of its screens needs (e.g. given for a coverage); its own nav filters the tabs.
+    ...(opensManagement(role, held, atLeast(role, 'power_user'))
       ? [{ href: '/admin', label: t('nav.manage'), icon: Shield, primary: false }]
       : []),
   ];

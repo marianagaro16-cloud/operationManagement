@@ -547,6 +547,65 @@ export type Database = {
           },
         ]
       }
+      coverage_permission_grants: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          granted_by: string | null
+          id: string
+          permission: string
+          revoked_at: string | null
+          revoked_by: string | null
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          permission: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          permission?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coverage_permission_grants_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "coverage_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_permission_grants_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_permission_grants_permission_fkey"
+            columns: ["permission"]
+            isOneToOne: false
+            referencedRelation: "permission_catalog"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "coverage_permission_grants_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_notes: {
         Row: {
           body: string
@@ -6137,6 +6196,7 @@ export type Database = {
           blocked_reason: string | null
           completed_at: string | null
           completed_by: string | null
+          covered_assignment_id: string | null
           created_at: string
           due_date: string
           due_date_override: string | null
@@ -6159,6 +6219,7 @@ export type Database = {
           blocked_reason?: string | null
           completed_at?: string | null
           completed_by?: string | null
+          covered_assignment_id?: string | null
           created_at?: string
           due_date: string
           due_date_override?: string | null
@@ -6181,6 +6242,7 @@ export type Database = {
           blocked_reason?: string | null
           completed_at?: string | null
           completed_by?: string | null
+          covered_assignment_id?: string | null
           created_at?: string
           due_date?: string
           due_date_override?: string | null
@@ -6215,6 +6277,13 @@ export type Database = {
             columns: ["completed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_occurrences_covered_assignment_id_fkey"
+            columns: ["covered_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "coverage_assignments"
             referencedColumns: ["id"]
           },
           {
@@ -6469,6 +6538,7 @@ export type Database = {
         Args: { p_absence_id: string; p_approve: boolean; p_reason?: string }
         Returns: undefined
       }
+      active_coverage_permissions: { Args: never; Returns: string[] }
       activity_team_paused: {
         Args: { p_team: Database["public"]["Enums"]["team"] }
         Returns: boolean
@@ -6484,6 +6554,7 @@ export type Database = {
           blocked_reason: string | null
           completed_at: string | null
           completed_by: string | null
+          covered_assignment_id: string | null
           created_at: string
           due_date: string
           due_date_override: string | null
@@ -6559,6 +6630,7 @@ export type Database = {
           blocked_reason: string | null
           completed_at: string | null
           completed_by: string | null
+          covered_assignment_id: string | null
           created_at: string
           due_date: string
           due_date_override: string | null
@@ -6580,6 +6652,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      covering_for: { Args: { p_profile_id: string }; Returns: boolean }
       event_cancel: {
         Args: { p_event_id: string; p_reason: string }
         Returns: string
@@ -7019,6 +7092,7 @@ export type Database = {
           blocked_reason: string | null
           completed_at: string | null
           completed_by: string | null
+          covered_assignment_id: string | null
           created_at: string
           due_date: string
           due_date_override: string | null
@@ -7155,6 +7229,7 @@ export type Database = {
           blocked_reason: string | null
           completed_at: string | null
           completed_by: string | null
+          covered_assignment_id: string | null
           created_at: string
           due_date: string
           due_date_override: string | null

@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
-import { Card, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { Badge, Card, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { PageHeader } from '@/components/shell/app-shell';
 import { localizedName } from '@/lib/localized-content';
@@ -19,6 +19,7 @@ import type { AbsenceCalendarEntry, AbsenceRow, AbsenceStatus, AbsenceType, Cove
 import { gaps as gapsOf, requiredWindow, type WorkingHours } from '@/domain/absences/coverage';
 import { AbsenceStatusBadge, useAbsenceLabels } from './absence-parts';
 import { AbsenceDialog } from './absence-dialog';
+import { usePermissionLabel } from './coverage-planner';
 
 export type AbsenceTab = 'mine' | 'approve' | 'calendar' | 'coverage' | 'all';
 
@@ -415,6 +416,7 @@ function AwayLine({
 /** What the viewer covers from today on, day by day. */
 function MyCoverage({ rows }: { rows: CoverageEntry[] }) {
   const { t, formatDate } = useI18n();
+  const permLabel = usePermissionLabel();
   if (rows.length === 0) return <EmptyState title={t('coverage.mineNone')} />;
   return (
     <Card className="divide-y divide-border">
@@ -425,6 +427,11 @@ function MyCoverage({ rows }: { rows: CoverageEntry[] }) {
           <span className="min-w-0 flex-1 truncate text-[13px]">
             {t('coverage.youCover', { name: c.absent_name })}
             {c.note && <span className="ml-1.5 text-muted">{c.note}</span>}
+            {c.permissions.length > 0 && (
+              <span className="mt-0.5 flex flex-wrap gap-1">
+                {c.permissions.map((p) => <Badge key={p} tone="accent">{permLabel(p)}</Badge>)}
+              </span>
+            )}
           </span>
         </Link>
       ))}

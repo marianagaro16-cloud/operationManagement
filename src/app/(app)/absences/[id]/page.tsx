@@ -5,6 +5,7 @@ import { getAbsenceBrief, getCoverageFor, getNeedsCoverIds, getWorkingHours } fr
 import { requiredWindow, workingDays } from '@/domain/absences/coverage';
 import { CoveragePlanner } from '@/components/absences/coverage-planner';
 import { displayName } from '@/lib/utils';
+import { PERMISSIONS, isAdminRole, isConfigurable } from '@/lib/authz';
 import type { AbsenceStatus } from '@/types/absences';
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,10 @@ export default async function AbsenceCoveragePage({ params }: { params: { id: st
         .map((u) => ({ id: u.id, name: displayName(u) }))}
       canPlan={approver || brief.profile_id === viewer.profile.id}
       needsCover={needs.includes(brief.profile_id)}
+      // Operational only. An approver gives any; the absent person only what they hold.
+      grantable={PERMISSIONS.filter(
+        (p) => isConfigurable(p) && (approver || isAdminRole(viewer.role) || viewer.caps.has(p)),
+      )}
     />
   );
 }

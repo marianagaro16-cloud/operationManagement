@@ -11,12 +11,18 @@ import { getAbsenceCalendar, isAbsenceApprover } from './absences';
  * from absence_calendar(), which never carries the type or the note.
  */
 
-const COLUMNS = 'id, absence_id, coverer_id, cover_date, start_time, end_time, note, coverer:profiles!coverage_assignments_coverer_id_fkey ( name, email )';
+const COLUMNS =
+  'id, absence_id, coverer_id, cover_date, start_time, end_time, note, coverer:profiles!coverage_assignments_coverer_id_fkey ( name, email ), grants:coverage_permission_grants ( permission, revoked_at )';
 
-type Raw = Omit<CoverageAssignment, 'coverer_name'> & { coverer: { name: string | null; email: string } | null };
-const toAssignment = ({ coverer, ...c }: Raw): CoverageAssignment => ({
+type Raw = Omit<CoverageAssignment, 'coverer_name' | 'permissions'> & {
+  coverer: { name: string | null; email: string } | null;
+  grants: { permission: string; revoked_at: string | null }[] | null;
+};
+const toAssignment = ({ coverer, grants, ...c }: Raw): CoverageAssignment => ({
   ...c,
   coverer_name: coverer ? coverer.name || coverer.email : '—',
+  // Only the ones still standing.
+  permissions: (grants ?? []).filter((g) => !g.revoked_at).map((g) => g.permission),
 });
 
 /** The working week coverage has to fill (Gestión → Ausencias). */
@@ -112,4 +118,53 @@ export async function countCoverageGaps(today: string, viewerId: string): Promis
       const ahead = { ...a, start_date: a.start_date < today ? today : a.start_date, first_day: a.start_date < today ? 'full' as const : a.first_day };
       return absenceGaps(ahead, hours, coverage.filter((c) => c.absence_id === a.id)).length > 0;
     }).length;
+}
+
+/**
+ * The work of the people the viewer covers right now: their activities due
+ * today or overdue, and their open inventories. RLS returns them only while
+ * the coverage lasts — before or after, nothing.
+ */
+export async function getCoveredWork(
+  absentIds: string[],
+  today: string,
+): Promise<{
+  activities: { id: string; assignee_id: string; due: string; title: string; translations: unknown }[];
+  inventories: { id: string; assignee_ids: string[]; date: string; name: string }[];
+}> {
+  if (!absentIds.length) return { activities: [], inventories: [] };
+  const supabase = createClient();
+  const [{ data: occ }, { data: inv }] = await Promise.all([
+    supabase
+      .from('task_occurrences')
+      .select('id, assignee_id, effective_due_date, task:tasks!inner ( title, translations )')
+      .in('assignee_id', absentIds)
+      .in('status', ['pending', 'blocked'])
+      .lte('effective_due_date', today)
+      .order('effective_due_date'),
+    supabase
+      .from('inventory_assignments')
+      .select('user_id, instance:inventory_instances!inner ( id, inventory_date, name_snapshot, completed_at )')
+      .in('user_id', absentIds)
+      .is('instance.completed_at', null)
+      .lte('instance.inventory_date', today),
+  ]);
+  type Occ = { id: string; assignee_id: string; effective_due_date: string; task: { title: string; translations: unknown } };
+  type Inv = { user_id: string; instance: { id: string; inventory_date: string; name_snapshot: string } };
+  const byInstance = new Map<string, { id: string; assignee_ids: string[]; date: string; name: string }>();
+  for (const r of (inv ?? []) as unknown as Inv[]) {
+    const e = byInstance.get(r.instance.id) ?? { id: r.instance.id, assignee_ids: [], date: r.instance.inventory_date, name: r.instance.name_snapshot };
+    e.assignee_ids.push(r.user_id);
+    byInstance.set(r.instance.id, e);
+  }
+  return {
+    activities: ((occ ?? []) as unknown as Occ[]).map((o) => ({
+      id: o.id,
+      assignee_id: o.assignee_id,
+      due: o.effective_due_date,
+      title: o.task.title,
+      translations: o.task.translations,
+    })),
+    inventories: [...byInstance.values()].sort((a, b) => a.date.localeCompare(b.date)),
+  };
 }

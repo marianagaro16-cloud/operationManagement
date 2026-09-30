@@ -21,7 +21,8 @@ import { getBusinessFigures } from '@/server/dashboard';
 import { BusinessFigures, Greeting, NowCard, ProgressFigures } from '@/components/dashboard/dashboard-top';
 import { buildNowItems } from '@/domain/dashboard/now';
 import { countPendingAbsences } from '@/server/absences';
-import { countCoverageGaps, getCoverageBetween, getNeedsCoverIds, getWorkingHours } from '@/server/coverage';
+import { countCoverageGaps, getCoverageBetween, getCoveredWork, getNeedsCoverIds, getWorkingHours } from '@/server/coverage';
+import { CoveringNowCard } from '@/components/absences/covering-now-card';
 import { CoverageTodayCard } from '@/components/absences/coverage-today-card';
 import { compareUrgency, deliveryUrgency } from '@/domain/orders/urgency';
 import { personalTaskPhase } from '@/domain/reminders/schedule';
@@ -117,6 +118,11 @@ export default async function DashboardPage() {
     coverageGaps,
   });
 
+  // Whom the viewer covers today; while it lasts, that person's work is theirs to do.
+  const myPeriods = coverageToday.coverage.filter((c) => c.coverer_id === viewer?.profile.id);
+  const coveredWork = await getCoveredWork([...new Set(myPeriods.map((c) => c.absent_profile_id))], today);
+  const nowHm = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Zurich', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
+
   return (
     <>
       {/* Nobody goes hunting for a notifications setting, so the invitation
@@ -150,6 +156,10 @@ export default async function DashboardPage() {
           the page is about 780px wide beside the menu, too narrow for three. "Now" first. */}
       <div className="columns-1 gap-4 lg:columns-2">
         <Tile><NowCard items={nowItems} /></Tile>
+        {/* Nothing unless the viewer covers someone today. */}
+        <Tile>
+          <CoveringNowCard periods={myPeriods} now={nowHm} activities={coveredWork.activities} inventories={coveredWork.inventories} />
+        </Tile>
         <Tile>
           <OrderWidgets
             toPrepare={orders.toPrepare}

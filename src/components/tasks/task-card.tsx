@@ -143,6 +143,10 @@ export function TaskCard({ occurrence, today, showDueDate, showAssignee, canSkip
           <p className="mt-1 text-[12px] text-subtle">
             {(isDone ? t('task.completedBy', { name: occurrence.actor_name })
                      : t('task.skippedBy', { name: occurrence.actor_name }))}
+            {/* Someone else's, resolved while covering them: whose it stays. */}
+            {occurrence.covered_assignment_id && occurrence.assignee_name && (
+              <> {t('coverage.coveringFor', { name: occurrence.assignee_name })}</>
+            )}
             {occurrence.resolved_at && (
               <span className="tabular">
                 {' · '}

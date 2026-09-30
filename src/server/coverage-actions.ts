@@ -21,6 +21,7 @@ const TIME = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, { message: 'invalid_time
 const uuid = z.string().uuid();
 
 const KNOWN = [
+  'coverage_grant_not_operational', 'coverage_grant_not_held', 'coverage_grant_locked',
   'not_authorized', 'coverage_absence_not_approved', 'coverage_outside_absence', 'coverage_self', 'coverage_coverer_inactive',
   'coverage_locked', 'coverage_times',
 ];
@@ -89,13 +90,58 @@ const coverageSchema = z
 export type CoverageInput = z.input<typeof coverageSchema>;
 export type CoverageResult = ActionResult<{ saved: boolean; conflicts: CoverageConflict[] }>;
 
+const permissionsSchema = z.array(z.string().min(1).max(80)).max(40);
+
+/**
+ * The permissions standing with a period become exactly these: the ones no
+ * longer wanted are revoked (kept, for the history), new ones given. The
+ * database refuses anything not operational, or not the planner's to give.
+ */
+async function setGrants(assignmentIds: string[], wanted: string[]): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!assignmentIds.length) return { ok: true };
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: live, error: readError } = await supabase
+    .from('coverage_permission_grants')
+    .select('id, assignment_id, permission')
+    .in('assignment_id', assignmentIds)
+    .is('revoked_at', null);
+  if (readError) return fail(readError);
+  const stale = (live ?? []).filter((g) => !wanted.includes(g.permission)).map((g) => g.id);
+  if (stale.length) {
+    const { error } = await supabase
+      .from('coverage_permission_grants')
+      .update({ revoked_at: new Date().toISOString(), revoked_by: user?.id ?? null })
+      .in('id', stale);
+    if (error) return fail(error);
+  }
+  const missing = assignmentIds.flatMap((assignment_id) =>
+    wanted
+      .filter((permission) => !(live ?? []).some((g) => g.assignment_id === assignment_id && g.permission === permission))
+      .map((permission) => ({ assignment_id, permission, granted_by: user?.id ?? null })),
+  );
+  if (missing.length) {
+    const { error } = await supabase.from('coverage_permission_grants').insert(missing);
+    if (error) return fail(error);
+  }
+  return { ok: true };
+}
+
 /**
  * Someone covers on a day from–until. With a conflict and no `force`,
  * nothing is saved and the conflicts come back to be shown.
  */
-export async function saveCoverage(input: CoverageInput, id?: string, force = false): Promise<CoverageResult> {
+export async function saveCoverage(
+  input: CoverageInput,
+  id?: string,
+  force = false,
+  /** The permissions given with it; undefined leaves them as they are. */
+  permissions?: string[],
+): Promise<CoverageResult> {
   const parsed = coverageSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_coverage' };
+  const perms = permissions === undefined ? null : permissionsSchema.safeParse(permissions);
+  if (perms && !perms.success) return { ok: false, error: 'invalid_coverage' };
   const v = parsed.data;
   const conflicts = await conflictsFor(v.coverer_id, v.cover_date, hm(v.start_time), hm(v.end_time), id);
   if (conflicts.length && !force) return { ok: true, data: { saved: false, conflicts } };
@@ -105,10 +151,17 @@ export async function saveCoverage(input: CoverageInput, id?: string, force = fa
   const before = id
     ? (await supabase.from('coverage_assignments').select('coverer_id, cover_date, start_time, end_time').eq('id', id).maybeSingle()).data
     : null;
-  const { error } = id
-    ? await supabase.from('coverage_assignments').update(v).eq('id', id).is('removed_at', null)
-    : await supabase.from('coverage_assignments').insert({ ...v, created_by: user?.id ?? null });
+  const { data: saved, error } = id
+    ? await supabase.from('coverage_assignments').update(v).eq('id', id).is('removed_at', null).select('id')
+    : await supabase.from('coverage_assignments').insert({ ...v, created_by: user?.id ?? null }).select('id');
   if (error) return fail(error);
+  const savedId = saved?.[0]?.id;
+  if (!savedId) return { ok: false, error: 'not_authorized' };
+  // A period given to someone else lost its grants (they were that person's); set them again.
+  if (perms?.success) {
+    const granted = await setGrants([savedId], perms.data);
+    if (!granted.ok) return granted;
+  }
 
   const brief = await getAbsenceBrief(v.absence_id);
   const who = brief?.person_name ?? '';
@@ -133,8 +186,15 @@ export async function saveCoverage(input: CoverageInput, id?: string, force = fa
  * One person covers every working day still without anyone: the whole
  * working window of each. Conflicts first, as with a single period.
  */
-export async function coverAllDays(absenceId: string, covererId: string, force = false): Promise<CoverageResult> {
+export async function coverAllDays(
+  absenceId: string,
+  covererId: string,
+  force = false,
+  permissions: string[] = [],
+): Promise<CoverageResult> {
   if (!uuid.safeParse(absenceId).success || !uuid.safeParse(covererId).success) return { ok: false, error: 'invalid_coverage' };
+  const perms = permissionsSchema.safeParse(permissions);
+  if (!perms.success) return { ok: false, error: 'invalid_coverage' };
   const [brief, hours, existing] = await Promise.all([getAbsenceBrief(absenceId), getWorkingHours(), getCoverageFor(absenceId)]);
   if (!brief) return { ok: false, error: 'not_authorized' };
   const days = workingDays(brief, hours)
@@ -149,17 +209,24 @@ export async function coverAllDays(absenceId: string, covererId: string, force =
 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { error } = await supabase.from('coverage_assignments').insert(
-    days.map((d) => ({
-      absence_id: absenceId,
-      coverer_id: covererId,
-      cover_date: d.date,
-      start_time: d.window.start,
-      end_time: d.window.end,
-      created_by: user?.id ?? null,
-    })),
-  );
+  const { data: created, error } = await supabase
+    .from('coverage_assignments')
+    .insert(
+      days.map((d) => ({
+        absence_id: absenceId,
+        coverer_id: covererId,
+        cover_date: d.date,
+        start_time: d.window.start,
+        end_time: d.window.end,
+        created_by: user?.id ?? null,
+      })),
+    )
+    .select('id');
   if (error) return fail(error);
+  if (perms.data.length) {
+    const granted = await setGrants((created ?? []).map((c) => c.id), perms.data);
+    if (!granted.ok) return granted;
+  }
   const span = days.length === 1 ? dayEs(days[0].date) : `${dayEs(days[0].date)} – ${dayEs(days[days.length - 1].date)} (${days.length} días)`;
   await tell(covererId, 'Cubres una ausencia', `${brief.person_name}: ${span}`, absenceId);
   revalidateCoverage(absenceId);
