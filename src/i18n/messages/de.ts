@@ -2569,6 +2569,9 @@ export const de: Messages = {
     errShiftTimes: 'Die Endzeit muss nach der Startzeit liegen.',
   },
   absence: {
+    register: 'Abwesenheit erfassen',
+    registerHint: 'Sie ist beim Speichern genehmigt und bereit für die Vertretungsplanung. Die Person wird benachrichtigt.',
+    registerOwnHint: 'Deine eigene Abwesenheit genehmigt eine andere berechtigte Person.',
     someHours: 'Einige Stunden',
     fromHour: 'Ab',
     untilHour: 'Bis',
@@ -2617,7 +2620,7 @@ export const de: Messages = {
     rejectReason: 'Grund',
     rejectedBecause: 'Grund: {reason}',
     decidedBy: 'Entschieden von {name}, {date}',
-    mineNone: 'Du hast keine Abwesenheiten beantragt.',
+    mineNone: 'Für dich sind keine Abwesenheiten erfasst.',
     approveNone: 'Nichts zu genehmigen.',
     allNone: 'Keine Abwesenheiten mit diesen Filtern.',
     awayToday: 'Heute abwesend',

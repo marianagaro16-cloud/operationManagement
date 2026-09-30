@@ -86,10 +86,12 @@ export function AbsencesView({
         title={t('absence.navLabel')}
         subtitle={t('absence.subtitle')}
         action={
-          <Button variant="primary" size="sm" onClick={() => setRequesting(true)}>
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            {t('absence.request')}
-          </Button>
+          approver && (
+            <Button variant="primary" size="sm" onClick={() => setRequesting(true)}>
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              {t('absence.register')}
+            </Button>
+          )
         }
       />
       <nav className="-mt-2 mb-4 flex gap-1 overflow-x-auto border-b border-border">
@@ -121,7 +123,9 @@ export function AbsencesView({
         </>
       )}
 
-      {requesting && <AbsenceDialog absence={null} types={types} today={today} onClose={() => setRequesting(false)} />}
+      {requesting && (
+        <AbsenceDialog absence={null} types={types} today={today} people={people} viewerId={viewerId} onClose={() => setRequesting(false)} />
+      )}
     </>
   );
 }
@@ -188,7 +192,8 @@ function AbsenceList({
                 )}
               </div>
               <div className="flex shrink-0 gap-0.5">
-                {own && a.status === 'pending' && (
+                {((own && a.status === 'pending') ||
+                  (approver && !own && (a.status === 'pending' || a.status === 'approved') && a.end_date >= today)) && (
                   <Button size="icon" variant="ghost" aria-label={t('common.edit')} onClick={() => setEditing(a)}>
                     <Pencil className="h-3.5 w-3.5" aria-hidden />
                   </Button>

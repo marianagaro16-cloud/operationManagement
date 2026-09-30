@@ -64,7 +64,8 @@ export default async function AbsencesPage({
           to: searchParams.to || undefined,
         })
       : [],
-    tab === 'all' ? getUsers() : [],
+    // Approvers enter absences for anyone: the people to choose from.
+    approver ? getUsers() : [],
     // The tab's count shows everywhere.
     getMyCoverage(today),
     tab === 'calendar' ? getNeedsCoverIds() : [],

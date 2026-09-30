@@ -7130,6 +7130,20 @@ export type Database = {
         Args: { p_absence_id: string; p_approve: boolean; p_reason?: string }
         Returns: undefined
       }
+      absence_register: {
+        Args: {
+          p_end_date: string
+          p_end_time: string
+          p_first_day: string
+          p_last_day: string
+          p_note: string
+          p_profile_id: string
+          p_start_date: string
+          p_start_time: string
+          p_type_id: string
+        }
+        Returns: string
+      }
       active_coverage_permissions: { Args: never; Returns: string[] }
       activity_team_paused: {
         Args: { p_team: Database["public"]["Enums"]["team"] }

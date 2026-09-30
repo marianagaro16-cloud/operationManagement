@@ -2601,6 +2601,9 @@ export const en = {
     errShiftTimes: 'The end time must be after the start time.',
   },
   absence: {
+    register: 'Enter absence',
+    registerHint: 'It is approved when saved, ready to plan who covers. The person is notified.',
+    registerOwnHint: 'Your own absence is approved by another approver.',
     someHours: 'Some hours',
     fromHour: 'From',
     untilHour: 'Until',
@@ -2649,7 +2652,7 @@ export const en = {
     rejectReason: 'Reason',
     rejectedBecause: 'Reason: {reason}',
     decidedBy: 'Decided by {name}, {date}',
-    mineNone: 'You have not asked for time off.',
+    mineNone: 'You have no absences entered.',
     approveNone: 'Nothing to approve.',
     allNone: 'No absences with these filters.',
     awayToday: 'Away today',

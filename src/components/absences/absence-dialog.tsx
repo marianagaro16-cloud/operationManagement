@@ -8,7 +8,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { localizedName } from '@/lib/localized-content';
-import { requestAbsence, updateAbsence } from '@/server/absence-actions';
+import { registerAbsence, updateAbsence } from '@/server/absence-actions';
 import type { AbsenceRow, AbsenceType } from '@/types/absences';
 import { useAbsenceLabels } from './absence-parts';
 
@@ -26,8 +26,13 @@ export function AbsenceDialog({
   absence,
   types,
   today,
+  people = [],
+  viewerId,
   onClose,
 }: {
+  /** Whom a new absence can be entered for. */
+  people?: { id: string; name: string }[];
+  viewerId?: string;
   absence: AbsenceRow | null;
   types: AbsenceType[];
   today: string;
@@ -38,6 +43,7 @@ export function AbsenceDialog({
   const labels = useAbsenceLabels();
   const choices = types.filter((x) => x.is_active || x.id === absence?.type_id);
   const [typeId, setTypeId] = useState(absence?.type_id ?? choices[0]?.id ?? '');
+  const [personId, setPersonId] = useState(absence?.profile_id ?? people.find((p) => p.id !== viewerId)?.id ?? viewerId ?? '');
   const [start, setStart] = useState(absence?.start_date ?? today);
   const [end, setEnd] = useState(absence?.end_date ?? today);
   const [first, setFirst] = useState<FirstDay>(absence?.start_time ? 'time' : absence?.first_day === 'afternoon' ? 'afternoon' : 'full');
@@ -75,14 +81,14 @@ export function AbsenceDialog({
   const timesOk = oneDay
     ? one !== 'hours' || (!!fromTime && !!untilTime && untilTime > fromTime)
     : (first !== 'time' || !!fromTime) && (last !== 'time' || !!untilTime);
-  const ready = !!typeId && !!start && !!end && end >= start && timesOk;
+  const ready = !!typeId && !!start && !!end && end >= start && timesOk && (!!absence || !!personId);
 
   function submit() {
     if (!ready) return;
     setError(null);
     startTransition(async () => {
       const input = { type_id: typeId, start_date: start, end_date: end, ...shape, note };
-      const res = absence ? await updateAbsence(absence.id, input) : await requestAbsence(input);
+      const res = absence ? await updateAbsence(absence.id, input) : await registerAbsence(personId, input);
       if (!res.ok) return setError(labels.error(res.error));
       onClose();
       router.refresh();
@@ -93,22 +99,31 @@ export function AbsenceDialog({
     <Dialog
       open
       onClose={onClose}
-      title={absence ? t('absence.edit') : t('absence.request')}
-      description={t('absence.requestHint')}
+      title={absence ? t('absence.edit') : t('absence.register')}
+      description={absence ? undefined : personId === viewerId ? t('absence.registerOwnHint') : t('absence.registerHint')}
       className="max-w-lg"
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
           <Button variant="primary" onClick={submit} loading={pending} disabled={!ready}>
-            {absence ? t('common.save') : t('absence.send')}
+            {t('common.save')}
           </Button>
         </>
       }
     >
       <div className="space-y-3.5">
         {error && <ErrorState message={error} />}
+        {absence ? (
+          <p className="text-[13.5px] font-medium">{absence.person_name}</p>
+        ) : (
+          <Field label={t('absence.person')} required htmlFor="absence-person">
+            <Select id="absence-person" value={personId} onChange={(e) => setPersonId(e.target.value)} autoFocus>
+              {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select>
+          </Field>
+        )}
         <Field label={t('absence.type')} required htmlFor="absence-type">
-          <Select id="absence-type" value={typeId} onChange={(e) => setTypeId(e.target.value)} autoFocus>
+          <Select id="absence-type" value={typeId} onChange={(e) => setTypeId(e.target.value)}>
             {choices.map((x) => <option key={x.id} value={x.id}>{localizedName(x, locale)}</option>)}
           </Select>
         </Field>

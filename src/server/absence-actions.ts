@@ -19,7 +19,7 @@ const uuid = z.string().uuid();
 
 const KNOWN = [
   'not_authorized', 'absence_overlaps', 'absence_own', 'absence_not_pending', 'absence_closed', 'absence_past',
-  'absences_rejection_reason', 'absences_dates', 'absences_halves', 'absences_times', 'absence_not_found', 'absence_status_by_rpc',
+  'absences_rejection_reason', 'absences_dates', 'absences_halves', 'absences_times', 'absence_person_inactive', 'absence_not_found', 'absence_status_by_rpc',
 ];
 function fail(error: { message: string }): { ok: false; error: string } {
   if (error.message.includes('row-level security')) return { ok: false, error: 'not_authorized' };
@@ -83,32 +83,68 @@ async function notify(people: string[], title: string, body: string, tag: string
 }
 
 /** Ask for time off: pending until an approver decides; the approvers are told. */
-export async function requestAbsence(input: AbsenceInput): Promise<ActionResult<{ id: string }>> {
+/**
+ * An approver enters someone's absence — approved at once, since holidays
+ * are agreed elsewhere; the person is told. Their own waits for another
+ * approver, who is told.
+ */
+export async function registerAbsence(profileId: string, input: AbsenceInput): Promise<ActionResult<{ id: string }>> {
   const parsed = absenceSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_absence' };
+  if (!parsed.success || !uuid.safeParse(profileId).success) return { ok: false, error: parsed.error?.issues[0]?.message ?? 'invalid_absence' };
   const me = await viewerName();
   if (!me) return { ok: false, error: 'not_authorized' };
+  const v = parsed.data;
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from('absences')
-    .insert({ ...parsed.data, profile_id: me.id, created_by: me.id })
-    .select('id')
-    .single();
+  const { data, error } = await supabase.rpc('absence_register', {
+    p_profile_id: profileId,
+    p_type_id: v.type_id,
+    p_start_date: v.start_date,
+    p_end_date: v.end_date,
+    p_first_day: v.first_day,
+    p_last_day: v.last_day,
+    p_start_time: v.start_time ?? undefined,
+    p_end_time: v.end_time ?? undefined,
+    p_note: v.note ?? undefined,
+  });
   if (error) return fail(error);
-  const id = (data as { id: string }).id;
-  await notify(await approversExcept(me.id), 'Ausencia por aprobar', `${me.name}: ${spanOf(parsed.data)}`, `absence-${id}`);
+  const id = data as string;
+  if (profileId === me.id) {
+    await notify(await approversExcept(me.id), 'Ausencia por aprobar', `${me.name}: ${spanOf(v)}`, `absence-${id}`);
+  } else {
+    try {
+      await sendToUser(profileId, { title: 'Ausencia registrada', body: `${spanOf(v)} (${me.name})`, url: '/absences', tag: `absence-${id}` });
+    } catch (err) {
+      console.error('absence notice failed', err);
+    }
+  }
   revalidateAbsences();
   return { ok: true, data: { id } };
 }
 
-/** Change one's own request while it waits for a decision. */
+/**
+ * Correct an absence: an approver someone else's (pending or approved); an
+ * approver their own while it waits. Its status stays as it is.
+ */
 export async function updateAbsence(id: string, input: AbsenceInput): Promise<ActionResult> {
   const parsed = absenceSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_absence' };
   const supabase = createClient();
-  const { data, error } = await supabase.from('absences').update(parsed.data).eq('id', id).eq('status', 'pending').select('id');
+  const { data, error } = await supabase
+    .from('absences')
+    .update(parsed.data)
+    .eq('id', id)
+    .in('status', ['pending', 'approved'])
+    .select('id, profile_id');
   if (error) return fail(error);
   if (!data?.length) return { ok: false, error: 'absence_not_pending' };
+  const me = await viewerName();
+  if (me && data[0].profile_id !== me.id) {
+    try {
+      await sendToUser(data[0].profile_id, { title: 'Ausencia cambiada', body: `${spanOf(parsed.data)} (${me.name})`, url: '/absences', tag: `absence-${id}` });
+    } catch (err) {
+      console.error('absence notice failed', err);
+    }
+  }
   revalidateAbsences();
   return { ok: true, data: undefined };
 }

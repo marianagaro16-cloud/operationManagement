@@ -2569,6 +2569,9 @@ export const es: Messages = {
     errShiftTimes: 'La hora de fin tiene que ser después de la de inicio.',
   },
   absence: {
+    register: 'Registrar ausencia',
+    registerHint: 'Queda aprobada al guardarla, lista para planear quién cubre. La persona recibe un aviso.',
+    registerOwnHint: 'Tu propia ausencia la aprueba otra persona que aprueba ausencias.',
     someHours: 'Unas horas',
     fromHour: 'Desde las',
     untilHour: 'Hasta las',
@@ -2617,7 +2620,7 @@ export const es: Messages = {
     rejectReason: 'Motivo',
     rejectedBecause: 'Motivo: {reason}',
     decidedBy: 'Decidida por {name}, {date}',
-    mineNone: 'No has pedido ausencias.',
+    mineNone: 'No tienes ausencias registradas.',
     approveNone: 'Nada por aprobar.',
     allNone: 'No hay ausencias con estos filtros.',
     awayToday: 'Hoy no está',
