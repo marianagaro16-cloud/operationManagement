@@ -114,11 +114,17 @@ export async function decideAbsence(id: string, approve: boolean, reason?: strin
   if (error) return fail(error);
   const { data: a } = await supabase.from('absences').select('profile_id, start_date, end_date, rejection_reason').eq('id', id).maybeSingle();
   if (a) {
+    // Someone who must be covered is asked to plan who covers them.
+    const { data: needs } = approve
+      ? await supabase.from('absence_needs_cover').select('profile_id').eq('profile_id', a.profile_id).maybeSingle()
+      : { data: null };
     try {
       await sendToUser(a.profile_id, {
         title: approve ? 'Ausencia aprobada' : 'Ausencia rechazada',
-        body: approve ? spanOf(a) : `${spanOf(a)}: ${a.rejection_reason ?? ''}`,
-        url: '/absences',
+        body: approve
+          ? `${spanOf(a)}${needs ? ' — planea quién te cubre.' : ''}`
+          : `${spanOf(a)}: ${a.rejection_reason ?? ''}`,
+        url: approve && needs ? `/absences/${id}` : '/absences',
         tag: `absence-${id}`,
       });
     } catch (err) {
@@ -141,6 +147,29 @@ export async function cancelAbsence(id: string): Promise<ActionResult> {
   const { data: before } = await supabase.from('absences').select('profile_id, status, start_date, end_date').eq('id', id).maybeSingle();
   const { error } = await supabase.rpc('absence_cancel', { p_absence_id: id });
   if (error) return fail(error);
+
+  // Its coverage comes off the plan — kept for the history — and whoever covered is told.
+  const { data: dropped } = await supabase
+    .from('coverage_assignments')
+    .update({ removed_at: new Date().toISOString(), removed_by: me.id })
+    .eq('absence_id', id)
+    .is('removed_at', null)
+    .select('coverer_id');
+  const coverers = [...new Set((dropped ?? []).map((c) => c.coverer_id))];
+  if (coverers.length && before) {
+    const { data: person } = await supabase.from('profiles').select('name, email').eq('id', before.profile_id).maybeSingle();
+    try {
+      await sendToUsers(coverers, {
+        title: 'Ya no cubres una ausencia',
+        body: `${person ? person.name || person.email : ''}: ${spanOf(before)} — ausencia cancelada`,
+        url: '/absences?tab=coverage',
+        tag: `coverage-cancel-${id}`,
+      });
+    } catch (err) {
+      console.error('coverage notice failed', err);
+    }
+  }
+
   if (before) {
     if (before.profile_id === me.id) {
       await notify(await approversExcept(me.id), 'Ausencia cancelada', `${me.name}: ${spanOf(before)}`, `absence-${id}`);

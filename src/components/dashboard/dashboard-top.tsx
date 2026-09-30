@@ -91,6 +91,7 @@ const NOW_ICON: Record<NowKind, typeof Zap> = {
   planToday: CalendarCheck,
   evaluationsDue: ClipboardCheck,
   absencesToApprove: CalendarOff,
+  coverageGaps: AlertTriangle,
 };
 
 /** What is late or due now, most urgent first. A clear day says so. */

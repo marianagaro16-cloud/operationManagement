@@ -4,6 +4,7 @@ import { runReminderNotifications } from '@/server/reminder-notify';
 import { runEvaluationDeadlineReminders } from '@/server/hr-eval-notify';
 import { runCelebrationNotices } from '@/server/hr-celebrations';
 import { runPlanNotices, runQuietCustomersSummary } from '@/server/sales-notify';
+import { runCoverageNotices } from '@/server/coverage-notify';
 
 // web-push needs Node crypto; it cannot run on the Edge runtime.
 export const runtime = 'nodejs';
@@ -43,6 +44,8 @@ export async function GET(request: Request) {
     const quiet = await runQuietCustomersSummary();
     // The sales planning: each salesperson's day at 08:00, and 15 minutes before a timed activity.
     const plan = await runPlanNotices();
+    // Coverage: the evening before, from 17:00, whoever covers someone tomorrow.
+    const coverage = await runCoverageNotices();
     return NextResponse.json({
       ok: true,
       ...result,
@@ -51,6 +54,7 @@ export async function GET(request: Request) {
       quietCustomersSummary: quiet.sent,
       planSummaries: plan.summaries,
       planNotices: plan.soon,
+      coverageNotices: coverage.sent,
     });
   } catch (e) {
     return NextResponse.json(

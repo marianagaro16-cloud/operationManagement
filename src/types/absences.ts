@@ -50,3 +50,21 @@ export interface AbsenceEvent {
   actor_name: string | null;
   created_at: string;
 }
+
+/** Someone covering an absent person, on one day, from–until. */
+export interface CoverageAssignment {
+  id: string;
+  absence_id: string;
+  coverer_id: string;
+  coverer_name: string;
+  cover_date: string;
+  start_time: string;
+  end_time: string;
+  note: string | null;
+}
+
+/** A period with who is away and who covers — the calendar's and the dashboard's. */
+export interface CoverageEntry extends CoverageAssignment {
+  absent_profile_id: string;
+  absent_name: string;
+}

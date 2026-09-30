@@ -114,6 +114,39 @@ export type Database = {
           },
         ]
       }
+      absence_needs_cover: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          profile_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          profile_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_needs_cover_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_needs_cover_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       absence_types: {
         Row: {
           created_at: string
@@ -361,6 +394,158 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      coverage_assignments: {
+        Row: {
+          absence_id: string
+          cover_date: string
+          coverer_id: string
+          created_at: string
+          created_by: string | null
+          end_time: string
+          id: string
+          note: string | null
+          removed_at: string | null
+          removed_by: string | null
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          absence_id: string
+          cover_date: string
+          coverer_id: string
+          created_at?: string
+          created_by?: string | null
+          end_time: string
+          id?: string
+          note?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          absence_id?: string
+          cover_date?: string
+          coverer_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_time?: string
+          id?: string
+          note?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coverage_assignments_absence_id_fkey"
+            columns: ["absence_id"]
+            isOneToOne: false
+            referencedRelation: "absences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_assignments_coverer_id_fkey"
+            columns: ["coverer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_assignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_assignments_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coverage_events: {
+        Row: {
+          absence_id: string
+          action: string
+          actor_id: string | null
+          assignment_id: string
+          created_at: string
+          detail: Json
+          id: number
+        }
+        Insert: {
+          absence_id: string
+          action: string
+          actor_id?: string | null
+          assignment_id: string
+          created_at?: string
+          detail?: Json
+          id?: number
+        }
+        Update: {
+          absence_id?: string
+          action?: string
+          actor_id?: string | null
+          assignment_id?: string
+          created_at?: string
+          detail?: Json
+          id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coverage_events_absence_id_fkey"
+            columns: ["absence_id"]
+            isOneToOne: false
+            referencedRelation: "absences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_events_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "coverage_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coverage_notices: {
+        Row: {
+          assignment_id: string
+          kind: string
+          sent_at: string
+        }
+        Insert: {
+          assignment_id: string
+          kind: string
+          sent_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          kind?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coverage_notices_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "coverage_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customer_notes: {
         Row: {
@@ -6254,6 +6439,19 @@ export type Database = {
       }
     }
     Functions: {
+      absence_brief: {
+        Args: { p_absence_id: string }
+        Returns: {
+          end_date: string
+          first_day: string
+          id: string
+          last_day: string
+          person_name: string
+          profile_id: string
+          start_date: string
+          status: string
+        }[]
+      }
       absence_calendar: {
         Args: { p_from: string; p_to: string }
         Returns: {
@@ -6316,6 +6514,7 @@ export type Database = {
         Returns: boolean
       }
       can_manage_incident: { Args: { p_incident_id: string }; Returns: boolean }
+      can_plan_coverage: { Args: { p_absence_id: string }; Returns: boolean }
       can_use_reminders: { Args: never; Returns: boolean }
       can_view_incident:
         | { Args: { p_order_id: string }; Returns: boolean }

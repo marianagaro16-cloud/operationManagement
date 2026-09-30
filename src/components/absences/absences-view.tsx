@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { DateTime } from 'luxon';
-import { Check, ChevronLeft, ChevronRight, Pencil, Plus, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, Pencil, Plus, ShieldCheck, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { BUSINESS_TZ } from '@/lib/datetime';
@@ -15,11 +15,12 @@ import { NoteTextarea } from '@/components/ui/note-textarea';
 import { PageHeader } from '@/components/shell/app-shell';
 import { localizedName } from '@/lib/localized-content';
 import { cancelAbsence, decideAbsence } from '@/server/absence-actions';
-import type { AbsenceCalendarEntry, AbsenceRow, AbsenceStatus, AbsenceType } from '@/types/absences';
+import type { AbsenceCalendarEntry, AbsenceRow, AbsenceStatus, AbsenceType, CoverageEntry } from '@/types/absences';
+import { gaps as gapsOf, requiredWindow, type WorkingHours } from '@/domain/absences/coverage';
 import { AbsenceStatusBadge, useAbsenceLabels } from './absence-parts';
 import { AbsenceDialog } from './absence-dialog';
 
-export type AbsenceTab = 'mine' | 'approve' | 'calendar' | 'all';
+export type AbsenceTab = 'mine' | 'approve' | 'calendar' | 'coverage' | 'all';
 
 /**
  * Absences: one's own requests, the ones waiting for a decision (approvers),
@@ -37,7 +38,18 @@ export function AbsencesView({
   calendar,
   all,
   people,
+  coverage,
+  myCoverage,
+  needsCover,
+  hours,
 }: {
+  /** The calendar month's coverage. */
+  coverage: CoverageEntry[];
+  /** What the viewer covers from today on. */
+  myCoverage: CoverageEntry[];
+  /** Who must be covered when away. */
+  needsCover: string[];
+  hours: WorkingHours;
   tab: AbsenceTab;
   today: string;
   viewerId: string;
@@ -57,6 +69,7 @@ export function AbsencesView({
     { key: 'mine', label: t('absence.tabMine'), count: 0 },
     ...(approver ? [{ key: 'approve', label: t('absence.tabApprove'), count: pending.length }] : []),
     { key: 'calendar', label: t('absence.tabCalendar'), count: 0 },
+    { key: 'coverage', label: t('coverage.tabMine'), count: myCoverage.length },
     ...(approver ? [{ key: 'all', label: t('absence.tabAll'), count: 0 }] : []),
   ];
 
@@ -91,7 +104,8 @@ export function AbsencesView({
 
       {tab === 'mine' && <AbsenceList rows={mine} types={types} today={today} viewerId={viewerId} approver={approver} showPerson={false} empty={t('absence.mineNone')} />}
       {tab === 'approve' && <ApproveList rows={pending} types={types} />}
-      {tab === 'calendar' && <MonthView month={month} entries={calendar} today={today} />}
+      {tab === 'calendar' && <MonthView month={month} entries={calendar} today={today} coverage={coverage} needsCover={needsCover} hours={hours} />}
+      {tab === 'coverage' && <MyCoverage rows={myCoverage} />}
       {tab === 'all' && (
         <>
           <Filters types={types} people={people} />
@@ -152,6 +166,12 @@ function AbsenceList({
                 {a.note && <p className="text-[12px] text-muted">{a.note}</p>}
                 {a.status === 'rejected' && a.rejection_reason && (
                   <p className="text-[12px] text-late">{t('absence.rejectedBecause', { reason: a.rejection_reason })}</p>
+                )}
+                {a.status === 'approved' && (
+                  <Link href={`/absences/${a.id}`} className="mt-0.5 inline-flex items-center gap-1 text-[12.5px] font-medium text-accent hover:underline">
+                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+                    {t('coverage.open')}
+                  </Link>
                 )}
                 {(a.status === 'approved' || a.status === 'rejected') && a.decider_name && a.decided_at && (
                   <p className="text-[11.5px] text-muted">
@@ -277,7 +297,21 @@ function ApproveList({ rows, types }: { rows: AbsenceRow[]; types: AbsenceType[]
 /* ------------------------------- calendar -------------------------------- */
 
 /** Who is away, day by day through a month; today on top. */
-function MonthView({ month, entries, today }: { month: string; entries: AbsenceCalendarEntry[]; today: string }) {
+function MonthView({
+  month,
+  entries,
+  today,
+  coverage,
+  needsCover,
+  hours,
+}: {
+  month: string;
+  entries: AbsenceCalendarEntry[];
+  today: string;
+  coverage: CoverageEntry[];
+  needsCover: string[];
+  hours: WorkingHours;
+}) {
   const { t, formatDate, locale } = useI18n();
   const labels = useAbsenceLabels();
   const start = DateTime.fromISO(`${month}-01`, { zone: BUSINESS_TZ });
@@ -325,20 +359,76 @@ function MonthView({ month, entries, today }: { month: string; entries: AbsenceC
               <span className={cn('w-24 shrink-0 text-[12.5px] tabular', d === today ? 'font-semibold text-accent' : 'text-muted')}>
                 {formatDate(d, 'weekday')}
               </span>
-              <span className="min-w-0 flex-1 text-[13px]">
-                {on(d).map((e, i) => (
-                  <span key={e.id}>
-                    {i > 0 && ', '}
-                    {e.person_name}
-                    {labels.partOn(e, d) && <span className="text-muted"> ({labels.partOn(e, d)})</span>}
-                  </span>
+              <div className="min-w-0 flex-1 space-y-0.5 text-[13px]">
+                {on(d).map((e) => (
+                  <AwayLine key={e.id} entry={e} date={d} coverage={coverage} needsCover={needsCover.includes(e.profile_id)} hours={hours} />
                 ))}
-              </span>
+              </div>
             </div>
           ))}
         </Card>
       )}
     </div>
+  );
+}
+
+/** Someone away on a day: who covers them when, and what is left uncovered. */
+function AwayLine({
+  entry,
+  date,
+  coverage,
+  needsCover,
+  hours,
+}: {
+  entry: AbsenceCalendarEntry;
+  date: string;
+  coverage: CoverageEntry[];
+  needsCover: boolean;
+  hours: WorkingHours;
+}) {
+  const { t } = useI18n();
+  const labels = useAbsenceLabels();
+  const theirs = coverage.filter((c) => c.absence_id === entry.id && c.cover_date === date);
+  const window = requiredWindow(entry, date, hours);
+  const open = needsCover && window ? gapsOf(window, theirs.map((c) => ({ start: c.start_time.slice(0, 5), end: c.end_time.slice(0, 5) }))) : [];
+  const part = labels.partOn(entry, date);
+  return (
+    <p>
+      <Link href={`/absences/${entry.id}`} className="font-medium hover:text-accent">{entry.person_name}</Link>
+      {part && <span className="text-muted"> ({part})</span>}
+      {theirs.length > 0 && (
+        <span className="text-muted">
+          {' · '}
+          {theirs.map((c) => `${c.coverer_name} ${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)}`).join(', ')}
+        </span>
+      )}
+      {open.length > 0 && (
+        <span className="ml-1.5 inline-flex items-center gap-0.5 text-[12px] font-medium text-late">
+          <AlertTriangle className="h-3 w-3" aria-hidden />
+          {t('coverage.uncovered', { times: open.map((g) => `${g.start}–${g.end}`).join(', ') })}
+        </span>
+      )}
+    </p>
+  );
+}
+
+/** What the viewer covers from today on, day by day. */
+function MyCoverage({ rows }: { rows: CoverageEntry[] }) {
+  const { t, formatDate } = useI18n();
+  if (rows.length === 0) return <EmptyState title={t('coverage.mineNone')} />;
+  return (
+    <Card className="divide-y divide-border">
+      {rows.map((c) => (
+        <Link key={c.id} href={`/absences/${c.absence_id}`} className="flex items-center gap-3 px-3.5 py-2.5 hover:bg-surface-2">
+          <span className="w-28 shrink-0 text-[12.5px] tabular">{formatDate(c.cover_date, 'weekday')}</span>
+          <span className="w-24 shrink-0 text-[12.5px] tabular text-muted">{c.start_time.slice(0, 5)}–{c.end_time.slice(0, 5)}</span>
+          <span className="min-w-0 flex-1 truncate text-[13px]">
+            {t('coverage.youCover', { name: c.absent_name })}
+            {c.note && <span className="ml-1.5 text-muted">{c.note}</span>}
+          </span>
+        </Link>
+      ))}
+    </Card>
   );
 }
 

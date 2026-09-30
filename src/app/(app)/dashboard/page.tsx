@@ -21,6 +21,8 @@ import { getBusinessFigures } from '@/server/dashboard';
 import { BusinessFigures, Greeting, NowCard, ProgressFigures } from '@/components/dashboard/dashboard-top';
 import { buildNowItems } from '@/domain/dashboard/now';
 import { countPendingAbsences } from '@/server/absences';
+import { countCoverageGaps, getCoverageBetween, getNeedsCoverIds, getWorkingHours } from '@/server/coverage';
+import { CoverageTodayCard } from '@/components/absences/coverage-today-card';
 import { compareUrgency, deliveryUrgency } from '@/domain/orders/urgency';
 import { personalTaskPhase } from '@/domain/reminders/schedule';
 
@@ -55,7 +57,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
@@ -78,6 +80,12 @@ export default async function DashboardPage() {
     owner ? getBusinessFigures(today) : null,
     // Requests waiting for the viewer's decision: RLS returns none to anyone who is not an approver.
     viewer ? countPendingAbsences() : 0,
+    // Who is away today and who covers them: everyone sees it.
+    viewer ? getCoverageBetween(today, today) : { away: [], coverage: [] },
+    viewer ? getNeedsCoverIds() : [],
+    viewer ? getWorkingHours() : null,
+    // Upcoming absences with time nobody covers: approvers count all, anyone else their own.
+    viewer ? countCoverageGaps(today, viewer.profile.id) : 0,
   ]);
 
   // ---- what the figures and "Now" count ----
@@ -106,6 +114,7 @@ export default async function DashboardPage() {
     planToday: todayPlan.filter((a) => a.status === 'planned').length,
     evaluationsDue: evaluations.filter((e) => e.request.deadline === today).length,
     absencesToApprove,
+    coverageGaps,
   });
 
   return (
@@ -153,6 +162,19 @@ export default async function DashboardPage() {
         {/* Renders nothing unless a count is due or late, so it never becomes
             empty furniture people learn to scroll past. */}
         <Tile><InventoryWidget dueToday={inventory.dueToday} overdue={inventory.overdue} /></Tile>
+        {/* Nothing unless someone is away today. */}
+        {workingHours && (
+          <Tile>
+            <CoverageTodayCard
+              today={today}
+              away={coverageToday.away}
+              coverage={coverageToday.coverage}
+              needsCover={needsCover}
+              hours={workingHours}
+              viewerId={viewer?.profile.id ?? ''}
+            />
+          </Tile>
+        )}
         <Tile><PendingEvaluations evaluations={evaluations} /></Tile>
         <Tile><QuietCustomersCard customers={quiet} /></Tile>
         <Tile><CelebrationsCard celebrations={celebrations} /></Tile>

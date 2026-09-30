@@ -11,6 +11,8 @@ import { Badge, Card, Checkbox, ErrorState, Field, Input } from '@/components/ui
 import { PageHeader } from '@/components/shell/app-shell';
 import { localizedName } from '@/lib/localized-content';
 import { saveAbsenceType, setAbsenceApprovers } from '@/server/absence-actions';
+import { saveWorkingHours, setNeedsCover } from '@/server/coverage-actions';
+import type { WorkingHours } from '@/domain/absences/coverage';
 import { useAbsenceLabels } from '@/components/absences/absence-parts';
 import type { AbsenceType } from '@/types/absences';
 
@@ -19,10 +21,14 @@ export function AbsencesConfig({
   types,
   approvers,
   people,
+  hours,
+  needsCover,
 }: {
   types: AbsenceType[];
   approvers: string[];
   people: { id: string; name: string }[];
+  hours: WorkingHours;
+  needsCover: string[];
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -87,6 +93,9 @@ export function AbsencesConfig({
         </Card>
       </section>
 
+      <NeedsCoverSection people={people} initial={needsCover} />
+      <HoursSection initial={hours} />
+
       <section className="mb-5">
         <div className="mb-1.5 flex items-center justify-between gap-2 px-0.5">
           <h2 className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('absence.types')}</h2>
@@ -114,6 +123,152 @@ export function AbsencesConfig({
 
       {editing && <TypeDialog row={editing.row} onClose={() => setEditing(null)} />}
     </>
+  );
+}
+
+/** Who must be covered when away: only their absences get "no coverage" warnings. */
+function NeedsCoverSection({ people, initial }: { people: { id: string; name: string }[]; initial: string[] }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [chosen, setChosen] = useState<string[]>(initial);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const changed = chosen.length !== initial.length || chosen.some((id) => !initial.includes(id));
+
+  return (
+    <section className="mb-5">
+      <div className="mb-1.5 px-0.5">
+        <h2 className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('coverage.needsCoverTitle')}</h2>
+        <p className="text-[12px] text-muted">{t('coverage.needsCoverHint')}</p>
+      </div>
+      <Card className="p-3">
+        {error && <div className="mb-2"><ErrorState message={error} /></div>}
+        <div className="flex flex-wrap gap-1.5">
+          {people.map((p) => {
+            const on = chosen.includes(p.id);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => {
+                  setSaved(false);
+                  setChosen(on ? chosen.filter((x) => x !== p.id) : [...chosen, p.id]);
+                }}
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-[12.5px]',
+                  on ? 'border-accent bg-accent/10 font-medium text-accent' : 'border-border text-muted hover:text-fg',
+                )}
+              >
+                {p.name}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={!changed}
+            loading={pending}
+            onClick={() =>
+              startTransition(async () => {
+                setError(null);
+                const res = await setNeedsCover(chosen);
+                if (!res.ok) return setError(res.error);
+                setSaved(true);
+                router.refresh();
+              })
+            }
+          >
+            {t('common.save')}
+          </Button>
+          {saved && !changed && <span className="text-[12px] text-done">{t('absence.approversSaved')}</span>}
+        </div>
+      </Card>
+    </section>
+  );
+}
+
+/** The working week coverage has to fill. */
+function HoursSection({ initial }: { initial: WorkingHours }) {
+  const { t, locale } = useI18n();
+  const router = useRouter();
+  const [days, setDays] = useState<number[]>(initial.days);
+  const [start, setStart] = useState(initial.start);
+  const [noon, setNoon] = useState(initial.noon);
+  const [end, setEnd] = useState(initial.end);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const valid = days.length > 0 && start < noon && noon < end;
+  // Monday..Sunday in the reader's language: 2024-01-01 was a Monday.
+  const dayName = (d: number) => new Date(Date.UTC(2024, 0, d)).toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' });
+
+  return (
+    <section className="mb-5">
+      <div className="mb-1.5 px-0.5">
+        <h2 className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('coverage.hoursTitle')}</h2>
+        <p className="text-[12px] text-muted">{t('coverage.hoursHint')}</p>
+      </div>
+      <Card className="space-y-3 p-3">
+        {error && <ErrorState message={error} />}
+        <div className="flex flex-wrap gap-1.5">
+          {[1, 2, 3, 4, 5, 6, 7].map((d) => {
+            const on = days.includes(d);
+            return (
+              <button
+                key={d}
+                type="button"
+                aria-pressed={on}
+                onClick={() => {
+                  setSaved(false);
+                  setDays(on ? days.filter((x) => x !== d) : [...days, d]);
+                }}
+                className={cn(
+                  'w-12 rounded-lg border py-1 text-[12.5px] capitalize',
+                  on ? 'border-accent bg-accent/10 font-medium text-accent' : 'border-border text-muted hover:text-fg',
+                )}
+              >
+                {dayName(d)}
+              </button>
+            );
+          })}
+        </div>
+        <div className="grid max-w-md grid-cols-3 gap-2">
+          <Field label={t('coverage.from')} htmlFor="hours-start">
+            <Input id="hours-start" type="time" value={start} onChange={(e) => { setSaved(false); setStart(e.target.value); }} />
+          </Field>
+          <Field label={t('coverage.noon')} htmlFor="hours-noon">
+            <Input id="hours-noon" type="time" value={noon} onChange={(e) => { setSaved(false); setNoon(e.target.value); }} />
+          </Field>
+          <Field label={t('coverage.until')} htmlFor="hours-end">
+            <Input id="hours-end" type="time" value={end} onChange={(e) => { setSaved(false); setEnd(e.target.value); }} />
+          </Field>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={!valid}
+            loading={pending}
+            onClick={() =>
+              startTransition(async () => {
+                setError(null);
+                const res = await saveWorkingHours({ days, start, noon, end });
+                if (!res.ok) return setError(res.error === 'invalid_hours' ? t('coverage.errHours') : res.error);
+                setSaved(true);
+                router.refresh();
+              })
+            }
+          >
+            {t('common.save')}
+          </Button>
+          {saved && <span className="text-[12px] text-done">{t('absence.approversSaved')}</span>}
+        </div>
+      </Card>
+    </section>
   );
 }
 

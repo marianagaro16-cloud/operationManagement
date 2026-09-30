@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getUsers, getViewer } from '@/server/data';
 import { getAbsenceApproverIds, getAbsenceTypes } from '@/server/absences';
+import { getNeedsCoverIds, getWorkingHours } from '@/server/coverage';
 import { AbsencesConfig } from '@/components/admin/absences-config';
 import { displayName } from '@/lib/utils';
 
@@ -15,11 +16,19 @@ export default async function AdminAbsencesPage() {
   const viewer = await getViewer();
   if (!viewer?.can('system.configure')) redirect('/admin');
 
-  const [types, approvers, users] = await Promise.all([getAbsenceTypes(true), getAbsenceApproverIds(), getUsers()]);
+  const [types, approvers, users, hours, needsCover] = await Promise.all([
+    getAbsenceTypes(true),
+    getAbsenceApproverIds(),
+    getUsers(),
+    getWorkingHours(),
+    getNeedsCoverIds(),
+  ]);
   return (
     <AbsencesConfig
       types={types}
       approvers={approvers}
+      hours={hours}
+      needsCover={needsCover}
       people={users.filter((u) => u.status === 'approved').map((u) => ({ id: u.id, name: displayName(u) }))}
     />
   );
