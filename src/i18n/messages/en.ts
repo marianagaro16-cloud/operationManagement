@@ -1317,6 +1317,10 @@ export const en = {
     defaultQuantity: 'Default quantity',
   },
   inventory: {
+    tabToday: 'Today',
+    tabPending: 'Pending',
+    tabHistory: 'History',
+    emptyPending: 'Nothing pending: no differences to review, digital values or upcoming inventories.',
     title: 'Inventory',
     subtitle: 'Physical stock counts',
     week: 'KW',

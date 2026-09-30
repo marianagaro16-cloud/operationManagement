@@ -1295,6 +1295,10 @@ export const de: Messages = {
     defaultQuantity: 'Standardmenge',
   },
   inventory: {
+    tabToday: 'Heute',
+    tabPending: 'Offen',
+    tabHistory: 'Verlauf',
+    emptyPending: 'Nichts offen: keine Differenzen zu prüfen, keine digitalen Werte und keine kommenden Inventuren.',
     title: 'Bestandkontrolle',
     subtitle: 'Physische Bestandsaufnahme',
     week: 'KW',

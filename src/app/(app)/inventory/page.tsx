@@ -7,7 +7,7 @@ import {
   getInventoryTemplates,
 } from '@/server/inventory';
 
-import { InventoryOverview } from '@/components/inventory/inventory-overview';
+import { InventoryOverview, type InventoryTab } from '@/components/inventory/inventory-overview';
 import type { InventoryStatus } from '@/types/inventory';
 
 // Counting state changes minute to minute during a shift.
@@ -23,6 +23,7 @@ interface SearchParams {
   pending?: string;
   review?: string;
   take?: string;
+  tab?: string;
 }
 
 const STATUSES: InventoryStatus[] = ['in_progress', 'completed', 'to_review', 'resolved'];
@@ -59,9 +60,25 @@ export default async function InventoryPage({
   const today = businessToday();
   const capTo = (to: string | undefined) => (canManage ? to : !to || to > today ? today : to);
 
+  /*
+   * Three tabs: Today (overdue and due today), Pending (what a manager owes,
+   * and what is coming) and History. A link that carries a history filter
+   * opens on History, so older deep links keep landing where they did.
+   */
+  const filtered = (['template', 'status', 'week', 'from', 'to', 'user', 'pending', 'review'] as const).some(
+    (k) => searchParams[k],
+  );
+  const tab: InventoryTab =
+    searchParams.tab === 'history' || (!searchParams.tab && filtered)
+      ? 'history'
+      : searchParams.tab === 'pending' && canManage
+        ? 'pending'
+        : 'today';
+
   const [dashboard, history, templates, users] = await Promise.all([
     getInventoryDashboard(canManage ? 21 : 0),
-    getInventories({
+    // Only fetched on its own tab: it is the heavy part, and the one least often wanted.
+    tab !== 'history' ? { rows: [], total: 0 } : getInventories({
       templateId: searchParams.template,
       status: STATUSES.includes(searchParams.status as InventoryStatus)
         ? (searchParams.status as InventoryStatus)
@@ -74,7 +91,7 @@ export default async function InventoryPage({
       needsReview: searchParams.review === '1',
       limit: take,
     }),
-    getInventoryTemplates(),
+    tab !== 'history' ? [] : getInventoryTemplates(),
     getUsers(),
   ]);
 
@@ -102,6 +119,7 @@ export default async function InventoryPage({
         }))}
         users={ownOnly ? [] : users}
         canManage={canManage}
+        tab={tab}
       />
     </>
   );

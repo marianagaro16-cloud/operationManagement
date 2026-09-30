@@ -25,24 +25,28 @@ export interface OverviewData {
   historyTotal: number;
 }
 
+export type InventoryTab = 'today' | 'pending' | 'history';
+
 /**
- * The inventory overview.
+ * The inventory overview, in tabs.
  *
- * Ordered by what needs doing rather than by date: overdue and today first,
- * then what an admin owes (digital values, unreviewed differences), then the
- * forward view, and history last behind filters. History is paged server-side
- * — it grows forever and is never loaded whole.
+ * Today: overdue and due today — what has to be counted now. Pending (for
+ * whoever plans): what an admin owes (unreviewed differences, digital
+ * values) and the forward view. History: behind filters, paged server-side —
+ * it grows forever and is never loaded whole.
  */
 export function InventoryOverview({
   data,
   templates,
   users,
   canManage,
+  tab,
 }: {
   data: OverviewData;
   templates: { id: string; name: string; translations: unknown }[];
   users: Profile[];
   canManage: boolean;
+  tab: InventoryTab;
 }) {
   const { t } = useI18n();
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -51,73 +55,114 @@ export function InventoryOverview({
   const hasFilters = ['template', 'status', 'week', 'from', 'to', 'user', 'pending', 'review'].some(
     (k) => params.get(k),
   );
+  const owed = data.needsReview.length + data.digitalPending.length;
+  const tabs = [
+    { key: 'today', label: t('inventory.tabToday'), count: data.overdue.length, late: true },
+    ...(canManage ? [{ key: 'pending', label: t('inventory.tabPending'), count: owed, late: false }] : []),
+    { key: 'history', label: t('inventory.tabHistory'), count: 0, late: false },
+  ] as const;
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('inventory.title')} subtitle={t('inventory.subtitle')} />
+      <div>
+        <PageHeader title={t('inventory.title')} subtitle={t('inventory.subtitle')} />
+        <nav className="-mt-2 flex gap-1 overflow-x-auto border-b border-border">
+          {tabs.map((item) => (
+            <Link
+              key={item.key}
+              // A tab starts clean: history filters stay with History.
+              href={item.key === 'today' ? '/inventory?tab=today' : `/inventory?tab=${item.key}`}
+              scroll={false}
+              className={cn(
+                '-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium transition-colors',
+                tab === item.key ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
+              )}
+            >
+              {item.label}
+              {item.count > 0 && (
+                <span className={cn('ml-1.5 text-[11px] tabular', item.late ? 'text-late' : 'text-warn')}>{item.count}</span>
+              )}
+            </Link>
+          ))}
+        </nav>
+      </div>
 
-      {data.overdue.length > 0 && (
-        <Section title={t('inventory.overdue')} rows={data.overdue} today={data.today} tone="late" />
+      {tab === 'today' && (
+        <>
+          {data.overdue.length > 0 && (
+            <Section title={t('inventory.overdue')} rows={data.overdue} today={data.today} tone="late" />
+          )}
+
+          <Section
+            title={t('inventory.dueToday')}
+            rows={data.dueToday}
+            today={data.today}
+            emptyBody={t('inventory.emptyToday')}
+            showEmpty
+          />
+        </>
       )}
 
-      <Section
-        title={t('inventory.dueToday')}
-        rows={data.dueToday}
-        today={data.today}
-        emptyBody={t('inventory.emptyToday')}
-        showEmpty
-      />
+      {tab === 'pending' && (
+        <>
+          {owed === 0 && data.upcoming.length === 0 && (
+            <EmptyState title={t('inventory.emptyPending')} icon={<ClipboardList className="h-5 w-5" aria-hidden />} />
+          )}
 
-      {/* Admin-owed work. A regular user cannot act on either of these, so the
-          sections are theirs alone rather than noise on everyone's screen. */}
-      {canManage && data.needsReview.length > 0 && (
-        <Section title={t('inventory.needsReview')} rows={data.needsReview} today={data.today} tone="late" />
-      )}
-      {canManage && data.digitalPending.length > 0 && (
-        <Section title={t('inventory.digitalPendingList')} rows={data.digitalPending} today={data.today} tone="warn" />
-      )}
+          {/* Admin-owed work. A regular user cannot act on either of these, so the
+              sections are theirs alone rather than noise on everyone's screen. */}
+          {canManage && data.needsReview.length > 0 && (
+            <Section title={t('inventory.needsReview')} rows={data.needsReview} today={data.today} tone="late" />
+          )}
+          {canManage && data.digitalPending.length > 0 && (
+            <Section title={t('inventory.digitalPendingList')} rows={data.digitalPending} today={data.today} tone="warn" />
+          )}
 
-      {data.upcoming.length > 0 && (
-        <Section title={t('inventory.upcoming')} rows={data.upcoming} today={data.today} />
+          {data.upcoming.length > 0 && (
+            <Section title={t('inventory.upcoming')} rows={data.upcoming} today={data.today} />
+          )}
+        </>
       )}
 
       {/* ------------------------------ history ------------------------------ */}
-      <div>
-        <SectionHeading
-          title={t('inventory.history')}
-          subtitle={t('inventory.itemsCounted', { count: data.historyTotal })}
-          action={
-            <Button
-              size="sm"
-              variant={hasFilters ? 'primary' : 'ghost'}
-              onClick={() => setFiltersOpen((v) => !v)}
-            >
-              <Filter className="h-3.5 w-3.5" aria-hidden />
-              {t('inventory.filters')}
-            </Button>
-          }
-        />
-
-        {(filtersOpen || hasFilters) && (
-          <FilterPanel templates={templates} users={users} onClose={() => setFiltersOpen(false)} />
-        )}
-
-        {data.history.length === 0 ? (
-          <EmptyState
-            title={t('inventory.emptyHistory')}
-            icon={<ClipboardList className="h-5 w-5" aria-hidden />}
+      {tab === 'history' && (
+        <div>
+          <SectionHeading
+            title={t('inventory.history')}
+            subtitle={t('inventory.itemsCounted', { count: data.historyTotal })}
+            action={
+              <Button
+                size="sm"
+                variant={hasFilters ? 'primary' : 'ghost'}
+                onClick={() => setFiltersOpen((v) => !v)}
+              >
+                <Filter className="h-3.5 w-3.5" aria-hidden />
+                {t('inventory.filters')}
+              </Button>
+            }
           />
-        ) : (
-          <>
-            <ul className="space-y-2">
-              {data.history.map((row) => (
-                <InventoryRow key={row.id} row={row} today={data.today} />
-              ))}
-            </ul>
-            {data.history.length < data.historyTotal && <LoadMore current={data.history.length} />}
-          </>
-        )}
-      </div>
+
+          {(filtersOpen || hasFilters) && (
+            <FilterPanel templates={templates} users={users} onClose={() => setFiltersOpen(false)} />
+          )}
+
+          {data.history.length === 0 ? (
+            <EmptyState
+              title={t('inventory.emptyHistory')}
+              icon={<ClipboardList className="h-5 w-5" aria-hidden />}
+            />
+          ) : (
+            <>
+              <ul className="space-y-2">
+                {data.history.map((row) => (
+                  <InventoryRow key={row.id} row={row} today={data.today} />
+                ))}
+              </ul>
+              {data.history.length < data.historyTotal && <LoadMore current={data.history.length} />}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -235,6 +280,7 @@ function FilterPanel({
     // A changed filter always restarts paging; keeping the old offset would
     // silently show page 3 of a different result set.
     next.delete('take');
+    next.set('tab', 'history');
     startTransition(() => router.replace(`${pathname}?${next.toString()}`, { scroll: false }));
   }
 
@@ -334,7 +380,8 @@ function FilterPanel({
           variant="ghost"
           loading={pending}
           onClick={() => {
-            startTransition(() => router.replace(pathname, { scroll: false }));
+            // Cleared, but still on History.
+            startTransition(() => router.replace(`${pathname}?tab=history`, { scroll: false }));
             onClose();
           }}
         >

@@ -1295,6 +1295,10 @@ export const es: Messages = {
     defaultQuantity: 'Cantidad por defecto',
   },
   inventory: {
+    tabToday: 'Hoy',
+    tabPending: 'Pendiente',
+    tabHistory: 'Histórico',
+    emptyPending: 'Nada pendiente: sin diferencias por revisar, valores digitales ni inventarios próximos.',
     title: 'Inventario',
     subtitle: 'Control de existencias físicas',
     week: 'KW',
