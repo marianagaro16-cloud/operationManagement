@@ -501,6 +501,9 @@ function ReadyTab({
 
   // Only ids still on the tab count — a refresh may have removed some.
   const chosen = orders.filter((o) => selected.has(o.id)).map((o) => o.id);
+  // Customers among them who pay in advance: named once before shipping.
+  const prepayNames = [...new Set(orders.filter((o) => selected.has(o.id) && o.customer.prepay_required).map((o) => o.customer.name))];
+  const [checkPayment, setCheckPayment] = useState(false);
 
   const toggle = (id: string) =>
     setSelected((cur) => {
@@ -519,6 +522,8 @@ function ReadyTab({
     });
 
   function shipSelected() {
+    if (prepayNames.length > 0 && !checkPayment) return setCheckPayment(true);
+    setCheckPayment(false);
     setError(null);
     startTransition(async () => {
       const res = await setOrdersShipped(chosen, true);
@@ -577,6 +582,12 @@ function ReadyTab({
       {chosen.length > 0 && (
         <div className="sticky bottom-20 z-10 md:bottom-4">
           {error && <div className="mb-2"><ErrorState message={error} /></div>}
+          {checkPayment && prepayNames.length > 0 && (
+            <div className="mb-2 rounded-lg border border-late/40 bg-surface px-3 py-2 text-[12.5px] font-medium text-late shadow-pop">
+              ⚠ {t('collection.prepayShipWarningMany', { names: prepayNames.join(', ') })}
+              <Button size="sm" variant="ghost" className="ml-2" onClick={() => setCheckPayment(false)}>{t('common.cancel')}</Button>
+            </div>
+          )}
           <Button variant="primary" size="lg" className="w-full justify-center shadow-pop" onClick={shipSelected} loading={pending}>
             <Truck className="h-4 w-4" aria-hidden />
             {t('orders.markSelectedShipped', { count: chosen.length })}

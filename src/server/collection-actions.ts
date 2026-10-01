@@ -310,3 +310,24 @@ export async function customerPaymentFlag(customerId: string): Promise<Collectio
   const { data } = await supabase.rpc('collection_customer_flags');
   return ((data ?? []) as { customer_id: string; level: CollectionFlag }[]).find((r) => r.customer_id === customerId)?.level ?? null;
 }
+
+/** Whether a customer must pay before delivery — for the warning when ordering. */
+export async function customerPrepay(customerId: string): Promise<boolean> {
+  if (!uuid.safeParse(customerId).success) return false;
+  const supabase = createClient();
+  const { data } = await supabase.from('customers').select('prepay_required').eq('id', customerId).maybeSingle();
+  return Boolean(data?.prepay_required);
+}
+
+/** Put a customer on, or take them off, payment in advance. The collections team only. */
+export async function setCustomerPrepay(customerId: string, on: boolean): Promise<ActionResult> {
+  if (!uuid.safeParse(customerId).success) return { ok: false, error: 'not_authorized' };
+  const supabase = createClient();
+  const { error } = await supabase.rpc('set_customer_prepay', { p_customer_id: customerId, p_on: on });
+  if (error) return fail(error);
+  revalidatePath('/collections');
+  revalidatePath('/sales');
+  revalidatePath(`/sales/customers/${customerId}`);
+  revalidatePath('/orders');
+  return { ok: true, data: undefined };
+}

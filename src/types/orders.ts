@@ -56,6 +56,8 @@ export interface Customer {
    */
   customer_type_id?: string | null;
   customer_type?: CustomerType | null;
+  /** Must pay before delivery (set by the collections team): a warning, never a block. */
+  prepay_required?: boolean;
   /** Where the van delivers. Empty until somebody fills it in. */
   street?: string | null;
   postal_code?: string | null;

@@ -144,3 +144,10 @@ export async function getCollectionCustomers(): Promise<{ id: string; name: stri
   const { data } = await supabase.from('customers').select('id, company_name, is_active').order('is_active', { ascending: false }).order('company_name');
   return (data ?? []).map((c) => ({ id: c.id, name: c.company_name }));
 }
+
+/** Customers who must pay before delivery, by name. Any approved user may read it. */
+export async function getPrepayCustomers(): Promise<{ id: string; name: string; since: string | null }[]> {
+  const supabase = createClient();
+  const { data } = await supabase.from('customers').select('id, company_name, prepay_since').eq('prepay_required', true).order('company_name');
+  return (data ?? []).map((c) => ({ id: c.id, name: c.company_name, since: c.prepay_since }));
+}

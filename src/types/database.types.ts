@@ -1135,6 +1135,8 @@ export type Database = {
           longitude: number | null
           name: string | null
           postal_code: string | null
+          prepay_required: boolean
+          prepay_since: string | null
           street: string | null
           updated_at: string
         }
@@ -1156,6 +1158,8 @@ export type Database = {
           longitude?: number | null
           name?: string | null
           postal_code?: string | null
+          prepay_required?: boolean
+          prepay_since?: string | null
           street?: string | null
           updated_at?: string
         }
@@ -1177,6 +1181,8 @@ export type Database = {
           longitude?: number | null
           name?: string | null
           postal_code?: string | null
+          prepay_required?: boolean
+          prepay_since?: string | null
           street?: string | null
           updated_at?: string
         }
@@ -8132,6 +8138,10 @@ export type Database = {
         }[]
       }
       sales_report: { Args: { p_month: string }; Returns: Json }
+      set_customer_prepay: {
+        Args: { p_customer_id: string; p_on: boolean }
+        Returns: undefined
+      }
       set_line_shortfall: {
         Args: {
           p_code: string

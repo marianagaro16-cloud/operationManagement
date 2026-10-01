@@ -3,6 +3,7 @@ import { getViewer } from '@/server/data';
 import { getActivityKinds, getCustomerFile, getWonFrom } from '@/server/sales';
 import { CustomerFile } from '@/components/sales/customer-file';
 import { getCustomerCases, getFlaggedCustomers, isCollections } from '@/server/collections';
+import { customerPrepay } from '@/server/collection-actions';
 import { isSales } from '@/lib/authz';
 import { businessToday } from '@/lib/datetime';
 
@@ -11,12 +12,13 @@ export const dynamic = 'force-dynamic';
 export default async function SalesCustomerPage({ params }: { params: { id: string } }) {
   const viewer = await getViewer();
   if (!viewer || !isSales(viewer.role, viewer.profile.team)) redirect('/dashboard');
-  const [view, wonFrom, kinds, flagged, team] = await Promise.all([
+  const [view, wonFrom, kinds, flagged, team, prepay] = await Promise.all([
     getCustomerFile(params.id),
     getWonFrom(params.id),
     getActivityKinds(true),
     getFlaggedCustomers(),
     isCollections(),
+    customerPrepay(params.id),
   ]);
   if (!view) notFound();
   // The collections team sees the cases; everyone else only that payments are pending.
@@ -28,7 +30,7 @@ export default async function SalesCustomerPage({ params }: { params: { id: stri
       kinds={kinds}
       viewerId={viewer.profile.id}
       today={businessToday()}
-      collections={{ flagged: flagged.get(params.id) ?? null, cases }}
+      collections={{ flagged: flagged.get(params.id) ?? null, prepay, cases }}
     />
   );
 }

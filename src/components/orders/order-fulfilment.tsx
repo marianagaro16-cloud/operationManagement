@@ -71,6 +71,8 @@ export function OrderFulfilment({
   const readOnly = useOrdersReadOnly();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // A customer who pays in advance: one more look before it leaves.
+  const [checkPayment, setCheckPayment] = useState(false);
 
   if (order.status !== 'confirmed') return null;
 
@@ -143,7 +145,12 @@ export function OrderFulfilment({
 
         {ready && !shipped && (
           <>
-            <Button size="sm" variant="primary" onClick={() => run(() => setOrdersShipped([order.id], true))} loading={pending}>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => (order.customer.prepay_required && !checkPayment ? setCheckPayment(true) : run(() => setOrdersShipped([order.id], true)))}
+              loading={pending}
+            >
               <Truck className="h-3.5 w-3.5" aria-hidden />
               {t('orders.markShipped')}
             </Button>
@@ -161,6 +168,20 @@ export function OrderFulfilment({
           </Button>
         )}
       </div>
+      )}
+
+      {checkPayment && !shipped && (
+        <div className="rounded-lg border border-late/40 bg-late/[0.06] px-3 py-2 text-[12.5px] text-late">
+          <p className="font-medium">⚠ {t('collection.prepayShipWarning')}</p>
+          <div className="mt-1.5 flex gap-1.5">
+            <Button size="sm" variant="primary" onClick={() => run(() => setOrdersShipped([order.id], true))} loading={pending}>
+              {t('collection.prepayShipAnyway')}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setCheckPayment(false)} disabled={pending}>
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </div>
       )}
 
       {error && <p className="text-[12px] text-late">{error}</p>}

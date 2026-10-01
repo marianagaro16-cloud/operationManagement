@@ -31,7 +31,7 @@ export function CustomerFile({
   collections,
 }: {
   /** Payments pending — and, for the collections team, the cases. */
-  collections: { flagged: 'reminder' | 'pending' | null; cases: CollectionCaseRow[] | null };
+  collections: { flagged: 'reminder' | 'pending' | null; prepay: boolean; cases: CollectionCaseRow[] | null };
   view: CustomerFileView;
   /** The prospect this customer was won from: its contact details live there. */
   wonFromId: string | null;
@@ -64,6 +64,7 @@ export function CustomerFile({
           {!customer.is_active && <Badge tone="neutral">{t('sales.inactive')}</Badge>}
           {collections.flagged === 'pending' && <Badge tone="late">{t('collection.flag')}</Badge>}
           {collections.flagged === 'reminder' && <Badge tone="warn">{t('collection.flagReminder')}</Badge>}
+          {collections.prepay && <Badge tone="late">{t('collection.prepay')}</Badge>}
         </div>
         <p className="mt-1 break-words text-[12.5px] text-muted">
           {[customer.company_name_addition, customer.type, address].filter(Boolean).join(' · ')}

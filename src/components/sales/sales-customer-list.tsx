@@ -14,7 +14,10 @@ export function SalesCustomerList({
   customers,
   today,
   flagged = {},
+  prepay = [],
 }: {
+  /** Customers who must pay before delivery. */
+  prepay?: string[];
   customers: SalesCustomerRow[];
   today: string;
   /** Customers with an open collection case, and how far: a reminder, or payments pending. */
@@ -67,6 +70,7 @@ export function SalesCustomerList({
                   {!c.is_active && <Badge tone="neutral">{t('sales.inactive')}</Badge>}
                   {flagged[c.id] === 'pending' && <Badge tone="late">{t('collection.flag')}</Badge>}
                   {flagged[c.id] === 'reminder' && <Badge tone="warn">{t('collection.flagReminder')}</Badge>}
+                  {prepay.includes(c.id) && <Badge tone="late">{t('collection.prepay')}</Badge>}
                 </span>
                 <span className="block truncate text-[12px] text-muted">
                   {[c.company_name_addition, c.city].filter(Boolean).join(' · ')}

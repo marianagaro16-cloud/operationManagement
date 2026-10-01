@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/shell/app-shell';
 import { createCase } from '@/server/collection-actions';
 import type { CollectionCaseRow } from '@/types/collections';
 import { StageBadge, chf, useCollectionLabels } from './collection-parts';
+import { PrepayList } from './prepay-list';
 
 /** Collection cases: those still open (by next follow-up), and closed ones. */
 export function CaseList({
@@ -24,8 +25,11 @@ export function CaseList({
   viewerId,
   team,
   customers,
+  prepay = [],
 }: {
-  tab: 'open' | 'closed';
+  /** Customers who must pay before delivery. */
+  prepay?: { id: string; name: string; since: string | null }[];
+  tab: 'open' | 'closed' | 'prepay';
   cases: CollectionCaseRow[];
   today: string;
   viewerId: string;
@@ -51,7 +55,7 @@ export function CaseList({
         }
       />
       <div className="-mt-2 mb-3 flex flex-wrap items-center gap-1 border-b border-border">
-        {(['open', 'closed'] as const).map((key) => (
+        {(['open', 'closed', 'prepay'] as const).map((key) => (
           <Link
             key={key}
             href={`/collections?tab=${key}`}
@@ -61,13 +65,13 @@ export function CaseList({
               tab === key ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
             )}
           >
-            {key === 'open' ? t('collection.tabOpen') : t('collection.tabClosed')}
+            {key === 'open' ? t('collection.tabOpen') : key === 'closed' ? t('collection.tabClosed') : t('collection.tabPrepay')}
           </Link>
         ))}
-        <label className="ml-auto flex items-center gap-1.5 pb-1 text-[12.5px]">
+        {tab !== 'prepay' && <label className="ml-auto flex items-center gap-1.5 pb-1 text-[12.5px]">
           <input type="checkbox" className="h-4 w-4 accent-accent" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} />
           {t('collection.onlyMine')}
-        </label>
+        </label>}
       </div>
 
       {tab === 'open' && shown.length > 0 && (
@@ -77,7 +81,9 @@ export function CaseList({
         </p>
       )}
 
-      {shown.length === 0 ? (
+      {tab === 'prepay' ? (
+        <PrepayList prepay={prepay} customers={customers} />
+      ) : shown.length === 0 ? (
         <EmptyState title={tab === 'open' ? t('collection.noneOpen') : t('collection.noneClosed')} />
       ) : (
         <Card className="divide-y divide-border">
