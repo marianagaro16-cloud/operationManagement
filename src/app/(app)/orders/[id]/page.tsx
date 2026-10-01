@@ -6,7 +6,7 @@ import { OrderDetail } from '@/components/orders/order-detail';
 import { IncidentLinks } from '@/components/incidents/incident-links';
 import { ReportIncidentButton } from '@/components/incidents/report-incident-button';
 import { orderContextFrom } from '@/components/incidents/order-context';
-import { QuickReminderButton } from '@/components/reminders/reminder-actions';
+import { OrderPageReminderButton } from '@/components/orders/order-reminder';
 import { canUseReminders, ordersReadOnly } from '@/lib/authz';
 import { OrdersReadOnlyProvider } from '@/components/orders/orders-read-only';
 
@@ -82,10 +82,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                   types={types}
                 />
               )}
-              <QuickReminderButton
-                viewerId={reminderViewerId}
-                link={{ type: 'order', id: order.id, label: `#${order.reference}` }}
-              />
+              <OrderPageReminderButton viewerId={reminderViewerId} order={order} />
             </>
           ) : undefined
         }

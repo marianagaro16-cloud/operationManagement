@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { OrderReminderButton } from './order-reminder';
 import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Pencil, Plus, Search, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -53,6 +54,7 @@ export function OrderControl({
   filters,
   canManage,
   currentUserName,
+  viewerId,
   incidentCategories,
   incidentTypes,
   canReportIncident,
@@ -81,6 +83,8 @@ export function OrderControl({
   canManage: boolean;
   /** Named in the new-order dialog as the person creating it. */
   currentUserName: string;
+  /** For reminders about an order, from its card or right after creating it. */
+  viewerId?: string;
   /** The incident vocabulary, for reporting one straight from a row. */
   incidentCategories: IncidentCategory[];
   incidentTypes: IncidentType[];
@@ -480,6 +484,7 @@ export function OrderControl({
                           canManage={canManage}
                           bulk={bulk}
                           onEdit={() => setEditing(order)}
+                          reminderViewerId={viewerId}
                           onReportIncident={
                             canReportIncident ? () => setReporting(order) : undefined
                           }
@@ -502,6 +507,7 @@ export function OrderControl({
           products={products}
           deliveryMethods={deliveryMethods}
           currentUserName={currentUserName}
+          viewerId={viewerId}
           onClose={() => { setCreating(false); setEditing(null); }}
           onSaved={() => { setCreating(false); setEditing(null); router.refresh(); }}
         />
@@ -532,7 +538,9 @@ function OrderCard({
   bulk,
   onEdit,
   onReportIncident,
+  reminderViewerId,
 }: {
+  reminderViewerId?: string;
   order: OrderWithProgress;
   canManage: boolean;
   /** The last Expand all / Collapse all press, applied when it changes. */
@@ -636,6 +644,7 @@ function OrderCard({
               <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
             </Button>
           )}
+          {reminderViewerId && !cancelled && <OrderReminderButton order={order} viewerId={reminderViewerId} />}
           {/* A ready or shipped order is edited by reopening it first. */}
           {canManage && !order.ready_at && (
             <Button size="icon" variant="ghost" onClick={onEdit} aria-label={t('common.edit')}>

@@ -226,6 +226,7 @@ export default async function OrdersPage({
       }}
       canManage={canManage}
       currentUserName={displayName(viewer.profile)}
+      viewerId={viewer.profile.id}
       incidentCategories={incidentCategories}
       incidentTypes={incidentTypes}
       canReportIncident={canReportIncident}

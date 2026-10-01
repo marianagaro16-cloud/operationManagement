@@ -527,6 +527,10 @@ export const en = {
     noInventoriesBody: 'Choose another period.',
   },
   orders: {
+    withReminder: 'Create a reminder for this order',
+    remDayBefore: 'Day before delivery',
+    remDeliveryDay: 'Delivery day',
+    remWeekAfter: '1 week after',
     boxCountFor: 'How many boxes: {name}',
     readOnlyNote: 'Read-only: preparation, lots and shipping are handled by Operations.',
     dayTotals: 'Day total per product',

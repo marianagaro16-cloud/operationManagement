@@ -524,6 +524,10 @@ export const es: Messages = {
     noInventoriesBody: 'Elige otro periodo.',
   },
   orders: {
+    withReminder: 'Crear un recordatorio para este pedido',
+    remDayBefore: 'Día antes de la entrega',
+    remDeliveryDay: 'Día de entrega',
+    remWeekAfter: '1 semana después',
     boxCountFor: 'Cuántas cajas: {name}',
     readOnlyNote: 'Solo lectura: la preparación, los lotes y los envíos los gestiona Operaciones.',
     dayTotals: 'Total del día por producto',

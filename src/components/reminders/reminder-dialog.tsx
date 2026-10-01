@@ -54,7 +54,10 @@ export function ReminderDialog({
   initialDate,
   initialTitle,
   initialNotes,
+  quickDates,
 }: {
+  /** Extra one-tap dates from where it was made — e.g. an order's delivery. */
+  quickDates?: { label: string; date: string }[];
   /** A new one from a quick note: its first line and the rest. */
   initialTitle?: string;
   initialNotes?: string;
@@ -206,6 +209,19 @@ export function ReminderDialog({
 
         {/* Large, one-tap targets for the times people actually pick. */}
         <div className="flex flex-wrap gap-1.5">
+          {quickDates?.map((q) => (
+            <button
+              key={q.label}
+              type="button"
+              onClick={() => setDate(q.date)}
+              className={cn(
+                'touch-target rounded-lg border px-2.5 py-1.5 text-[12.5px] font-medium transition-colors',
+                date === q.date ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-surface text-muted hover:text-fg',
+              )}
+            >
+              {q.label}
+            </button>
+          ))}
           {(['in1h', 'tomorrow', 'monday'] as const).map((k) => (
             <button
               key={k}

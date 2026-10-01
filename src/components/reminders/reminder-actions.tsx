@@ -142,7 +142,9 @@ export function QuickReminderButton({
   size = 'sm',
   className,
   compact = false,
+  quickDates,
 }: {
+  quickDates?: { label: string; date: string }[];
   viewerId: string | null;
   link?: ReminderContextLink;
   variant?: 'primary' | 'secondary' | 'ghost';
@@ -176,6 +178,7 @@ export function QuickReminderButton({
           onSaved={() => router.refresh()}
           viewerId={viewerId}
           link={link}
+          quickDates={quickDates}
         />
       )}
     </>

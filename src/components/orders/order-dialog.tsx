@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useTransition, useEffect } from 'react';
-import { FileSpreadsheet, Keyboard, Mail, UserRound } from 'lucide-react';
+import { BellPlus, FileSpreadsheet, Keyboard, Mail, UserRound } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ import { businessToday } from '@/lib/datetime';
 import { productLabel, type Customer, type DeliveryMethod, type Order, type OrderType, type Product } from '@/types/orders';
 import { saveOrder } from '@/server/order-actions';
 import { customerPaymentFlag, customerPrepay } from '@/server/collection-actions';
+import { ReminderDialog } from '@/components/reminders/reminder-dialog';
+import { useOrderReminderDates } from './order-reminder';
 import { ImportPanel, type ImportMethod } from './import-panel';
 import { ORDER_TYPES, ORDER_TYPE_LABEL } from './order-types';
 import { OrderLineEditor, emptyLine, type DraftLine } from './order-line-editor';
@@ -45,7 +47,10 @@ export function OrderDialog({
   currentUserName,
   onClose,
   onSaved,
+  viewerId,
 }: {
+  /** Offers a reminder about a NEW order, right after it is created. */
+  viewerId?: string;
   order: Order | null;
   customers: Customer[];
   products: Product[];
@@ -104,6 +109,10 @@ export function OrderDialog({
     };
   }, [customerId]);
   const [deliveryDate, setDeliveryDate] = useState(order?.delivery_date ?? today);
+  // A reminder about a new order, offered once it is saved.
+  const [remind, setRemind] = useState(false);
+  const [created, setCreated] = useState<string | null>(null);
+  const reminderDates = useOrderReminderDates(deliveryDate);
   // Postgres returns TIME as "HH:MM:SS"; <input type="time"> wants "HH:MM".
   const [deliveryTime, setDeliveryTime] = useState(order?.delivery_time?.slice(0, 5) ?? '');
   const [preparationDate, setPreparationDate] = useState(
@@ -264,8 +273,23 @@ export function OrderDialog({
         };
         return setError(map[res.error] ?? res.error);
       }
+      if (!order && remind && viewerId) return setCreated(res.data.id);
       onSaved(res.data.id);
     });
+  }
+
+  // The order is saved; the reminder about it comes next, then the list.
+  if (created && viewerId) {
+    return (
+      <ReminderDialog
+        open
+        viewerId={viewerId}
+        link={{ type: 'order', id: created, label: customers.find((c) => c.id === customerId)?.name ?? '' }}
+        quickDates={reminderDates}
+        onClose={() => onSaved(created)}
+        onSaved={() => onSaved(created)}
+      />
+    );
   }
 
   return (
@@ -481,6 +505,14 @@ export function OrderDialog({
         <Field label={t('orders.orderNote')} hint={t('orders.orderNoteHint')} htmlFor="o-note">
           <NoteTextarea id="o-note" value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
         </Field>
+
+        {!order && viewerId && (
+          <label className="flex items-center gap-2 text-[13px]">
+            <input type="checkbox" className="h-4 w-4 accent-accent" checked={remind} onChange={(e) => setRemind(e.target.checked)} />
+            <BellPlus className="h-3.5 w-3.5 text-muted" aria-hidden />
+            {t('orders.withReminder')}
+          </label>
+        )}
 
         {error && <ErrorState message={error} />}
       </div>
