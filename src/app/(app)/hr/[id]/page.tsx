@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { DateTime } from 'luxon';
 import { getUsers, getViewer } from '@/server/data';
-import { getCriteria, getEvalTemplates, getLateArrivals, getLateReasons, getNoteTypes, getWorkerFile, getWorkerStats, getWorkers } from '@/server/hr';
+import { getCriteria, getArrivalSettings, getEvalTemplates, getLateArrivals, getLateReasons, getNoteTypes, getWorkerFile, getWorkerStats, getWorkers } from '@/server/hr';
 import { getWorkerEvalRequests } from '@/server/hr-evaluations';
 import { WorkerFile, type HrTab } from '@/components/hr/worker-file';
 import { displayName } from '@/lib/utils';
@@ -39,7 +39,7 @@ export default async function WorkerFilePage({
   const from = searchParams.from && ISO.test(searchParams.from) ? searchParams.from : defaultFrom;
   const to = searchParams.to && ISO.test(searchParams.to) ? searchParams.to : today;
 
-  const [noteTypes, criteria, users, workers, stats, evalRequests, templates, lateArrivals, lateReasons] = await Promise.all([
+  const [noteTypes, criteria, users, workers, stats, evalRequests, templates, lateArrivals, lateReasons, arrivalSettings] = await Promise.all([
     getNoteTypes(),
     getCriteria(),
     getUsers(),
@@ -50,6 +50,7 @@ export default async function WorkerFilePage({
     // Counted on the tab, and summed on Evaluations.
     getLateArrivals(file.worker.id),
     tab === 'late' ? getLateReasons() : Promise.resolve([]),
+    tab === 'late' ? getArrivalSettings() : Promise.resolve(null),
   ]);
 
   // An account can have one file; offer those still free, and this worker's own.
@@ -77,6 +78,7 @@ export default async function WorkerFilePage({
       lateArrivals={lateArrivals}
       lateReasons={lateReasons}
       viewerId={viewer.profile.id}
+      earlyTolerance={arrivalSettings?.hr_early_tolerance_minutes}
     />
   );
 }

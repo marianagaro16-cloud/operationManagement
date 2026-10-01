@@ -44,7 +44,10 @@ export function WorkerFile({
   lateArrivals,
   lateReasons,
   viewerId,
+  earlyTolerance = 10,
 }: {
+  /** Minutes before the agreed time that are still fine. */
+  earlyTolerance?: number;
   /** Late arrivals, newest first, and the reasons to pick from. */
   lateArrivals: HrLateArrival[];
   lateReasons: HrLateReason[];
@@ -150,6 +153,7 @@ export function WorkerFile({
           viewerId={viewerId}
           today={today}
           lastEvaluationOn={file.evaluations[0]?.evaluated_on ?? null}
+          tolerance={earlyTolerance}
         />
       )}
       {tab === 'evaluations' && <LateSinceEvaluation arrivals={lateArrivals} since={file.evaluations[0]?.evaluated_on ?? null} />}

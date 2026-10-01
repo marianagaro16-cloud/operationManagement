@@ -171,7 +171,12 @@ export interface HrLateArrival {
   arrival_date: string;
   expected_time: string;
   arrived_time: string;
+  /** Negative for an early one. */
   minutes_late: number;
+  /** After the expected time, or more than the tolerance before it. */
+  kind: 'late' | 'early';
+  /** Minutes off either way. */
+  minutes_off: number;
   reason: { id: string; name: string; translations: HrTranslations } | null;
   excused: boolean;
   notified: boolean;

@@ -199,7 +199,7 @@ export async function getLateArrivals(workerId: string): Promise<HrLateArrival[]
   const { data, error } = await supabase
     .from('hr_late_arrivals')
     .select(
-      'id, arrival_date, expected_time, arrived_time, minutes_late, excused, notified, note, created_by, created_at, reason:hr_late_reasons ( id, name, translations ), author:profiles!hr_late_arrivals_created_by_fkey ( name, email )',
+      'id, arrival_date, expected_time, arrived_time, minutes_late, kind, minutes_off, excused, notified, note, created_by, created_at, reason:hr_late_reasons ( id, name, translations ), author:profiles!hr_late_arrivals_created_by_fkey ( name, email )',
     )
     .eq('worker_id', workerId)
     .order('arrival_date', { ascending: false })
@@ -209,10 +209,26 @@ export async function getLateArrivals(workerId: string): Promise<HrLateArrival[]
   return ((data ?? []) as unknown as Raw[]).map(({ author, ...a }) => ({ ...a, author_name: author ? author.name || author.email : null }));
 }
 
+/** The arrival settings: Admin's, with their defaults. */
+export const HR_ARRIVAL_SETTINGS = {
+  hr_late_alert_threshold: 3,
+  hr_early_alert_threshold: 3,
+  hr_early_tolerance_minutes: 10,
+} as const;
+export type HrArrivalSetting = keyof typeof HR_ARRIVAL_SETTINGS;
+
+export async function getArrivalSettings(): Promise<Record<HrArrivalSetting, number>> {
+  const supabase = createClient();
+  const { data } = await supabase.from('app_settings').select('key, value').in('key', Object.keys(HR_ARRIVAL_SETTINGS));
+  const out = { ...HR_ARRIVAL_SETTINGS } as Record<HrArrivalSetting, number>;
+  for (const row of (data ?? []) as { key: HrArrivalSetting; value: unknown }[]) {
+    const n = Number(row.value);
+    if (Number.isInteger(n) && n >= 0) out[row.key] = n;
+  }
+  return out;
+}
+
 /** From how many unexcused late arrivals in a month HR is told. */
 export async function getLateAlertThreshold(): Promise<number> {
-  const supabase = createClient();
-  const { data } = await supabase.from('app_settings').select('value').eq('key', 'hr_late_alert_threshold').maybeSingle();
-  const n = Number((data as { value: unknown } | null)?.value);
-  return Number.isInteger(n) && n > 0 ? n : 3;
+  return (await getArrivalSettings()).hr_late_alert_threshold;
 }

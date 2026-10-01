@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { saveCriterion, saveEvalTemplate, saveLateReason, saveNoteType, setLateAlertThreshold } from '@/server/hr-actions';
+import { saveCriterion, saveEvalTemplate, saveLateReason, saveNoteType, setArrivalSetting } from '@/server/hr-actions';
 import { TEAMS, type Team } from '@/lib/authz';
 import { localizedName, localizedNameDescription } from '@/lib/localized-content';
 import type { HrCriterion, HrEvalTemplate, HrLateReason, HrNoteType, HrTranslations } from '@/types/hr';
@@ -31,11 +31,11 @@ export function HrConfig({
   criteria,
   templates,
   lateReasons,
-  lateThreshold,
+  arrivalSettings,
 }: {
   /** Why someone arrived late, and from how many unexcused in a month HR is told. */
   lateReasons: HrLateReason[];
-  lateThreshold: number;
+  arrivalSettings: Record<'hr_late_alert_threshold' | 'hr_early_alert_threshold' | 'hr_early_tolerance_minutes', number>;
   noteTypes: HrNoteType[];
   criteria: HrCriterion[];
   /** Criteria for one job of a team; each has its own list below the team's. */
@@ -79,7 +79,7 @@ export function HrConfig({
         </Card>
       </section>
 
-      <LateSettings reasons={lateReasons} threshold={lateThreshold} onEdit={(row) => setEditing({ kind: 'reason', row })} row={row} />
+      <LateSettings reasons={lateReasons} settings={arrivalSettings} onEdit={(row) => setEditing({ kind: 'reason', row })} row={row} />
 
       {TEAMS.map((team) => {
         const list = criteria.filter((c) => c.team === team && !c.template_id);
@@ -179,23 +179,21 @@ export function HrConfig({
   );
 }
 
-/** Late arrivals: the reasons to pick from, and when HR is told about repeats. */
+type ArrivalKey = 'hr_late_alert_threshold' | 'hr_early_alert_threshold' | 'hr_early_tolerance_minutes';
+
+/** Arrivals: the reasons to pick from, the early tolerance, and when HR is told about repeats. */
 function LateSettings({
   reasons,
-  threshold,
+  settings,
   onEdit,
   row,
 }: {
   reasons: HrLateReason[];
-  threshold: number;
+  settings: Record<ArrivalKey, number>;
   onEdit: (row: HrLateReason | null) => void;
   row: (key: string, name: string, active: boolean, extra: string | null, onEdit: () => void) => React.ReactNode;
 }) {
   const { t, locale } = useI18n();
-  const router = useRouter();
-  const [n, setN] = useState(String(threshold));
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
   return (
     <section className="mb-5">
       <div className="mb-1.5 flex items-center justify-between gap-2 px-0.5">
@@ -210,27 +208,43 @@ function LateSettings({
           {reasons.map((r) => row(r.id, localizedName(r, locale), r.is_active, null, () => onEdit(r)))}
         </ul>
       </Card>
-      <form
-        className="mt-2 flex flex-wrap items-center gap-2 px-0.5 text-[13px]"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setError(null);
-          startTransition(async () => {
-            const res = await setLateAlertThreshold(Number(n));
-            if (!res.ok) return setError(t('common.error'));
-            router.refresh();
-          });
-        }}
-      >
-        <span>{t('hrLate.alertFrom')}</span>
-        <Input type="number" min={1} max={31} value={n} onChange={(e) => setN(e.target.value)} className="h-8 w-16" aria-label={t('hrLate.alertFrom')} />
-        <span>{t('hrLate.alertPerMonth')}</span>
-        {String(threshold) !== n && (
-          <Button type="submit" size="sm" variant="primary" loading={pending}>{t('common.save')}</Button>
-        )}
-        {error && <span className="text-late">{error}</span>}
-      </form>
+      <div className="mt-2 space-y-1.5 px-0.5">
+        <SettingLine settingKey="hr_early_tolerance_minutes" value={settings.hr_early_tolerance_minutes} before={t('hrLate.toleranceBefore')} after={t('hrLate.toleranceAfter')} max={120} min={0} />
+        <SettingLine settingKey="hr_late_alert_threshold" value={settings.hr_late_alert_threshold} before={t('hrLate.alertFrom')} after={t('hrLate.alertPerMonth')} max={31} min={1} />
+        <SettingLine settingKey="hr_early_alert_threshold" value={settings.hr_early_alert_threshold} before={t('hrLate.alertFrom')} after={t('hrLate.alertEarlyPerMonth')} max={31} min={1} />
+      </div>
     </section>
+  );
+}
+
+/** One number Admin sets, in a sentence. */
+function SettingLine({ settingKey, value, before, after, min, max }: { settingKey: ArrivalKey; value: number; before: string; after: string; min: number; max: number }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [n, setN] = useState(String(value));
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  return (
+    <form
+      className="flex flex-wrap items-center gap-2 text-[13px]"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setError(null);
+        startTransition(async () => {
+          const res = await setArrivalSetting(settingKey, Number(n));
+          if (!res.ok) return setError(t('common.error'));
+          router.refresh();
+        });
+      }}
+    >
+      <span>{before}</span>
+      <Input type="number" min={min} max={max} value={n} onChange={(e) => setN(e.target.value)} className="h-8 w-16" aria-label={before} />
+      <span>{after}</span>
+      {String(value) !== n && (
+        <Button type="submit" size="sm" variant="primary" loading={pending}>{t('common.save')}</Button>
+      )}
+      {error && <span className="text-late">{error}</span>}
+    </form>
   );
 }
 

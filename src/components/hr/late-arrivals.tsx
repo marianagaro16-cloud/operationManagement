@@ -28,12 +28,12 @@ export function useMinutes() {
 
 type Tally = { total: number; unexcused: number; minutes: number };
 
-function tally(list: HrLateArrival[], from: string, to?: string): Tally {
-  const within = list.filter((a) => a.arrival_date >= from && (!to || a.arrival_date <= to));
+function tally(list: HrLateArrival[], kind: 'late' | 'early', from: string, to?: string): Tally {
+  const within = list.filter((a) => a.kind === kind && a.arrival_date >= from && (!to || a.arrival_date <= to));
   return {
     total: within.length,
     unexcused: within.filter((a) => !a.excused).length,
-    minutes: within.reduce((s, a) => s + a.minutes_late, 0),
+    minutes: within.reduce((s, a) => s + a.minutes_off, 0),
   };
 }
 
@@ -41,14 +41,26 @@ function tally(list: HrLateArrival[], from: string, to?: string): Tally {
 export function LateSinceEvaluation({ arrivals, since }: { arrivals: HrLateArrival[]; since: string | null }) {
   const { t, formatDate } = useI18n();
   const minutes = useMinutes();
-  const n = tally(arrivals, since ?? '0000-01-01');
-  if (n.total === 0) return null;
+  const late = tally(arrivals, 'late', since ?? '0000-01-01');
+  const early = tally(arrivals, 'early', since ?? '0000-01-01');
+  if (late.total + early.total === 0) return null;
   return (
     <p className="mb-3 flex flex-wrap items-center gap-1.5 rounded-lg bg-surface-2/70 px-3 py-2 text-[12.5px]">
       <Clock className="h-3.5 w-3.5 text-muted" aria-hidden />
       {since ? t('hrLate.sinceEvaluation', { date: formatDate(since, 'medium') }) : t('hrLate.sinceStart')}
-      <strong>{t('hrLate.count', { count: n.total })}</strong>
-      <span className="text-muted">· {t('hrLate.unexcusedCount', { count: n.unexcused })} · {minutes(n.minutes)}</span>
+      {late.total > 0 && (
+        <span>
+          <strong>{t('hrLate.lateCount', { count: late.total })}</strong>
+          <span className="text-muted"> ({t('hrLate.unexcusedCount', { count: late.unexcused })} · {minutes(late.minutes)})</span>
+        </span>
+      )}
+      {early.total > 0 && (
+        <span>
+          {late.total > 0 && '· '}
+          <strong>{t('hrLate.earlyCount', { count: early.total })}</strong>
+          <span className="text-muted"> ({t('hrLate.unexcusedCount', { count: early.unexcused })})</span>
+        </span>
+      )}
     </p>
   );
 }
@@ -60,7 +72,10 @@ export function LateTab({
   viewerId,
   today,
   lastEvaluationOn,
+  tolerance,
 }: {
+  /** Minutes before the agreed time that are still fine. */
+  tolerance: number;
   workerId: string;
   arrivals: HrLateArrival[];
   reasons: HrLateReason[];
@@ -76,15 +91,13 @@ export function LateTab({
   const [pending, startTransition] = useTransition();
 
   const day = DateTime.fromISO(today);
-  const tiles: { label: string; n: Tally }[] = [
-    { label: t('hrLate.thisMonth'), n: tally(arrivals, day.startOf('month').toISODate()!) },
-    { label: t('hrLate.last3Months'), n: tally(arrivals, day.minus({ months: 2 }).startOf('month').toISODate()!) },
-    { label: t('hrLate.thisYear'), n: tally(arrivals, day.startOf('year').toISODate()!) },
-    {
-      label: lastEvaluationOn ? t('hrLate.sinceEvaluationShort') : t('hrLate.sinceStartShort'),
-      n: tally(arrivals, lastEvaluationOn ?? '0000-01-01'),
-    },
+  const periods: { label: string; from: string }[] = [
+    { label: t('hrLate.thisMonth'), from: day.startOf('month').toISODate()! },
+    { label: t('hrLate.last3Months'), from: day.minus({ months: 2 }).startOf('month').toISODate()! },
+    { label: t('hrLate.thisYear'), from: day.startOf('year').toISODate()! },
+    { label: lastEvaluationOn ? t('hrLate.sinceEvaluationShort') : t('hrLate.sinceStartShort'), from: lastEvaluationOn ?? '0000-01-01' },
   ];
+  const tiles = periods.map((p) => ({ label: p.label, late: tally(arrivals, 'late', p.from), early: tally(arrivals, 'early', p.from) }));
 
   // Whoever recorded it, within a day: the database holds the same rule.
   const editable = (a: HrLateArrival) =>
@@ -103,13 +116,21 @@ export function LateTab({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {tiles.map(({ label, n }) => (
+        {tiles.map(({ label, late, early }) => (
           <Card key={label} className="p-3">
             <p className="text-[11.5px] text-muted">{label}</p>
-            <p className="mt-0.5 text-[20px] font-semibold tabular leading-tight">{n.total}</p>
-            <p className="text-[11.5px] text-muted">
-              {t('hrLate.unexcusedCount', { count: n.unexcused })}
-              {n.minutes > 0 && ` · ${minutes(n.minutes)}`}
+            <p className="mt-0.5 flex items-baseline gap-1.5">
+              <span className="text-[20px] font-semibold tabular leading-tight text-late">{late.total}</span>
+              <span className="text-[11.5px] text-muted">{t('hrLate.lateShort')}</span>
+            </p>
+            <p className="text-[11px] text-muted">
+              {t('hrLate.unexcusedCount', { count: late.unexcused })}
+              {late.minutes > 0 && ` · ${minutes(late.minutes)}`}
+            </p>
+            <p className="mt-1 flex items-baseline gap-1.5">
+              <span className="text-[16px] font-semibold tabular leading-tight text-warn">{early.total}</span>
+              <span className="text-[11.5px] text-muted">{t('hrLate.earlyShort')}</span>
+              {early.total > 0 && <span className="text-[11px] text-muted">· {t('hrLate.unexcusedCount', { count: early.unexcused })}</span>}
             </p>
           </Card>
         ))}
@@ -136,7 +157,11 @@ export function LateTab({
                   <span className="tabular text-muted">
                     {hm(a.expected_time)} → {hm(a.arrived_time)}
                   </span>
-                  <span className={cn('font-semibold tabular', a.excused ? 'text-muted' : 'text-late')}>+{minutes(a.minutes_late)}</span>
+                  <span className={cn('font-semibold tabular', a.excused ? 'text-muted' : a.kind === 'early' ? 'text-warn' : 'text-late')}>
+                    {a.kind === 'early' ? '−' : '+'}
+                    {minutes(a.minutes_off)}
+                  </span>
+                  <Badge tone={a.kind === 'early' ? 'warn' : 'late'}>{a.kind === 'early' ? t('hrLate.kindEarly') : t('hrLate.kindLate')}</Badge>
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px]">
                   {a.reason && <Badge tone="neutral">{localizedName(a.reason, locale)}</Badge>}
@@ -167,6 +192,7 @@ export function LateTab({
           workerId={workerId}
           entry={editing === 'new' ? null : editing}
           reasons={reasons}
+          tolerance={tolerance}
           today={today}
           onClose={() => setEditing(null)}
         />
@@ -180,8 +206,10 @@ function LateDialog({
   entry,
   reasons,
   today,
+  tolerance,
   onClose,
 }: {
+  tolerance: number;
   workerId: string;
   entry: HrLateArrival | null;
   reasons: HrLateReason[];
@@ -203,11 +231,11 @@ function LateDialog({
 
   // A reason since switched off still shows on the entry that carries it.
   const options = entry?.reason && !reasons.some((r) => r.id === entry.reason!.id) ? [...reasons, { ...entry.reason, slug: '', sort_order: 999, is_active: false }] : reasons;
-  const late =
-    expected && arrived && arrived > expected
-      ? DateTime.fromISO(`2000-01-01T${arrived}`).diff(DateTime.fromISO(`2000-01-01T${expected}`), 'minutes').minutes
-      : null;
-  const ready = !!date && !!expected && !!arrived && late !== null;
+  // After the agreed time: late. Before it by more than the tolerance: too early.
+  const diff =
+    expected && arrived ? Math.round(DateTime.fromISO(`2000-01-01T${arrived}`).diff(DateTime.fromISO(`2000-01-01T${expected}`), 'minutes').minutes) : null;
+  const verdict = diff === null ? null : diff > 0 ? 'late' : diff < -tolerance ? 'early' : 'fine';
+  const ready = !!date && (verdict === 'late' || verdict === 'early');
 
   function submit() {
     if (!ready) return;
@@ -220,7 +248,7 @@ function LateDialog({
       );
       if (!res.ok) {
         return setError(
-          res.error === 'late_locked' ? t('hrLate.errLocked') : res.error === 'arrived_not_late' ? t('hrLate.errNotLate') : res.error === 'not_authorized' ? t('hr.errNotAuthorized') : t('common.error'),
+          res.error === 'late_locked' ? t('hrLate.errLocked') : res.error === 'within_tolerance' || res.error === 'on_time' ? t('hrLate.errFine', { m: tolerance }) : res.error === 'not_authorized' ? t('hr.errNotAuthorized') : t('common.error'),
         );
       }
       onClose();
@@ -253,9 +281,13 @@ function LateDialog({
             <Input id="late-arrived" type="time" value={arrived} onChange={(e) => setArrived(e.target.value)} />
           </Field>
         </div>
-        {expected && arrived && (
-          <p className={cn('text-[12.5px] font-medium', late === null ? 'text-late' : 'text-muted')}>
-            {late === null ? t('hrLate.errNotLate') : t('hrLate.lateBy', { time: minutes(Math.round(late)) })}
+        {verdict && (
+          <p className={cn('text-[12.5px] font-medium', verdict === 'fine' ? 'text-muted' : verdict === 'early' ? 'text-warn' : 'text-late')}>
+            {verdict === 'fine'
+              ? t('hrLate.errFine', { m: tolerance })
+              : verdict === 'early'
+                ? t('hrLate.earlyBy', { time: minutes(-diff!), m: tolerance })
+                : t('hrLate.lateBy', { time: minutes(diff!) })}
           </p>
         )}
         <Field label={t('hrLate.reason')} htmlFor="late-reason">

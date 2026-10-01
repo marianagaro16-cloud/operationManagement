@@ -2738,7 +2738,9 @@ export type Database = {
           excused: boolean
           expected_time: string
           id: string
+          kind: string | null
           minutes_late: number | null
+          minutes_off: number | null
           note: string | null
           notified: boolean
           reason_id: string | null
@@ -2753,7 +2755,9 @@ export type Database = {
           excused?: boolean
           expected_time: string
           id?: string
+          kind?: string | null
           minutes_late?: number | null
+          minutes_off?: number | null
           note?: string | null
           notified?: boolean
           reason_id?: string | null
@@ -2768,7 +2772,9 @@ export type Database = {
           excused?: boolean
           expected_time?: string
           id?: string
+          kind?: string | null
           minutes_late?: number | null
+          minutes_off?: number | null
           note?: string | null
           notified?: boolean
           reason_id?: string | null

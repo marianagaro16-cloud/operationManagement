@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { TEAMS } from '@/lib/authz';
 import type { ActionResult } from './actions';
 import { HR_ALLOWED_MIME, HR_BUCKET, HR_MAX_BYTES } from '@/lib/hr';
-import { getLateAlertThreshold } from './hr';
+import { HR_ARRIVAL_SETTINGS, getArrivalSettings, type HrArrivalSetting } from './hr';
 import { sendToHrForWorker } from './push';
 
 /*
@@ -302,11 +302,14 @@ const lateSchema = z
     notified: z.boolean(),
     note: optionalText,
   })
-  .refine((v) => v.arrived_time.slice(0, 5) > v.expected_time.slice(0, 5), { message: 'arrived_not_late' });
+  .refine((v) => v.arrived_time.slice(0, 5) !== v.expected_time.slice(0, 5), { message: 'on_time' });
+
+const minutesOf = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
 
 /**
- * Record a late arrival — or correct one, by whoever recorded it within a day
- * (RLS). On the unexcused one that reaches the month's threshold, HR is told.
+ * Record an arrival — late, or earlier than the tolerance allows — or correct
+ * one, by whoever recorded it within a day (RLS). On the unexcused one that
+ * reaches the month's threshold for its kind, HR is told.
  */
 export async function saveLateArrival(
   workerId: string,
@@ -315,6 +318,10 @@ export async function saveLateArrival(
 ): Promise<ActionResult> {
   const parsed = lateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid' };
+  const settings = await getArrivalSettings();
+  const early = minutesOf(parsed.data.expected_time) - minutesOf(parsed.data.arrived_time);
+  // Within the tolerance before the agreed time is fine: nothing to record.
+  if (early > 0 && early <= settings.hr_early_tolerance_minutes) return { ok: false, error: 'within_tolerance' };
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'not_authorized' };
@@ -328,7 +335,10 @@ export async function saveLateArrival(
     if (error) return fail(error);
   }
 
-  if (!parsed.data.excused) await alertRepeatedLateness(workerId, parsed.data.arrival_date);
+  if (!parsed.data.excused) {
+    const kind = early > 0 ? 'early' : 'late';
+    await alertRepeatedArrivals(workerId, parsed.data.arrival_date, kind, kind === 'early' ? settings.hr_early_alert_threshold : settings.hr_late_alert_threshold);
+  }
   revalidateHr(workerId);
   return { ok: true, data: undefined };
 }
@@ -343,30 +353,30 @@ export async function deleteLateArrival(workerId: string, id: string): Promise<A
   return { ok: true, data: undefined };
 }
 
-async function alertRepeatedLateness(workerId: string, date: string) {
+async function alertRepeatedArrivals(workerId: string, date: string, kind: 'late' | 'early', threshold: number) {
   try {
     const supabase = createClient();
     const month = date.slice(0, 7);
-    const [{ count }, threshold, { data: worker }] = await Promise.all([
+    const [{ count }, { data: worker }] = await Promise.all([
       supabase
         .from('hr_late_arrivals')
         .select('id', { count: 'exact', head: true })
         .eq('worker_id', workerId)
+        .eq('kind', kind)
         .eq('excused', false)
         .gte('arrival_date', `${month}-01`)
         .lt('arrival_date', nextMonth(month)),
-      getLateAlertThreshold(),
       supabase.from('hr_workers').select('name, team, profile_id').eq('id', workerId).maybeSingle(),
     ]);
     // Exactly at the threshold: told once a month, not on every one after.
-    if (!worker || count !== threshold) return;
+    if (!worker || !threshold || count !== threshold) return;
     const monthName = new Intl.DateTimeFormat('es', { month: 'long', year: 'numeric' }).format(new Date(`${month}-15T12:00:00Z`));
     // In Spanish, like every other server-sent notification.
     await sendToHrForWorker(worker.team, worker.profile_id, {
-      title: `${worker.name}: ${count} llegadas tarde sin justificar`,
+      title: `${worker.name}: ${count} ${kind === 'early' ? 'llegadas muy tempranas' : 'llegadas tarde'} sin justificar`,
       body: `En ${monthName}.`,
       url: `/hr/${workerId}?tab=late`,
-      tag: `hr-late-${workerId}-${month}`,
+      tag: `hr-${kind}-${workerId}-${month}`,
     });
   } catch (err) {
     console.error('late arrival alert failed', err);
@@ -398,11 +408,14 @@ export async function saveLateReason(input: z.input<typeof lateReasonSchema>, id
   return { ok: true, data: undefined };
 }
 
-/** Admin's setting: from how many unexcused late arrivals in a month HR is told. */
-export async function setLateAlertThreshold(n: number): Promise<ActionResult> {
-  if (!Number.isInteger(n) || n < 1 || n > 31) return { ok: false, error: 'invalid' };
+/** Admin's arrival settings: the alert thresholds and the early tolerance. */
+export async function setArrivalSetting(key: HrArrivalSetting, n: number): Promise<ActionResult> {
+  if (!(key in HR_ARRIVAL_SETTINGS)) return { ok: false, error: 'invalid' };
+  const max = key === 'hr_early_tolerance_minutes' ? 120 : 31;
+  const min = key === 'hr_early_tolerance_minutes' ? 0 : 1;
+  if (!Number.isInteger(n) || n < min || n > max) return { ok: false, error: 'invalid' };
   const supabase = createClient();
-  const { error } = await supabase.from('app_settings').upsert({ key: 'hr_late_alert_threshold', value: n });
+  const { error } = await supabase.from('app_settings').upsert({ key, value: n });
   if (error) return fail(error);
   revalidatePath('/admin/hr');
   return { ok: true, data: undefined };
