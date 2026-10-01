@@ -51,7 +51,10 @@ export function CalendarView({
   templates,
   month,
   today,
+  team,
 }: {
+  /** The area this calendar shows, kept when moving between months. */
+  team?: Team;
   occurrences: OccurrenceWithTask[];
   inventories: CalendarInventory[];
   tasks: PlannableTask[];
@@ -117,7 +120,7 @@ export function CalendarView({
   const selectedInventories = selected ? (inventoriesByDate.get(selected) ?? []) : [];
 
   const href = (delta: number) =>
-    `/calendar?month=${anchor.plus({ months: delta }).toFormat('yyyy-MM-01')}`;
+    `/calendar?month=${anchor.plus({ months: delta }).toFormat('yyyy-MM-01')}${team ? `&team=${team}` : ''}`;
 
   function remove(kind: 'task' | 'inventory', id: string) {
     setError(null);
@@ -157,7 +160,7 @@ export function CalendarView({
             <ChevronLeft className="h-4 w-4" aria-hidden />
           </Link>
           <Link
-            href="/calendar"
+            href={team ? `/calendar?team=${team}` : '/calendar'}
             className="inline-flex h-8 items-center rounded-lg border border-border bg-surface px-3 text-[13px] font-medium transition-colors hover:bg-surface-2"
           >
             {t('calendar.todayCta')}
@@ -268,11 +271,13 @@ export function CalendarView({
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-[13px] font-medium capitalize">{formatDate(selected, 'weekday')}</h3>
             <div className="flex flex-wrap gap-1.5">
-              {/* Work that happens once, written and placed in one act. */}
-              <Button size="sm" variant="secondary" onClick={() => setOneOffFor(selected)}>
-                <Plus className="h-3.5 w-3.5" aria-hidden />
-                {t('plan.oneOff')}
-              </Button>
+              {/* Work that happens once, written and placed in one act. Not for a paused team. */}
+              {activityTeams.length > 0 && (
+                <Button size="sm" variant="secondary" onClick={() => setOneOffFor(selected)}>
+                  <Plus className="h-3.5 w-3.5" aria-hidden />
+                  {t('plan.oneOff')}
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="primary"

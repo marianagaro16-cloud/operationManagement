@@ -21,13 +21,14 @@ import { opensManagement } from '@/components/admin/sections';
  * Responsive shell: a bottom tab bar on phones (thumb-reachable, since the
  * operators use this on the warehouse floor) and a sidebar from `md` up.
  */
-type NavGroup = 'day' | 'logistics' | 'operation' | 'customers' | 'team' | 'manage';
+type NavGroup = 'day' | 'logistics' | 'operation' | 'production' | 'customers' | 'team' | 'manage';
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; primary: boolean; badge?: number; group: NavGroup };
 const FOLDED_KEY = 'nav.folded';
-const NAV_GROUPS: NavGroup[] = ['day', 'logistics', 'operation', 'customers', 'team', 'manage'];
+const NAV_GROUPS: NavGroup[] = ['day', 'logistics', 'operation', 'production', 'customers', 'team', 'manage'];
 const GROUP_LABEL: Record<Exclude<NavGroup, 'manage'>, MessageKey> = {
   day: 'nav.groupDay',
   logistics: 'nav.groupLogistics',
+  production: 'nav.groupProduction',
   operation: 'nav.groupOperation',
   customers: 'nav.groupCustomers',
   team: 'nav.groupTeam',
@@ -84,6 +85,13 @@ export function AppShell({
    * Every entry still appears only for whom it applies; a group with nothing
    * in it is not shown.
    */
+  const plansWork = can(role, held, 'tasks.manage_occurrences');
+  const AREA: Record<'logistics' | 'operations' | 'production', NavGroup> = { logistics: 'logistics', operations: 'operation', production: 'production' };
+  const activitiesFor = (team: 'logistics' | 'operations' | 'production'): NavItem[] =>
+    plansWork && (role !== 'production_manager' || profile.team === team)
+      ? [{ href: `/calendar?team=${team}`, label: t('nav.activities'), icon: CalendarDays, primary: false, group: AREA[team] }]
+      : [];
+
   const nav: NavItem[] = [
     // ---- my day ----
     { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, primary: true, group: 'day' },
@@ -106,16 +114,18 @@ export function AppShell({
     ...(can(role, held, 'orders.manage') || can(role, held, 'incidents.manage')
       ? [{ href: '/incidents', label: t('incident.navLabel'), icon: AlertTriangle, primary: false, group: 'logistics' as const }]
       : []),
+    ...activitiesFor('logistics'),
     // ---- the operation: the warehouse ----
     // Goods Reception is its own section: a supplier delivery has no customer
     // order behind it. Every approved user views; the screen decides who adds.
     { href: '/goods-reception', label: t('gr.navLabel'), icon: Truck, primary: true, group: 'operation' },
     // Counting happens on the floor, by people who are not admins.
     { href: '/inventory', label: t('inventory.title'), icon: Boxes, primary: true, group: 'operation' },
-    // The work plan browses future dates, so it belongs to whoever plans work.
-    ...(can(role, held, 'tasks.manage_occurrences')
-      ? [{ href: '/calendar', label: t('nav.calendar'), icon: CalendarDays, primary: false, group: 'operation' as const }]
-      : []),
+    // Each area's activities: the work plan, showing that team's. It browses
+    // future dates, so it belongs to whoever plans work; the Production manager
+    // plans only Production's.
+    ...activitiesFor('operations'),
+    ...activitiesFor('production'),
 
     // ---- customers ----
     // Sales: customers, prospects, planning, report, summary. The Ventas team, Admin and Owners.
@@ -170,6 +180,7 @@ export function AppShell({
   };
   const under = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const active = (href: string) =>
+    href.startsWith('/calendar?') ? pathname === '/calendar' && href.endsWith(`team=${searchParams.get('team')}`) :
     TABS[href] ? TABS[href].some((tab) => under(tab.href)) : SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
   // The tab row shows on a tab's own screen (and reminders' task list), not on a detail page.
   const tabs = Object.values(TABS).find((row) => row.length > 1 && row.some((tab) => pathname === tab.href || (tab.href === '/reminders' && pathname === '/reminders/tasks')));

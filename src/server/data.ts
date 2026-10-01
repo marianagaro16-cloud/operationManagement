@@ -4,7 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { generateOccurrences, isScheduleConfigured, type TaskDefinitionLike } from '@/domain/recurrence/engine';
 import { FREQUENCIES, ONE_OFF, type Frequency } from '@/domain/recurrence/types';
 import { addDays, businessToday, type BusinessDate } from '@/lib/datetime';
-import { atLeast, can, type Permission, type Role } from '@/lib/authz';
+import { atLeast, can, type Permission, type Role, type Team } from '@/lib/authz';
 import { bucketByDay } from '@/domain/buckets';
 import type { OccurrenceWithTask, Profile, Task, Category } from '@/types/database';
 
@@ -433,14 +433,17 @@ export async function getUsers(): Promise<Profile[]> {
 export async function getOccurrencesInRange(
   from: BusinessDate,
   to: BusinessDate,
+  /** One team's activities only — an area's own calendar. */
+  team?: Team,
 ): Promise<OccurrenceWithTask[]> {
   const supabase = createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('task_occurrences')
     .select(OCCURRENCE_SELECT)
     .gte('effective_due_date', from)
-    .lte('effective_due_date', to)
-    .order('effective_due_date', { ascending: true });
+    .lte('effective_due_date', to);
+  if (team) query = query.eq('task.team', team);
+  const { data, error } = await query.order('effective_due_date', { ascending: true });
 
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as OccurrenceWithTask[];
