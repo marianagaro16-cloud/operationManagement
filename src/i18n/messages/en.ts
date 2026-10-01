@@ -65,6 +65,7 @@ export const en = {
   nav: {
     groupDay: 'My day',
     groupOperation: 'Operations',
+    groupLogistics: 'Logistics',
     groupCustomers: 'Customers',
     groupTeam: 'Team',
     people: 'People',
@@ -1537,6 +1538,7 @@ export const en = {
     team: 'Team',
     teamProduction: 'Production',
     teamOperations: 'Operations',
+    teamLogistics: 'Logistics',
     teamSales: 'Sales',
     teamHint: 'A User only sees their team\'s tasks. A Production manager is always on Production.',
     productionManagerNote: 'A Production manager only manages Production\'s incidents, and sees orders without being able to change them.',

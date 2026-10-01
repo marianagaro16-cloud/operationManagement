@@ -63,6 +63,7 @@ export const de: Messages = {
   nav: {
     groupDay: 'Mein Tag',
     groupOperation: 'Betrieb',
+    groupLogistics: 'Logistik',
     groupCustomers: 'Kunden',
     groupTeam: 'Team',
     people: 'Personen',
@@ -1505,6 +1506,7 @@ export const de: Messages = {
     team: 'Team',
     teamProduction: 'Produktion',
     teamOperations: 'Operations',
+    teamLogistics: 'Logistik',
     teamSales: 'Vertrieb',
     teamHint: 'Ein Benutzer sieht nur die Aufgaben seines Teams. Ein Produktionsleiter gehört immer zur Produktion.',
     productionManagerNote: 'Ein Produktionsleiter bearbeitet nur Vorfälle der Produktion und sieht Bestellungen, ohne sie ändern zu können.',

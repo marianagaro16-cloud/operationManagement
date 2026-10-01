@@ -21,12 +21,12 @@ export type Role = (typeof ROLES)[number];
  * The teams. Mirrors the `team` enum in
  * `supabase/migrations/20261012090100_production_manager_and_teams.sql`.
  */
-export const TEAMS = ['production', 'operations', 'sales'] as const;
+export const TEAMS = ['production', 'operations', 'logistics', 'sales'] as const;
 export type Team = (typeof TEAMS)[number];
 
 /** The i18n key naming a team. Ask this rather than comparing with one team. */
-export function teamLabelKey(team: Team): 'roles.teamProduction' | 'roles.teamOperations' | 'roles.teamSales' {
-  return team === 'production' ? 'roles.teamProduction' : team === 'sales' ? 'roles.teamSales' : 'roles.teamOperations';
+export function teamLabelKey(team: Team): 'roles.teamProduction' | 'roles.teamOperations' | 'roles.teamLogistics' | 'roles.teamSales' {
+  return team === 'production' ? 'roles.teamProduction' : team === 'sales' ? 'roles.teamSales' : team === 'logistics' ? 'roles.teamLogistics' : 'roles.teamOperations';
 }
 
 /**

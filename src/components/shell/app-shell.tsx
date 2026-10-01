@@ -21,12 +21,13 @@ import { opensManagement } from '@/components/admin/sections';
  * Responsive shell: a bottom tab bar on phones (thumb-reachable, since the
  * operators use this on the warehouse floor) and a sidebar from `md` up.
  */
-type NavGroup = 'day' | 'operation' | 'customers' | 'team' | 'manage';
+type NavGroup = 'day' | 'logistics' | 'operation' | 'customers' | 'team' | 'manage';
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; primary: boolean; badge?: number; group: NavGroup };
 const FOLDED_KEY = 'nav.folded';
-const NAV_GROUPS: NavGroup[] =['day', 'operation', 'customers', 'team', 'manage'];
+const NAV_GROUPS: NavGroup[] = ['day', 'logistics', 'operation', 'customers', 'team', 'manage'];
 const GROUP_LABEL: Record<Exclude<NavGroup, 'manage'>, MessageKey> = {
   day: 'nav.groupDay',
+  logistics: 'nav.groupLogistics',
   operation: 'nav.groupOperation',
   customers: 'nav.groupCustomers',
   team: 'nav.groupTeam',
@@ -90,21 +91,22 @@ export function AppShell({
     // reminders and meetings as its tabs. A due reminder counts here.
     { href: '/agenda', label: t('agenda.title'), icon: CalendarRange, primary: false, badge: reminderAttention, group: 'day' },
 
-    // ---- the operation: from order to delivery ----
+    // ---- logistics: orders, shipping, delivery ----
     // Orders — to prepare, ready, shipped — is the main floor workflow, so it
     // sits high in the bar, for everyone.
-    { href: '/orders', label: t('orders.title'), icon: Package, primary: true, group: 'operation' },
+    { href: '/orders', label: t('orders.title'), icon: Package, primary: true, group: 'logistics' },
     // Traceability answers a question about ORDERS — where a lot was used —
     // so it follows the order book's capability. A read-only order viewer
     // (the production manager) traces lots too.
     ...(can(role, held, 'orders.manage') || ordersReadOnly(role)
-      ? [{ href: '/lot-tracker', label: t('lot.title'), icon: ScanSearch, primary: false, group: 'operation' as const }]
+      ? [{ href: '/lot-tracker', label: t('lot.title'), icon: ScanSearch, primary: false, group: 'logistics' as const }]
       : []),
     // Every incident is about a delivery. Whoever manages incidents without
     // managing orders (the production manager) still needs the log itself.
     ...(can(role, held, 'orders.manage') || can(role, held, 'incidents.manage')
-      ? [{ href: '/incidents', label: t('incident.navLabel'), icon: AlertTriangle, primary: false, group: 'operation' as const }]
+      ? [{ href: '/incidents', label: t('incident.navLabel'), icon: AlertTriangle, primary: false, group: 'logistics' as const }]
       : []),
+    // ---- the operation: the warehouse ----
     // Goods Reception is its own section: a supplier delivery has no customer
     // order behind it. Every approved user views; the screen decides who adds.
     { href: '/goods-reception', label: t('gr.navLabel'), icon: Truck, primary: true, group: 'operation' },

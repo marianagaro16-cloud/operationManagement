@@ -63,6 +63,7 @@ export const es: Messages = {
   nav: {
     groupDay: 'Mi día',
     groupOperation: 'Operación',
+    groupLogistics: 'Logística',
     groupCustomers: 'Clientes',
     groupTeam: 'Equipo',
     people: 'Personas',
@@ -1505,6 +1506,7 @@ export const es: Messages = {
     team: 'Equipo',
     teamProduction: 'Producción',
     teamOperations: 'Operaciones',
+    teamLogistics: 'Logística',
     teamSales: 'Ventas',
     teamHint: 'Un Usuario ve solo las actividades de su equipo. El Gerente de producción siempre es de Producción.',
     productionManagerNote: 'El Gerente de producción solo gestiona las incidencias de Producción, y ve los pedidos sin poder cambiarlos.',
