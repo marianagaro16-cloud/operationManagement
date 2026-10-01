@@ -172,7 +172,8 @@ export function EventView({
                 {t('event.confirm')}
               </Button>
             )}
-            {event.stage === 'confirmed' && (
+            {/* Done goes with the results: Sales'. */}
+            {!limited && event.stage === 'confirmed' && (
               <Button size="sm" variant="success" onClick={() => setFinishing(true)} disabled={pending}>
                 <Check className="h-3.5 w-3.5" aria-hidden />
                 {t('event.markDone')}

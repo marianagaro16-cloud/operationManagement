@@ -18,7 +18,7 @@ import { NoteText } from '@/components/ui/note';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { addEventContact, addEventNote, recordEventFile, removeEventFile, saveResults } from '@/server/event-actions';
 import type { EventContact, EventFile, EventNote, EventRow } from '@/types/events';
-import { useEventLabels, useEventsLimited, useEventsReadOnly } from './event-parts';
+import { useEventLabels, useEventsLimited } from './event-parts';
 
 /* After (and around) the event: how it went, notes, who we met, photos and files. */
 
@@ -56,7 +56,8 @@ export function Stars({ value }: { value: number }) {
 export function ResultsCard({ event }: { event: EventRow }) {
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
-  const readOnly = useEventsReadOnly();
+  // The results are Sales' (Carlos, Admin, Owners).
+  const readOnly = useEventsLimited();
   const repeat = { yes: t('event.repeatYes'), no: t('event.repeatNo'), maybe: t('event.repeatMaybe') };
   const figures: [string, number | null][] = [
     [t('event.visitors'), event.result_visitors],
