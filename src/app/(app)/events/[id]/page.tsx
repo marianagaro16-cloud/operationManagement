@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function EventPage({ params }: { params: { id: string } }) {
   const viewer = await getViewer();
-  // Sales, Admin and Owners; Marketing reads (notes and photos only).
+  // Sales, Admin and Owners; Marketing too, without tasks, contacts, budget and products.
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   if (!viewer || !(sales || isMarketing(viewer.profile.team))) redirect('/dashboard');
 
@@ -32,7 +32,7 @@ export default async function EventPage({ params }: { params: { id: string } }) 
   if (!found) notFound();
 
   return (
-    <EventsReadOnlyProvider readOnly={!sales}>
+    <EventsReadOnlyProvider readOnly={false} limited={!sales}>
       <EventView
         {...found}
         choices={{ kinds, people, customers, viewerId: viewer.profile.id }}

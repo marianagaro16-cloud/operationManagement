@@ -69,7 +69,7 @@ export const en = {
     groupProduction: 'Production',
     groupMarketing: 'Marketing',
     activities: 'Activities',
-    groupCustomers: 'Customers',
+    groupCustomers: 'Commercial',
     groupTeam: 'Team',
     people: 'People',
     dashboard: 'Home',

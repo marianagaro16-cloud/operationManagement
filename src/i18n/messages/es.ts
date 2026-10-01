@@ -67,7 +67,7 @@ export const es: Messages = {
     groupProduction: 'Producción',
     groupMarketing: 'Marketing',
     activities: 'Actividades',
-    groupCustomers: 'Clientes',
+    groupCustomers: 'Comercial',
     groupTeam: 'Equipo',
     people: 'Personas',
     dashboard: 'Inicio',

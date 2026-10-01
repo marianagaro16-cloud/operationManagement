@@ -15,7 +15,7 @@ import { DateTime } from 'luxon';
 import { productLabel, type DeliveryMethod, type Product } from '@/types/orders';
 import { saveReturns, setEventDelivery, setEventProducts } from '@/server/event-actions';
 import type { EventOrder, EventProduct, EventReturn, EventRow } from '@/types/events';
-import { useEventLabels, useEventsReadOnly } from './event-parts';
+import { useEventLabels, useEventsLimited } from './event-parts';
 
 /** The day it goes when nobody chose one: the day before the start. */
 export function deliveryDateOf(event: EventRow, order: EventOrder | null): string {
@@ -54,7 +54,8 @@ export function EventProducts({
   const [returning, setReturning] = useState(false);
   const live = event.stage === 'idea' || event.stage === 'confirmed';
   const liveOrder = order?.status === 'confirmed' ? order : null;
-  const readOnly = useEventsReadOnly();
+  // Products become an order: Sales'.
+  const readOnly = useEventsLimited();
   const canEdit = !readOnly && live && !liveOrder?.ready_at;
   const canDeliver = !readOnly && live && !liveOrder?.shipped_at;
   // After the event, or once its goods have left: what came back.

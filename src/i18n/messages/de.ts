@@ -67,7 +67,7 @@ export const de: Messages = {
     groupProduction: 'Produktion',
     groupMarketing: 'Marketing',
     activities: 'Aktivitäten',
-    groupCustomers: 'Kunden',
+    groupCustomers: 'Vertrieb',
     groupTeam: 'Team',
     people: 'Personen',
     dashboard: 'Start',

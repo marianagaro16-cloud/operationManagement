@@ -18,7 +18,7 @@ import { NoteText } from '@/components/ui/note';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { addEventContact, addEventNote, recordEventFile, removeEventFile, saveResults } from '@/server/event-actions';
 import type { EventContact, EventFile, EventNote, EventRow } from '@/types/events';
-import { useEventLabels, useEventsReadOnly } from './event-parts';
+import { useEventLabels, useEventsLimited, useEventsReadOnly } from './event-parts';
 
 /* After (and around) the event: how it went, notes, who we met, photos and files. */
 
@@ -418,7 +418,7 @@ export function FilesCard({ event, files }: { event: EventRow; files: EventFile[
   const [errors, setErrors] = useState<string[]>([]);
   const [removing, setRemoving] = useState<EventFile | null>(null);
   // Marketing adds photos; removing them stays with Sales.
-  const readOnly = useEventsReadOnly();
+  const readOnly = useEventsLimited();
   const [pending, startTransition] = useTransition();
   const photos = files.filter((f) => f.mime_type.startsWith('image/') && f.url);
   const documents = files.filter((f) => !photos.includes(f));

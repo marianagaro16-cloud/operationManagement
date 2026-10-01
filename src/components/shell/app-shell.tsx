@@ -142,11 +142,6 @@ export function AppShell({
     ...(isSales(role, profile.team as Team)
       ? [{ href: '/sales', label: t('sales.navLabel'), icon: Handshake, primary: false, group: 'customers' as const }]
       : []),
-    // Events: fairs, markets, events with customers and our own. Sales — and
-    // Marketing, who covers them (read, notes and photos).
-    ...(isSales(role, profile.team as Team) || marketing
-      ? [{ href: '/events', label: t('event.navLabel'), icon: PartyPopper, primary: marketing, group: 'customers' as const }]
-      : []),
     // Products and customers to read, for Marketing.
     ...(marketing
       ? [{ href: '/catalog', label: t('catalog.navLabel'), icon: BookOpen, primary: true, group: 'customers' as const }]
@@ -160,6 +155,11 @@ export function AppShell({
     // The content plan: Marketing, Admin and Owners write; Sales and Managers read.
     ...(canReadMarketing(role, profile.team as Team)
       ? [{ href: '/marketing', label: t('mkt.planTitle'), icon: Megaphone, primary: marketing, group: 'marketing' as const }]
+      : []),
+    // Events: fairs, markets, events with customers and our own. Sales and
+    // Marketing work them; they sit with Marketing in the menu.
+    ...(isSales(role, profile.team as Team) || marketing
+      ? [{ href: '/events', label: t('event.navLabel'), icon: PartyPopper, primary: marketing, group: 'marketing' as const }]
       : []),
     // Requests to Marketing: anyone asks; Marketing sees the new ones counted.
     { href: '/marketing/requests', label: t('mktReq.title'), icon: Inbox, primary: false, badge: marketingNew, group: 'marketing' as const },

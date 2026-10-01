@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 /** Events: sales, Admin and Owners. Guarded here as well as by RLS. */
 export default async function EventsPage() {
   const viewer = await getViewer();
-  // Sales, Admin and Owners; Marketing reads (notes and photos only).
+  // Sales, Admin and Owners; Marketing too, without tasks, contacts, budget and products.
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   if (!viewer || !(sales || isMarketing(viewer.profile.team))) redirect('/dashboard');
 
@@ -23,7 +23,7 @@ export default async function EventsPage() {
     getEventCustomers(),
   ]);
   return (
-    <EventsReadOnlyProvider readOnly={!sales}>
+    <EventsReadOnlyProvider readOnly={false} limited={!sales}>
       <EventList
         events={events}
         choices={{ kinds, people, customers, viewerId: viewer.profile.id }}

@@ -65,11 +65,15 @@ export function chf(amount: number | null): string {
 }
 
 /**
- * Marketing reads events: no editing, no tasks, contacts or budget — only
- * notes and photos are theirs to add. The database holds the same line.
+ * Who works on events, and how far. Sales does everything. Marketing edits
+ * the event — details, stage, staff, results, notes and photos — but the
+ * tasks and contacts (sales planning and prospects), the budget and the
+ * products (an order) stay with Sales: "limited". Read-only shows no editing
+ * at all. The database holds the same lines.
  */
-const ReadOnly = createContext(false);
-export function EventsReadOnlyProvider({ readOnly, children }: { readOnly: boolean; children: ReactNode }) {
-  return <ReadOnly.Provider value={readOnly}>{children}</ReadOnly.Provider>;
+const Access = createContext({ readOnly: false, limited: false });
+export function EventsReadOnlyProvider({ readOnly, limited = false, children }: { readOnly: boolean; limited?: boolean; children: ReactNode }) {
+  return <Access.Provider value={{ readOnly, limited: limited || readOnly }}>{children}</Access.Provider>;
 }
-export const useEventsReadOnly = () => useContext(ReadOnly);
+export const useEventsReadOnly = () => useContext(Access).readOnly;
+export const useEventsLimited = () => useContext(Access).limited;
