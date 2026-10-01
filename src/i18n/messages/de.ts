@@ -1210,7 +1210,7 @@ export const de: Messages = {
       gastro: 'Gastro',
       distributor: 'Händler',
       reseller: 'Wiederverkäufer',
-      employee: 'Mitarbeitende',
+      employee: 'Personal',
     },
     brand: 'Marke',
     brandHint: 'Unter welcher unserer Marken dieses Produkt verkauft wird.',
