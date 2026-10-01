@@ -1,7 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { LINK_EMBEDS } from '@/domain/reminders/links';
-import type { PersonalTask, Reminder, ReminderEvent, ReminderFilters, ReminderPerson } from '@/types/reminders';
+import type { PersonalTask, PersonalTopic, Reminder, ReminderEvent, ReminderFilters, ReminderPerson } from '@/types/reminders';
 
 /**
  * Reminders data access.
@@ -26,7 +26,7 @@ export const REMINDER_SELECT = `
 
 export const PERSONAL_TASK_SELECT = `
   id, owner_id, title, notes, due_date, due_time, status, source_reminder_id,
-  completed_at, cancelled_at, created_at,
+  completed_at, cancelled_at, created_at, topic_id, category_id,
   ${LINK_EMBEDS}
 `;
 
@@ -177,4 +177,19 @@ export async function getPersonalTasks(): Promise<{ open: PersonalTask[]; closed
     open: (openRes.data ?? []) as unknown as PersonalTask[],
     closed: (closedRes.data ?? []) as unknown as PersonalTask[],
   };
+}
+
+/** The viewer's own topics and their categories, archived ones too (tasks may still carry them). */
+export async function getPersonalTopics(): Promise<PersonalTopic[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('personal_task_topics')
+    .select('id, name, color, sort_order, archived_at, categories:personal_task_categories ( id, name, sort_order, archived_at )')
+    .order('sort_order')
+    .order('name');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as PersonalTopic[]).map((t) => ({
+    ...t,
+    categories: [...t.categories].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)),
+  }));
 }

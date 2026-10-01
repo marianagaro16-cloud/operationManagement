@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bell, CalendarDays, Check, CheckCircle2, ChevronDown, Pencil, Plus, RotateCcw, SlidersHorizontal, Sparkles, Target, XCircle } from 'lucide-react';
+import { ArrowLeft, Bell, CalendarDays, Check, CheckCircle2, ChevronDown, Pencil, Plus, RotateCcw, SlidersHorizontal, Sparkles, Tags, Target, XCircle } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,8 @@ import { PageHeader } from '@/components/shell/app-shell';
 import { daysFromToday, isOnDay, isOpenPersonalTask, personalTaskPhase, type PersonalTaskStatus } from '@/domain/reminders/schedule';
 import { LINK_COLUMN, LINK_TYPES, type LinkType } from '@/domain/reminders/links';
 import { savePersonalTask, setPersonalTaskStatus } from '@/server/reminder-actions';
-import type { PersonalTask } from '@/types/reminders';
+import type { PersonalTask, PersonalTopic } from '@/types/reminders';
+import { TopicChip, TopicDot, TopicPicker, usePersonalTopics } from './topic-bits';
 import { NoteText } from '@/components/ui/note';
 import { noteToPlainLine } from '@/domain/notes';
 import { LinkChip, reminderErrorKey } from './reminder-bits';
@@ -47,15 +48,32 @@ export function PersonalTaskList({
   open,
   closed,
   nowIso,
+  topics = [],
 }: {
   open: PersonalTask[];
   closed: PersonalTask[];
   nowIso: string;
+  /** The viewer's own topics and categories. */
+  topics?: PersonalTopic[];
 }) {
   const { t } = useI18n();
   const [editing, setEditing] = useState<PersonalTask | null>(null);
   const [creating, setCreating] = useState<string | null>(null);
+  const [creatingIn, setCreatingIn] = useState<{ topicId: string | null; categoryId: string | null } | undefined>(undefined);
   const [showClosed, setShowClosed] = useState(false);
+  // By date (as always) or by topic; remembered per browser.
+  const [view, setView] = useState<'date' | 'topic'>('date');
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(VIEW_KEY) === 'topic') setView('topic');
+    } catch {}
+  }, []);
+  const chooseView = (next: 'date' | 'topic') => {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {}
+  };
 
   const today = DateTime.fromISO(nowIso).setZone(BUSINESS_TZ).toISODate()!;
 
@@ -98,7 +116,30 @@ export function PersonalTaskList({
         </Card>
       )}
 
-      <QuickAdd today={today} onDetails={(title) => setCreating(title)} />
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="inline-flex rounded-lg bg-surface-2 p-0.5" role="tablist">
+          {(['date', 'topic'] as const).map((v) => (
+            <button
+              key={v}
+              role="tab"
+              aria-selected={view === v}
+              onClick={() => chooseView(v)}
+              className={cn(
+                'rounded-md px-3 py-1 text-[12.5px] font-medium transition-colors',
+                view === v ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg',
+              )}
+            >
+              {v === 'date' ? t('ptopic.byDate') : t('ptopic.byTopic')}
+            </button>
+          ))}
+        </div>
+        <Link href="/reminders/tasks/topics" className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted hover:text-fg">
+          <Tags className="h-3.5 w-3.5" aria-hidden />
+          {t('ptopic.manage')}
+        </Link>
+      </div>
+
+      <QuickAdd today={today} onDetails={(title) => { setCreatingIn(undefined); setCreating(title); }} />
 
       {open.length === 0 ? (
         <div className="mt-5">
@@ -108,6 +149,15 @@ export function PersonalTaskList({
             body={t('ptask.emptyBody')}
           />
         </div>
+      ) : view === 'topic' ? (
+        <TopicSections
+          open={open}
+          topics={topics}
+          nowIso={nowIso}
+          today={today}
+          onEdit={setEditing}
+          onAdd={(filing) => { setCreatingIn(filing); setCreating(''); }}
+        />
       ) : (
         <div className="mt-5 space-y-5">
           {GROUPS.map(({ key, label, dot }) =>
@@ -128,7 +178,7 @@ export function PersonalTaskList({
                 <Card className="overflow-hidden">
                   <ul className="divide-y divide-border">
                     {groups[key].map((task) => (
-                      <TaskRow key={task.id} task={task} group={key} today={today} onEdit={() => setEditing(task)} />
+                      <TaskRow key={task.id} task={task} group={key} today={today} onEdit={() => setEditing(task)} topics={topics} />
                     ))}
                   </ul>
                 </Card>
@@ -165,10 +215,145 @@ export function PersonalTaskList({
         <PersonalTaskDialog
           task={editing}
           initialTitle={creating ?? ''}
+          initialFiling={editing ? undefined : creatingIn}
+          topics={topics}
           onClose={() => { setCreating(null); setEditing(null); }}
         />
       )}
     </>
+  );
+}
+
+const VIEW_KEY = 'ptask.view';
+const FOLDED_KEY = 'ptask.foldedTopics';
+
+/**
+ * The open tasks by topic: each topic a section, its categories inside, then
+ * the topic's tasks without a category; the tasks without a topic last. Every
+ * section can be folded (remembered) and has its own + to add a task there.
+ */
+function TopicSections({
+  open,
+  topics,
+  nowIso,
+  today,
+  onEdit,
+  onAdd,
+}: {
+  open: PersonalTask[];
+  topics: PersonalTopic[];
+  nowIso: string;
+  today: string;
+  onEdit: (task: PersonalTask) => void;
+  onAdd: (filing: { topicId: string | null; categoryId: string | null }) => void;
+}) {
+  const { t } = useI18n();
+  const [folded, setFolded] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(FOLDED_KEY) ?? '[]');
+      if (Array.isArray(saved)) setFolded(saved);
+    } catch {}
+  }, []);
+  const toggle = (key: string) => {
+    const next = folded.includes(key) ? folded.filter((k) => k !== key) : [...folded, key];
+    setFolded(next);
+    try {
+      localStorage.setItem(FOLDED_KEY, JSON.stringify(next));
+    } catch {}
+  };
+
+  const phase = (task: PersonalTask) => personalTaskPhase(task.status, task.due_date, task.due_time, nowIso) as Group;
+  const known = new Set(topics.map((tp) => tp.id));
+  // Active topics in their order; an archived one only while it still holds tasks.
+  const shown = topics.filter((tp) => !tp.archived_at || open.some((task) => task.topic_id === tp.id));
+  const loose = open.filter((task) => !task.topic_id || !known.has(task.topic_id));
+
+  const rows = (list: PersonalTask[]) => (
+    <Card className="overflow-hidden">
+      <ul className="divide-y divide-border">
+        {list.map((task) => (
+          <TaskRow key={task.id} task={task} group={phase(task)} today={today} onEdit={() => onEdit(task)} />
+        ))}
+      </ul>
+    </Card>
+  );
+
+  const header = (key: string, label: ReactNode, count: number, filing: { topicId: string | null; categoryId: string | null }) => (
+    <div className="mb-2 flex items-center gap-2 px-0.5">
+      <button
+        onClick={() => toggle(key)}
+        aria-expanded={!folded.includes(key)}
+        className="flex min-w-0 flex-1 items-center gap-2 text-left text-[13px] font-semibold"
+      >
+        <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted transition-transform', folded.includes(key) && '-rotate-90')} aria-hidden />
+        {label}
+        <span className="rounded-full bg-surface-2 px-1.5 text-[11px] font-semibold tabular text-muted">{count}</span>
+      </button>
+      <button
+        onClick={() => onAdd(filing)}
+        aria-label={t('ptopic.addHere')}
+        title={t('ptopic.addHere')}
+        className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+      >
+        <Plus className="h-3.5 w-3.5" aria-hidden />
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="mt-5 space-y-6">
+      {shown.map((topic) => {
+        const mine = open.filter((task) => task.topic_id === topic.id);
+        const categories = topic.categories.filter((c) => !c.archived_at || mine.some((task) => task.category_id === c.id));
+        const uncategorised = mine.filter((task) => !task.category_id || !categories.some((c) => c.id === task.category_id));
+        return (
+          <section key={topic.id}>
+            {header(
+              topic.id,
+              <span className="flex min-w-0 items-center gap-2 uppercase tracking-wide">
+                <TopicDot color={topic.color} />
+                <span className="truncate">{topic.name}</span>
+              </span>,
+              mine.length,
+              { topicId: topic.id, categoryId: null },
+            )}
+            {!folded.includes(topic.id) && (
+              <div className="space-y-3 pl-6">
+                {categories.map((c) => {
+                  const key = `${topic.id}:${c.id}`;
+                  const list = mine.filter((task) => task.category_id === c.id);
+                  return (
+                    <div key={c.id}>
+                      {header(key, <span className="truncate font-medium text-muted">{c.name}</span>, list.length, { topicId: topic.id, categoryId: c.id })}
+                      {!folded.includes(key) && list.length > 0 && rows(list)}
+                    </div>
+                  );
+                })}
+                {uncategorised.length > 0 &&
+                  (categories.length > 0 ? (
+                    <div>
+                      <p className="mb-2 px-0.5 text-[13px] font-medium text-subtle">{t('ptopic.noCategory')}</p>
+                      {rows(uncategorised)}
+                    </div>
+                  ) : (
+                    rows(uncategorised)
+                  ))}
+                {mine.length === 0 && categories.length === 0 && (
+                  <p className="px-0.5 text-[12.5px] text-subtle">{t('ptopic.emptyTopic')}</p>
+                )}
+              </div>
+            )}
+          </section>
+        );
+      })}
+      {loose.length > 0 && (
+        <section>
+          {header('none', <span className="uppercase tracking-wide text-muted">{t('ptopic.none')}</span>, loose.length, { topicId: null, categoryId: null })}
+          {!folded.includes('none') && <div className="pl-6">{rows(loose)}</div>}
+        </section>
+      )}
+    </div>
   );
 }
 
@@ -278,7 +463,10 @@ export function TaskRow({
   today,
   onEdit,
   compact = false,
+  topics,
 }: {
+  /** Shows the task's topic beside its date (the date view). */
+  topics?: PersonalTopic[];
   task: PersonalTask;
   group: Group;
   today: string;
@@ -365,7 +553,7 @@ export function TaskRow({
             )}
           </button>
 
-          {(label || task.source_reminder_id || currentLink(task)) && (
+          {(label || task.source_reminder_id || currentLink(task) || (topics && task.topic_id)) && (
             <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', compact ? 'mt-1' : 'mt-1.5')}>
               {label && (
                 <span
@@ -380,6 +568,7 @@ export function TaskRow({
                   {label}
                 </span>
               )}
+              {topics && <TopicChip task={task} topics={topics} />}
               <LinkChip row={task} />
               {task.source_reminder_id && (
                 <Link href={`/reminders/${task.source_reminder_id}`} className="inline-flex items-center gap-1 text-[12px] text-muted hover:text-accent hover:underline">
@@ -502,8 +691,14 @@ export function PersonalTaskDialog({
   task,
   initialTitle,
   initialDate,
+  initialFiling,
+  topics: knownTopics,
   onClose,
 }: {
+  /** A new one filed here — from a topic's section. */
+  initialFiling?: { topicId: string | null; categoryId: string | null };
+  /** The viewer's topics when the page has them; otherwise fetched on open. */
+  topics?: PersonalTopic[];
   task: PersonalTask | null;
   initialTitle: string;
   /** A new one for this day — from the agenda. */
@@ -516,6 +711,10 @@ export function PersonalTaskDialog({
   const [notes, setNotes] = useState(task?.notes ?? '');
   const [date, setDate] = useState(task ? task.due_date ?? '' : initialDate ?? DateTime.now().setZone(BUSINESS_TZ).toISODate()!);
   const [time, setTime] = useState(task?.due_time?.slice(0, 5) ?? '');
+  const [topics, setTopics] = usePersonalTopics(knownTopics);
+  const [filing, setFiling] = useState(
+    task ? { topicId: task.topic_id, categoryId: task.category_id } : initialFiling ?? { topicId: null, categoryId: null },
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -531,6 +730,8 @@ export function PersonalTaskDialog({
         time: date && time ? time : null,
         // Editing never re-points a link; it keeps whatever the task came with.
         link: currentLink(task),
+        // Only once the topics are known, so a slow load cannot clear a filing.
+        filing: topics ? { topic_id: filing.topicId, category_id: filing.categoryId } : undefined,
       });
       if (!res.ok) { setError(t(reminderErrorKey(res.error))); return; }
       onClose();
@@ -574,6 +775,15 @@ export function PersonalTaskDialog({
             <Input id="pt-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={!date} />
           </Field>
         </div>
+        {topics && (
+          <TopicPicker
+            topics={topics}
+            onTopicsChange={setTopics}
+            topicId={filing.topicId}
+            categoryId={filing.categoryId}
+            onChange={setFiling}
+          />
+        )}
         <Field label={t('ptask.fieldNotes')} htmlFor="pt-notes">
           <NoteTextarea id="pt-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} />
         </Field>

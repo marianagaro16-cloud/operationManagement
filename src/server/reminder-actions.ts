@@ -216,6 +216,8 @@ const taskSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
   time: z.string().regex(/^\d{2}:\d{2}$/).nullable(),
   link: z.object({ type: z.enum(LINK_TYPES), id: z.string().uuid() }).nullable(),
+  /** The owner's filing. Left out, it is not touched (a quick add, a conversion). */
+  filing: z.object({ topic_id: z.string().uuid().nullable(), category_id: z.string().uuid().nullable() }).optional(),
 });
 
 export type SavePersonalTaskInput = z.infer<typeof taskSchema>;
@@ -243,6 +245,8 @@ export async function savePersonalTask(input: SavePersonalTaskInput): Promise<Ac
     due_date: v.date,
     due_time: v.time,
     ...linkColumns(v.link),
+    // The database sets the topic from the category when one is given.
+    ...(v.filing ? { topic_id: v.filing.topic_id, category_id: v.filing.category_id } : {}),
   };
 
   const supabase = createClient();

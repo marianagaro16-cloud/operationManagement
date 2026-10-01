@@ -5220,9 +5220,93 @@ export type Database = {
         }
         Relationships: []
       }
+      personal_task_categories: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          sort_order: number
+          topic_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          owner_id?: string
+          sort_order?: number
+          topic_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          sort_order?: number
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_task_categories_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_task_categories_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "personal_task_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_task_topics: {
+        Row: {
+          archived_at: string | null
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          sort_order: number
+        }
+        Insert: {
+          archived_at?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          owner_id?: string
+          sort_order?: number
+        }
+        Update: {
+          archived_at?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_task_topics_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       personal_tasks: {
         Row: {
           cancelled_at: string | null
+          category_id: string | null
           completed_at: string | null
           created_at: string
           customer_id: string | null
@@ -5240,10 +5324,12 @@ export type Database = {
           status: string
           task_id: string | null
           title: string
+          topic_id: string | null
           updated_at: string
         }
         Insert: {
           cancelled_at?: string | null
+          category_id?: string | null
           completed_at?: string | null
           created_at?: string
           customer_id?: string | null
@@ -5261,10 +5347,12 @@ export type Database = {
           status?: string
           task_id?: string | null
           title: string
+          topic_id?: string | null
           updated_at?: string
         }
         Update: {
           cancelled_at?: string | null
+          category_id?: string | null
           completed_at?: string | null
           created_at?: string
           customer_id?: string | null
@@ -5282,9 +5370,17 @@ export type Database = {
           status?: string
           task_id?: string | null
           title?: string
+          topic_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "personal_tasks_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "personal_task_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "personal_tasks_customer_id_fkey"
             columns: ["customer_id"]
@@ -5367,6 +5463,13 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "personal_task_topics"
             referencedColumns: ["id"]
           },
         ]

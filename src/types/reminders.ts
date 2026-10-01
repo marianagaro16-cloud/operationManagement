@@ -62,6 +62,22 @@ export interface PersonalTask extends LinkedRecords {
   completed_at: string | null;
   cancelled_at: string | null;
   created_at: string;
+  /** The owner's own filing: a topic, and optionally one of its categories. */
+  topic_id: string | null;
+  category_id: string | null;
+}
+
+export const TOPIC_COLORS = ['slate', 'red', 'orange', 'amber', 'green', 'teal', 'blue', 'violet', 'pink'] as const;
+export type TopicColor = (typeof TOPIC_COLORS)[number];
+
+/** A person's own topic for personal tasks, with its categories. Private. */
+export interface PersonalTopic {
+  id: string;
+  name: string;
+  color: TopicColor | null;
+  sort_order: number;
+  archived_at: string | null;
+  categories: { id: string; name: string; sort_order: number; archived_at: string | null }[];
 }
 
 export const REMINDER_VIEWS = ['today', 'upcoming', 'overdue', 'shared', 'completed', 'cancelled'] as const;
