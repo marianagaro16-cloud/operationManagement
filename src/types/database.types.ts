@@ -4651,6 +4651,157 @@ export type Database = {
           },
         ]
       }
+      marketing_request_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          request_id: string
+        }
+        Insert: {
+          author_id?: string
+          body: string
+          created_at?: string
+          id?: string
+          request_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_request_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_request_comments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_request_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string
+          request_id: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type: string
+          request_id: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by?: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          request_id?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_request_files_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_request_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_requests: {
+        Row: {
+          brand_id: string | null
+          created_at: string
+          description: string | null
+          done_at: string | null
+          due_on: string | null
+          id: string
+          post_id: string | null
+          requested_by: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          brand_id?: string | null
+          created_at?: string
+          description?: string | null
+          done_at?: string | null
+          due_on?: string | null
+          id?: string
+          post_id?: string | null
+          requested_by?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          brand_id?: string | null
+          created_at?: string
+          description?: string | null
+          done_at?: string | null
+          due_on?: string | null
+          id?: string
+          post_id?: string | null
+          requested_by?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_requests_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_requests_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_invitees: {
         Row: {
           meeting_id: string
@@ -8049,6 +8200,7 @@ export type Database = {
       can_plan_coverage: { Args: { p_absence_id: string }; Returns: boolean }
       can_read_marketing: { Args: never; Returns: boolean }
       can_see_handover: { Args: { p_absence_id: string }; Returns: boolean }
+      can_see_marketing_request: { Args: { p_id: string }; Returns: boolean }
       can_see_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
       can_see_quick_note: { Args: { p_note_id: string }; Returns: boolean }
       can_see_series: { Args: { p_series_id: string }; Returns: boolean }

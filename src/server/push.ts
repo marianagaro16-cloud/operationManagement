@@ -263,3 +263,11 @@ export async function sendToHrForWorker(
     .map((p) => p.id);
   return sendToUsers(ids, payload);
 }
+
+/** Send to the Marketing team (approved), leaving out whoever caused it. */
+export async function sendToMarketing(payload: PushPayload, exclude?: string | null): Promise<number> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.from('profiles').select('id').eq('status', 'approved').eq('team', 'marketing');
+  if (error) throw new Error(error.message);
+  return sendToUsers(((data ?? []) as { id: string }[]).map((p) => p.id).filter((id) => id !== exclude), payload);
+}

@@ -33,3 +33,24 @@ export interface MarketingPostFull extends MarketingPost {
   products: { id: string; name: string }[];
   files: MarketingPostFile[];
 }
+
+/** Something asked of Marketing. */
+export interface MarketingRequest {
+  id: string;
+  title: string;
+  description: string | null;
+  brand_id: string | null;
+  brand_name: string | null;
+  due_on: string | null;
+  status: import('@/lib/marketing').RequestStatus;
+  requested_by: string;
+  requester_name: string | null;
+  post_id: string | null;
+  done_at: string | null;
+  created_at: string;
+}
+
+export interface MarketingRequestFull extends MarketingRequest {
+  comments: { id: string; body: string; author_id: string; author_name: string | null; created_at: string }[];
+  files: (MarketingPostFile & { uploaded_by: string })[];
+}

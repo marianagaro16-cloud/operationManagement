@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, BookOpen, Boxes, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, Megaphone, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, BookOpen, Boxes, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -44,8 +44,11 @@ export function AppShell({
   inboxUnread = 0,
   evaluations = { total: 0, pending: 0 },
   collections = false,
+  marketingNew = 0,
   children,
 }: {
+  /** New requests waiting for Marketing; a count on its entry. */
+  marketingNew?: number;
   /** On the collections team: the Cobranza entry. */
   collections?: boolean;
   profile: Profile;
@@ -158,6 +161,8 @@ export function AppShell({
     ...(canReadMarketing(role, profile.team as Team)
       ? [{ href: '/marketing', label: t('mkt.planTitle'), icon: Megaphone, primary: marketing, group: 'marketing' as const }]
       : []),
+    // Requests to Marketing: anyone asks; Marketing sees the new ones counted.
+    { href: '/marketing/requests', label: t('mktReq.title'), icon: Inbox, primary: false, badge: marketingNew, group: 'marketing' as const },
 
     // ---- the team ----
     // One entry; absences, evaluations and worker files are its tabs.
@@ -206,6 +211,8 @@ export function AppShell({
   };
   const under = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const active = (href: string) =>
+    href === '/marketing' ? pathname.startsWith('/marketing') && !pathname.startsWith('/marketing/requests') :
+    href === '/marketing/requests' ? pathname.startsWith('/marketing/requests') :
     href.startsWith('/calendar?') ? pathname === '/calendar' && href.endsWith(`team=${searchParams.get('team')}`) :
     TABS[href] ? TABS[href].some((tab) => under(tab.href)) : SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
   // The tab row shows on a tab's own screen (and reminders' task list), not on a detail page.

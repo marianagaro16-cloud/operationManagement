@@ -12,3 +12,7 @@ export type PostStatus = (typeof POST_STATUSES)[number];
 
 export const POST_CHANNELS = ['instagram', 'facebook', 'tiktok', 'linkedin', 'newsletter', 'web', 'other'] as const;
 export type PostChannel = (typeof POST_CHANNELS)[number];
+
+export const REQUESTS_BUCKET = 'marketing-requests';
+export const REQUEST_STATUSES = ['new', 'in_progress', 'done', 'cancelled'] as const;
+export type RequestStatus = (typeof REQUEST_STATUSES)[number];
