@@ -1232,6 +1232,7 @@ export const en = {
       gastro: 'Gastro',
       distributor: 'Distributor',
       reseller: 'Reseller',
+      employee: 'Employee',
     },
     brand: 'Brand',
     brandHint: 'Which of our brands this product is sold under.',
