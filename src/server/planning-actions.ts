@@ -238,7 +238,10 @@ const oneOffSchema = z.object({
   team: z.enum(TEAMS),
   /** Each person gets their own copy to complete; none means the whole team's. */
   assignee_ids: z.array(z.string().uuid()).max(50).default([]),
-});
+  /** A production order: the product and how many units. Both or neither. */
+  product_id: z.string().uuid().nullable().default(null),
+  target_quantity: z.number().positive().max(1_000_000).nullable().default(null),
+}).refine((v) => (v.product_id === null) === (v.target_quantity === null), { message: 'production_incomplete' });
 
 export type OneOffInput = z.infer<typeof oneOffSchema>;
 
@@ -258,7 +261,7 @@ export async function createOneOffTask(input: OneOffInput): Promise<ActionResult
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_task' };
   }
-  const { title, description, date, team } = parsed.data;
+  const { title, description, date, team, product_id, target_quantity } = parsed.data;
   const people = [...new Set(parsed.data.assignee_ids)];
   const supabase = createClient();
 
@@ -272,6 +275,8 @@ export async function createOneOffTask(input: OneOffInput): Promise<ActionResult
       is_active: true,
       team,
       starts_on: date,
+      product_id,
+      target_quantity,
     })
     .select('id')
     .single();

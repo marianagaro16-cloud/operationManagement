@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, BookOpen, Boxes, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, BookOpen, Boxes, Factory, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ type NavGroup = 'day' | 'logistics' | 'operation' | 'production' | 'customers' |
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; primary: boolean; badge?: number; group: NavGroup };
 const FOLDED_KEY = 'nav.folded';
 /** Closed to the external (Marketing) account. */
-const EXTERNAL_HIDDEN = ['/orders', '/lot-tracker', '/incidents', '/goods-reception', '/inventory', '/calendar', '/absences', '/hr', '/evaluations', '/collections', '/sales'];
+const EXTERNAL_HIDDEN = ['/production', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/inventory', '/calendar', '/absences', '/hr', '/evaluations', '/collections', '/sales'];
 const NAV_GROUPS: NavGroup[] = ['day', 'logistics', 'operation', 'production', 'customers', 'marketing', 'team', 'manage'];
 const GROUP_LABEL: Record<Exclude<NavGroup, 'manage'>, MessageKey> = {
   day: 'nav.groupDay',
@@ -135,6 +135,10 @@ export function AppShell({
     // future dates, so it belongs to whoever plans work; the Production manager
     // plans only Production's.
     ...activitiesFor('operations'),
+    // Production orders: what is to make and what was made. For planners.
+    ...(plansWork
+      ? [{ href: '/production', label: t('production.navLabel'), icon: Factory, primary: false, group: 'operation' as const }]
+      : []),
     ...activitiesFor('production'),
 
     // ---- customers ----

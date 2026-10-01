@@ -10,6 +10,7 @@ import { Badge, Card, ErrorState } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/button';
 import { localizedTitle, type TranslatableContent } from '@/lib/localized-content';
 import { completeOccurrence } from '@/server/actions';
+import { ProductionDialog } from '@/components/tasks/production-dialog';
 import type { CoverageEntry } from '@/types/absences';
 import { usePermissionLabel } from './coverage-planner';
 
@@ -36,6 +37,8 @@ export function CoveringNowCard({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [done, setDone] = useState<string[]>([]);
+  // A production order of theirs: completed by recording what was made.
+  const [recording, setRecording] = useState<string | null>(null);
   if (periods.length === 0) return null;
 
   const isNow = (c: CoverageEntry) => c.start_time.slice(0, 5) <= now && now < c.end_time.slice(0, 5);
@@ -95,6 +98,7 @@ export function CoveringNowCard({
                               setError(null);
                               startTransition(async () => {
                                 const res = await completeOccurrence(a.id);
+                                if (!res.ok && res.error === 'production_record_required') return setRecording(a.id);
                                 if (!res.ok) return setError(res.error);
                                 setDone((d) => [...d, a.id]);
                                 router.refresh();
@@ -133,6 +137,13 @@ export function CoveringNowCard({
           );
         })}
       </Card>
+      {recording && (
+        <ProductionDialog
+          occurrenceId={recording}
+          onClose={() => setRecording(null)}
+          onDone={() => setDone((d) => [...d, recording])}
+        />
+      )}
     </section>
   );
 }

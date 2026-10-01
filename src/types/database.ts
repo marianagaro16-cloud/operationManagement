@@ -60,6 +60,9 @@ export interface Task {
   is_active: boolean;
   /** Whose work it is. Users see only their team's; corrective actions take their incident's. */
   team: Team;
+  /** A production order: the product and how many units to make. Both or neither. */
+  product_id?: string | null;
+  target_quantity?: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -128,8 +131,10 @@ export interface OccurrenceWithTask extends TaskOccurrence {
   task: Pick<
     Task,
     'id' | 'title' | 'description' | 'frequency' | 'is_skippable' | 'is_active' | 'category_id'
-    | 'translations'
-  > & { category: Pick<Category, 'slug' | 'name'> | null };
+    | 'translations' | 'product_id' | 'target_quantity'
+  > & { category: Pick<Category, 'slug' | 'name'> | null; product?: { name: string } | null };
+  /** What was made, once a production order's day is recorded. */
+  production?: ProductionRecord | null;
   comment_count?: number;
   /** Every comment on this occurrence, shown on the card at all times. */
   comments?: TaskComment[];
@@ -149,3 +154,13 @@ export interface OccurrenceWithTask extends TaskOccurrence {
 }
 
 export type { Frequency, OccurrenceStatus, ScheduleConfig, TaskFrequency };
+
+/** What was made on one day of a production order. */
+export interface ProductionRecord {
+  produced_quantity: number;
+  target_quantity: number;
+  lot_number: string | null;
+  best_before: string | null;
+  shortfall_reason: 'raw_material' | 'packaging' | 'time' | 'damaged' | 'other' | null;
+  shortfall_note: string | null;
+}

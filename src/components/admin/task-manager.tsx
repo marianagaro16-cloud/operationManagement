@@ -19,6 +19,7 @@ import { TEAMS, type Team } from '@/lib/authz';
 import type { Category, Task } from '@/types/database';
 import type { OneOffPerson } from '@/components/calendar/one-off-dialog';
 import { PeoplePicker } from '@/components/tasks/people-picker';
+import { Combobox } from '@/components/ui/combobox';
 import { teamLabelKey } from '@/lib/authz';
 
 type TaskRow = Task & { frequency: Frequency; category: Category | null; assignee_ids: string[] };
@@ -39,6 +40,8 @@ const EMPTY: TaskInput = {
   is_active: true,
   team: 'operations',
   assignee_ids: [],
+  product_id: null,
+  target_quantity: null,
 };
 
 export function TaskManager({
@@ -47,7 +50,10 @@ export function TaskManager({
   ownTeam,
   people,
   reminderViewerId,
+  products = [],
 }: {
+  /** For production orders: what can be made. */
+  products?: { id: string; name: string }[];
   tasks: TaskRow[];
   categories: Category[];
   /** Set when the viewer configures only their own team's activities: the team is fixed. */
@@ -172,6 +178,7 @@ export function TaskManager({
                           </p>
                           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11.5px] text-muted">
                             <span>{teamLabel(task.team)}</span>
+                            {task.product_id && <span className="font-medium text-accent">· {t('production.badge', { quantity: Number(task.target_quantity) })}</span>}
                             {task.assignee_ids.length > 0 && (
                               <span>
                                 ·{' '}
@@ -229,6 +236,7 @@ export function TaskManager({
           categories={categories}
           ownTeam={ownTeam}
           people={people}
+          products={products}
           onClose={() => {
             setCreating(false);
             setEditing(null);
@@ -270,9 +278,11 @@ function TaskDialog({
   categories,
   ownTeam,
   people,
+  products,
   onClose,
   onSaved,
 }: {
+  products: { id: string; name: string }[];
   task: TaskRow | null;
   categories: Category[];
   ownTeam: Team | null;
@@ -295,6 +305,8 @@ function TaskDialog({
           is_active: task.is_active,
           team: task.team,
           assignee_ids: task.assignee_ids,
+          product_id: task.product_id ?? null,
+          target_quantity: task.target_quantity != null ? Number(task.target_quantity) : null,
         }
       : { ...EMPTY, team: ownTeam ?? EMPTY.team },
   );
@@ -302,11 +314,20 @@ function TaskDialog({
   const [pending, startTransition] = useTransition();
 
   const unconfigured = !resolveScheduleConfig(form.frequency, form.schedule_config).ok;
+  // A production order: completed by recording what was made, not by a tick.
+  const [isProduction, setIsProduction] = useState(!!task?.product_id);
+  const [quantity, setQuantity] = useState(task?.target_quantity != null ? String(Number(task.target_quantity)) : '');
+  const productionReady = !isProduction || (!!form.product_id && Number(quantity.replace(',', '.')) > 0);
 
   function submit() {
     setError(null);
     startTransition(async () => {
-      const res = await saveTask(form, task?.id);
+      const res = await saveTask(
+        isProduction
+          ? { ...form, target_quantity: Number(quantity.replace(',', '.')) }
+          : { ...form, product_id: null, target_quantity: null },
+        task?.id,
+      );
       if (!res.ok) return setError(res.error);
       onSaved();
     });
@@ -323,7 +344,7 @@ function TaskDialog({
           <Button variant="ghost" onClick={onClose} disabled={pending}>
             {t('common.cancel')}
           </Button>
-          <Button variant="primary" onClick={submit} loading={pending} disabled={!form.title.trim()}>
+          <Button variant="primary" onClick={submit} loading={pending} disabled={!form.title.trim() || !productionReady}>
             {t('common.save')}
           </Button>
         </>
@@ -405,6 +426,33 @@ function TaskDialog({
             ))}
           </Select>
         </Field>
+
+        <div className="space-y-2 rounded-lg border border-border p-3">
+          <Checkbox
+            label={t('production.isOrder')}
+            checked={isProduction}
+            onChange={(e) => setIsProduction(e.target.checked)}
+          />
+          {isProduction && (
+            <div className="grid grid-cols-[1fr_7rem] gap-2">
+              <Field label={t('production.product')} required htmlFor="task-product">
+                <Combobox
+                  id="task-product"
+                  items={products}
+                  value={form.product_id ?? null}
+                  onChange={(id) => setForm({ ...form, product_id: id })}
+                  getKey={(p) => p.id}
+                  getLabel={(p) => p.name}
+                  getSearchText={(p) => p.name}
+                />
+              </Field>
+              <Field label={t('production.quantity')} required htmlFor="task-qty">
+                <Input id="task-qty" inputMode="decimal" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="tabular" />
+              </Field>
+            </div>
+          )}
+          {isProduction && <p className="text-[12px] text-muted">{t('production.isOrderHint')}</p>}
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('admin.taskCategory')} htmlFor="task-cat">

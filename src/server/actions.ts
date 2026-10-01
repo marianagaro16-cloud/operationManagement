@@ -30,6 +30,8 @@ function fail(error: unknown): { ok: false; error: string } {
     : String(error);
   // Map the RPC's error codes to stable, translatable identifiers.
   if (message.includes('skip_reason_required')) return { ok: false, error: 'skip_reason_required' };
+  // A production order is completed by recording what was made: the screen opens that instead.
+  if (message.includes('production_record_required')) return { ok: false, error: 'production_record_required' };
   if (message.includes('block_reason_required')) return { ok: false, error: 'block_reason_required' };
   if (message.includes('task_not_skippable')) return { ok: false, error: 'task_not_skippable' };
   if (message.includes('not_authorized')) return { ok: false, error: 'not_authorized' };
@@ -152,7 +154,10 @@ const taskInputSchema = z.object({
   team: z.enum(TEAMS).default('operations'),
   /** Who does it; each gets their own copy of every day. None = shared by the team. */
   assignee_ids: z.array(z.string().uuid()).max(50).default([]),
-});
+  /** A production order: the product and how many units. Both or neither. */
+  product_id: z.string().uuid().nullable().default(null),
+  target_quantity: z.number().positive().max(1_000_000).nullable().default(null),
+}).refine((v) => (v.product_id === null) === (v.target_quantity === null), { message: 'production_incomplete' });
 
 export type TaskInput = z.infer<typeof taskInputSchema>;
 

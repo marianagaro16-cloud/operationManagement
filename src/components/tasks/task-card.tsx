@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { DateTime } from 'luxon';
-import { Ban, Check, MessageSquare, RotateCcw, SkipForward, TriangleAlert } from 'lucide-react';
+import { Ban, Check, Factory, MessageSquare, RotateCcw, SkipForward, TriangleAlert } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { BUSINESS_TZ } from '@/lib/datetime';
@@ -16,6 +16,7 @@ import { localizedTitle, localizedDescription } from '@/lib/localized-content';
 import { SkipDialog } from './skip-dialog';
 import { BlockDialog } from './block-dialog';
 import { CommentComposer, TaskComments } from './comment-thread';
+import { ProductionDialog, ProductionSummary } from './production-dialog';
 import type { OccurrenceWithTask } from '@/types/database';
 
 interface Props {
@@ -35,6 +36,11 @@ export function TaskCard({ occurrence, today, showDueDate, showAssignee, canSkip
   const [skipOpen, setSkipOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  // A production order: completed by recording what was made.
+  const [recording, setRecording] = useState(false);
+  const production = occurrence.task.product_id && occurrence.task.target_quantity
+    ? { product_name: occurrence.task.product?.name ?? '—', target_quantity: Number(occurrence.task.target_quantity), record: occurrence.production ?? null }
+    : null;
   const [error, setError] = useState<string | null>(null);
 
   // Optimistic: the card flips immediately, then reconciles with the server.
@@ -173,13 +179,27 @@ export function TaskCard({ occurrence, today, showDueDate, showAssignee, canSkip
           </div>
         )}
 
+        {production && !production.record && (
+          <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-accent/10 px-2 py-0.5 text-[12px] font-medium text-accent">
+            <Factory className="h-3.5 w-3.5" aria-hidden />
+            {t('production.target', { target: production.target_quantity, product: production.product_name })}
+          </p>
+        )}
+        {production?.record && <ProductionSummary record={production.record} />}
+
         {/* Comments, always visible and in the note colour. */}
         <TaskComments comments={occurrence.comments ?? []} />
 
         {error && <div className="mt-2"><ErrorState message={error} /></div>}
 
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-          {!resolved && (
+          {!resolved && production && (
+            <Button size="sm" variant="success" onClick={() => setRecording(true)} disabled={pending}>
+              <Factory className="h-3.5 w-3.5" aria-hidden />
+              {t('production.record')}
+            </Button>
+          )}
+          {!resolved && !production && (
             <Button
               size="sm"
               variant="success"
@@ -228,6 +248,10 @@ export function TaskCard({ occurrence, today, showDueDate, showAssignee, canSkip
             {t('task.comment')}
           </Button>
         </div>
+
+        {recording && production && (
+          <ProductionDialog occurrenceId={occurrence.id} known={production} onClose={() => setRecording(false)} />
+        )}
 
         {commentsOpen && (
           <CommentComposer

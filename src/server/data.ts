@@ -30,9 +30,11 @@ const OCCURRENCE_SELECT = `
   assignee_id, assignee_manual, covered_assignment_id, completed_by, completed_at, skipped_by, skipped_at, skip_reason,
   created_at, updated_at,
   task:tasks!inner (
-    id, title, description, frequency, is_skippable, is_active, category_id, translations,
-    category:categories ( slug, name )
+    id, title, description, frequency, is_skippable, is_active, category_id, translations, product_id, target_quantity,
+    category:categories ( slug, name ),
+    product:products ( name )
   ),
+  production:production_records ( produced_quantity, target_quantity, lot_number, best_before, shortfall_reason, shortfall_note ),
   comments:task_comments ( id, body, created_at, author:profiles!task_comments_user_id_fkey ( name, email ) )
 `;
 

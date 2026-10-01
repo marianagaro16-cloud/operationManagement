@@ -8,6 +8,7 @@ import { TEAMS, type Team } from '@/lib/authz';
 import { BUSINESS_TZ, businessToday, toBusinessDate } from '@/lib/datetime';
 import { CalendarView } from '@/components/calendar/calendar-view';
 import { CalendarHeading } from '@/components/calendar/calendar-heading';
+import { getProducts } from '@/server/orders';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -41,7 +42,7 @@ export default async function CalendarPage({
   // generate for it.
   await ensureCalendarWindow(from, to);
 
-  const [occurrences, inventories, tasks, templates, users, pausedTeams] = await Promise.all([
+  const [occurrences, inventories, tasks, templates, users, pausedTeams, products] = await Promise.all([
     getOccurrencesInRange(from, to, team),
     // A month of a calendar cannot hold more than this, and the planner needs
     // them all rather than a first page. Inventories are the warehouse's: not on
@@ -53,6 +54,8 @@ export default async function CalendarPage({
     getUsers(),
     // A paused team's activities cannot go on the calendar, so they are not offered.
     getPausedActivityTeams(),
+    // What a one-off production order can make.
+    getProducts(),
   ]);
   const activityTeams = TEAMS.filter((tm) => !pausedTeams.includes(tm) && (!team || tm === team));
 
@@ -87,6 +90,7 @@ export default async function CalendarPage({
         activityTeams={activityTeams}
         // A one-off may be planned even for a paused team; recurring work may not.
         oneOffTeams={TEAMS.filter((tm) => !team || tm === team)}
+        products={products.map((p) => ({ id: p.id, name: p.name ?? '—' }))}
         month={toBusinessDate(anchor)}
         today={today}
       />

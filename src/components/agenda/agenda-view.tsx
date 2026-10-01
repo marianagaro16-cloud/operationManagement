@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge, Card, EmptyState, ErrorState, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { completeOccurrence } from '@/server/actions';
+import { ProductionDialog } from '@/components/tasks/production-dialog';
 import { setPersonalTaskStatus } from '@/server/reminder-actions';
 import { answerMeeting } from '@/server/meeting-actions';
 import type { AgendaItem, AgendaKind } from '@/types/agenda';
@@ -305,10 +306,12 @@ export function Entry({ item: i, kinds, compact = false }: { item: AgendaItem; k
                 ? i.detail
                 : null;
 
+  const [recording, setRecording] = useState(false);
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, hide = true) => {
     setError(null);
     startTransition(async () => {
       const res = await fn();
+      if (!res.ok && res.error === 'production_record_required') return setRecording(true);
       if (!res.ok) return setError(res.error ?? '');
       if (hide) setGone(true);
       router.refresh();
@@ -334,6 +337,7 @@ export function Entry({ item: i, kinds, compact = false }: { item: AgendaItem; k
     <div className={cn('border-l-2', TONE[i.kind], compact ? 'rounded-lg border border-l-2 border-border bg-surface-2/40 px-2 py-1.5' : 'px-3.5 py-2.5')}>
       {i.href ? <Link href={i.href} className="block hover:text-accent">{body}</Link> : <div>{body}</div>}
       {error && <div className="mt-1"><ErrorState message={error} /></div>}
+      {recording && <ProductionDialog occurrenceId={i.id} onClose={() => setRecording(false)} onDone={() => setGone(true)} />}
       {!done && i.action === 'complete_activity' && (
         <Button size="sm" variant="secondary" className={cn('mt-1', compact && 'h-6 px-2 text-[11px]')} loading={pending} onClick={() => run(() => completeOccurrence(i.id))}>
           <Check className="h-3 w-3" aria-hidden />

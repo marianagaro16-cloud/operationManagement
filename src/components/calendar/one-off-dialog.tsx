@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { Checkbox, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { Combobox } from '@/components/ui/combobox';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { createOneOffTask } from '@/server/planning-actions';
 import { PeoplePicker } from '@/components/tasks/people-picker';
@@ -37,7 +38,10 @@ export function OneOffDialog({
   people,
   defaultTeam,
   teams,
+  products = [],
 }: {
+  /** What a production order can make. */
+  products?: { id: string; name: string }[];
   open: boolean;
   onClose: () => void;
   /** The day it is placed on — the one selected in the calendar. */
@@ -56,6 +60,13 @@ export function OneOffDialog({
   // A person of a paused team would take the activity into that team.
   const eligible = people.filter((p) => teams.includes(p.team));
   const [assignees, setAssignees] = useState<string[]>([]);
+  // A production order: a product and how many units; recorded when done.
+  const [isProduction, setIsProduction] = useState(false);
+  const [productId, setProductId] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState('');
+  const amount = Number(quantity.replace(',', '.'));
+  const productionReady = !isProduction || (!!productId && amount > 0);
+  const productName = products.find((p) => p.id === productId)?.name ?? '';
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -74,7 +85,10 @@ export function OneOffDialog({
     setError(null);
     startTransition(async () => {
       const res = await createOneOffTask({
-        title,
+        // A production order without a title is named after what it makes.
+        title: title.trim() || (isProduction ? t('production.defaultTitle', { quantity: amount, product: productName }) : ''),
+        product_id: isProduction ? productId : null,
+        target_quantity: isProduction ? amount : null,
         description: notes.trim() || null,
         date,
         team,
@@ -90,7 +104,7 @@ export function OneOffDialog({
         );
         return;
       }
-      setTitle(''); setNotes(''); setAssignees([]);
+      setTitle(''); setNotes(''); setAssignees([]); setIsProduction(false); setProductId(null); setQuantity('');
       onClose();
       router.refresh();
     });
@@ -104,7 +118,7 @@ export function OneOffDialog({
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
-          <Button variant="primary" onClick={submit} loading={pending} disabled={!title.trim()}>
+          <Button variant="primary" onClick={submit} loading={pending} disabled={!(title.trim() || isProduction) || !productionReady}>
             {t('common.save')}
           </Button>
         </>
@@ -115,7 +129,31 @@ export function OneOffDialog({
           {t('plan.oneOffHint', { date: formatDate(date, 'weekday') })}
         </p>
 
-        <Field label={t('plan.oneOffTitle')} required htmlFor="oneoff-title">
+        {products.length > 0 && (
+          <div className="space-y-2 rounded-lg border border-border p-3">
+            <Checkbox label={t('production.isOrder')} checked={isProduction} onChange={(e) => setIsProduction(e.target.checked)} />
+            {isProduction && (
+              <div className="grid grid-cols-[1fr_7rem] gap-2">
+                <Field label={t('production.product')} required htmlFor="oneoff-product">
+                  <Combobox
+                    id="oneoff-product"
+                    items={products}
+                    value={productId}
+                    onChange={setProductId}
+                    getKey={(p) => p.id}
+                    getLabel={(p) => p.name}
+                    getSearchText={(p) => p.name}
+                  />
+                </Field>
+                <Field label={t('production.quantity')} required htmlFor="oneoff-qty">
+                  <Input id="oneoff-qty" inputMode="decimal" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="tabular" />
+                </Field>
+              </div>
+            )}
+          </div>
+        )}
+
+        <Field label={t('plan.oneOffTitle')} required={!isProduction} htmlFor="oneoff-title">
           <Input id="oneoff-title" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
         </Field>
 

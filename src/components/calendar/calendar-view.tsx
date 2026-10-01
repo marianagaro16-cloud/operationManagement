@@ -53,7 +53,10 @@ export function CalendarView({
   today,
   team,
   oneOffTeams,
+  products = [],
 }: {
+  /** What a production order can make. */
+  products?: { id: string; name: string }[];
   /** Teams a one-off may belong to — a paused team's too. */
   oneOffTeams: readonly Team[];
   /** The area this calendar shows, kept when moving between months. */
@@ -420,6 +423,7 @@ export function CalendarView({
           people={people}
           defaultTeam={viewerTeam}
           teams={oneOffTeams}
+          products={products}
         />
       )}
 
