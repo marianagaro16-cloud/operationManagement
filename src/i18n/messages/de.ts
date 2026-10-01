@@ -252,6 +252,8 @@ export const de: Messages = {
     needsConfig: 'Zeitplan-Konfiguration erforderlich',
     tasksTitle: 'Aufgabendefinitionen',
     tasksSubtitle: 'Die Stammliste. Das Bearbeiten einer Definition ändert vergangene Vorkommen nie.',
+    noActivitiesInArea: 'Keine aktiven Aktivitäten in diesem Bereich.',
+    inactiveActivities: 'Inaktiv ({count})',
     newTask: 'Neue Aufgabe',
     editTask: 'Aufgabe bearbeiten',
     taskTitle: 'Titel',

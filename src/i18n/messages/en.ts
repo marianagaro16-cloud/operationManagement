@@ -254,6 +254,8 @@ export const en = {
     needsConfig: 'Scheduling configuration required',
     tasksTitle: 'Task definitions',
     tasksSubtitle: 'The master list. Editing a definition never changes past occurrences.',
+    noActivitiesInArea: 'No active activities in this area.',
+    inactiveActivities: 'Inactive ({count})',
     newTask: 'New task',
     editTask: 'Edit task',
     taskTitle: 'Title',

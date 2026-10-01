@@ -252,6 +252,8 @@ export const es: Messages = {
     needsConfig: 'Configuración de programación requerida',
     tasksTitle: 'Definiciones de actividades',
     tasksSubtitle: 'La lista maestra. Editar una definición nunca cambia las ocurrencias pasadas.',
+    noActivitiesInArea: 'Ninguna actividad activa en esta área.',
+    inactiveActivities: 'Inactivas ({count})',
     newTask: 'Nueva actividad',
     editTask: 'Editar actividad',
     taskTitle: 'Título',

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Pencil, Plus } from 'lucide-react';
+import { DateTime, Info } from 'luxon';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -63,7 +64,7 @@ export function TaskManager({
   /** Null when the viewer cannot use reminders; the row button then renders nothing. */
   reminderViewerId: string | null;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const teamLabel = useTeamLabel();
   const router = useRouter();
   const params = useSearchParams();
@@ -71,7 +72,14 @@ export function TaskManager({
   const [editing, setEditing] = useState<TaskRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [confirm, setConfirm] = useState<TaskRow | null>(null);
-  const [filter, setFilter] = useState<Frequency | 'all'>('all');
+  // Each area of work has its own space: a tab, its activities in one list.
+  const areas = useMemo(() => {
+    const present = new Set(tasks.map((x) => x.team));
+    const base: Team[] = ownTeam ? [ownTeam] : ['logistics', 'operations', 'production'];
+    return [...base, ...TEAMS.filter((tm) => present.has(tm) && !base.includes(tm))];
+  }, [tasks, ownTeam]);
+  const [area, setArea] = useState<Team>(() => (ownTeam ?? 'operations'));
+  const [showInactive, setShowInactive] = useState(false);
   const [pending, startTransition] = useTransition();
 
   // Deep link from the configuration-health card: /admin/tasks?edit=<id>
@@ -79,43 +87,97 @@ export function TaskManager({
     const id = params.get('edit');
     if (!id) return;
     const target = tasks.find((x) => x.id === id);
-    if (target) setEditing(target);
+    if (target) {
+      setArea(target.team);
+      setEditing(target);
+    }
   }, [params, tasks]);
 
-  const counts = useMemo(() => {
-    const map = new Map<Frequency, number>();
-    for (const task of tasks) map.set(task.frequency, (map.get(task.frequency) ?? 0) + 1);
-    return map;
-  }, [tasks]);
+  const inArea = tasks.filter((x) => x.team === area);
+  const byTitle = (a: TaskRow, b: TaskRow) => a.title.localeCompare(b.title, 'es');
+  const active = inArea.filter((x) => x.is_active).sort(byTitle);
+  const inactive = inArea.filter((x) => !x.is_active).sort(byTitle);
 
-  const visible = filter === 'all' ? tasks : tasks.filter((x) => x.frequency === filter);
-
-  // `tasks` arrives already ordered by frequency, so grouping is one pass.
-  const groups: { key: Frequency; items: TaskRow[] }[] = [];
-  for (const task of visible) {
-    const last = groups[groups.length - 1];
-    if (last && last.key === task.frequency) last.items.push(task);
-    else groups.push({ key: task.frequency, items: [task] });
-  }
+  // "Semanal · jue", "Diaria", "Mensual": how often, on the row itself.
+  const when = (task: TaskRow) => {
+    const freq = t(`frequency.${task.frequency}` as 'frequency.daily');
+    const config = task.schedule_config as ScheduleConfig | null;
+    const weekday = (n: number) => Info.weekdays('short', { locale })[n - 1];
+    if (config?.kind === 'weekly') return `${freq} · ${weekday(config.weekday)}`;
+    if (config?.kind === 'biweekly' && config.anchorDate) return `${freq} · ${weekday(DateTime.fromISO(config.anchorDate).weekday)}`;
+    if (config?.kind === 'daily' && config.weekdays?.length) return `${freq} · ${config.weekdays.map(weekday).join(', ')}`;
+    return freq;
+  };
 
   const open = creating || editing !== null;
 
-  const chip = (key: Frequency | 'all', label: string, count: number) => (
-    <button
-      key={key}
-      onClick={() => setFilter(key)}
-      aria-pressed={filter === key}
-      className={cn(
-        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors',
-        filter === key
-          ? 'border-accent bg-accent/10 text-accent'
-          : 'border-border bg-surface text-muted hover:text-fg',
-      )}
-    >
-      {label}
-      <span className="tabular text-[11.5px] opacity-70">{count}</span>
-    </button>
-  );
+  const renderRow = (task: TaskRow) => {
+    const configured = resolveScheduleConfig(task.frequency, task.schedule_config).ok;
+    return (
+      <li
+        key={task.id}
+        className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-2.5"
+      >
+        {/* Title block: takes the row on phones, shares it from sm up.
+            min-w-0 keeps a long title inside the card; it WRAPS
+            rather than truncating, because titles run to 98
+            characters and an ellipsis with a hover tooltip is no
+            answer on the phone this is read on. */}
+        <div className="min-w-0 flex-1 basis-full sm:basis-0">
+          <p
+            className={cn(
+              'break-words text-[13.5px]',
+              !task.is_active && 'text-muted line-through',
+            )}
+          >
+            {task.title}
+          </p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11.5px] text-muted">
+            <span>{when(task)}</span>
+            {task.product_id && <span className="font-medium text-accent">· {t('production.badge', { quantity: Number(task.target_quantity) })}</span>}
+            {task.assignee_ids.length > 0 && (
+              <span>
+                ·{' '}
+                {task.assignee_ids
+                  .map((id) => people.find((p) => p.id === id)?.name ?? '—')
+                  .join(', ')}
+              </span>
+            )}
+            {task.category && <span>· {task.category.name}</span>}
+            {task.is_skippable && <span>· {t('task.skip')}</span>}
+            {!configured && task.is_active && (
+              <span className="inline-flex items-center gap-1 text-warn">
+                · <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
+                {t('admin.needsConfig')}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          <Badge tone={task.is_active ? 'done' : 'neutral'}>
+            {task.is_active ? t('status.active') : t('status.inactive')}
+          </Badge>
+          <QuickReminderButton
+            viewerId={reminderViewerId}
+            variant="ghost"
+            link={{ type: 'task', id: task.id, label: task.title }}
+          />
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setEditing(task)}
+            aria-label={t('common.edit')}
+          >
+            <Pencil className="h-3.5 w-3.5" aria-hidden />
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setConfirm(task)}>
+            {task.is_active ? t('admin.deactivate') : t('admin.activate')}
+          </Button>
+        </div>
+      </li>
+    );
+  };
 
   return (
     <>
@@ -130,103 +192,50 @@ export function TaskManager({
         }
       />
 
-      {/* Filter by frequency. Scrolls horizontally on phones. */}
-      <div className="-mx-4 mb-3 overflow-x-auto px-4">
-        <div className="flex min-w-max gap-1.5">
-          {chip('all', t('common.all'), tasks.length)}
-          {FREQUENCIES.map((f) =>
-            chip(f, t(`frequency.${f}` as 'frequency.daily'), counts.get(f) ?? 0),
-          )}
-        </div>
-      </div>
-
-      {visible.length === 0 ? (
-        <EmptyState title={t('stats.noData')} />
-      ) : (
-        <div className="space-y-4">
-          {groups.map((group) => (
-            <section key={group.key}>
-              <h2 className="mb-1.5 flex items-baseline justify-between gap-2 px-0.5">
-                <span className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">
-                  {t(`frequency.${group.key}` as 'frequency.daily')}
-                </span>
-                <span className="text-[11.5px] tabular text-subtle">{group.items.length}</span>
-              </h2>
-
-              <Card className="overflow-hidden">
-                <ul className="divide-y divide-border">
-                  {group.items.map((task) => {
-                    const configured = resolveScheduleConfig(task.frequency, task.schedule_config).ok;
-                    return (
-                      <li
-                        key={task.id}
-                        className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-2.5"
-                      >
-                        {/* Title block: takes the row on phones, shares it from sm up.
-                            min-w-0 keeps a long title inside the card; it WRAPS
-                            rather than truncating, because titles run to 98
-                            characters and an ellipsis with a hover tooltip is no
-                            answer on the phone this is read on. */}
-                        <div className="min-w-0 flex-1 basis-full sm:basis-0">
-                          <p
-                            className={cn(
-                              'break-words text-[13.5px]',
-                              !task.is_active && 'text-muted line-through',
-                            )}
-                          >
-                            {task.title}
-                          </p>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11.5px] text-muted">
-                            <span>{teamLabel(task.team)}</span>
-                            {task.product_id && <span className="font-medium text-accent">· {t('production.badge', { quantity: Number(task.target_quantity) })}</span>}
-                            {task.assignee_ids.length > 0 && (
-                              <span>
-                                ·{' '}
-                                {task.assignee_ids
-                                  .map((id) => people.find((p) => p.id === id)?.name ?? '—')
-                                  .join(', ')}
-                              </span>
-                            )}
-                            {task.category && <span>· {task.category.name}</span>}
-                            {task.is_skippable && <span>· {t('task.skip')}</span>}
-                            {!configured && task.is_active && (
-                              <span className="inline-flex items-center gap-1 text-warn">
-                                · <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
-                                {t('admin.needsConfig')}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="ml-auto flex shrink-0 items-center gap-1">
-                          <Badge tone={task.is_active ? 'done' : 'neutral'}>
-                            {task.is_active ? t('status.active') : t('status.inactive')}
-                          </Badge>
-                          <QuickReminderButton
-                            viewerId={reminderViewerId}
-                            variant="ghost"
-                            link={{ type: 'task', id: task.id, label: task.title }}
-                          />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setEditing(task)}
-                            aria-label={t('common.edit')}
-                          >
-                            <Pencil className="h-3.5 w-3.5" aria-hidden />
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => setConfirm(task)}>
-                            {task.is_active ? t('admin.deactivate') : t('admin.activate')}
-                          </Button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </Card>
-            </section>
+      {/* One tab per area of work. */}
+      {areas.length > 1 && (
+        <div className="-mt-2 mb-3 flex gap-1 overflow-x-auto border-b border-border">
+          {areas.map((tm) => (
+            <button
+              key={tm}
+              type="button"
+              onClick={() => { setArea(tm); setShowInactive(false); }}
+              className={cn(
+                '-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium transition-colors',
+                area === tm ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
+              )}
+            >
+              {teamLabel(tm)}
+              <span className="ml-1.5 text-[11px] tabular text-subtle">{tasks.filter((x) => x.team === tm && x.is_active).length}</span>
+            </button>
           ))}
         </div>
+      )}
+
+      {active.length === 0 ? (
+        <EmptyState title={t('admin.noActivitiesInArea')} />
+      ) : (
+        <Card className="overflow-hidden">
+          <ul className="divide-y divide-border">{active.map(renderRow)}</ul>
+        </Card>
+      )}
+
+      {inactive.length > 0 && (
+        <section className="mt-5">
+          <button
+            type="button"
+            onClick={() => setShowInactive((v) => !v)}
+            aria-expanded={showInactive}
+            className="mb-1.5 text-[12.5px] font-semibold text-muted hover:text-fg"
+          >
+            {t('admin.inactiveActivities', { count: inactive.length })}
+          </button>
+          {showInactive && (
+            <Card className="overflow-hidden">
+              <ul className="divide-y divide-border">{inactive.map(renderRow)}</ul>
+            </Card>
+          )}
+        </section>
       )}
 
       {open && (
@@ -235,6 +244,7 @@ export function TaskManager({
           task={editing}
           categories={categories}
           ownTeam={ownTeam}
+          defaultTeam={area}
           people={people}
           products={products}
           onClose={() => {
@@ -277,11 +287,14 @@ function TaskDialog({
   task,
   categories,
   ownTeam,
+  defaultTeam,
   people,
   products,
   onClose,
   onSaved,
 }: {
+  /** The area whose tab is open: a new activity starts there. */
+  defaultTeam: Team;
   products: { id: string; name: string }[];
   task: TaskRow | null;
   categories: Category[];
@@ -308,7 +321,7 @@ function TaskDialog({
           product_id: task.product_id ?? null,
           target_quantity: task.target_quantity != null ? Number(task.target_quantity) : null,
         }
-      : { ...EMPTY, team: ownTeam ?? EMPTY.team },
+      : { ...EMPTY, team: ownTeam ?? defaultTeam },
   );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
