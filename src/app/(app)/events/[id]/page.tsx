@@ -4,6 +4,8 @@ import { getEvent, getEventCustomers, getEventLists, getStaffCandidates } from '
 import { getSalesPeople } from '@/server/sales';
 import { getDeliveryMethods, getProducts } from '@/server/orders';
 import { EventView } from '@/components/events/event-view';
+import { EventPosts } from '@/components/marketing/marketing-parts';
+import { getEventPosts } from '@/server/marketing';
 import { isMarketing, isSales } from '@/lib/authz';
 import { EventsReadOnlyProvider } from '@/components/events/event-parts';
 import { businessToday } from '@/lib/datetime';
@@ -25,6 +27,8 @@ export default async function EventPage({ params }: { params: { id: string } }) 
     getProducts(true),
     getDeliveryMethods(true),
   ]);
+  // The content plan's posts about this event; RLS returns none to whoever cannot read the plan.
+  const posts = found ? await getEventPosts(params.id) : [];
   if (!found) notFound();
 
   return (
@@ -38,6 +42,7 @@ export default async function EventPage({ params }: { params: { id: string } }) 
         methods={methods}
         today={businessToday()}
       />
+      <EventPosts posts={posts} />
     </EventsReadOnlyProvider>
   );
 }

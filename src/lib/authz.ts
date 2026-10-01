@@ -43,6 +43,16 @@ export function isExternal(role: Role, team: Team): boolean {
   return team === 'marketing' && role === 'user';
 }
 
+/** Writes the content plan: Marketing, Admin and Owners. Mirrors can_edit_marketing(). */
+export function canEditMarketing(role: Role, team: Team): boolean {
+  return team === 'marketing' || role === 'admin' || role === 'owner';
+}
+
+/** Reads it: those, Sales and Managers. Mirrors can_read_marketing(). */
+export function canReadMarketing(role: Role, team: Team): boolean {
+  return canEditMarketing(role, team) || isSales(role, team) || role === 'manager';
+}
+
 /**
  * Sales: whoever is on the Ventas team, and Admin and Owners. Mirrors
  * is_sales() in SQL, which guards the sales section's data.

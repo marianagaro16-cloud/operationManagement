@@ -4490,6 +4490,167 @@ export type Database = {
           },
         ]
       }
+      marketing_post_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string
+          post_id: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type: string
+          post_id: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          post_id?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_post_files_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_post_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_post_products: {
+        Row: {
+          post_id: string
+          product_id: string
+        }
+        Insert: {
+          post_id: string
+          product_id: string
+        }
+        Update: {
+          post_id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_post_products_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_post_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "marketing_post_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_posts: {
+        Row: {
+          brand_id: string | null
+          caption: string | null
+          channels: string[]
+          comments: number | null
+          created_at: string
+          created_by: string | null
+          event_id: string | null
+          id: string
+          likes: number | null
+          planned_on: string | null
+          published_on: string | null
+          reach: number | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          brand_id?: string | null
+          caption?: string | null
+          channels?: string[]
+          comments?: number | null
+          created_at?: string
+          created_by?: string | null
+          event_id?: string | null
+          id?: string
+          likes?: number | null
+          planned_on?: string | null
+          published_on?: string | null
+          reach?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          brand_id?: string | null
+          caption?: string | null
+          channels?: string[]
+          comments?: number | null
+          created_at?: string
+          created_by?: string | null
+          event_id?: string | null
+          id?: string
+          likes?: number | null
+          planned_on?: string | null
+          published_on?: string | null
+          reach?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_posts_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_posts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_posts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_invitees: {
         Row: {
           meeting_id: string
@@ -7882,9 +8043,11 @@ export type Database = {
       }
       can_change_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
       can_change_series: { Args: { p_series_id: string }; Returns: boolean }
+      can_edit_marketing: { Args: never; Returns: boolean }
       can_manage_incident: { Args: { p_incident_id: string }; Returns: boolean }
       can_organize_meetings: { Args: never; Returns: boolean }
       can_plan_coverage: { Args: { p_absence_id: string }; Returns: boolean }
+      can_read_marketing: { Args: never; Returns: boolean }
       can_see_handover: { Args: { p_absence_id: string }; Returns: boolean }
       can_see_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
       can_see_quick_note: { Args: { p_note_id: string }; Returns: boolean }

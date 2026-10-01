@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, BookOpen, Boxes, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, BookOpen, Boxes, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, Megaphone, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { PresenceBeacon } from './presence-beacon';
 import { FormNoteSubmit } from '@/components/ui/enter-to-save';
 import { InboxLink } from './inbox-link';
 import { QuickNoteButton } from '@/components/notes/quick-note-button';
-import { atLeast, can, isExternal, isMarketing, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
+import { atLeast, can, canReadMarketing, isExternal, isMarketing, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 import { opensManagement } from '@/components/admin/sections';
 
@@ -21,16 +21,17 @@ import { opensManagement } from '@/components/admin/sections';
  * Responsive shell: a bottom tab bar on phones (thumb-reachable, since the
  * operators use this on the warehouse floor) and a sidebar from `md` up.
  */
-type NavGroup = 'day' | 'logistics' | 'operation' | 'production' | 'customers' | 'team' | 'manage';
+type NavGroup = 'day' | 'logistics' | 'operation' | 'production' | 'customers' | 'marketing' | 'team' | 'manage';
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; primary: boolean; badge?: number; group: NavGroup };
 const FOLDED_KEY = 'nav.folded';
 /** Closed to the external (Marketing) account. */
 const EXTERNAL_HIDDEN = ['/orders', '/lot-tracker', '/incidents', '/goods-reception', '/inventory', '/calendar', '/absences', '/hr', '/evaluations', '/collections', '/sales'];
-const NAV_GROUPS: NavGroup[] = ['day', 'logistics', 'operation', 'production', 'customers', 'team', 'manage'];
+const NAV_GROUPS: NavGroup[] = ['day', 'logistics', 'operation', 'production', 'customers', 'marketing', 'team', 'manage'];
 const GROUP_LABEL: Record<Exclude<NavGroup, 'manage'>, MessageKey> = {
   day: 'nav.groupDay',
   logistics: 'nav.groupLogistics',
   production: 'nav.groupProduction',
+  marketing: 'nav.groupMarketing',
   operation: 'nav.groupOperation',
   customers: 'nav.groupCustomers',
   team: 'nav.groupTeam',
@@ -152,6 +153,12 @@ export function AppShell({
       ? [{ href: '/collections', label: t('collection.navLabel'), icon: Receipt, primary: false, group: 'customers' as const }]
       : []),
 
+    // ---- marketing ----
+    // The content plan: Marketing, Admin and Owners write; Sales and Managers read.
+    ...(canReadMarketing(role, profile.team as Team)
+      ? [{ href: '/marketing', label: t('mkt.planTitle'), icon: Megaphone, primary: marketing, group: 'marketing' as const }]
+      : []),
+
     // ---- the team ----
     // One entry; absences, evaluations and worker files are its tabs.
     { href: '/absences', label: t('nav.people'), icon: Users, primary: false, badge: evaluations.pending, group: 'team' },
@@ -175,7 +182,7 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/events', '/collections'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/events', '/collections', '/marketing'];
 
   /*
    * Entries that hold several screens as tabs. The tabs keep their own
