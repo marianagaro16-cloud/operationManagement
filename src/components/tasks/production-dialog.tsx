@@ -142,7 +142,7 @@ export function ProductionDialog({
   const amount = Number(produced.replace(',', '.'));
   const valid = produced.trim() !== '' && Number.isFinite(amount) && amount >= 0;
   const short = ctx !== null && valid && amount < ctx.target_quantity;
-  const ready = valid && (!short || reason !== '');
+  const ready = valid && (amount === 0 || bestBefore !== '') && (!short || reason !== '');
 
   function submit() {
     if (!ready) return;
@@ -159,6 +159,7 @@ export function ProductionDialog({
       if (!res.ok) {
         const map: Record<string, MessageKey> = {
           lot_required: 'production.errLot',
+          best_before_required: 'production.errBestBefore',
           reason_required: 'production.errReason',
           not_authorized: 'production.errNotAuthorized',
         };
@@ -195,7 +196,7 @@ export function ProductionDialog({
             <Input id="prod-qty" inputMode="decimal" value={produced} onChange={(e) => setProduced(e.target.value)} autoFocus className="w-32 tabular" />
           </Field>
           {amount > 0 && (
-            <Field label={t('production.bestBefore')} htmlFor="prod-bb">
+            <Field label={t('production.bestBefore')} required htmlFor="prod-bb">
               <Input id="prod-bb" type="date" value={bestBefore} onChange={(e) => setBestBefore(e.target.value)} className="w-auto" />
             </Field>
           )}

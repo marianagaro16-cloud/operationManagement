@@ -24,7 +24,7 @@ const schema = z.object({
   note: z.string().max(2000).nullable(),
 });
 
-const KNOWN = ['lot_required', 'reason_required', 'invalid_quantity', 'not_authorized', 'not_production', 'occurrence_not_found'];
+const KNOWN = ['best_before_required', 'lot_required', 'reason_required', 'invalid_quantity', 'not_authorized', 'not_production', 'occurrence_not_found'];
 
 export async function recordProduction(input: z.input<typeof schema>): Promise<ActionResult> {
   const parsed = schema.safeParse(input);

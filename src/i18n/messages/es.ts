@@ -3259,6 +3259,7 @@ export const es: Messages = {
     errNotAuthorized: 'No puedes cambiar esta solicitud (ya está en proceso, o no es tuya).',
   },
   production: {
+    errBestBefore: 'Falta la fecha de consumo preferente.',
     changeQuantity: 'Cambiar cantidad de este día',
     changeQuantityHint: 'Solo para este día; la cantidad habitual de la orden no cambia.',
     navLabel: 'Órdenes de producción',
