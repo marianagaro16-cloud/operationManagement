@@ -307,7 +307,7 @@ export const de: Messages = {
     statsSubtitle: 'Erledigungsleistung über die Zeit',
     calendarTitle: 'Arbeitsplan',
     calendarTitleTeam: 'Aktivitäten · {team}',
-    calendarPaused: 'Die Aktivitäten dieses Teams sind pausiert: Sie werden erst nach dem Reaktivieren geplant.',
+    calendarPaused: 'Die wiederkehrenden Aktivitäten dieses Teams sind pausiert. Einmalige Aktivitäten können trotzdem geplant werden.',
     calendarSubtitle: 'Aktivitäten und Inventuren der Teams, Tag für Tag',
     settingsTitle: 'Einstellungen',
     generateTitle: 'Vorkommen erzeugen',

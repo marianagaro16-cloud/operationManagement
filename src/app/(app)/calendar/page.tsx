@@ -85,6 +85,8 @@ export default async function CalendarPage({
         viewerTeam={team ?? viewer.profile.team}
         team={team}
         activityTeams={activityTeams}
+        // A one-off may be planned even for a paused team; recurring work may not.
+        oneOffTeams={TEAMS.filter((tm) => !team || tm === team)}
         month={toBusinessDate(anchor)}
         today={today}
       />

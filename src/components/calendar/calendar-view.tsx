@@ -52,7 +52,10 @@ export function CalendarView({
   month,
   today,
   team,
+  oneOffTeams,
 }: {
+  /** Teams a one-off may belong to — a paused team's too. */
+  oneOffTeams: readonly Team[];
   /** The area this calendar shows, kept when moving between months. */
   team?: Team;
   occurrences: OccurrenceWithTask[];
@@ -271,8 +274,8 @@ export function CalendarView({
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-[13px] font-medium capitalize">{formatDate(selected, 'weekday')}</h3>
             <div className="flex flex-wrap gap-1.5">
-              {/* Work that happens once, written and placed in one act. Not for a paused team. */}
-              {activityTeams.length > 0 && (
+              {/* Work that happens once, written and placed in one act. A paused team's too. */}
+              {oneOffTeams.length > 0 && (
                 <Button size="sm" variant="secondary" onClick={() => setOneOffFor(selected)}>
                   <Plus className="h-3.5 w-3.5" aria-hidden />
                   {t('plan.oneOff')}
@@ -416,7 +419,7 @@ export function CalendarView({
           date={oneOffFor}
           people={people}
           defaultTeam={viewerTeam}
-          teams={activityTeams}
+          teams={oneOffTeams}
         />
       )}
 

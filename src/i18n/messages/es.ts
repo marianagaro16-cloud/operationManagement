@@ -307,7 +307,7 @@ export const es: Messages = {
     statsSubtitle: 'Rendimiento de cumplimiento en el tiempo',
     calendarTitle: 'Plan de trabajo',
     calendarTitleTeam: 'Actividades · {team}',
-    calendarPaused: 'Las actividades de este equipo están en pausa: no se planean hasta que se reactiven.',
+    calendarPaused: 'Las actividades recurrentes de este equipo están en pausa. Las actividades puntuales sí se pueden planear.',
     calendarSubtitle: 'Actividades e inventarios de los equipos, día por día',
     settingsTitle: 'Configuración',
     generateTitle: 'Generación de ocurrencias',

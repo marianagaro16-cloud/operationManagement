@@ -309,7 +309,7 @@ export const en = {
     statsSubtitle: 'Completion performance over time',
     calendarTitle: 'Work plan',
     calendarTitleTeam: 'Activities · {team}',
-    calendarPaused: "This team's activities are paused: they are not planned until switched back on.",
+    calendarPaused: "This team's recurring activities are paused. One-off activities can still be planned.",
     calendarSubtitle: 'The teams’ activities and inventories, day by day',
     settingsTitle: 'Settings',
     generateTitle: 'Occurrence generation',
