@@ -71,6 +71,8 @@ export interface Task {
 export interface TaskOccurrence {
   id: string;
   task_id: string;
+  /** A production order's quantity for this day, when it differs from the usual one. */
+  target_quantity?: number | null;
   period_key: string;
   /** The rule's date. Read `effective_due_date` instead — see below. */
   due_date: string;

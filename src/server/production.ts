@@ -31,7 +31,7 @@ export async function getProductionOverview(today: string, until: string, since:
   const [open, made] = await Promise.all([
     supabase
       .from('task_occurrences')
-      .select('id, effective_due_date, assignee_id, task:tasks!inner ( target_quantity, product_id, product:products ( name ) )')
+      .select('id, effective_due_date, assignee_id, target_quantity, task:tasks!inner ( target_quantity, product_id, product:products ( name ) )')
       .not('task.product_id', 'is', null)
       .eq('status', 'pending')
       .lte('effective_due_date', until)
@@ -52,6 +52,7 @@ export async function getProductionOverview(today: string, until: string, since:
     id: string;
     effective_due_date: string;
     assignee_id: string | null;
+    target_quantity: number | null;
     task: { target_quantity: number; product: { name: string } | null };
   }[];
   const ids = [...new Set(openRows.map((r) => r.assignee_id).filter((x): x is string => !!x))];
@@ -67,7 +68,7 @@ export async function getProductionOverview(today: string, until: string, since:
       occurrence_id: r.id,
       due: r.effective_due_date,
       product_name: r.task.product?.name ?? '—',
-      target_quantity: Number(r.task.target_quantity),
+      target_quantity: Number(r.target_quantity ?? r.task.target_quantity),
       assignee_name: r.assignee_id ? names.get(r.assignee_id) ?? null : null,
     })),
     made: ((made.data ?? []) as unknown as (ProductionRecord & {

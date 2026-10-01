@@ -3259,6 +3259,8 @@ export const es: Messages = {
     errNotAuthorized: 'No puedes cambiar esta solicitud (ya está en proceso, o no es tuya).',
   },
   production: {
+    changeQuantity: 'Cambiar cantidad de este día',
+    changeQuantityHint: 'Solo para este día; la cantidad habitual de la orden no cambia.',
     navLabel: 'Órdenes de producción',
     title: 'Órdenes de producción',
     subtitle: 'Lo que hay que producir en las próximas dos semanas y lo producido en los últimos dos meses.',

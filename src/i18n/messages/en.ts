@@ -3291,6 +3291,8 @@ export const en = {
     errNotAuthorized: 'You cannot change this request (already in progress, or not yours).',
   },
   production: {
+    changeQuantity: 'Change this day\'s quantity',
+    changeQuantityHint: 'For this day only; the order\'s usual quantity stays.',
     navLabel: 'Production orders',
     title: 'Production orders',
     subtitle: 'What to make in the next two weeks, and what was made in the last two months.',

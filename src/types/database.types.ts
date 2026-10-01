@@ -6076,6 +6076,74 @@ export type Database = {
           },
         ]
       }
+      production_records: {
+        Row: {
+          best_before: string | null
+          lot_number: string | null
+          occurrence_id: string
+          produced_quantity: number
+          product_id: string
+          recorded_at: string
+          recorded_by: string | null
+          shortfall_note: string | null
+          shortfall_reason: string | null
+          target_quantity: number
+        }
+        Insert: {
+          best_before?: string | null
+          lot_number?: string | null
+          occurrence_id: string
+          produced_quantity: number
+          product_id: string
+          recorded_at?: string
+          recorded_by?: string | null
+          shortfall_note?: string | null
+          shortfall_reason?: string | null
+          target_quantity: number
+        }
+        Update: {
+          best_before?: string | null
+          lot_number?: string | null
+          occurrence_id?: string
+          produced_quantity?: number
+          product_id?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          shortfall_note?: string | null
+          shortfall_reason?: string | null
+          target_quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_records_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: true
+            referencedRelation: "task_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_records_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "production_records_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_records_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           brand_id: string | null
@@ -7804,6 +7872,7 @@ export type Database = {
           skipped_by: string | null
           source: Database["public"]["Enums"]["schedule_source"]
           status: Database["public"]["Enums"]["occurrence_status"]
+          target_quantity: number | null
           task_id: string
           updated_at: string
         }
@@ -7827,6 +7896,7 @@ export type Database = {
           skipped_by?: string | null
           source?: Database["public"]["Enums"]["schedule_source"]
           status?: Database["public"]["Enums"]["occurrence_status"]
+          target_quantity?: number | null
           task_id: string
           updated_at?: string
         }
@@ -7850,6 +7920,7 @@ export type Database = {
           skipped_by?: string | null
           source?: Database["public"]["Enums"]["schedule_source"]
           status?: Database["public"]["Enums"]["occurrence_status"]
+          target_quantity?: number | null
           task_id?: string
           updated_at?: string
         }
@@ -7909,8 +7980,10 @@ export type Database = {
           incident_id: string | null
           is_active: boolean
           is_skippable: boolean
+          product_id: string | null
           schedule_config: Json | null
           starts_on: string | null
+          target_quantity: number | null
           team: Database["public"]["Enums"]["team"]
           title: string
           translations: Json
@@ -7926,8 +7999,10 @@ export type Database = {
           incident_id?: string | null
           is_active?: boolean
           is_skippable?: boolean
+          product_id?: string | null
           schedule_config?: Json | null
           starts_on?: string | null
+          target_quantity?: number | null
           team?: Database["public"]["Enums"]["team"]
           title: string
           translations?: Json
@@ -7943,8 +8018,10 @@ export type Database = {
           incident_id?: string | null
           is_active?: boolean
           is_skippable?: boolean
+          product_id?: string | null
           schedule_config?: Json | null
           starts_on?: string | null
+          target_quantity?: number | null
           team?: Database["public"]["Enums"]["team"]
           title?: string
           translations?: Json
@@ -7970,6 +8047,20 @@ export type Database = {
             columns: ["incident_id"]
             isOneToOne: false
             referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "tasks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -8180,6 +8271,7 @@ export type Database = {
           skipped_by: string | null
           source: Database["public"]["Enums"]["schedule_source"]
           status: Database["public"]["Enums"]["occurrence_status"]
+          target_quantity: number | null
           task_id: string
           updated_at: string
         }
@@ -8276,6 +8368,7 @@ export type Database = {
           skipped_by: string | null
           source: Database["public"]["Enums"]["schedule_source"]
           status: Database["public"]["Enums"]["occurrence_status"]
+          target_quantity: number | null
           task_id: string
           updated_at: string
         }
@@ -8698,6 +8791,14 @@ export type Database = {
         Args: { p_delivery_date: string; p_lead_days: number }
         Returns: string
       }
+      recent_production_lots: {
+        Args: { p_product_id: string }
+        Returns: {
+          best_before: string
+          lot_number: string
+          produced_on: string
+        }[]
+      }
       record_inbox_notification: {
         Args: {
           p_body: string
@@ -8706,6 +8807,17 @@ export type Database = {
           p_title: string
           p_url: string
           p_user_ids: string[]
+        }
+        Returns: undefined
+      }
+      record_production: {
+        Args: {
+          p_best_before: string
+          p_lot: string
+          p_note: string
+          p_occurrence_id: string
+          p_produced: number
+          p_reason: string
         }
         Returns: undefined
       }
@@ -8767,6 +8879,7 @@ export type Database = {
           skipped_by: string | null
           source: Database["public"]["Enums"]["schedule_source"]
           status: Database["public"]["Enums"]["occurrence_status"]
+          target_quantity: number | null
           task_id: string
           updated_at: string
         }
@@ -8880,6 +8993,10 @@ export type Database = {
         Args: { p_occurrence_id: string; p_user_ids: string[] }
         Returns: string[]
       }
+      set_production_target: {
+        Args: { p_occurrence_id: string; p_quantity: number }
+        Returns: undefined
+      }
       set_task_assignees: {
         Args: { p_task_id: string; p_user_ids: string[] }
         Returns: string[]
@@ -8908,6 +9025,7 @@ export type Database = {
           skipped_by: string | null
           source: Database["public"]["Enums"]["schedule_source"]
           status: Database["public"]["Enums"]["occurrence_status"]
+          target_quantity: number | null
           task_id: string
           updated_at: string
         }

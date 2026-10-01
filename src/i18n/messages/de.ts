@@ -3259,6 +3259,8 @@ export const de: Messages = {
     errNotAuthorized: 'Du kannst diese Anfrage nicht ändern (schon in Arbeit oder nicht deine).',
   },
   production: {
+    changeQuantity: 'Menge für diesen Tag ändern',
+    changeQuantityHint: 'Nur für diesen Tag; die übliche Menge bleibt.',
     navLabel: 'Produktionsaufträge',
     title: 'Produktionsaufträge',
     subtitle: 'Was in den nächsten zwei Wochen zu produzieren ist und was in den letzten zwei Monaten produziert wurde.',

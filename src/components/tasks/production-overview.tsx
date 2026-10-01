@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, EmptyState } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import type { MadeProduction, OpenProduction } from '@/server/production';
-import { ProductionDialog, SHORTFALL_LABEL } from './production-dialog';
+import { ProductionDialog, ProductionTargetButton, SHORTFALL_LABEL } from './production-dialog';
 
 const qty = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, ''));
 
@@ -36,8 +36,9 @@ export function ProductionOverview({ open, made, today }: { open: OpenProduction
                     {formatDate(o.due, 'short')}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13.5px] font-medium">
-                      <span className="tabular">{qty(o.target_quantity)} ×</span> {o.product_name}
+                    <p className="flex items-center text-[13.5px] font-medium">
+                      <span className="tabular">{qty(o.target_quantity)} ×</span>&nbsp;{o.product_name}
+                      <ProductionTargetButton occurrenceId={o.occurrence_id} current={o.target_quantity} />
                     </p>
                     <p className="text-[12px] text-muted">{o.assignee_name ?? t('production.shared')}</p>
                   </div>
@@ -67,7 +68,6 @@ export function ProductionOverview({ open, made, today }: { open: OpenProduction
                   <th className="px-3 py-2 font-medium">{t('production.day')}</th>
                   <th className="px-3 py-2 font-medium">{t('production.product')}</th>
                   <th className="px-3 py-2 text-right font-medium">{t('production.unitsShort')}</th>
-                  <th className="px-3 py-2 font-medium">{t('production.lot')}</th>
                   <th className="px-3 py-2 font-medium">{t('production.bestBefore')}</th>
                   <th className="px-3 py-2 font-medium">{t('production.by')}</th>
                 </tr>
@@ -90,7 +90,6 @@ export function ProductionOverview({ open, made, today }: { open: OpenProduction
                       <td className={cn('whitespace-nowrap px-3 py-2 text-right font-semibold tabular', short ? 'text-warn' : 'text-done')}>
                         {qty(Number(m.produced_quantity))} / {qty(Number(m.target_quantity))}
                       </td>
-                      <td className="px-3 py-2 tabular">{m.lot_number ?? '—'}</td>
                       <td className="whitespace-nowrap px-3 py-2 tabular">{m.best_before ? formatDate(m.best_before, 'short') : '—'}</td>
                       <td className="px-3 py-2 text-muted">{m.recorded_by_name ?? '—'}</td>
                     </tr>

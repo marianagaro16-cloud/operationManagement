@@ -16,7 +16,7 @@ import { localizedTitle, localizedDescription } from '@/lib/localized-content';
 import { SkipDialog } from './skip-dialog';
 import { BlockDialog } from './block-dialog';
 import { CommentComposer, TaskComments } from './comment-thread';
-import { ProductionDialog, ProductionSummary } from './production-dialog';
+import { ProductionDialog, ProductionSummary, ProductionTargetButton } from './production-dialog';
 import type { OccurrenceWithTask } from '@/types/database';
 
 interface Props {
@@ -39,7 +39,12 @@ export function TaskCard({ occurrence, today, showDueDate, showAssignee, canSkip
   // A production order: completed by recording what was made.
   const [recording, setRecording] = useState(false);
   const production = occurrence.task.product_id && occurrence.task.target_quantity
-    ? { product_name: occurrence.task.product?.name ?? '—', target_quantity: Number(occurrence.task.target_quantity), record: occurrence.production ?? null }
+    ? {
+        product_name: occurrence.task.product?.name ?? '—',
+        // This day's quantity when set, otherwise the usual one.
+        target_quantity: Number(occurrence.target_quantity ?? occurrence.task.target_quantity),
+        record: occurrence.production ?? null,
+      }
     : null;
   const [error, setError] = useState<string | null>(null);
 
@@ -125,11 +130,6 @@ export function TaskCard({ occurrence, today, showDueDate, showAssignee, canSkip
           </div>
         )}
 
-        {/* Weekly tasks need their completion-window rule made explicit. */}
-        {occurrence.task.frequency === 'weekly' && !resolved && (
-          <p className="mt-1 text-[12px] text-subtle">{t('task.weeklyHint')}</p>
-        )}
-
         {showAssignee && occurrence.assignee_name && (
           <p className="mt-1 text-[12px] text-muted">
             {t('plan.assignee')}: {occurrence.assignee_name}
@@ -183,6 +183,10 @@ export function TaskCard({ occurrence, today, showDueDate, showAssignee, canSkip
           <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-accent/10 px-2 py-0.5 text-[12px] font-medium text-accent">
             <Factory className="h-3.5 w-3.5" aria-hidden />
             {t('production.target', { target: production.target_quantity, product: production.product_name })}
+            {/* Whoever plans sets this day's quantity. */}
+            {canSkip && !resolved && (
+              <ProductionTargetButton occurrenceId={occurrence.id} current={production.target_quantity} />
+            )}
           </p>
         )}
         {production?.record && <ProductionSummary record={production.record} />}

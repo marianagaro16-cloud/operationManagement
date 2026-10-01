@@ -61,13 +61,14 @@ export async function getProductionContext(occurrenceId: string): Promise<Action
   const { data } = await supabase
     .from('task_occurrences')
     .select(
-      'id, effective_due_date, task:tasks!inner ( target_quantity, product:products ( name ) ), production:production_records ( produced_quantity, target_quantity, lot_number, best_before, shortfall_reason, shortfall_note )',
+      'id, effective_due_date, target_quantity, task:tasks!inner ( target_quantity, product:products ( name ) ), production:production_records ( produced_quantity, target_quantity, lot_number, best_before, shortfall_reason, shortfall_note )',
     )
     .eq('id', occurrenceId)
     .maybeSingle();
   const row = data as unknown as {
     id: string;
     effective_due_date: string;
+    target_quantity: number | null;
     task: { target_quantity: number | null; product: { name: string } | null };
     production: ProductionRecord | null;
   } | null;
@@ -77,17 +78,21 @@ export async function getProductionContext(occurrenceId: string): Promise<Action
     data: {
       occurrence_id: row.id,
       product_name: row.task.product?.name ?? '—',
-      target_quantity: Number(row.task.target_quantity),
+      target_quantity: Number(row.target_quantity ?? row.task.target_quantity),
       due_date: row.effective_due_date,
       record: row.production,
     },
   };
 }
 
-/** Lots recently made of a product — offered when preparing an order. */
-export async function getRecentLots(productId: string): Promise<{ lot_number: string; best_before: string | null }[]> {
-  if (!z.string().uuid().safeParse(productId).success) return [];
+/** How many to make on one day — whoever plans work; the usual quantity stays as it is. */
+export async function setProductionTarget(occurrenceId: string, quantity: number): Promise<ActionResult> {
+  if (!z.string().uuid().safeParse(occurrenceId).success || !(quantity > 0) || quantity > 1_000_000) return { ok: false, error: 'invalid_quantity' };
   const supabase = createClient();
-  const { data } = await supabase.rpc('recent_production_lots', { p_product_id: productId });
-  return ((data ?? []) as { lot_number: string; best_before: string | null }[]).map(({ lot_number, best_before }) => ({ lot_number, best_before }));
+  const { error } = await supabase.rpc('set_production_target', { p_occurrence_id: occurrenceId, p_quantity: quantity });
+  if (error) return { ok: false, error: ['not_authorized', 'already_recorded', 'not_production'].find((k) => error.message.includes(k)) ?? error.message };
+  revalidatePath('/dashboard');
+  revalidatePath('/production');
+  revalidatePath('/calendar');
+  return { ok: true, data: undefined };
 }

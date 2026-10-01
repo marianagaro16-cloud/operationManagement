@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import {
   Ban, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Plus, Trash2, UserRound,
 } from 'lucide-react';
-import { getRecentLots } from '@/server/production-actions';
 import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -277,22 +276,12 @@ function PreparationLine({
   /** The order is Ready: its lots are frozen until somebody reopens it. */
   locked: boolean;
 }) {
-  const { t, formatDate } = useI18n();
+  const { t } = useI18n();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [adding, setAdding] = useState(false);
   const [lot, setLot] = useState('');
   const [qty, setQty] = useState('');
-  // The lots recently produced of this product (production orders): one tap instead of typing.
-  const [recentLots, setRecentLots] = useState<{ lot_number: string; best_before: string | null }[]>([]);
-  useEffect(() => {
-    if (!adding) return;
-    let live = true;
-    getRecentLots(line.product.id).then((lots) => live && setRecentLots(lots));
-    return () => {
-      live = false;
-    };
-  }, [adding, line.product.id]);
   const [note, setNote] = useState('');
   const [editingShortfall, setEditingShortfall] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -420,25 +409,6 @@ function PreparationLine({
       {adding ? (
         <SaveOnEnter onSave={submitLot} disabled={pending}>
           <div className="mt-2 space-y-2 rounded-lg border border-border bg-surface-2/40 p-2.5">
-            {recentLots.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11.5px] text-muted">{t('production.recentLots')}</span>
-                {recentLots.map((l) => (
-                  <button
-                    key={l.lot_number}
-                    type="button"
-                    onClick={() => setLot(l.lot_number)}
-                    className={cn(
-                      'rounded-full border px-2.5 py-0.5 text-[12px] tabular',
-                      lot === l.lot_number ? 'border-accent bg-accent/10 font-medium text-accent' : 'border-border text-muted hover:text-fg',
-                    )}
-                  >
-                    {l.lot_number}
-                    {l.best_before && <span className="text-subtle"> · {formatDate(l.best_before, 'short')}</span>}
-                  </button>
-                ))}
-              </div>
-            )}
             <div className="grid grid-cols-2 gap-2">
               <Field label={t('prep.lotNumber')} htmlFor={`lot-${line.id}`} required>
                 <Input

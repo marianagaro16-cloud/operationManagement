@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Factory } from 'lucide-react';
+import { Factory, Pencil } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
-import { getProductionContext, recordProduction, type ProductionContext } from '@/server/production-actions';
+import { getProductionContext, recordProduction, setProductionTarget, type ProductionContext } from '@/server/production-actions';
 import type { ProductionRecord } from '@/types/database';
 
 export const SHORTFALL_LABEL: Record<NonNullable<ProductionRecord['shortfall_reason']>, MessageKey> = {
@@ -22,7 +22,7 @@ export const SHORTFALL_LABEL: Record<NonNullable<ProductionRecord['shortfall_rea
 
 const qty = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, ''));
 
-/** "18 / 20 · Lote 2410A · cad. 01.04.27" — what was made, on the activity. */
+/** "18 / 20 · cad. 01.04.27" — what was made, on the activity. */
 export function ProductionSummary({ record }: { record: ProductionRecord }) {
   const { t, formatDate } = useI18n();
   const short = Number(record.produced_quantity) < Number(record.target_quantity);
@@ -31,7 +31,6 @@ export function ProductionSummary({ record }: { record: ProductionRecord }) {
       <span className={cn('font-semibold tabular', short ? 'text-warn' : 'text-done')}>
         {t('production.produced', { produced: qty(Number(record.produced_quantity)), target: qty(Number(record.target_quantity)) })}
       </span>
-      {record.lot_number && <span className="text-muted"> · {t('production.lot')} {record.lot_number}</span>}
       {record.best_before && <span className="text-muted"> · {t('production.bestBeforeShort', { date: formatDate(record.best_before, 'short') })}</span>}
       {record.shortfall_reason && (
         <span className="text-muted">
@@ -41,6 +40,62 @@ export function ProductionSummary({ record }: { record: ProductionRecord }) {
         </span>
       )}
     </div>
+  );
+}
+
+/** Change how many to make on this one day — whoever plans work. */
+export function ProductionTargetButton({ occurrenceId, current, onDone }: { occurrenceId: string; current: number; onDone?: () => void }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(qty(current));
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const amount = Number(value.replace(',', '.'));
+
+  function save() {
+    if (!(amount > 0)) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await setProductionTarget(occurrenceId, amount);
+      if (!res.ok) return setError(res.error === 'not_authorized' ? t('production.errNotAuthorized') : t('common.error'));
+      setOpen(false);
+      onDone?.();
+      router.refresh();
+    });
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => { setValue(qty(current)); setOpen(true); }}
+        aria-label={t('production.changeQuantity')}
+        title={t('production.changeQuantity')}
+        className="ml-1 rounded p-0.5 text-accent/70 hover:bg-accent/10 hover:text-accent"
+      >
+        <Pencil className="h-3 w-3" aria-hidden />
+      </button>
+      {open && (
+        <Dialog
+          open
+          onClose={() => setOpen(false)}
+          title={t('production.changeQuantity')}
+          description={t('production.changeQuantityHint')}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setOpen(false)} disabled={pending}>{t('common.cancel')}</Button>
+              <Button variant="primary" onClick={save} loading={pending} disabled={!(amount > 0)}>{t('common.save')}</Button>
+            </>
+          }
+        >
+          {error && <div className="mb-2"><ErrorState message={error} /></div>}
+          <Field label={t('production.quantity')} required htmlFor="prod-target">
+            <Input id="prod-target" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} autoFocus className="w-32 tabular" />
+          </Field>
+        </Dialog>
+      )}
+    </>
   );
 }
 
@@ -64,7 +119,6 @@ export function ProductionDialog({
   const [ctx, setCtx] = useState<Omit<ProductionContext, 'occurrence_id' | 'due_date'> | null>(known ?? null);
   const record = ctx?.record ?? null;
   const [produced, setProduced] = useState('');
-  const [lot, setLot] = useState('');
   const [bestBefore, setBestBefore] = useState('');
   const [reason, setReason] = useState<ProductionRecord['shortfall_reason'] | ''>('');
   const [note, setNote] = useState('');
@@ -80,7 +134,6 @@ export function ProductionDialog({
   useEffect(() => {
     if (!ctx) return;
     setProduced(record ? qty(Number(record.produced_quantity)) : qty(ctx.target_quantity));
-    setLot(record?.lot_number ?? '');
     setBestBefore(record?.best_before ?? '');
     setReason(record?.shortfall_reason ?? '');
     setNote(record?.shortfall_note ?? '');
@@ -89,7 +142,7 @@ export function ProductionDialog({
   const amount = Number(produced.replace(',', '.'));
   const valid = produced.trim() !== '' && Number.isFinite(amount) && amount >= 0;
   const short = ctx !== null && valid && amount < ctx.target_quantity;
-  const ready = valid && (amount === 0 || lot.trim() !== '') && (!short || reason !== '');
+  const ready = valid && (!short || reason !== '');
 
   function submit() {
     if (!ready) return;
@@ -98,7 +151,7 @@ export function ProductionDialog({
       const res = await recordProduction({
         occurrence_id: occurrenceId,
         produced: amount,
-        lot: lot.trim() || null,
+        lot: null,
         best_before: bestBefore || null,
         reason: short ? (reason || null) : null,
         note: note.trim() || null,
@@ -142,14 +195,9 @@ export function ProductionDialog({
             <Input id="prod-qty" inputMode="decimal" value={produced} onChange={(e) => setProduced(e.target.value)} autoFocus className="w-32 tabular" />
           </Field>
           {amount > 0 && (
-            <div className="grid grid-cols-2 gap-2">
-              <Field label={t('production.lot')} required htmlFor="prod-lot">
-                <Input id="prod-lot" value={lot} maxLength={80} onChange={(e) => setLot(e.target.value)} />
-              </Field>
-              <Field label={t('production.bestBefore')} htmlFor="prod-bb">
-                <Input id="prod-bb" type="date" value={bestBefore} onChange={(e) => setBestBefore(e.target.value)} />
-              </Field>
-            </div>
+            <Field label={t('production.bestBefore')} htmlFor="prod-bb">
+              <Input id="prod-bb" type="date" value={bestBefore} onChange={(e) => setBestBefore(e.target.value)} className="w-auto" />
+            </Field>
           )}
           {short && (
             <>
