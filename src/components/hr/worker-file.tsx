@@ -17,11 +17,12 @@ import { localizedName, localizedNameDescription } from '@/lib/localized-content
 import { addEvaluation, addNote, recordNoteAttachment } from '@/server/hr-actions';
 import { WorkerDialog, useHrError, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
-import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrNoteType, HrStats, HrWorkerFile } from '@/types/hr';
+import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrLateArrival, HrLateReason, HrNoteType, HrStats, HrWorkerFile } from '@/types/hr';
+import { LateSinceEvaluation, LateTab } from './late-arrivals';
 import { RequestStatus } from './evaluation-parts';
 import { teamLabelKey } from '@/lib/authz';
 
-export type HrTab = 'log' | 'evaluations' | 'app';
+export type HrTab = 'log' | 'late' | 'evaluations' | 'app';
 
 /**
  * One worker's file: who they are, the log, their evaluations, and — when
@@ -40,7 +41,14 @@ export function WorkerFile({
   today,
   evalRequests,
   isAdmin,
+  lateArrivals,
+  lateReasons,
+  viewerId,
 }: {
+  /** Late arrivals, newest first, and the reasons to pick from. */
+  lateArrivals: HrLateArrival[];
+  lateReasons: HrLateReason[];
+  viewerId: string;
   file: HrWorkerFile;
   tab: HrTab;
   noteTypes: HrNoteType[];
@@ -73,6 +81,7 @@ export function WorkerFile({
 
   const tabs: { key: HrTab; label: string; count?: number }[] = [
     { key: 'log', label: t('hr.tabLog'), count: file.notes.length },
+    { key: 'late', label: t('hrLate.tab'), count: lateArrivals.length },
     { key: 'evaluations', label: t('hr.tabEvaluations'), count: file.evaluations.length },
     { key: 'app', label: t('hr.tabApp') },
   ];
@@ -133,6 +142,17 @@ export function WorkerFile({
       </nav>
 
       {tab === 'log' && <LogTab file={file} noteTypes={noteTypes} today={today} />}
+      {tab === 'late' && (
+        <LateTab
+          workerId={worker.id}
+          arrivals={lateArrivals}
+          reasons={lateReasons}
+          viewerId={viewerId}
+          today={today}
+          lastEvaluationOn={file.evaluations[0]?.evaluated_on ?? null}
+        />
+      )}
+      {tab === 'evaluations' && <LateSinceEvaluation arrivals={lateArrivals} since={file.evaluations[0]?.evaluated_on ?? null} />}
       {tab === 'evaluations' && (
         <EvaluationsTab file={file} criteria={criteria} templates={templates} today={today} evalRequests={evalRequests} isAdmin={isAdmin} />
       )}

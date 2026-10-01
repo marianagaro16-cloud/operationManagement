@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { DateTime } from 'luxon';
 import { getUsers, getViewer } from '@/server/data';
-import { getCriteria, getEvalTemplates, getNoteTypes, getWorkerFile, getWorkerStats, getWorkers } from '@/server/hr';
+import { getCriteria, getEvalTemplates, getLateArrivals, getLateReasons, getNoteTypes, getWorkerFile, getWorkerStats, getWorkers } from '@/server/hr';
 import { getWorkerEvalRequests } from '@/server/hr-evaluations';
 import { WorkerFile, type HrTab } from '@/components/hr/worker-file';
 import { displayName } from '@/lib/utils';
@@ -10,7 +10,7 @@ import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
 
-const TABS: HrTab[] = ['log', 'evaluations', 'app'];
+const TABS: HrTab[] = ['log', 'late', 'evaluations', 'app'];
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 export default async function WorkerFilePage({
@@ -39,7 +39,7 @@ export default async function WorkerFilePage({
   const from = searchParams.from && ISO.test(searchParams.from) ? searchParams.from : defaultFrom;
   const to = searchParams.to && ISO.test(searchParams.to) ? searchParams.to : today;
 
-  const [noteTypes, criteria, users, workers, stats, evalRequests, templates] = await Promise.all([
+  const [noteTypes, criteria, users, workers, stats, evalRequests, templates, lateArrivals, lateReasons] = await Promise.all([
     getNoteTypes(),
     getCriteria(),
     getUsers(),
@@ -47,6 +47,9 @@ export default async function WorkerFilePage({
     tab === 'app' && file.worker.profile_id ? getWorkerStats(file.worker.id, from, to) : Promise.resolve(null),
     tab === 'evaluations' ? getWorkerEvalRequests(file.worker.id) : Promise.resolve([]),
     getEvalTemplates(),
+    // Counted on the tab, and summed on Evaluations.
+    getLateArrivals(file.worker.id),
+    tab === 'late' ? getLateReasons() : Promise.resolve([]),
   ]);
 
   // An account can have one file; offer those still free, and this worker's own.
@@ -71,6 +74,9 @@ export default async function WorkerFilePage({
       today={today}
       evalRequests={evalRequests}
       isAdmin={isAdminRole(viewer.role)}
+      lateArrivals={lateArrivals}
+      lateReasons={lateReasons}
+      viewerId={viewer.profile.id}
     />
   );
 }

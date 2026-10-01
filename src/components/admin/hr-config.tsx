@@ -9,14 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { saveCriterion, saveEvalTemplate, saveNoteType } from '@/server/hr-actions';
+import { saveCriterion, saveEvalTemplate, saveLateReason, saveNoteType, setLateAlertThreshold } from '@/server/hr-actions';
 import { TEAMS, type Team } from '@/lib/authz';
 import { localizedName, localizedNameDescription } from '@/lib/localized-content';
-import type { HrCriterion, HrEvalTemplate, HrNoteType, HrTranslations } from '@/types/hr';
+import type { HrCriterion, HrEvalTemplate, HrLateReason, HrNoteType, HrTranslations } from '@/types/hr';
 import { teamLabelKey } from '@/lib/authz';
 
 type Editing =
   | { kind: 'type'; row: HrNoteType | null }
+  | { kind: 'reason'; row: HrLateReason | null }
   | { kind: 'criterion'; row: HrCriterion | null; team: Team; templateId: string | null }
   | { kind: 'template'; row: HrEvalTemplate | null; team: Team };
 
@@ -29,7 +30,12 @@ export function HrConfig({
   noteTypes,
   criteria,
   templates,
+  lateReasons,
+  lateThreshold,
 }: {
+  /** Why someone arrived late, and from how many unexcused in a month HR is told. */
+  lateReasons: HrLateReason[];
+  lateThreshold: number;
   noteTypes: HrNoteType[];
   criteria: HrCriterion[];
   /** Criteria for one job of a team; each has its own list below the team's. */
@@ -72,6 +78,8 @@ export function HrConfig({
           </ul>
         </Card>
       </section>
+
+      <LateSettings reasons={lateReasons} threshold={lateThreshold} onEdit={(row) => setEditing({ kind: 'reason', row })} row={row} />
 
       {TEAMS.map((team) => {
         const list = criteria.filter((c) => c.team === team && !c.template_id);
@@ -171,10 +179,65 @@ export function HrConfig({
   );
 }
 
+/** Late arrivals: the reasons to pick from, and when HR is told about repeats. */
+function LateSettings({
+  reasons,
+  threshold,
+  onEdit,
+  row,
+}: {
+  reasons: HrLateReason[];
+  threshold: number;
+  onEdit: (row: HrLateReason | null) => void;
+  row: (key: string, name: string, active: boolean, extra: string | null, onEdit: () => void) => React.ReactNode;
+}) {
+  const { t, locale } = useI18n();
+  const router = useRouter();
+  const [n, setN] = useState(String(threshold));
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  return (
+    <section className="mb-5">
+      <div className="mb-1.5 flex items-center justify-between gap-2 px-0.5">
+        <h2 className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('hrLate.reasons')}</h2>
+        <Button size="sm" variant="secondary" onClick={() => onEdit(null)}>
+          <Plus className="h-3.5 w-3.5" aria-hidden />
+          {t('hrLate.newReason')}
+        </Button>
+      </div>
+      <Card className="overflow-hidden">
+        <ul className="divide-y divide-border">
+          {reasons.map((r) => row(r.id, localizedName(r, locale), r.is_active, null, () => onEdit(r)))}
+        </ul>
+      </Card>
+      <form
+        className="mt-2 flex flex-wrap items-center gap-2 px-0.5 text-[13px]"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setError(null);
+          startTransition(async () => {
+            const res = await setLateAlertThreshold(Number(n));
+            if (!res.ok) return setError(t('common.error'));
+            router.refresh();
+          });
+        }}
+      >
+        <span>{t('hrLate.alertFrom')}</span>
+        <Input type="number" min={1} max={31} value={n} onChange={(e) => setN(e.target.value)} className="h-8 w-16" aria-label={t('hrLate.alertFrom')} />
+        <span>{t('hrLate.alertPerMonth')}</span>
+        {String(threshold) !== n && (
+          <Button type="submit" size="sm" variant="primary" loading={pending}>{t('common.save')}</Button>
+        )}
+        {error && <span className="text-late">{error}</span>}
+      </form>
+    </section>
+  );
+}
+
 function ListDialog({ editing, onClose }: { editing: Editing; onClose: () => void }) {
   const { t } = useI18n();
   const router = useRouter();
-  const isType = editing.kind === 'type';
+  const isType = editing.kind === 'type' || editing.kind === 'reason';
   const isTemplate = editing.kind === 'template';
   // A name and translations only, like a note type — plus a team for a template.
   const nameOnly = isType || isTemplate;
@@ -182,7 +245,7 @@ function ListDialog({ editing, onClose }: { editing: Editing; onClose: () => voi
   const [description, setDescription] = useState(
     editing.kind === 'criterion' ? editing.row?.description ?? '' : '',
   );
-  const [team, setTeam] = useState<Team>(editing.kind === 'type' ? 'operations' : editing.row?.team ?? editing.team);
+  const [team, setTeam] = useState<Team>(editing.kind === 'type' || editing.kind === 'reason' ? 'operations' : editing.row?.team ?? editing.team);
   const [sortOrder, setSortOrder] = useState(String(editing.row?.sort_order ?? 100));
   const initial: HrTranslations = editing.row?.translations ?? {};
   const [tr, setTr] = useState({
@@ -204,7 +267,9 @@ function ListDialog({ editing, onClose }: { editing: Editing; onClose: () => voi
         en: { name: tr.enName.trim() || null, ...(nameOnly ? {} : { description: tr.enDescription.trim() || null }) },
       };
       const common = { name, translations, sort_order: Number(sortOrder) || 100, is_active: active };
-      const res = isType
+      const res = editing.kind === 'reason'
+        ? await saveLateReason(common, editing.row?.id)
+        : isType
         ? await saveNoteType(common, editing.row?.id)
         : isTemplate
           ? await saveEvalTemplate({ ...common, team }, editing.row?.id)
@@ -225,7 +290,7 @@ function ListDialog({ editing, onClose }: { editing: Editing; onClose: () => voi
 
   const title = editing.row
     ? t('common.edit')
-    : isType ? t('hr.newNoteType') : isTemplate ? t('hr.newTemplate') : t('hr.newCriterion');
+    : editing.kind === 'reason' ? t('hrLate.newReason') : isType ? t('hr.newNoteType') : isTemplate ? t('hr.newTemplate') : t('hr.newCriterion');
 
   return (
     <Dialog

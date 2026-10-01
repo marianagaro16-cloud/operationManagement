@@ -5,6 +5,8 @@ import type {
   HrCriterion,
   HrEvalTemplate,
   HrEvaluation,
+  HrLateArrival,
+  HrLateReason,
   HrNote,
   HrNoteType,
   HrStats,
@@ -180,4 +182,37 @@ export async function getEvalTemplates(includeInactive = false): Promise<HrEvalT
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   return (data ?? []) as HrEvalTemplate[];
+}
+
+export async function getLateReasons(includeInactive = false): Promise<HrLateReason[]> {
+  const supabase = createClient();
+  let query = supabase.from('hr_late_reasons').select('id, slug, name, translations, sort_order, is_active').order('sort_order');
+  if (!includeInactive) query = query.eq('is_active', true);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as HrLateReason[];
+}
+
+/** A worker's late arrivals, newest first. RLS: the file's own access. */
+export async function getLateArrivals(workerId: string): Promise<HrLateArrival[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('hr_late_arrivals')
+    .select(
+      'id, arrival_date, expected_time, arrived_time, minutes_late, excused, notified, note, created_by, created_at, reason:hr_late_reasons ( id, name, translations ), author:profiles!hr_late_arrivals_created_by_fkey ( name, email )',
+    )
+    .eq('worker_id', workerId)
+    .order('arrival_date', { ascending: false })
+    .order('arrived_time', { ascending: false });
+  if (error) throw new Error(error.message);
+  type Raw = Omit<HrLateArrival, 'author_name'> & { author: { name: string | null; email: string } | null };
+  return ((data ?? []) as unknown as Raw[]).map(({ author, ...a }) => ({ ...a, author_name: author ? author.name || author.email : null }));
+}
+
+/** From how many unexcused late arrivals in a month HR is told. */
+export async function getLateAlertThreshold(): Promise<number> {
+  const supabase = createClient();
+  const { data } = await supabase.from('app_settings').select('value').eq('key', 'hr_late_alert_threshold').maybeSingle();
+  const n = Number((data as { value: unknown } | null)?.value);
+  return Number.isInteger(n) && n > 0 ? n : 3;
 }

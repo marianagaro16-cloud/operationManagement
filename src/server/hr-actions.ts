@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/server';
 import { TEAMS } from '@/lib/authz';
 import type { ActionResult } from './actions';
 import { HR_ALLOWED_MIME, HR_BUCKET, HR_MAX_BYTES } from '@/lib/hr';
+import { getLateAlertThreshold } from './hr';
+import { sendToHrForWorker } from './push';
 
 /*
  * Human resources writes. Who may do what is RLS's decision (hr_can, and
@@ -283,5 +285,125 @@ export async function saveEvalTemplate(input: z.input<typeof templateSchema>, id
   if (error) return fail(error);
   revalidatePath('/admin/hr');
   revalidatePath('/hr', 'layout');
+  return { ok: true, data: undefined };
+}
+
+/* ----------------------------- late arrivals ----------------------------- */
+
+const TIME = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, { message: 'invalid_time' });
+
+const lateSchema = z
+  .object({
+    arrival_date: DATE,
+    expected_time: TIME,
+    arrived_time: TIME,
+    reason_id: z.string().uuid().nullable(),
+    excused: z.boolean(),
+    notified: z.boolean(),
+    note: optionalText,
+  })
+  .refine((v) => v.arrived_time.slice(0, 5) > v.expected_time.slice(0, 5), { message: 'arrived_not_late' });
+
+/**
+ * Record a late arrival — or correct one, by whoever recorded it within a day
+ * (RLS). On the unexcused one that reaches the month's threshold, HR is told.
+ */
+export async function saveLateArrival(
+  workerId: string,
+  input: z.input<typeof lateSchema>,
+  id?: string,
+): Promise<ActionResult> {
+  const parsed = lateSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid' };
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'not_authorized' };
+
+  if (id) {
+    const { data, error } = await supabase.from('hr_late_arrivals').update(parsed.data).eq('id', id).select('id');
+    if (error) return fail(error);
+    if (!data?.length) return { ok: false, error: 'late_locked' };
+  } else {
+    const { error } = await supabase.from('hr_late_arrivals').insert({ ...parsed.data, worker_id: workerId, created_by: user.id });
+    if (error) return fail(error);
+  }
+
+  if (!parsed.data.excused) await alertRepeatedLateness(workerId, parsed.data.arrival_date);
+  revalidateHr(workerId);
+  return { ok: true, data: undefined };
+}
+
+/** Removed by whoever recorded it, within a day. */
+export async function deleteLateArrival(workerId: string, id: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('hr_late_arrivals').delete().eq('id', id).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'late_locked' };
+  revalidateHr(workerId);
+  return { ok: true, data: undefined };
+}
+
+async function alertRepeatedLateness(workerId: string, date: string) {
+  try {
+    const supabase = createClient();
+    const month = date.slice(0, 7);
+    const [{ count }, threshold, { data: worker }] = await Promise.all([
+      supabase
+        .from('hr_late_arrivals')
+        .select('id', { count: 'exact', head: true })
+        .eq('worker_id', workerId)
+        .eq('excused', false)
+        .gte('arrival_date', `${month}-01`)
+        .lt('arrival_date', nextMonth(month)),
+      getLateAlertThreshold(),
+      supabase.from('hr_workers').select('name, team, profile_id').eq('id', workerId).maybeSingle(),
+    ]);
+    // Exactly at the threshold: told once a month, not on every one after.
+    if (!worker || count !== threshold) return;
+    const monthName = new Intl.DateTimeFormat('es', { month: 'long', year: 'numeric' }).format(new Date(`${month}-15T12:00:00Z`));
+    // In Spanish, like every other server-sent notification.
+    await sendToHrForWorker(worker.team, worker.profile_id, {
+      title: `${worker.name}: ${count} llegadas tarde sin justificar`,
+      body: `En ${monthName}.`,
+      url: `/hr/${workerId}?tab=late`,
+      tag: `hr-late-${workerId}-${month}`,
+    });
+  } catch (err) {
+    console.error('late arrival alert failed', err);
+  }
+}
+
+function nextMonth(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  return m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`;
+}
+
+const lateReasonSchema = z.object({
+  name: z.string().trim().min(1, { message: 'name_required' }).max(100),
+  translations: translationsSchema,
+  sort_order: z.number().int().default(100),
+  is_active: z.boolean().default(true),
+});
+
+export async function saveLateReason(input: z.input<typeof lateReasonSchema>, id?: string): Promise<ActionResult> {
+  const parsed = lateReasonSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_type' };
+  const supabase = createClient();
+  const { error } = id
+    ? await supabase.from('hr_late_reasons').update(parsed.data).eq('id', id)
+    : await supabase.from('hr_late_reasons').insert({ ...parsed.data, slug: crypto.randomUUID() });
+  if (error) return fail(error);
+  revalidatePath('/admin/hr');
+  revalidatePath('/hr', 'layout');
+  return { ok: true, data: undefined };
+}
+
+/** Admin's setting: from how many unexcused late arrivals in a month HR is told. */
+export async function setLateAlertThreshold(n: number): Promise<ActionResult> {
+  if (!Number.isInteger(n) || n < 1 || n > 31) return { ok: false, error: 'invalid' };
+  const supabase = createClient();
+  const { error } = await supabase.from('app_settings').upsert({ key: 'hr_late_alert_threshold', value: n });
+  if (error) return fail(error);
+  revalidatePath('/admin/hr');
   return { ok: true, data: undefined };
 }

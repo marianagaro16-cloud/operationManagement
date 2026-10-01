@@ -240,3 +240,26 @@ export async function sendToApprovedUsers(payload: PushPayload): Promise<number>
 
   return deliver((data ?? []) as SubscriptionRow[], payload);
 }
+
+/**
+ * Send to whoever keeps a worker's file: everyone holding hr.manage, except a
+ * Production manager for another team's worker (they see their own team's
+ * files only) — and never the worker themself.
+ */
+export async function sendToHrForWorker(
+  workerTeam: string,
+  workerProfileId: string | null,
+  payload: PushPayload,
+): Promise<number> {
+  const admin = createAdminClient();
+  const { data: grants, error: grantsError } = await admin.from('role_permissions').select('role').eq('permission', 'hr.manage');
+  if (grantsError) throw new Error(grantsError.message);
+  const roles = ['admin', 'owner', ...(grants ?? []).map((g) => (g as { role: string }).role)];
+  const { data: people, error } = await admin.from('profiles').select('id, role, team').eq('status', 'approved').in('role', roles);
+  if (error) throw new Error(error.message);
+  const ids = ((people ?? []) as { id: string; role: string; team: string }[])
+    .filter((p) => p.role !== 'production_manager' || p.team === workerTeam)
+    .filter((p) => p.id !== workerProfileId)
+    .map((p) => p.id);
+  return sendToUsers(ids, payload);
+}

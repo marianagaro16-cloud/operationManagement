@@ -154,3 +154,29 @@ export interface HrEvalAssignment {
   submitted_at: string | null;
   answers: HrEvalAnswer[];
 }
+
+/** Why someone arrived late — Admin's list, like the note types. */
+export interface HrLateReason {
+  id: string;
+  slug: string;
+  name: string;
+  translations: HrTranslations;
+  sort_order: number;
+  is_active: boolean;
+}
+
+/** One late arrival: when they should have started and when they came. */
+export interface HrLateArrival {
+  id: string;
+  arrival_date: string;
+  expected_time: string;
+  arrived_time: string;
+  minutes_late: number;
+  reason: { id: string; name: string; translations: HrTranslations } | null;
+  excused: boolean;
+  notified: boolean;
+  note: string | null;
+  created_by: string | null;
+  author_name: string | null;
+  created_at: string;
+}

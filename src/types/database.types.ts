@@ -2691,6 +2691,109 @@ export type Database = {
           },
         ]
       }
+      hr_late_arrivals: {
+        Row: {
+          arrival_date: string
+          arrived_time: string
+          created_at: string
+          created_by: string | null
+          excused: boolean
+          expected_time: string
+          id: string
+          minutes_late: number | null
+          note: string | null
+          notified: boolean
+          reason_id: string | null
+          updated_at: string
+          worker_id: string
+        }
+        Insert: {
+          arrival_date: string
+          arrived_time: string
+          created_at?: string
+          created_by?: string | null
+          excused?: boolean
+          expected_time: string
+          id?: string
+          minutes_late?: number | null
+          note?: string | null
+          notified?: boolean
+          reason_id?: string | null
+          updated_at?: string
+          worker_id: string
+        }
+        Update: {
+          arrival_date?: string
+          arrived_time?: string
+          created_at?: string
+          created_by?: string | null
+          excused?: boolean
+          expected_time?: string
+          id?: string
+          minutes_late?: number | null
+          note?: string | null
+          notified?: boolean
+          reason_id?: string | null
+          updated_at?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_late_arrivals_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_late_arrivals_reason_id_fkey"
+            columns: ["reason_id"]
+            isOneToOne: false
+            referencedRelation: "hr_late_reasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_late_arrivals_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_late_reasons: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       hr_note_attachments: {
         Row: {
           created_at: string
@@ -7944,6 +8047,7 @@ export type Database = {
         Returns: undefined
       }
       hr_is_self: { Args: { p_worker_id: string }; Returns: boolean }
+      hr_late_editable: { Args: { p_id: string }; Returns: boolean }
       hr_scope: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       hr_worker_stats: {
         Args: { p_from: string; p_to: string; p_worker_id: string }
