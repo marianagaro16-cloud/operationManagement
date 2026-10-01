@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
-import { BUSINESS_TZ } from '@/lib/datetime';
+import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
+import { createAdminClient } from '@/lib/supabase/server';
 import type { Frequency } from '@/domain/recurrence/types';
 import { sendToUser } from './push';
 
@@ -20,6 +21,15 @@ const FREQUENCY_ES: Record<Frequency, string> = {
   semiannual: 'semestral',
 };
 
+async function isPlainUser(userId: string): Promise<boolean> {
+  try {
+    const { data } = await createAdminClient().from('profiles').select('role').eq('id', userId).maybeSingle();
+    return data?.role === 'user';
+  } catch {
+    return false;
+  }
+}
+
 /** Never fails the save that caused it: a missed push is not a lost assignment. */
 async function send(userId: string, body: string) {
   try {
@@ -34,6 +44,9 @@ export async function notifyActivityAssigned(userId: string, title: string, freq
 }
 
 export async function notifyActivityDayAssigned(userId: string, title: string, date: string) {
+  // A plain User sees their activities from the day itself, not before
+  // (20261214090000): a notice about a later day would tell them the plan.
+  if (date > businessToday() && (await isPlainUser(userId))) return;
   const day = DateTime.fromISO(date, { zone: BUSINESS_TZ }).setLocale('es').toFormat('cccc d.M.');
   await send(userId, `${title} — el ${day} la haces tú.`);
 }
