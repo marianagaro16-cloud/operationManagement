@@ -4,14 +4,17 @@ import { getEvent, getEventCustomers, getEventLists, getStaffCandidates } from '
 import { getSalesPeople } from '@/server/sales';
 import { getDeliveryMethods, getProducts } from '@/server/orders';
 import { EventView } from '@/components/events/event-view';
-import { isSales } from '@/lib/authz';
+import { isMarketing, isSales } from '@/lib/authz';
+import { EventsReadOnlyProvider } from '@/components/events/event-parts';
 import { businessToday } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EventPage({ params }: { params: { id: string } }) {
   const viewer = await getViewer();
-  if (!viewer || !isSales(viewer.role, viewer.profile.team)) redirect('/dashboard');
+  // Sales, Admin and Owners; Marketing reads (notes and photos only).
+  const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
+  if (!viewer || !(sales || isMarketing(viewer.profile.team))) redirect('/dashboard');
 
   const [found, { kinds, costTypes }, people, customers, staff, catalog, methods] = await Promise.all([
     getEvent(params.id),
@@ -25,14 +28,16 @@ export default async function EventPage({ params }: { params: { id: string } }) 
   if (!found) notFound();
 
   return (
-    <EventView
-      {...found}
-      choices={{ kinds, people, customers, viewerId: viewer.profile.id }}
-      staff={staff}
-      costTypes={costTypes}
-      catalog={catalog}
-      methods={methods}
-      today={businessToday()}
-    />
+    <EventsReadOnlyProvider readOnly={!sales}>
+      <EventView
+        {...found}
+        choices={{ kinds, people, customers, viewerId: viewer.profile.id }}
+        staff={staff}
+        costTypes={costTypes}
+        catalog={catalog}
+        methods={methods}
+        today={businessToday()}
+      />
+    </EventsReadOnlyProvider>
   );
 }

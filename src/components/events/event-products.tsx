@@ -15,7 +15,7 @@ import { DateTime } from 'luxon';
 import { productLabel, type DeliveryMethod, type Product } from '@/types/orders';
 import { saveReturns, setEventDelivery, setEventProducts } from '@/server/event-actions';
 import type { EventOrder, EventProduct, EventReturn, EventRow } from '@/types/events';
-import { useEventLabels } from './event-parts';
+import { useEventLabels, useEventsReadOnly } from './event-parts';
 
 /** The day it goes when nobody chose one: the day before the start. */
 export function deliveryDateOf(event: EventRow, order: EventOrder | null): string {
@@ -54,8 +54,9 @@ export function EventProducts({
   const [returning, setReturning] = useState(false);
   const live = event.stage === 'idea' || event.stage === 'confirmed';
   const liveOrder = order?.status === 'confirmed' ? order : null;
-  const canEdit = live && !liveOrder?.ready_at;
-  const canDeliver = live && !liveOrder?.shipped_at;
+  const readOnly = useEventsReadOnly();
+  const canEdit = !readOnly && live && !liveOrder?.ready_at;
+  const canDeliver = !readOnly && live && !liveOrder?.shipped_at;
   // After the event, or once its goods have left: what came back.
   const afterwards = event.stage === 'done' || !!liveOrder?.shipped_at;
   const byId = new Map(catalog.map((p) => [p.id, p]));
@@ -78,7 +79,7 @@ export function EventProducts({
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <h2 className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('event.products')}</h2>
         <div className="flex gap-1">
-          {afterwards && products.length > 0 && (
+          {!readOnly && afterwards && products.length > 0 && (
             <Button size="sm" variant="ghost" onClick={() => setReturning(true)}>
               <PackageOpen className="h-3.5 w-3.5" aria-hidden />
               {t('event.recordReturns')}

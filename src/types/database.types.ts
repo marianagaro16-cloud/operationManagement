@@ -279,6 +279,44 @@ export type Database = {
           },
         ]
       }
+      account_invites: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          name: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          team: Database["public"]["Enums"]["team"]
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          name?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          team: Database["public"]["Enums"]["team"]
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          name?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          team?: Database["public"]["Enums"]["team"]
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_invites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           key: string
@@ -8258,7 +8296,9 @@ export type Database = {
         Returns: boolean
       }
       is_collections: { Args: never; Returns: boolean }
+      is_external: { Args: never; Returns: boolean }
       is_goods_reception_assignee: { Args: never; Returns: boolean }
+      is_marketing: { Args: never; Returns: boolean }
       is_owner: { Args: never; Returns: boolean }
       is_owner_account: { Args: { p_profile_id: string }; Returns: boolean }
       is_reminder_participant: {
@@ -8630,7 +8670,7 @@ export type Database = {
         | "monthly"
         | "semiannual"
         | "one_off"
-      team: "production" | "operations" | "sales" | "logistics"
+      team: "production" | "operations" | "sales" | "logistics" | "marketing"
       user_role:
         | "admin"
         | "user"
@@ -8833,7 +8873,7 @@ export const Constants = {
         "semiannual",
         "one_off",
       ],
-      team: ["production", "operations", "sales", "logistics"],
+      team: ["production", "operations", "sales", "logistics", "marketing"],
       user_role: [
         "admin",
         "user",

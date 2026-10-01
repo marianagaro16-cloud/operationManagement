@@ -1511,6 +1511,7 @@ export const es: Messages = {
     teamProduction: 'Producción',
     teamOperations: 'Operaciones',
     teamLogistics: 'Logística',
+    teamMarketing: 'Marketing',
     teamSales: 'Ventas',
     teamHint: 'Un Usuario ve solo las actividades de su equipo. El Gerente de producción siempre es de Producción.',
     productionManagerNote: 'El Gerente de producción solo gestiona las incidencias de Producción, y ve los pedidos sin poder cambiarlos.',
@@ -3149,6 +3150,15 @@ export const es: Messages = {
     newReason: 'Nuevo motivo',
     alertFrom: 'Avisar a RR. HH. a partir de',
     alertPerMonth: 'llegadas tarde sin justificar en un mes.',
+  },
+  catalog: {
+    navLabel: 'Catálogo',
+    subtitle: 'Productos y clientes, solo para consultar.',
+    products: 'Productos ({count})',
+    customers: 'Clientes ({count})',
+    search: 'Buscar…',
+    none: 'Nada encontrado.',
+    noBrand: 'Sin marca',
   },
   language: {
     label: 'Idioma',

@@ -21,12 +21,26 @@ export type Role = (typeof ROLES)[number];
  * The teams. Mirrors the `team` enum in
  * `supabase/migrations/20261012090100_production_manager_and_teams.sql`.
  */
-export const TEAMS = ['production', 'operations', 'logistics', 'sales'] as const;
+export const TEAMS = ['production', 'operations', 'logistics', 'sales', 'marketing'] as const;
 export type Team = (typeof TEAMS)[number];
 
 /** The i18n key naming a team. Ask this rather than comparing with one team. */
-export function teamLabelKey(team: Team): 'roles.teamProduction' | 'roles.teamOperations' | 'roles.teamLogistics' | 'roles.teamSales' {
-  return team === 'production' ? 'roles.teamProduction' : team === 'sales' ? 'roles.teamSales' : team === 'logistics' ? 'roles.teamLogistics' : 'roles.teamOperations';
+export function teamLabelKey(team: Team): 'roles.teamProduction' | 'roles.teamOperations' | 'roles.teamLogistics' | 'roles.teamSales' | 'roles.teamMarketing' {
+  return team === 'production' ? 'roles.teamProduction' : team === 'sales' ? 'roles.teamSales' : team === 'logistics' ? 'roles.teamLogistics' : team === 'marketing' ? 'roles.teamMarketing' : 'roles.teamOperations';
+}
+
+/** On the Marketing team (approved). Mirrors is_marketing() in SQL. */
+export function isMarketing(team: Team): boolean {
+  return team === 'marketing';
+}
+
+/**
+ * The external account: a plain User of Marketing. Mirrors is_external() in
+ * SQL, which closes the operation to it — orders, inventory, goods reception,
+ * incidents, absences and the rest.
+ */
+export function isExternal(role: Role, team: Team): boolean {
+  return team === 'marketing' && role === 'user';
 }
 
 /**

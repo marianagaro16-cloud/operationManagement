@@ -1543,6 +1543,7 @@ export const en = {
     teamProduction: 'Production',
     teamOperations: 'Operations',
     teamLogistics: 'Logistics',
+    teamMarketing: 'Marketing',
     teamSales: 'Sales',
     teamHint: 'A User only sees their team\'s tasks. A Production manager is always on Production.',
     productionManagerNote: 'A Production manager only manages Production\'s incidents, and sees orders without being able to change them.',
@@ -3181,6 +3182,15 @@ export const en = {
     newReason: 'New reason',
     alertFrom: 'Tell HR from',
     alertPerMonth: 'unexcused late arrivals in a month.',
+  },
+  catalog: {
+    navLabel: 'Catalogue',
+    subtitle: 'Products and customers, to look up.',
+    products: 'Products ({count})',
+    customers: 'Customers ({count})',
+    search: 'Search…',
+    none: 'Nothing found.',
+    noBrand: 'No brand',
   },
   language: {
     label: 'Language',

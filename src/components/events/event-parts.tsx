@@ -1,5 +1,6 @@
 'use client';
 
+import { createContext, useContext, type ReactNode } from 'react';
 import { useI18n } from '@/i18n';
 import { Badge } from '@/components/ui/primitives';
 import { localizedName } from '@/lib/localized-content';
@@ -62,3 +63,13 @@ export function chf(amount: number | null): string {
   if (amount === null) return '—';
   return `CHF ${new Intl.NumberFormat('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
 }
+
+/**
+ * Marketing reads events: no editing, no tasks, contacts or budget — only
+ * notes and photos are theirs to add. The database holds the same line.
+ */
+const ReadOnly = createContext(false);
+export function EventsReadOnlyProvider({ readOnly, children }: { readOnly: boolean; children: ReactNode }) {
+  return <ReadOnly.Provider value={readOnly}>{children}</ReadOnly.Provider>;
+}
+export const useEventsReadOnly = () => useContext(ReadOnly);

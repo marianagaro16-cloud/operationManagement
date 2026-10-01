@@ -42,7 +42,7 @@ import type {
   StaffCandidate,
 } from '@/types/events';
 import { ContactsCard, FilesCard, NotesCard, ResultsCard, ResultsDialog, hasResults } from './event-after';
-import { StageBadge, chf, useEventLabels } from './event-parts';
+import { StageBadge, chf, useEventLabels, useEventsReadOnly } from './event-parts';
 import { EventDialog, type EventChoices } from './event-dialog';
 import { EventProducts, deliveryDateOf } from './event-products';
 
@@ -95,7 +95,8 @@ export function EventView({
   const [finishing, setFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const live = event.stage === 'idea' || event.stage === 'confirmed';
+  const readOnly = useEventsReadOnly();
+  const live = !readOnly && (event.stage === 'idea' || event.stage === 'confirmed');
 
   const run: Busy = (fn, after) => {
     setError(null);
@@ -198,14 +199,14 @@ export function EventView({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
-          <Tasks event={event} tasks={tasks} people={choices.people} today={today} live={live} />
-          <ContactsCard event={event} contacts={contacts} today={today} />
+          {!readOnly && <Tasks event={event} tasks={tasks} people={choices.people} today={today} live={live} />}
+          {!readOnly && <ContactsCard event={event} contacts={contacts} today={today} />}
           <Staff event={event} shifts={shifts} staff={staff} live={live} />
           <NotesCard event={event} notes={notes} />
         </div>
         <div className="space-y-4">
           <EventProducts event={event} order={order} products={products} returns={returns} catalog={catalog} methods={methods} />
-          <Budget event={event} costs={costs} costTypes={costTypes} />
+          {!readOnly && <Budget event={event} costs={costs} costTypes={costTypes} />}
           <FilesCard event={event} files={files} />
         </div>
       </div>

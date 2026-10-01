@@ -18,7 +18,7 @@ import { NoteText } from '@/components/ui/note';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { addEventContact, addEventNote, recordEventFile, removeEventFile, saveResults } from '@/server/event-actions';
 import type { EventContact, EventFile, EventNote, EventRow } from '@/types/events';
-import { useEventLabels } from './event-parts';
+import { useEventLabels, useEventsReadOnly } from './event-parts';
 
 /* After (and around) the event: how it went, notes, who we met, photos and files. */
 
@@ -56,6 +56,7 @@ export function Stars({ value }: { value: number }) {
 export function ResultsCard({ event }: { event: EventRow }) {
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
+  const readOnly = useEventsReadOnly();
   const repeat = { yes: t('event.repeatYes'), no: t('event.repeatNo'), maybe: t('event.repeatMaybe') };
   const figures: [string, number | null][] = [
     [t('event.visitors'), event.result_visitors],
@@ -67,7 +68,7 @@ export function ResultsCard({ event }: { event: EventRow }) {
     <Section
       title={t('event.results')}
       action={
-        event.stage !== 'cancelled' && (
+        !readOnly && event.stage !== 'cancelled' && (
           <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
             <Pencil className="h-3.5 w-3.5" aria-hidden />
             {t('common.edit')}
@@ -416,6 +417,8 @@ export function FilesCard({ event, files }: { event: EventRow; files: EventFile[
   const input = useRef<HTMLInputElement>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [removing, setRemoving] = useState<EventFile | null>(null);
+  // Marketing adds photos; removing them stays with Sales.
+  const readOnly = useEventsReadOnly();
   const [pending, startTransition] = useTransition();
   const photos = files.filter((f) => f.mime_type.startsWith('image/') && f.url);
   const documents = files.filter((f) => !photos.includes(f));
@@ -496,14 +499,14 @@ export function FilesCard({ event, files }: { event: EventRow; files: EventFile[
                     {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URL */}
                     <img src={f.url!} alt={f.file_name} loading="lazy" className="h-full w-full object-cover" />
                   </a>
-                  <button
+                  {!readOnly && <button
                     type="button"
                     aria-label={`${t('common.delete')} · ${f.file_name}`}
                     onClick={() => setRemoving(f)}
                     className="absolute right-1 top-1 rounded bg-black/55 p-1 text-white opacity-80 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                   >
                     <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                  </button>
+                  </button>}
                 </div>
               ))}
             </div>
@@ -519,9 +522,11 @@ export function FilesCard({ event, files }: { event: EventRow; files: EventFile[
                     <span className="min-w-0 flex-1 truncate">{f.file_name}</span>
                   )}
                   <span className="shrink-0 text-[11.5px] tabular text-muted">{Math.max(1, Math.round(f.size_bytes / 1024))} KB</span>
-                  <Button size="icon" variant="ghost" aria-label={t('common.delete')} onClick={() => setRemoving(f)}>
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                  </Button>
+                  {!readOnly && (
+                    <Button size="icon" variant="ghost" aria-label={t('common.delete')} onClick={() => setRemoving(f)}>
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                    </Button>
+                  )}
                 </li>
               ))}
             </ul>

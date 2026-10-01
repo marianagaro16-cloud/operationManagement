@@ -1511,6 +1511,7 @@ export const de: Messages = {
     teamProduction: 'Produktion',
     teamOperations: 'Operations',
     teamLogistics: 'Logistik',
+    teamMarketing: 'Marketing',
     teamSales: 'Vertrieb',
     teamHint: 'Ein Benutzer sieht nur die Aufgaben seines Teams. Ein Produktionsleiter gehört immer zur Produktion.',
     productionManagerNote: 'Ein Produktionsleiter bearbeitet nur Vorfälle der Produktion und sieht Bestellungen, ohne sie ändern zu können.',
@@ -3149,6 +3150,15 @@ export const de: Messages = {
     newReason: 'Neuer Grund',
     alertFrom: 'HR benachrichtigen ab',
     alertPerMonth: 'unentschuldigten Verspätungen im Monat.',
+  },
+  catalog: {
+    navLabel: 'Katalog',
+    subtitle: 'Produkte und Kunden, zum Nachschlagen.',
+    products: 'Produkte ({count})',
+    customers: 'Kunden ({count})',
+    search: 'Suchen…',
+    none: 'Nichts gefunden.',
+    noBrand: 'Ohne Marke',
   },
   language: {
     label: 'Sprache',

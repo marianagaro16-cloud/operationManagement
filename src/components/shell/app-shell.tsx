@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, BookOpen, Boxes, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { PresenceBeacon } from './presence-beacon';
 import { FormNoteSubmit } from '@/components/ui/enter-to-save';
 import { InboxLink } from './inbox-link';
 import { QuickNoteButton } from '@/components/notes/quick-note-button';
-import { atLeast, can, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
+import { atLeast, can, isExternal, isMarketing, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 import { opensManagement } from '@/components/admin/sections';
 
@@ -24,6 +24,8 @@ import { opensManagement } from '@/components/admin/sections';
 type NavGroup = 'day' | 'logistics' | 'operation' | 'production' | 'customers' | 'team' | 'manage';
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; primary: boolean; badge?: number; group: NavGroup };
 const FOLDED_KEY = 'nav.folded';
+/** Closed to the external (Marketing) account. */
+const EXTERNAL_HIDDEN = ['/orders', '/lot-tracker', '/incidents', '/goods-reception', '/inventory', '/calendar', '/absences', '/hr', '/evaluations', '/collections', '/sales'];
 const NAV_GROUPS: NavGroup[] = ['day', 'logistics', 'operation', 'production', 'customers', 'team', 'manage'];
 const GROUP_LABEL: Record<Exclude<NavGroup, 'manage'>, MessageKey> = {
   day: 'nav.groupDay',
@@ -57,6 +59,7 @@ export function AppShell({
 }) {
   const { t, formatDate } = useI18n();
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   // Sales planning's week needs the whole screen: seven days side by side.
   const frame = pathname === '/sales' && searchParams.get('tab') === 'planning' ? 'max-w-[1600px]' : 'max-w-5xl';
@@ -92,7 +95,10 @@ export function AppShell({
       ? [{ href: `/calendar?team=${team}`, label: t('nav.activities'), icon: CalendarDays, primary: false, group: AREA[team] }]
       : [];
 
-  const nav: NavItem[] = [
+  const external = isExternal(role, profile.team as Team);
+  const marketing = isMarketing(profile.team as Team);
+
+  const allNav: NavItem[] = [
     // ---- my day ----
     { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, primary: true, group: 'day' },
     // Everything with a day, from every part of the app, in one week — with
@@ -130,11 +136,16 @@ export function AppShell({
     // ---- customers ----
     // Sales: customers, prospects, planning, report, summary. The Ventas team, Admin and Owners.
     ...(isSales(role, profile.team as Team)
-      ? [
-          { href: '/sales', label: t('sales.navLabel'), icon: Handshake, primary: false, group: 'customers' as const },
-          // Events: fairs, markets, events with customers and our own. Same people as Sales.
-          { href: '/events', label: t('event.navLabel'), icon: PartyPopper, primary: false, group: 'customers' as const },
-        ]
+      ? [{ href: '/sales', label: t('sales.navLabel'), icon: Handshake, primary: false, group: 'customers' as const }]
+      : []),
+    // Events: fairs, markets, events with customers and our own. Sales — and
+    // Marketing, who covers them (read, notes and photos).
+    ...(isSales(role, profile.team as Team) || marketing
+      ? [{ href: '/events', label: t('event.navLabel'), icon: PartyPopper, primary: marketing, group: 'customers' as const }]
+      : []),
+    // Products and customers to read, for Marketing.
+    ...(marketing
+      ? [{ href: '/catalog', label: t('catalog.navLabel'), icon: BookOpen, primary: true, group: 'customers' as const }]
       : []),
     // Collections: unpaid invoices followed up, and handed to an agency. The collections team only.
     ...(collections
@@ -152,6 +163,14 @@ export function AppShell({
       ? [{ href: '/admin', label: t('nav.manage'), icon: Shield, primary: false, group: 'manage' as const }]
       : []),
   ];
+  // The external account sees none of the operation: the database refuses it
+  // anyway; the menu does not offer it.
+  const nav = external ? allNav.filter(({ href }) => !EXTERNAL_HIDDEN.some((p) => href.startsWith(p))) : allNav;
+
+  // ...nor do its addresses, typed or linked from elsewhere.
+  useEffect(() => {
+    if (external && EXTERNAL_HIDDEN.some((p) => pathname.startsWith(p))) router.replace('/dashboard');
+  }, [external, pathname, router]);
 
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list

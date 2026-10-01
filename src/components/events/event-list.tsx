@@ -9,13 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Card, EmptyState } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import type { EventRow } from '@/types/events';
-import { StageBadge, useEventLabels } from './event-parts';
+import { StageBadge, useEventLabels, useEventsReadOnly } from './event-parts';
 import { EventDialog, type EventChoices } from './event-dialog';
 import { Stars } from './event-after';
 
 /** Every event: what is coming (ideas and confirmed), and what is past or called off. */
 export function EventList({ events, choices, today }: { events: EventRow[]; choices: EventChoices; today: string }) {
   const { t } = useI18n();
+  const readOnly = useEventsReadOnly();
   const labels = useEventLabels();
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
   const [creating, setCreating] = useState(false);
@@ -32,10 +33,12 @@ export function EventList({ events, choices, today }: { events: EventRow[]; choi
         title={t('event.navLabel')}
         subtitle={t('event.subtitle')}
         action={
-          <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            {t('event.new')}
-          </Button>
+          !readOnly && (
+            <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              {t('event.new')}
+            </Button>
+          )
         }
       />
       <nav className="mb-3 flex gap-1 border-b border-border">
