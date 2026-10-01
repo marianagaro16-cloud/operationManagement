@@ -80,6 +80,16 @@ export function ItemCard({
   // even though both sum to zero. See countState().
   const state = countState(quantities);
 
+  // The digital side of "there is none": Inventory Digital set to 0 in one tap.
+  const [markingDigitalEmpty, startDigitalEmpty] = useTransition();
+  function markDigitalEmpty() {
+    setEmptyError(null);
+    startDigitalEmpty(async () => {
+      const res = await setInventoryDigital(item.id, instanceId, 0);
+      if (!res.ok) setEmptyError(translateError(res.error));
+    });
+  }
+
   function markEmpty() {
     setEmptyError(null);
     startMarkEmpty(async () => {
@@ -321,6 +331,13 @@ export function ItemCard({
               </Button>
             )}
 
+            {canManage && digitalEnabled && item.digital_quantity !== 0 && (
+              <Button size="sm" variant="ghost" onClick={markDigitalEmpty} loading={markingDigitalEmpty}>
+                <CircleSlash className="h-3.5 w-3.5" aria-hidden />
+                {t('inventory.markDigitalEmpty')}
+              </Button>
+            )}
+
             {canManage && (item.status === 'to_review' || item.status === 'resolved') && (
               <Button size="sm" variant="ghost" onClick={() => setResolveOpen(true)}>
                 <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
@@ -471,6 +488,10 @@ function DigitalDialog({
               erasing the record: the previous value stays in the history. */}
           <Button variant="ghost" onClick={() => submit(null)} disabled={pending}>
             {t('inventory.clearDigital')}
+          </Button>
+          <Button variant="secondary" onClick={() => submit(0)} disabled={pending}>
+            <CircleSlash className="h-3.5 w-3.5" aria-hidden />
+            {t('inventory.markEmpty')}
           </Button>
           <Button
             variant="primary"

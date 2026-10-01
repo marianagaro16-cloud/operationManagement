@@ -1486,6 +1486,7 @@ export const de: Messages = {
     notCounted: 'Nicht gezählt',
     emptyBadge: 'Kein Bestand',
     markEmpty: 'Kein Bestand',
+    markDigitalEmpty: 'Digital: kein Bestand',
     errLocationRequired: 'Bitte einen Lagerort wählen',
     errGrantWindow: 'Das Ende muss nach dem Beginn liegen',
     enteredByAdmin: 'Von Hand erfasst von {name}',

@@ -1518,6 +1518,7 @@ export const en = {
     notCounted: 'Not counted',
     emptyBadge: 'Nothing in stock',
     markEmpty: 'Nothing in stock',
+    markDigitalEmpty: 'Digital: nothing in stock',
     errLocationRequired: 'Choose a location',
     errGrantWindow: 'The end time must be after the start time',
     enteredByAdmin: 'Entered by hand by {name}',

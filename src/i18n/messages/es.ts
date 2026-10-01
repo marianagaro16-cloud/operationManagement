@@ -1486,6 +1486,7 @@ export const es: Messages = {
     notCounted: 'Sin contar',
     emptyBadge: 'Sin stock',
     markEmpty: 'Sin stock',
+    markDigitalEmpty: 'Digital: sin stock',
     errLocationRequired: 'Elige una ubicación',
     errGrantWindow: 'La hora de fin debe ser posterior a la de inicio',
     enteredByAdmin: 'Introducido a mano por {name}',
