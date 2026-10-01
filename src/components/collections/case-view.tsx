@@ -3,7 +3,7 @@
 import { useState, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Banknote, BellRing, Building2, CalendarCheck, Mail, MessageSquare, Phone, Plus, RotateCcw, Trash2, XCircle } from 'lucide-react';
+import { ArrowLeft, Banknote, BellRing, Building2, CalendarCheck, Mail, MessageSquare, Pencil, Phone, Plus, RotateCcw, Trash2, XCircle } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import {
   logContact,
   recordReminder,
   removeInvoice,
+  updateInvoice,
   sendToAgency,
   setPromise,
   setResponsible,
@@ -49,6 +50,7 @@ export function CaseView({
   const router = useRouter();
   const labels = useCollectionLabels();
   const [open, setOpen] = useState<Open>(null);
+  const [editing, setEditing] = useState<CollectionInvoice | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const closed = !!row.closed_at;
@@ -195,6 +197,11 @@ export function CaseView({
                     </span>
                   )}
                   <span className="w-28 text-right tabular">{chf(i.amount)}</span>
+                  {!closed && (
+                    <Button size="icon" variant="ghost" aria-label={t('common.edit')} disabled={pending} onClick={() => setEditing(i)}>
+                      <Pencil className="h-3.5 w-3.5" aria-hidden />
+                    </Button>
+                  )}
                   {!closed && invoices.length > 1 && (
                     <Button size="icon" variant="ghost" aria-label={t('common.delete')} disabled={pending} onClick={() => run(() => removeInvoice(row.id, i.id))}>
                       <Trash2 className="h-3.5 w-3.5" aria-hidden />
@@ -238,6 +245,7 @@ export function CaseView({
       {open === 'payment' && <PaymentDialog caseId={row.id} open={row.open} today={today} onClose={() => setOpen(null)} />}
       {open === 'agency' && <AgencyDialog caseId={row.id} agencies={agencies} today={today} onClose={() => setOpen(null)} />}
       {open === 'invoice' && <InvoiceDialog caseId={row.id} onClose={() => setOpen(null)} />}
+      {editing && <InvoiceDialog caseId={row.id} invoice={editing} onClose={() => setEditing(null)} />}
       {open === 'reminder' && <ReminderDialog caseId={row.id} level={row.reminders_sent + 1} today={today} onClose={() => setOpen(null)} />}
       {open === 'toFollowUp' && <StageDialog caseId={row.id} stage="follow_up" onClose={() => setOpen(null)} />}
       {(open === 'uncollectible' || open === 'settled' || open === 'reopen') && (
@@ -261,10 +269,21 @@ function Section({ title, action, children }: { title: string; action?: ReactNod
 
 const EVENT_ICON = { reminder: BellRing, call: Phone, email: Mail, note: MessageSquare, promise: CalendarCheck, payment: Banknote, stage: RotateCcw, agency: Building2, invoice: Plus, responsible: RotateCcw } as const;
 
+type InvoiceShape = { invoice_number: string; due_date: string | null; amount: number };
+
 function History({ events, team, agencies }: { events: CollectionEvent[]; team: { id: string; name: string }[]; agencies: CollectionAgency[] }) {
   const { t, formatDate } = useI18n();
   const labels = useCollectionLabels();
   if (events.length === 0) return <p className="text-[12.5px] text-muted">—</p>;
+  // What changed in a corrected invoice: "CHF 12.00 → CHF 1'200.00".
+  const correction = (from: InvoiceShape, to: InvoiceShape) =>
+    [
+      from.invoice_number !== to.invoice_number && from.invoice_number + ' → ' + to.invoice_number,
+      from.due_date !== to.due_date && (from.due_date ? formatDate(from.due_date, 'short') : '—') + ' → ' + (to.due_date ? formatDate(to.due_date, 'short') : '—'),
+      Number(from.amount) !== Number(to.amount) && chf(Number(from.amount)) + ' → ' + chf(Number(to.amount)),
+    ]
+      .filter(Boolean)
+      .join(' · ') || '—';
   const what = (e: CollectionEvent): string => {
     const d = e.detail as Record<string, string | number | boolean | null | undefined>;
     switch (e.kind) {
@@ -272,7 +291,9 @@ function History({ events, team, agencies }: { events: CollectionEvent[]; team: 
       case 'payment': return t(d.via_agency ? 'collection.evPaymentAgency' : 'collection.evPayment', { amount: chf(Number(d.amount)) });
       case 'stage': return d.opened ? t('collection.evOpened') : t('collection.evStage', { stage: labels.stage(d.stage as never) });
       case 'agency': return t('collection.evAgency', { name: agencies.find((a) => a.id === d.agency_id)?.name ?? '—' });
-      case 'invoice': return d.added ? t('collection.evInvoiceAdded', { number: String(d.added), amount: chf(Number(d.amount)) }) : t('collection.evInvoiceRemoved', { number: String(d.removed) });
+      case 'invoice': return d.corrected
+        ? t('collection.evInvoiceCorrected', { number: String(d.corrected), detail: correction(e.detail.from as InvoiceShape, e.detail.to as InvoiceShape) })
+        : d.added ? t('collection.evInvoiceAdded', { number: String(d.added), amount: chf(Number(d.amount)) }) : t('collection.evInvoiceRemoved', { number: String(d.removed) });
       case 'responsible': return t('collection.evResponsible', { name: team.find((p) => p.id === d.responsible_id)?.name ?? '—' });
       case 'reminder': return t('collection.evReminder', { n: Number(d.level) });
       default: return t(`collection.ev_${e.kind}` as MessageKey);
@@ -519,18 +540,23 @@ function ReminderDialog({ caseId, level, today, onClose }: { caseId: string; lev
   );
 }
 
-function InvoiceDialog({ caseId, onClose }: { caseId: string; onClose: () => void }) {
+function InvoiceDialog({ caseId, invoice, onClose }: { caseId: string; invoice?: CollectionInvoice; onClose: () => void }) {
   const { t } = useI18n();
   const { error, pending, submit } = useSubmit(onClose);
-  const [number, setNumber] = useState('');
-  const [due, setDue] = useState('');
-  const [amount, setAmount] = useState('');
+  const [number, setNumber] = useState(invoice?.invoice_number ?? '');
+  const [due, setDue] = useState(invoice?.due_date ?? '');
+  const [amount, setAmount] = useState(invoice ? invoice.amount.toFixed(2) : '');
   const value = Number(amount.replace(/'/g, '').replace(',', '.'));
   return (
     <Frame
-      title={t('collection.addInvoice')}
+      title={invoice ? t('collection.editInvoice') : t('collection.addInvoice')}
       onClose={onClose}
-      onSave={() => submit(() => addInvoice(caseId, { invoice_number: number, due_date: due || null, amount: value }))}
+      onSave={() =>
+        submit(() => {
+          const data = { invoice_number: number, due_date: due || null, amount: value };
+          return invoice ? updateInvoice(caseId, invoice.id, data) : addInvoice(caseId, data);
+        })
+      }
       pending={pending}
       ready={!!number.trim() && value > 0}
       error={error}

@@ -257,6 +257,24 @@ export async function addInvoice(caseId: string, input: z.input<typeof invoiceSc
   return { ok: true, data: undefined };
 }
 
+/** Correct an invoice typed in wrong; the history keeps what it was. */
+export async function updateInvoice(caseId: string, invoiceId: string, input: z.input<typeof invoiceSchema>): Promise<ActionResult> {
+  const parsed = invoiceSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'invalid_invoice' };
+  const supabase = createClient();
+  const { data: before } = await supabase.from('collection_invoices').select('invoice_number, due_date, amount').eq('id', invoiceId).eq('case_id', caseId).maybeSingle();
+  if (!before) return { ok: false, error: 'not_authorized' };
+  const { error } = await supabase.from('collection_invoices').update(parsed.data).eq('id', invoiceId).eq('case_id', caseId);
+  if (error) return fail(error);
+  await log(caseId, 'invoice', null, {
+    corrected: parsed.data.invoice_number,
+    from: { invoice_number: before.invoice_number, due_date: before.due_date, amount: Number(before.amount) },
+    to: parsed.data,
+  });
+  revalidateCase(caseId);
+  return { ok: true, data: undefined };
+}
+
 export async function removeInvoice(caseId: string, invoiceId: string): Promise<ActionResult> {
   const supabase = createClient();
   const { data, error } = await supabase.from('collection_invoices').delete().eq('id', invoiceId).eq('case_id', caseId).select('invoice_number, amount');

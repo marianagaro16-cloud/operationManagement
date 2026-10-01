@@ -2928,6 +2928,8 @@ export const es: Messages = {
     kind_personal: 'Tarea personal',
   },
   collection: {
+    evInvoiceCorrected: 'Factura {number} corregida: {detail}',
+    editInvoice: 'Corregir factura',
     tabPrepay: 'Pago por adelantado',
     prepay: 'Pago por adelantado',
     prepayHint: 'Clientes que deben pagar antes de la entrega. La app avisa al hacer un pedido, antes de marcarlo enviado y en Ventas; nunca bloquea.',

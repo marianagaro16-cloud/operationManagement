@@ -2928,6 +2928,8 @@ export const de: Messages = {
     kind_personal: 'Persönliche Aufgabe',
   },
   collection: {
+    evInvoiceCorrected: 'Rechnung {number} korrigiert: {detail}',
+    editInvoice: 'Rechnung korrigieren',
     tabPrepay: 'Vorauskasse',
     prepay: 'Vorauskasse',
     prepayHint: 'Kunden, die vor der Lieferung bezahlen müssen. Die App warnt bei einer Bestellung, vor dem Markieren als versendet und im Verkauf; sie blockiert nie.',

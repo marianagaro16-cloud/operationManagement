@@ -2960,6 +2960,8 @@ export const en = {
     kind_personal: 'Personal task',
   },
   collection: {
+    evInvoiceCorrected: 'Invoice {number} corrected: {detail}',
+    editInvoice: 'Correct invoice',
     tabPrepay: 'Payment in advance',
     prepay: 'Pays in advance',
     prepayHint: 'Customers who must pay before delivery. The app warns when an order is made, before it is marked shipped, and in Sales; it never blocks.',
