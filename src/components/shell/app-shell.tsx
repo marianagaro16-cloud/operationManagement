@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, Truck, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, Boxes, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, LayoutDashboard, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { SignOutButton } from './sign-out-button';
 import { PresenceBeacon } from './presence-beacon';
 import { FormNoteSubmit } from '@/components/ui/enter-to-save';
 import { InboxLink } from './inbox-link';
+import { QuickNoteButton } from '@/components/notes/quick-note-button';
 import { atLeast, can, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 import { opensManagement } from '@/components/admin/sections';
@@ -155,6 +156,7 @@ export function AppShell({
       { href: '/agenda', label: t('agenda.title'), icon: CalendarRange },
       { href: '/reminders', label: t('reminder.navLabel'), icon: BellRing, badge: reminderAttention },
       { href: '/meetings', label: t('meeting.navLabel'), icon: Users },
+      { href: '/notes', label: t('note.navLabel'), icon: StickyNote },
     ],
     '/absences': [
       { href: '/absences', label: t('absence.navLabel'), icon: CalendarOff },
@@ -263,6 +265,9 @@ export function AppShell({
 
           {/* The inbox, beside settings on every screen: a count nobody can
               see without opening a menu is a count nobody reads. */}
+          {/* Write a note down without leaving the screen. */}
+          <QuickNoteButton />
+
           <InboxLink initialUnread={inboxUnread} active={pathname === '/inbox'} />
 
           {/* Always-visible route to notifications. A link in a menu that has

@@ -28,6 +28,8 @@ import { TodayCard } from '@/components/agenda/today-card';
 import { countUnansweredInvites } from '@/server/meetings';
 import { countFollowUpsDue } from '@/server/collections';
 import { CoverageTodayCard } from '@/components/absences/coverage-today-card';
+import { NotesCard } from '@/components/notes/notes-view';
+import { getNotes } from '@/server/notes';
 import { compareUrgency, deliveryUrgency } from '@/domain/orders/urgency';
 import { personalTaskPhase } from '@/domain/reminders/schedule';
 
@@ -62,7 +64,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes] = await Promise.all([
     getDashboardData(plans ? 7 : 0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
@@ -97,6 +99,8 @@ export default async function DashboardPage() {
     viewer ? getAgenda(viewer.profile.id, today, today, true, today) : [],
     // Collection cases due for follow-up: RLS returns none outside the team.
     viewer ? countFollowUpsDue(viewer.profile.id, today) : 0,
+    // The latest quick notes, pinned first.
+    viewer ? getNotes({ limit: 4 }) : [],
   ]);
 
   // ---- what the figures and "Now" count ----
@@ -216,6 +220,7 @@ export default async function DashboardPage() {
           </Tile>
         )}
         <Tile><PendingEvaluations evaluations={evaluations} /></Tile>
+        {viewer && <Tile><NotesCard notes={quickNotes} viewerId={viewer.profile.id} /></Tile>}
         <Tile><QuietCustomersCard customers={quiet} /></Tile>
         <Tile><CelebrationsCard celebrations={celebrations} /></Tile>
         {/* Personal follow-ups, in their own cards and their own counts — never

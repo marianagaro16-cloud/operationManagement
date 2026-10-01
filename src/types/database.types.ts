@@ -5953,6 +5953,136 @@ export type Database = {
           },
         ]
       }
+      quick_note_items: {
+        Row: {
+          body: string
+          done: boolean
+          done_at: string | null
+          done_by: string | null
+          id: string
+          note_id: string
+          sort_order: number
+        }
+        Insert: {
+          body: string
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          note_id: string
+          sort_order?: number
+        }
+        Update: {
+          body?: string
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          note_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_note_items_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_note_items_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "quick_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quick_note_shares: {
+        Row: {
+          note_id: string
+          profile_id: string
+        }
+        Insert: {
+          note_id: string
+          profile_id: string
+        }
+        Update: {
+          note_id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_note_shares_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "quick_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_note_shares_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quick_notes: {
+        Row: {
+          archived_at: string | null
+          body: string
+          created_at: string
+          customer_id: string | null
+          id: string
+          owner_id: string
+          pinned: boolean
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          body?: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          owner_id?: string
+          pinned?: boolean
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          body?: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          owner_id?: string
+          pinned?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "quick_notes_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_order_template_lines: {
         Row: {
           default_quantity: number
@@ -7513,6 +7643,7 @@ export type Database = {
       can_plan_coverage: { Args: { p_absence_id: string }; Returns: boolean }
       can_see_handover: { Args: { p_absence_id: string }; Returns: boolean }
       can_see_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
+      can_see_quick_note: { Args: { p_note_id: string }; Returns: boolean }
       can_see_series: { Args: { p_series_id: string }; Returns: boolean }
       can_see_summary: { Args: { p_summary_id: string }; Returns: boolean }
       can_use_reminders: { Args: never; Returns: boolean }
@@ -7993,6 +8124,7 @@ export type Database = {
         Args: { p_order_ids: string[]; p_shipped: boolean }
         Returns: number
       }
+      owns_quick_note: { Args: { p_note_id: string }; Returns: boolean }
       person_in_team_scope: { Args: { p_user_id: string }; Returns: boolean }
       preparation_date_for: {
         Args: { p_delivery_date: string; p_lead_days: number }

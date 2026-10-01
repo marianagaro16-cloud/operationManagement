@@ -52,7 +52,12 @@ export function ReminderDialog({
   reminder,
   link,
   initialDate,
+  initialTitle,
+  initialNotes,
 }: {
+  /** A new one from a quick note: its first line and the rest. */
+  initialTitle?: string;
+  initialNotes?: string;
   /** A new one on this day (at 09:00) — from the agenda. */
   initialDate?: string;
   open: boolean;
@@ -78,17 +83,17 @@ export function ReminderDialog({
     return { date: tomorrow.toISODate()!, time: '09:00' };
   };
 
-  const [title, setTitle] = useState(reminder?.title ?? '');
+  const [title, setTitle] = useState(reminder?.title ?? initialTitle ?? '');
   const [date, setDate] = useState(initial().date);
   const [time, setTime] = useState(initial().time);
-  const [notes, setNotes] = useState(reminder?.notes ?? '');
+  const [notes, setNotes] = useState(reminder?.notes ?? initialNotes ?? '');
   const [recurrence, setRecurrence] = useState<Recurrence>(reminder?.recurrence ?? 'none');
   const [notifyBefore, setNotifyBefore] = useState<number | null>(reminder?.notify_before_minutes ?? null);
   const [keepLink, setKeepLink] = useState(true);
   const [participants, setParticipants] = useState<string[]>(
     reminder ? reminder.participants.map((p) => p.user_id).filter((id) => id !== viewerId) : [],
   );
-  const [more, setMore] = useState(Boolean(
+  const [more, setMore] = useState(Boolean(initialNotes) || Boolean(
     reminder && (reminder.notes || reminder.recurrence !== 'none' || reminder.notify_before_minutes || reminder.is_shared),
   ));
   const [candidates, setCandidates] = useState<ReminderPerson[] | null>(null);

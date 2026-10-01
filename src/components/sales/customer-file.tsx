@@ -1,5 +1,7 @@
 'use client';
 
+import { CustomerNotes } from '@/components/notes/notes-view';
+import type { QuickNote } from '@/types/notes';
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Plus } from 'lucide-react';
@@ -29,7 +31,9 @@ export function CustomerFile({
   viewerId,
   today,
   collections,
+  quickNotes = [],
 }: {
+  quickNotes?: QuickNote[];
   /** Payments pending — and, for the collections team, the cases. */
   collections: { flagged: 'reminder' | 'pending' | null; prepay: boolean; cases: CollectionCaseRow[] | null };
   view: CustomerFileView;
@@ -178,6 +182,9 @@ export function CustomerFile({
           </ul>
         )}
       </Card>
+
+      {/* The viewer's own quick notes about this customer (and those shared with them). */}
+      <CustomerNotes notes={quickNotes} customer={{ id: customer.id, name: customer.company_name }} viewerId={viewerId} />
 
       {/* Notes and follow-ups */}
       <div className="mb-2 flex items-center justify-between gap-3">
