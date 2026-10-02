@@ -119,9 +119,23 @@ export function WorkerFile({
               </p>
             )}
           </div>
-          <Button size="icon" variant="ghost" aria-label={t('hr.editWorker')} onClick={() => setEditing(true)}>
-            <Pencil className="h-4 w-4" aria-hidden />
-          </Button>
+          <div className="flex shrink-0 gap-0.5">
+            {/* The whole file, to print or save as PDF. */}
+            <a
+              href={`/print/hr/${worker.id}`}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t('hrExport.pdf')}
+              title={t('hrExport.pdf')}
+              className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-[12.5px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+            >
+              <FileText className="h-4 w-4" aria-hidden />
+              PDF
+            </a>
+            <Button size="icon" variant="ghost" aria-label={t('hr.editWorker')} onClick={() => setEditing(true)}>
+              <Pencil className="h-4 w-4" aria-hidden />
+            </Button>
+          </div>
         </div>
       </Card>
 

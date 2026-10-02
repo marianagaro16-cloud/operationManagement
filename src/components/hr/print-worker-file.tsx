@@ -1,0 +1,134 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useI18n } from '@/i18n';
+import { teamLabelKey } from '@/lib/authz';
+import { localizedName } from '@/lib/localized-content';
+import type { HrLateArrival, HrWorkerFile } from '@/types/hr';
+
+/**
+ * A worker's whole file on a plain page — details, log, arrivals and
+ * evaluations — to print or save as PDF. Opens the print dialog once drawn.
+ */
+export function PrintWorkerFile({ file, arrivals }: { file: HrWorkerFile; arrivals: HrLateArrival[] }) {
+  const { t, formatDate, locale } = useI18n();
+  const { worker, notes, evaluations } = file;
+  useEffect(() => {
+    const timer = setTimeout(() => window.print(), 400);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const details: [string, string | null][] = [
+    [t('roles.team'), t(teamLabelKey(worker.team))],
+    [t('hrPrint.position'), worker.position],
+    [t('hrPrint.since'), worker.start_date && formatDate(worker.start_date, 'medium')],
+    [t('hrPrint.born'), worker.birth_date && formatDate(worker.birth_date, 'medium')],
+    [t('hrPrint.phone'), worker.phone],
+    [t('hrPrint.email'), worker.email],
+    [t('hrPrint.address'), worker.address],
+    [t('hr.emergencyContact'), worker.emergency_contact],
+    [t('hrPrint.left'), worker.left_on && formatDate(worker.left_on, 'medium')],
+  ];
+
+  return (
+    <main className="mx-auto max-w-3xl bg-white p-6 text-[12.5px] text-black print:max-w-none print:p-0">
+      <h1 className="text-2xl font-semibold">{worker.name}</h1>
+      <p className="mb-4 text-[12px] text-neutral-500">
+        {t('hrPrint.printedOn', { date: formatDate(new Date().toISOString().slice(0, 10), 'medium') })}
+      </p>
+
+      <dl className="mb-6 grid grid-cols-[11rem_1fr] gap-x-4 gap-y-1">
+        {details.filter(([, v]) => v).map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-neutral-500">{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <Section title={t('hr.tabLog')} empty={notes.length === 0}>
+        <ul className="space-y-2">
+          {notes.map((n) => (
+            <li key={n.id} className="break-inside-avoid">
+              <p className="font-medium">
+                {formatDate(n.note_date, 'medium')}
+                {n.type && ` · ${localizedName(n.type, locale)}`}
+                {n.author_name && <span className="font-normal text-neutral-500"> · {n.author_name}</span>}
+              </p>
+              <p className="whitespace-pre-wrap">{n.body}</p>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      <Section title={t('hrLate.tab')} empty={arrivals.length === 0}>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-neutral-300 text-left text-neutral-500">
+              <th className="py-1 pr-2 font-medium">{t('hrPrint.day')}</th>
+              <th className="py-1 pr-2 font-medium">{t('hrPrint.kind')}</th>
+              <th className="py-1 pr-2 font-medium">{t('hrLate.expected')}</th>
+              <th className="py-1 pr-2 font-medium">{t('hrLate.arrived')}</th>
+              <th className="py-1 pr-2 font-medium">{t('hrPrint.minutes')}</th>
+              <th className="py-1 pr-2 font-medium">{t('hrLate.reason')}</th>
+              <th className="py-1 font-medium">{t('hrLate.excused')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {arrivals.map((a) => (
+              <tr key={a.id} className="border-b border-neutral-200 align-top">
+                <td className="py-1 pr-2">{formatDate(a.arrival_date, 'short')}</td>
+                <td className="py-1 pr-2">{a.kind === 'early' ? t('hrLate.kindEarly') : t('hrLate.kindLate')}</td>
+                <td className="py-1 pr-2">{a.expected_time.slice(0, 5)}</td>
+                <td className="py-1 pr-2">{a.arrived_time.slice(0, 5)}</td>
+                <td className="py-1 pr-2">{a.minutes_off}</td>
+                <td className="py-1 pr-2">{a.reason ? localizedName(a.reason, locale) : '—'}{a.note && ` — ${a.note}`}</td>
+                <td className="py-1">{a.excused ? t('hrPrint.yes') : t('hrPrint.no')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Section>
+
+      <Section title={t('hr.tabEvaluations')} empty={evaluations.length === 0}>
+        <div className="space-y-4">
+          {evaluations.map((e) => {
+            const avg = e.scores.length ? (e.scores.reduce((s, x) => s + x.score, 0) / e.scores.length).toFixed(1) : null;
+            return (
+              <div key={e.id} className="break-inside-avoid">
+                <p className="font-medium">
+                  {formatDate(e.evaluated_on, 'medium')}
+                  {e.author_name && <span className="font-normal text-neutral-500"> · {e.author_name}</span>}
+                  {avg && <span className="font-normal"> · {t('hrPrint.average', { avg })}</span>}
+                </p>
+                <table className="mt-1 w-full border-collapse">
+                  <tbody>
+                    {e.scores.map((s) => (
+                      <tr key={s.criterion_name} className="border-b border-neutral-200 align-top">
+                        <td className="py-0.5 pr-2">{localizedName({ name: s.criterion_name, translations: s.criterion_translations }, locale)}</td>
+                        <td className="w-10 py-0.5 pr-2 text-right font-medium">{s.score}/5</td>
+                        <td className="py-0.5 text-neutral-600">{s.comment}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {e.comment && <p className="mt-1 whitespace-pre-wrap"><span className="text-neutral-500">{t('hrPrint.comment')}: </span>{e.comment}</p>}
+                {e.goals && <p className="mt-0.5 whitespace-pre-wrap"><span className="text-neutral-500">{t('hrPrint.goals')}: </span>{e.goals}</p>}
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+    </main>
+  );
+}
+
+function Section({ title, empty, children }: { title: string; empty: boolean; children: React.ReactNode }) {
+  const { t } = useI18n();
+  return (
+    <section className="mb-6">
+      <h2 className="mb-2 border-b border-neutral-300 pb-1 text-[14px] font-semibold">{title}</h2>
+      {empty ? <p className="text-neutral-500">{t('hrPrint.none')}</p> : children}
+    </section>
+  );
+}

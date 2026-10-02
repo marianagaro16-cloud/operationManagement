@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge, Card, Checkbox, EmptyState } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { WorkerDialog, type HrAccount } from './worker-dialog';
+import { HrExport } from './hr-export';
 import type { Team } from '@/lib/authz';
 import type { HrWorker } from '@/types/hr';
 import { teamLabelKey } from '@/lib/authz';
@@ -38,10 +39,13 @@ export function WorkerList({
         title={t('hr.navLabel')}
         subtitle={t('hr.subtitle')}
         action={
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            {t('hr.newWorker')}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <HrExport />
+            <Button variant="primary" onClick={() => setCreating(true)}>
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              {t('hr.newWorker')}
+            </Button>
+          </div>
         }
       />
 
