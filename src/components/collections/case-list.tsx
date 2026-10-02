@@ -145,8 +145,8 @@ function NewCaseDialog({
   const [responsible, setResponsible] = useState(team.some((p) => p.id === viewerId) ? viewerId : team[0]?.id ?? '');
   const [invoices, setInvoices] = useState<DraftInvoice[]>([{ invoice_number: '', due_date: '', amount: '' }]);
   const [next, setNext] = useState(today);
-  // Where it starts: at a reminder (1–3) from the invoicing program, or at follow-up.
-  const [start, setStart] = useState<'1' | '2' | '3' | 'follow_up'>('1');
+  // Where it starts: at a reminder (1–2) from the invoicing program, or at follow-up.
+  const [start, setStart] = useState<'1' | '2' | 'follow_up'>('1');
   const [reminderDate, setReminderDate] = useState(today);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -164,7 +164,7 @@ function NewCaseDialog({
         customer_id: customerId,
         responsible_id: responsible,
         invoices: filled.map((i) => ({ invoice_number: i.invoice_number, due_date: i.due_date || null, amount: amount(i.amount) })),
-        next_follow_up: start === 'follow_up' || start === '3' ? next || null : null,
+        next_follow_up: start === 'follow_up' || start === '2' ? next || null : null,
         reminders_sent: start === 'follow_up' ? 0 : Number(start),
         reminder_date: start === 'follow_up' ? null : reminderDate,
         note,
@@ -225,7 +225,6 @@ function NewCaseDialog({
             <Select id="collection-start" value={start} onChange={(e) => setStart(e.target.value as typeof start)}>
               <option value="1">{t('collection.reminderSent', { n: 1 })}</option>
               <option value="2">{t('collection.reminderSent', { n: 2 })}</option>
-              <option value="3">{t('collection.reminderSent', { n: 3 })}</option>
               <option value="follow_up">{t('collection.stageFollowUp')}</option>
             </Select>
           </Field>
@@ -241,7 +240,7 @@ function NewCaseDialog({
               {team.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </Select>
           </Field>
-          {(start === 'follow_up' || start === '3') && (
+          {(start === 'follow_up' || start === '2') && (
             <Field label={t('collection.nextFollowUp')} htmlFor="collection-next">
               <Input id="collection-next" type="date" value={next} onChange={(e) => setNext(e.target.value)} />
             </Field>

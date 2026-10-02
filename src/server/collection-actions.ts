@@ -16,6 +16,8 @@ const DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'invalid_date' }
 const uuid = z.string().uuid();
 const optDate = DATE.nullable().optional().transform((v) => v ?? null);
 const text = (max: number) => z.string().trim().max(max).nullable().optional().transform((v) => v || null);
+/** The invoicing program's payment reminders before follow-up: two (2026-10-02; it was three). */
+const LAST_REMINDER = 2;
 const money = z.number().positive({ message: 'invalid_amount' }).max(10_000_000);
 
 const KNOWN = ['not_authorized', 'responsible_not_team', 'collection_cases_agency', 'collection_cases_promise'];
@@ -64,8 +66,8 @@ async function openAmount(caseId: string): Promise<number> {
 const invoiceSchema = z.object({ invoice_number: z.string().trim().min(1).max(60), due_date: optDate, amount: money });
 
 const caseSchema = z.object({
-  /** Where it starts: at a payment reminder (1–3, sent on a day), or at follow-up. */
-  reminders_sent: z.number().int().min(0).max(3).default(0),
+  /** Where it starts: at a payment reminder (1–2, sent on a day), or at follow-up. */
+  reminders_sent: z.number().int().min(0).max(LAST_REMINDER).default(0),
   reminder_date: optDate,
   customer_id: uuid,
   responsible_id: uuid,
@@ -87,7 +89,7 @@ export async function createCase(input: z.input<typeof caseSchema>): Promise<Act
       customer_id: v.customer_id,
       responsible_id: v.responsible_id,
       // At a reminder while the program's reminders run; at follow-up after the third.
-      stage: v.reminders_sent > 0 && v.reminders_sent < 3 ? 'reminders' : 'follow_up',
+      stage: v.reminders_sent > 0 && v.reminders_sent < LAST_REMINDER ? 'reminders' : 'follow_up',
       reminders_sent: v.reminders_sent,
       next_follow_up: v.next_follow_up,
       note: v.note,
@@ -99,7 +101,7 @@ export async function createCase(input: z.input<typeof caseSchema>): Promise<Act
   const id = (data as { id: string }).id;
   const { error: invError } = await supabase.from('collection_invoices').insert(v.invoices.map((i) => ({ ...i, case_id: id })));
   if (invError) return fail(invError);
-  await log(id, 'stage', null, { stage: v.reminders_sent > 0 && v.reminders_sent < 3 ? 'reminders' : 'follow_up', opened: true });
+  await log(id, 'stage', null, { stage: v.reminders_sent > 0 && v.reminders_sent < LAST_REMINDER ? 'reminders' : 'follow_up', opened: true });
   if (v.reminders_sent > 0) await log(id, 'reminder', null, { level: v.reminders_sent }, v.reminder_date ?? undefined);
   if (v.responsible_id !== uid) await tellResponsible(v.responsible_id, id, 'Caso de cobranza asignado');
   revalidateCase(id);
@@ -151,15 +153,15 @@ export async function recordReminder(caseId: string, sentOn: string, nextFollowU
   const supabase = createClient();
   const { data: c } = await supabase.from('collection_cases').select('stage, reminders_sent').eq('id', caseId).maybeSingle();
   if (!c) return { ok: false, error: 'not_authorized' };
-  if (c.stage !== 'reminders' || c.reminders_sent >= 3) return { ok: false, error: 'invalid_stage' };
+  if (c.stage !== 'reminders' || c.reminders_sent >= LAST_REMINDER) return { ok: false, error: 'invalid_stage' };
   const level = c.reminders_sent + 1;
   const { error } = await supabase
     .from('collection_cases')
-    .update(level >= 3 ? { reminders_sent: level, stage: 'follow_up', next_follow_up: nextFollowUp ?? null } : { reminders_sent: level })
+    .update(level >= LAST_REMINDER ? { reminders_sent: level, stage: 'follow_up', next_follow_up: nextFollowUp ?? null } : { reminders_sent: level })
     .eq('id', caseId);
   if (error) return fail(error);
   await log(caseId, 'reminder', null, { level }, sentOn);
-  if (level >= 3) await log(caseId, 'stage', null, { stage: 'follow_up', from: 'reminders' });
+  if (level >= LAST_REMINDER) await log(caseId, 'stage', null, { stage: 'follow_up', from: 'reminders' });
   revalidateCase(caseId);
   return { ok: true, data: { level } };
 }

@@ -118,7 +118,7 @@ export function CaseView({
         {error && <div className="mt-3"><ErrorState message={error} /></div>}
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {row.stage === 'reminders' && row.reminders_sent < 3 && (
+          {row.stage === 'reminders' && row.reminders_sent < 2 && (
             <Button size="sm" variant="primary" onClick={() => setOpen('reminder')}>
               <BellRing className="h-3.5 w-3.5" aria-hidden />
               {t('collection.reminderSent', { n: row.reminders_sent + 1 })}
@@ -517,7 +517,7 @@ function ReminderDialog({ caseId, level, today, onClose }: { caseId: string; lev
   const { error, pending, submit } = useSubmit(onClose);
   const [date, setDate] = useState(today);
   const [next, setNext] = useState('');
-  const last = level >= 3;
+  const last = level >= 2;
   return (
     <Frame
       title={t('collection.reminderSent', { n: level })}
