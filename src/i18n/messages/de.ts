@@ -3430,6 +3430,13 @@ export const de: Messages = {
     cancelConfirm: 'Diese Meldung abbrechen?',
     errNotAuthorized: 'Du kannst diese Meldung nicht ändern (schon in Arbeit oder nicht deine).',
   },
+  teamToday: {
+    title: 'Team heute',
+    done: '{done}/{total} erledigt',
+    late: '{count} überfällig',
+    blocked: '{count} blockiert',
+    hint: 'Die Details jedes Bereichs stehen in seinem Arbeitsplan.',
+  },
   language: {
     label: 'Sprache',
     en: 'English',

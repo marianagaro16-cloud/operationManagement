@@ -135,7 +135,7 @@ export interface OccurrenceWithTask extends TaskOccurrence {
   task: Pick<
     Task,
     'id' | 'title' | 'description' | 'frequency' | 'is_skippable' | 'is_active' | 'category_id'
-    | 'translations' | 'product_id' | 'target_quantity'
+    | 'translations' | 'product_id' | 'target_quantity' | 'team'
   > & { category: Pick<Category, 'slug' | 'name'> | null; product?: { name: string } | null };
   /** What was made, once a production order's day is recorded. */
   production?: ProductionRecord | null;

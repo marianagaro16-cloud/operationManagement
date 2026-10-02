@@ -3462,6 +3462,13 @@ export const en = {
     cancelConfirm: 'Cancel this report?',
     errNotAuthorized: 'You cannot change this report (already in progress, or not yours).',
   },
+  teamToday: {
+    title: 'Team today',
+    done: '{done}/{total} done',
+    late: '{count} late',
+    blocked: '{count} blocked',
+    hint: 'Each area\'s detail is in its work plan.',
+  },
   language: {
     label: 'Language',
     en: 'English',

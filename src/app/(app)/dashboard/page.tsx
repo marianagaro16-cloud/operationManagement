@@ -28,6 +28,8 @@ import { TodayCard } from '@/components/agenda/today-card';
 import { countUnansweredInvites } from '@/server/meetings';
 import { countFollowUpsDue } from '@/server/collections';
 import { CoverageTodayCard } from '@/components/absences/coverage-today-card';
+import { TeamTodayCard, type TeamToday } from '@/components/tasks/team-today-card';
+import type { Team } from '@/lib/authz';
 import { NotesCard } from '@/components/notes/notes-view';
 import { getNotes } from '@/server/notes';
 import { compareUrgency, deliveryUrgency } from '@/domain/orders/urgency';
@@ -65,7 +67,8 @@ export default async function DashboardPage() {
   const inSalesTeam = viewer?.profile.team === 'sales';
 
   const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes] = await Promise.all([
-    getDashboardData(plans ? 7 : 0),
+    // Today and what is late — no week ahead: one's own are listed, the team's counted.
+    getDashboardData(0),
     getOrderDashboardSummary(today),
     // A short horizon: the dashboard only surfaces what is due now or late.
     // The forward view lives on the inventory screen.
@@ -103,6 +106,31 @@ export default async function DashboardPage() {
     viewer ? getNotes({ limit: 4 }) : [],
   ]);
 
+  // ---- whoever plans: their own activities, and the team in one line per area ----
+  // A planner's list used to hold everyone's days, today's and the week's —
+  // confusing. Their own are listed; the team's are counted per area, the
+  // detail one tap away in the work plan.
+  const meId = viewer?.profile.id;
+  const mine = (list: typeof data.overdue) => list.filter((o) => o.assignee_id === meId);
+  const myData = plans
+    ? { ...data, dailyToday: mine(data.dailyToday), extraToday: mine(data.extraToday), overdue: mine(data.overdue), upcoming: [], blocked: mine(data.blocked) }
+    : data;
+  const teamToday: TeamToday[] = plans
+    ? [...new Set([...data.dailyToday, ...data.extraToday, ...data.overdue, ...data.blocked].map((o) => o.task.team))]
+        .filter((tm): tm is Team => !!tm)
+        .map((tm) => {
+          const day = [...data.dailyToday, ...data.extraToday].filter((o) => o.task.team === tm);
+          return {
+            team: tm,
+            total: day.length,
+            done: day.filter((o) => o.status !== 'pending').length,
+            late: data.overdue.filter((o) => o.task.team === tm).length,
+            blocked: data.blocked.filter((o) => o.task.team === tm).length,
+          };
+        })
+        .sort((a, b) => b.late - a.late || b.total - a.total)
+    : [];
+
   // ---- what the figures and "Now" count ----
   const todayAll = [...data.dailyToday, ...data.extraToday];
   const activities = { done: todayAll.filter((o) => o.status !== 'pending').length, total: todayAll.length };
@@ -116,8 +144,9 @@ export default async function DashboardPage() {
     .map((x) => ({ name: x.o.customer.name, late: x.u.level === 'overdue' || x.u.level === 'critical' }));
 
   const nowItems = buildNowItems({
-    overdueActivities: data.overdue.length,
-    blockedActivities: plans ? data.blocked.length : 0,
+    // One's own late days; the team's are counted on the team card.
+    overdueActivities: myData.overdue.length,
+    blockedActivities: plans ? myData.blocked.length : 0,
     urgentOrders,
     overdueCounts: inventory.overdue.length,
     // Today's counts and sales activities are listed in "Hoy"; "Ahora" keeps what is late or urgent.
@@ -236,8 +265,14 @@ export default async function DashboardPage() {
         )}
       </div>
 
+      {plans && (
+        <div className="mt-2">
+          <TeamTodayCard areas={teamToday} />
+        </div>
+      )}
+
       <div className="mt-2">
-        <DashboardView data={data} showUpcoming={plans} canSkip={plans} />
+        <DashboardView data={myData} showUpcoming={false} canSkip={plans} />
       </div>
     </>
   );

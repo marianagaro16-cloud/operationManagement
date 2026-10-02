@@ -30,7 +30,7 @@ const OCCURRENCE_SELECT = `
   assignee_id, assignee_manual, covered_assignment_id, completed_by, completed_at, skipped_by, skipped_at, skip_reason,
   created_at, updated_at,
   task:tasks!inner (
-    id, title, description, frequency, is_skippable, is_active, category_id, translations, product_id, target_quantity,
+    id, title, description, frequency, is_skippable, is_active, category_id, translations, product_id, target_quantity, team,
     category:categories ( slug, name ),
     product:products ( name )
   ),

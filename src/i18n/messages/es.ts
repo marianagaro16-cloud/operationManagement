@@ -3430,6 +3430,13 @@ export const es: Messages = {
     cancelConfirm: '¿Cancelar este reporte?',
     errNotAuthorized: 'No puedes cambiar este reporte (ya está en proceso, o no es tuyo).',
   },
+  teamToday: {
+    title: 'Equipo hoy',
+    done: '{done}/{total} hechas',
+    late: '{count} atrasada(s)',
+    blocked: '{count} bloqueada(s)',
+    hint: 'El detalle de cada área, en su plan de trabajo.',
+  },
   language: {
     label: 'Idioma',
     en: 'English',
