@@ -450,3 +450,13 @@ export async function getOccurrencesInRange(
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as OccurrenceWithTask[];
 }
+
+/**
+ * The areas a person runs: their own team, and any listed for them in
+ * team_managers (Freddy: Production and Maintenance). Mirrors my_teams().
+ */
+export async function getMyTeams(profileId: string, ownTeam: Team): Promise<Team[]> {
+  const supabase = createClient();
+  const { data } = await supabase.from('team_managers').select('team').eq('profile_id', profileId);
+  return [...new Set([ownTeam, ...((data ?? []) as { team: Team }[]).map((r) => r.team)])];
+}

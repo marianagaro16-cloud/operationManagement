@@ -212,14 +212,14 @@ export async function setOccurrenceDayPeople(
     const [{ data: { user } }, { data: day }] = await Promise.all([
       supabase.auth.getUser(),
       supabase.from('task_occurrences')
-        .select('effective_due_date, task:tasks ( title )')
+        .select('effective_due_date, task:tasks ( title, team )')
         .eq('id', occurrenceId).maybeSingle(),
     ]);
-    const row = day as unknown as { effective_due_date: string; task: { title: string } | null } | null;
+    const row = day as unknown as { effective_due_date: string; task: { title: string; team: string } | null } | null;
     if (row?.task) {
       for (const person of newcomers) {
         // Nobody needs telling what they just gave themselves.
-        if (person !== user?.id) await notifyActivityDayAssigned(person, row.task.title, row.effective_due_date);
+        if (person !== user?.id) await notifyActivityDayAssigned(person, row.task.title, row.effective_due_date, row.task.team);
       }
     }
   }
@@ -302,7 +302,7 @@ export async function createOneOffTask(input: OneOffInput): Promise<ActionResult
 
   const { data: { user } } = await supabase.auth.getUser();
   for (const person of people) {
-    if (person !== user?.id) await notifyActivityDayAssigned(person, title, date);
+    if (person !== user?.id) await notifyActivityDayAssigned(person, title, date, team);
   }
 
   revalidatePath('/calendar');

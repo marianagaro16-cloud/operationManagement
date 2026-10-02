@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getViewer } from '@/server/data';
+import { getMyTeams, getViewer } from '@/server/data';
 import { getReminderAttentionCount } from '@/server/reminders';
 import { getUnreadInboxCount } from '@/server/inbox';
 import { getMyEvaluationCounts } from '@/server/hr-evaluations';
@@ -37,7 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // entry, on every screen.
   // …and unread notifications, as a count on the inbox icon. Both at once.
   // …and evaluations they were asked to fill in, if ever.
-  const [reminderAttention, inboxUnread, evaluations, collections, marketingNew, ownProduction] = await Promise.all([
+  const [reminderAttention, inboxUnread, evaluations, collections, marketingNew, ownProduction, myTeams] = await Promise.all([
     canUseReminders(viewer) ? getReminderAttentionCount() : Promise.resolve(0),
     getUnreadInboxCount(),
     getMyEvaluationCounts(),
@@ -46,6 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     canEditMarketing(viewer.role, viewer.profile.team) ? countNewRequests() : Promise.resolve(0),
     // Production orders of one's own: a 'My production' entry.
     hasOwnProduction(viewer.profile.id),
+    getMyTeams(viewer.profile.id, viewer.profile.team),
   ]);
 
   return (
@@ -58,6 +59,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       collections={collections}
       marketingNew={marketingNew}
       ownProduction={ownProduction}
+      myTeams={myTeams}
     >
       {children}
     </AppShell>

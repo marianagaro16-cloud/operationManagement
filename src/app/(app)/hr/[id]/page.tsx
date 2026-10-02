@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { DateTime } from 'luxon';
-import { getUsers, getViewer } from '@/server/data';
+import { getUsers, getViewer, getMyTeams } from '@/server/data';
 import { getCriteria, getArrivalSettings, getEvalTemplates, getLateArrivals, getLateReasons, getNoteTypes, getWorkerFile, getWorkerStats, getWorkers } from '@/server/hr';
 import { getWorkerEvalRequests } from '@/server/hr-evaluations';
 import { WorkerFile, type HrTab } from '@/components/hr/worker-file';
@@ -71,7 +71,7 @@ export default async function WorkerFilePage({
       accounts={users
         .filter((u) => u.status === 'approved' && !linkedElsewhere.has(u.id) && u.id !== viewer.profile.id)
         .map((u) => ({ id: u.id, name: displayName(u), team: u.team }))}
-      teams={scope ? [scope] : [...TEAMS]}
+      teams={scope ? await getMyTeams(viewer.profile.id, viewer.profile.team) : [...TEAMS]}
       today={today}
       evalRequests={evalRequests}
       isAdmin={isAdminRole(viewer.role)}

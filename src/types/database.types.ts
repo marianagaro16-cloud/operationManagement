@@ -8065,6 +8065,29 @@ export type Database = {
           },
         ]
       }
+      team_managers: {
+        Row: {
+          profile_id: string
+          team: Database["public"]["Enums"]["team"]
+        }
+        Insert: {
+          profile_id: string
+          team: Database["public"]["Enums"]["team"]
+        }
+        Update: {
+          profile_id?: string
+          team?: Database["public"]["Enums"]["team"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_managers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transporters: {
         Row: {
           created_at: string
@@ -8297,6 +8320,7 @@ export type Database = {
       can_organize_meetings: { Args: never; Returns: boolean }
       can_plan_coverage: { Args: { p_absence_id: string }; Returns: boolean }
       can_read_marketing: { Args: never; Returns: boolean }
+      can_request_marketing: { Args: never; Returns: boolean }
       can_see_handover: { Args: { p_absence_id: string }; Returns: boolean }
       can_see_marketing_request: { Args: { p_id: string }; Returns: boolean }
       can_see_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
@@ -8760,6 +8784,7 @@ export type Database = {
         }[]
       }
       my_team: { Args: never; Returns: Database["public"]["Enums"]["team"] }
+      my_teams: { Args: never; Returns: Database["public"]["Enums"]["team"][] }
       next_goods_reception_report_version: {
         Args: { p_month: string }
         Returns: number
@@ -9110,7 +9135,13 @@ export type Database = {
         | "semiannual"
         | "one_off"
         | "as_needed"
-      team: "production" | "operations" | "sales" | "logistics" | "marketing"
+      team:
+        | "production"
+        | "operations"
+        | "sales"
+        | "logistics"
+        | "marketing"
+        | "maintenance"
       user_role:
         | "admin"
         | "user"
@@ -9314,7 +9345,14 @@ export const Constants = {
         "one_off",
         "as_needed",
       ],
-      team: ["production", "operations", "sales", "logistics", "marketing"],
+      team: [
+        "production",
+        "operations",
+        "sales",
+        "logistics",
+        "marketing",
+        "maintenance",
+      ],
       user_role: [
         "admin",
         "user",

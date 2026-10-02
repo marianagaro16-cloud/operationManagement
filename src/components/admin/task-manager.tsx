@@ -49,7 +49,7 @@ const EMPTY: TaskInput = {
 export function TaskManager({
   tasks,
   categories,
-  ownTeam,
+  ownTeams,
   people,
   reminderViewerId,
   products = [],
@@ -59,7 +59,8 @@ export function TaskManager({
   tasks: TaskRow[];
   categories: Category[];
   /** Set when the viewer configures only their own team's activities: the team is fixed. */
-  ownTeam: Team | null;
+  /** Set when the viewer configures only the areas they run. */
+  ownTeams: Team[] | null;
   /** Who an activity can be given to. */
   people: OneOffPerson[];
   /** Null when the viewer cannot use reminders; the row button then renders nothing. */
@@ -76,10 +77,10 @@ export function TaskManager({
   // Each area of work has its own space: a tab, its activities in one list.
   const areas = useMemo(() => {
     const present = new Set(tasks.map((x) => x.team));
-    const base: Team[] = ownTeam ? [ownTeam] : ['logistics', 'operations', 'production'];
+    const base: Team[] = ownTeams ?? ['logistics', 'operations', 'production', 'maintenance'];
     return [...base, ...TEAMS.filter((tm) => present.has(tm) && !base.includes(tm))];
-  }, [tasks, ownTeam]);
-  const [area, setArea] = useState<Team>(() => (ownTeam ?? 'operations'));
+  }, [tasks, ownTeams]);
+  const [area, setArea] = useState<Team>(() => (ownTeams?.[0] ?? 'operations'));
   const [showInactive, setShowInactive] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -244,7 +245,7 @@ export function TaskManager({
           key={editing?.id ?? 'new'}
           task={editing}
           categories={categories}
-          ownTeam={ownTeam}
+          ownTeams={ownTeams}
           defaultTeam={area}
           people={people}
           products={products}
@@ -287,7 +288,7 @@ export function TaskManager({
 function TaskDialog({
   task,
   categories,
-  ownTeam,
+  ownTeams,
   defaultTeam,
   people,
   products,
@@ -299,7 +300,7 @@ function TaskDialog({
   products: { id: string; name: string }[];
   task: TaskRow | null;
   categories: Category[];
-  ownTeam: Team | null;
+  ownTeams: Team[] | null;
   people: OneOffPerson[];
   onClose: () => void;
   onSaved: () => void;
@@ -322,7 +323,7 @@ function TaskDialog({
           product_id: task.product_id ?? null,
           target_quantity: task.target_quantity != null ? Number(task.target_quantity) : null,
         }
-      : { ...EMPTY, team: ownTeam ?? defaultTeam },
+      : { ...EMPTY, team: defaultTeam },
   );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -420,7 +421,7 @@ function TaskDialog({
             people={people}
             selected={form.assignee_ids ?? []}
             onChange={(ids) => {
-              const first = form.assignee_ids?.length || ownTeam ? null : people.find((p) => p.id === ids[0]);
+              const first = form.assignee_ids?.length || ownTeams ? null : people.find((p) => p.id === ids[0]);
               setForm({ ...form, assignee_ids: ids, team: first?.team ?? form.team });
             }}
           />
@@ -432,10 +433,10 @@ function TaskDialog({
             id="task-team"
             value={form.team}
             onChange={(e) => setForm({ ...form, team: e.target.value as Team })}
-            // A team's manager files activities under their own team only.
-            disabled={ownTeam !== null}
+            // An area's manager files activities under the areas they run only.
+            disabled={ownTeams !== null && ownTeams.length < 2}
           >
-            {TEAMS.map((team) => (
+            {(ownTeams ?? TEAMS).map((team) => (
               <option key={team} value={team}>{teamLabel(team)}</option>
             ))}
           </Select>

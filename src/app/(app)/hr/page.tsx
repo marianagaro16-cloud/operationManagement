@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getUsers, getViewer } from '@/server/data';
+import { getUsers, getViewer, getMyTeams } from '@/server/data';
 import { getWorkers } from '@/server/hr';
 import { WorkerList } from '@/components/hr/worker-list';
 import { displayName } from '@/lib/utils';
@@ -26,7 +26,7 @@ export default async function HrPage() {
         // Nobody files themselves: their own file would be hidden from them.
         .filter((u) => u.status === 'approved' && u.id !== viewer.profile.id)
         .map((u) => ({ id: u.id, name: displayName(u), team: u.team }))}
-      teams={scope ? [scope] : [...TEAMS]}
+      teams={scope ? await getMyTeams(viewer.profile.id, viewer.profile.team) : [...TEAMS]}
     />
   );
 }

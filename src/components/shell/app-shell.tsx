@@ -21,17 +21,18 @@ import { opensManagement } from '@/components/admin/sections';
  * Responsive shell: a bottom tab bar on phones (thumb-reachable, since the
  * operators use this on the warehouse floor) and a sidebar from `md` up.
  */
-type NavGroup = 'day' | 'logistics' | 'operation' | 'production' | 'customers' | 'marketing' | 'team' | 'manage';
+type NavGroup = 'day' | 'logistics' | 'operation' | 'production' | 'maintenance' | 'customers' | 'marketing' | 'team' | 'manage';
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; primary: boolean; badge?: number; group: NavGroup };
 const FOLDED_KEY = 'nav.folded';
 /** Closed to the external (Marketing) account. */
 const EXTERNAL_HIDDEN = ['/production', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/inventory', '/calendar', '/absences', '/hr', '/evaluations', '/collections', '/sales'];
-const NAV_GROUPS: NavGroup[] = ['day', 'logistics', 'operation', 'production', 'customers', 'marketing', 'team', 'manage'];
+const NAV_GROUPS: NavGroup[] = ['day', 'logistics', 'operation', 'production', 'maintenance', 'customers', 'marketing', 'team', 'manage'];
 const GROUP_LABEL: Record<Exclude<NavGroup, 'manage'>, MessageKey> = {
   day: 'nav.groupDay',
   logistics: 'nav.groupLogistics',
   production: 'nav.groupProduction',
   marketing: 'nav.groupMarketing',
+  maintenance: 'nav.groupMaintenance',
   operation: 'nav.groupOperation',
   customers: 'nav.groupCustomers',
   team: 'nav.groupTeam',
@@ -46,8 +47,11 @@ export function AppShell({
   collections = false,
   marketingNew = 0,
   ownProduction = false,
+  myTeams = [],
   children,
 }: {
+  /** The areas this person runs: their team, and any extra (Freddy: Maintenance). */
+  myTeams?: Team[];
   /** Has production orders of their own: 'My production'. */
   ownProduction?: boolean;
   /** New requests waiting for Marketing; a count on its entry. */
@@ -96,9 +100,10 @@ export function AppShell({
    * in it is not shown.
    */
   const plansWork = can(role, held, 'tasks.manage_occurrences');
-  const AREA: Record<'logistics' | 'operations' | 'production', NavGroup> = { logistics: 'logistics', operations: 'operation', production: 'production' };
-  const activitiesFor = (team: 'logistics' | 'operations' | 'production'): NavItem[] =>
-    plansWork && (role !== 'production_manager' || profile.team === team)
+  const AREA: Record<'logistics' | 'operations' | 'production' | 'maintenance', NavGroup> = { logistics: 'logistics', operations: 'operation', production: 'production', maintenance: 'maintenance' };
+  // An area's manager plans only the areas they run (Freddy: Production and Maintenance).
+  const activitiesFor = (team: 'logistics' | 'operations' | 'production' | 'maintenance'): NavItem[] =>
+    plansWork && (role !== 'production_manager' || myTeams.includes(team))
       ? [{ href: `/calendar?team=${team}`, label: t('nav.activities'), icon: CalendarDays, primary: false, group: AREA[team] }]
       : [];
 
@@ -147,6 +152,8 @@ export function AppShell({
       ? [{ href: '/production/mine', label: t('production.mineTitle'), icon: Factory, primary: false, group: 'operation' as const }]
       : []),
     ...activitiesFor('production'),
+    // ---- maintenance ----
+    ...activitiesFor('maintenance'),
 
     // ---- customers ----
     // Sales: customers, prospects, planning, report, summary. The Ventas team, Admin and Owners.

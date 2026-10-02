@@ -44,10 +44,11 @@ export async function notifyActivityAssigned(userId: string, title: string, freq
   await send(userId, `${title} (${FREQUENCY_ES[frequency] ?? frequency}) — a partir de ahora la haces tú.`);
 }
 
-export async function notifyActivityDayAssigned(userId: string, title: string, date: string) {
+export async function notifyActivityDayAssigned(userId: string, title: string, date: string, team?: string) {
   // A plain User sees their activities from the day itself, not before
   // (20261214090000): a notice about a later day would tell them the plan.
-  if (date > businessToday() && (await isPlainUser(userId))) return;
+  // Maintenance is the exception: its helper follows the plan left for him.
+  if (team !== 'maintenance' && date > businessToday() && (await isPlainUser(userId))) return;
   const day = DateTime.fromISO(date, { zone: BUSINESS_TZ }).setLocale('es').toFormat('cccc d.M.');
   await send(userId, `${title} — el ${day} la haces tú.`);
 }
