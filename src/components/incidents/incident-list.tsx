@@ -97,8 +97,9 @@ export function IncidentList({
     ? types.filter((ty) => ty.category_id === filters.categoryId)
     : types;
 
+  // The area is where the list was opened from, not a filter to clear.
   const activeCount = Object.entries(filters).filter(
-    ([k, v]) => Boolean(v) && k !== 'page',
+    ([k, v]) => Boolean(v) && k !== 'page' && k !== 'area',
   ).length;
 
   const lastPage = Math.max(1, Math.ceil(page.total / page.pageSize));
@@ -106,7 +107,7 @@ export function IncidentList({
   return (
     <>
       <PageHeader
-        title={t('incident.title')}
+        title={filters.area ? `${t('incident.title')} · ${t(filters.area === 'production' ? 'roles.teamProduction' : 'roles.teamLogistics')}` : t('incident.title')}
         subtitle={t('incident.subtitle')}
         action={
           canManage ? (
@@ -147,7 +148,7 @@ export function IncidentList({
         </Button>
 
         {activeCount > 0 && (
-          <Button variant="ghost" onClick={() => router.push('/incidents')}>
+          <Button variant="ghost" onClick={() => router.push(filters.area ? `/incidents?area=${filters.area}` : '/incidents')}>
             <X className="h-3.5 w-3.5" aria-hidden />
             {t('incident.clearFilters')}
           </Button>

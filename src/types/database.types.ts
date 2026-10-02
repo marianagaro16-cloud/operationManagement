@@ -9242,6 +9242,7 @@ export type Database = {
         | "discrepancy"
       goods_reception_status: "draft" | "received" | "checking" | "completed"
       incident_cause:
+        | "production"
         | "order_entry"
         | "picking"
         | "preparation"
@@ -9447,6 +9448,7 @@ export const Constants = {
       ],
       goods_reception_status: ["draft", "received", "checking", "completed"],
       incident_cause: [
+        "production",
         "order_entry",
         "picking",
         "preparation",

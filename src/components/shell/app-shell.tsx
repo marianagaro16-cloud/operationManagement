@@ -132,8 +132,10 @@ export function AppShell({
       : []),
     // Every incident is about a delivery. Whoever manages incidents without
     // managing orders (the production manager) still needs the log itself.
-    ...(can(role, held, 'orders.manage') || can(role, held, 'incidents.manage')
-      ? [{ href: '/incidents', label: t('incident.navLabel'), icon: AlertTriangle, primary: false, group: 'logistics' as const }]
+    // Each area's incidents: Logística's (orders, transport, delivery…) — not for
+    // the Production manager, whose are Producción's.
+    ...((can(role, held, 'orders.manage') || can(role, held, 'incidents.manage')) && role !== 'production_manager'
+      ? [{ href: '/incidents?area=logistics', label: t('incident.navLabel'), icon: AlertTriangle, primary: false, group: 'logistics' as const }]
       : []),
     ...activitiesFor('logistics'),
     // ---- the operation: the warehouse ----
@@ -155,6 +157,9 @@ export function AppShell({
       ? [{ href: '/production/mine', label: t('production.mineTitle'), icon: Factory, primary: false, group: 'operation' as const }]
       : []),
     ...activitiesFor('production'),
+    ...((can(role, held, 'orders.manage') || can(role, held, 'incidents.manage')) && (role !== 'production_manager' || myTeams.includes('production'))
+      ? [{ href: '/incidents?area=production', label: t('incident.navLabel'), icon: AlertTriangle, primary: false, group: 'production' as const }]
+      : []),
     // ---- maintenance ----
     ...activitiesFor('maintenance'),
     ...(myTeams.includes('maintenance') || ['admin', 'owner', 'manager'].includes(role)
@@ -239,6 +244,7 @@ export function AppShell({
   };
   const under = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const active = (href: string) =>
+    href.startsWith('/incidents?area=') ? pathname.startsWith('/incidents') && href.endsWith(`area=${searchParams.get('area') ?? ''}`) :
     href === '/marketing' ? pathname.startsWith('/marketing') && !pathname.startsWith('/marketing/requests') :
     href === '/marketing/requests' ? pathname.startsWith('/marketing/requests') :
     href.startsWith('/calendar?') ? pathname === '/calendar' && href.endsWith(`team=${searchParams.get('team')}`) :

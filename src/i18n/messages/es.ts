@@ -917,6 +917,7 @@ export const es: Messages = {
       critical: 'Crítica',
     },
     cause: {
+      production: 'Producción (calidad, peso, empaque del producto)',
       orderEntry: 'Registro del pedido',
       picking: 'Picking',
       preparation: 'Preparación',

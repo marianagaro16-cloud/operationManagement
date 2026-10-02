@@ -938,6 +938,7 @@ export const en = {
       critical: 'Critical',
     },
     cause: {
+      production: 'Production (product quality, weight, packaging)',
       orderEntry: 'Order entry',
       picking: 'Picking',
       preparation: 'Preparation',

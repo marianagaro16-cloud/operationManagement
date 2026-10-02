@@ -30,6 +30,8 @@ export type IncidentSeverity = (typeof INCIDENT_SEVERITIES)[number];
  * operation rather than as an alphabetical list.
  */
 export const INCIDENT_CAUSES = [
+  // The product itself — quality, weight, packaging: Producción's (the rest is Logística's).
+  'production',
   'order_entry',
   'picking',
   'preparation',

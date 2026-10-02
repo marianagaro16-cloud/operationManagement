@@ -92,6 +92,7 @@ function applyFilters<T extends { eq: (c: string, v: unknown) => T; gte: (c: str
   if (filters.categoryId) q = q.eq('type.category_id', filters.categoryId);
   if (filters.primaryCause) q = q.eq('primary_cause', filters.primaryCause);
   if (filters.responsibility) q = q.eq('responsibility', filters.responsibility);
+  if (filters.area) q = q.eq('team', filters.area);
   if (filters.severity) q = q.eq('severity', filters.severity);
   if (filters.status) q = q.eq('status', filters.status);
   if (filters.deliveryMethodId) q = q.eq('delivery_method_id', filters.deliveryMethodId);

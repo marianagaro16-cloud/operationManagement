@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
 
   const p = request.nextUrl.searchParams;
   const filters: IncidentFilters = {
+    area: p.get('area') === 'production' || p.get('area') === 'logistics' ? (p.get('area') as 'production' | 'logistics') : undefined,
     from: match(p.get('from'), /^\d{4}-\d{2}-\d{2}$/),
     to: match(p.get('to'), /^\d{4}-\d{2}-\d{2}$/),
     customerId: match(p.get('customerId'), UUID),

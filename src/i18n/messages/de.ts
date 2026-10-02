@@ -917,6 +917,7 @@ export const de: Messages = {
       critical: 'Kritisch',
     },
     cause: {
+      production: 'Produktion (Qualität, Gewicht, Verpackung des Produkts)',
       orderEntry: 'Bestellerfassung',
       picking: 'Kommissionierung',
       preparation: 'Vorbereitung',

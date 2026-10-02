@@ -196,6 +196,8 @@ export interface Incident {
 
 /** Every filter the list and the export understand. All combinable. */
 export interface IncidentFilters {
+  /** One area's incidents: Producción (production causes) or Logística (the rest). */
+  area?: 'production' | 'logistics';
   from?: string;
   to?: string;
   customerId?: string;

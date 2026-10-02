@@ -40,6 +40,7 @@ export default async function IncidentsPage({
   if (!viewer || viewer.profile.status !== 'approved') redirect('/dashboard');
 
   const filters: IncidentFilters = {
+    area: searchParams.area === 'production' || searchParams.area === 'logistics' ? searchParams.area : undefined,
     from: isDate(searchParams.from) ? searchParams.from : undefined,
     to: isDate(searchParams.to) ? searchParams.to : undefined,
     customerId: isUuid(searchParams.customerId) ? searchParams.customerId : undefined,
