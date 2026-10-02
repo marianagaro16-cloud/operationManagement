@@ -14,6 +14,9 @@ export const LINK_TYPES = [
   'task',
   'inventory',
   'product',
+  'event',
+  'marketing_post',
+  'marketing_request',
 ] as const;
 
 export type LinkType = (typeof LINK_TYPES)[number];
@@ -26,6 +29,9 @@ export const LINK_COLUMN: Record<LinkType, string> = {
   task: 'task_id',
   inventory: 'inventory_instance_id',
   product: 'product_id',
+  event: 'event_id',
+  marketing_post: 'marketing_post_id',
+  marketing_request: 'marketing_request_id',
 };
 
 export function isLinkType(value: unknown): value is LinkType {
@@ -41,6 +47,9 @@ export interface LinkedRecords {
   task_id: string | null;
   inventory_instance_id: string | null;
   product_id: string | null;
+  event_id?: string | null;
+  marketing_post_id?: string | null;
+  marketing_request_id?: string | null;
   customer?: { id: string; name: string } | null;
   order?: { id: string; reference: number } | null;
   incident?: { id: string; incident_number: string | null } | null;
@@ -48,6 +57,9 @@ export interface LinkedRecords {
   task?: { id: string; title: string } | null;
   inventory?: { id: string; name_snapshot: string; inventory_date: string } | null;
   product?: { id: string; code: string | null; name: string | null; family: string; presentation: string | null } | null;
+  event?: { id: string; name: string; start_date: string } | null;
+  marketing_post?: { id: string; title: string } | null;
+  marketing_request?: { id: string; title: string } | null;
 }
 
 export interface ResolvedLink {
@@ -75,6 +87,9 @@ export function linkHref(type: LinkType, id: string): string {
     case 'task':            return `/admin/tasks?edit=${id}`;
     case 'inventory':       return `/inventory/${id}`;
     case 'product':         return `/admin/products`;
+    case 'event':             return `/events/${id}`;
+    case 'marketing_post':    return `/marketing/${id}`;
+    case 'marketing_request': return `/marketing/requests/${id}`;
   }
 }
 
@@ -102,17 +117,24 @@ function linkLabel(type: LinkType, row: LinkedRecords): string | null {
       const name = p.name || (p.presentation ? `${p.family} — ${p.presentation}` : p.family);
       return p.code ? `${p.code} · ${name}` : name;
     }
+    case 'event':             return row.event ? `${row.event.name} · ${row.event.start_date}` : null;
+    case 'marketing_post':    return row.marketing_post?.title ?? null;
+    case 'marketing_request': return row.marketing_request?.title ?? null;
   }
 }
 
 /** The PostgREST embed for every kind, shared by reminders and personal tasks. */
 export const LINK_EMBEDS = `
   customer_id, order_id, incident_id, goods_reception_id, task_id, inventory_instance_id, product_id,
+  event_id, marketing_post_id, marketing_request_id,
   customer:customers ( id, name ),
   order:orders ( id, reference ),
   incident:incidents ( id, incident_number ),
   goods_reception:goods_receptions ( id, reception_number ),
   task:tasks ( id, title ),
   inventory:inventory_instances ( id, name_snapshot, inventory_date ),
-  product:products ( id, code, name, family, presentation )
+  product:products ( id, code, name, family, presentation ),
+  event:events ( id, name, start_date ),
+  marketing_post:marketing_posts ( id, title ),
+  marketing_request:marketing_requests ( id, title )
 `;

@@ -2303,6 +2303,9 @@ export const en = {
     linkUnavailable: 'Linked item not available',
     removeLink: 'Remove link',
     linkType: {
+      event: 'Event',
+      marketing_post: 'Post',
+      marketing_request: 'Marketing request',
       customer: 'Customer',
       order: 'Order',
       incident: 'Incident',
@@ -2462,6 +2465,10 @@ export const en = {
     emptyBody: 'What is sent to you appears here, even after you swipe it away on your phone.',
   },
   event: {
+    withReminder: 'Create a reminder for this event',
+    remindWeekBefore: '1 week before',
+    remindDayBefore: 'Day before',
+    remindDay: 'Event day',
     results: 'Results',
     resultsNone: 'Nothing recorded yet on how it went.',
     markDoneResultsHint: 'How it went. It can be left empty and completed later.',
@@ -3262,6 +3269,8 @@ export const en = {
     errTitle: 'The title is missing.',
   },
   mktReq: {
+    withReminder: 'Create a reminder for this request',
+    remindDue: 'Due date',
     title: 'Requests to Marketing',
     subtitle: 'Ask Marketing for a post, a flyer, photos… and follow how it goes.',
     subtitleMarketing: 'Everything the team asks of Marketing.',

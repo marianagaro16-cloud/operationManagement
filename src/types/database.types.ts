@@ -5830,10 +5830,13 @@ export type Database = {
           customer_id: string | null
           due_date: string | null
           due_time: string | null
+          event_id: string | null
           goods_reception_id: string | null
           id: string
           incident_id: string | null
           inventory_instance_id: string | null
+          marketing_post_id: string | null
+          marketing_request_id: string | null
           notes: string | null
           order_id: string | null
           owner_id: string
@@ -5853,10 +5856,13 @@ export type Database = {
           customer_id?: string | null
           due_date?: string | null
           due_time?: string | null
+          event_id?: string | null
           goods_reception_id?: string | null
           id?: string
           incident_id?: string | null
           inventory_instance_id?: string | null
+          marketing_post_id?: string | null
+          marketing_request_id?: string | null
           notes?: string | null
           order_id?: string | null
           owner_id: string
@@ -5876,10 +5882,13 @@ export type Database = {
           customer_id?: string | null
           due_date?: string | null
           due_time?: string | null
+          event_id?: string | null
           goods_reception_id?: string | null
           id?: string
           incident_id?: string | null
           inventory_instance_id?: string | null
+          marketing_post_id?: string | null
+          marketing_request_id?: string | null
           notes?: string | null
           order_id?: string | null
           owner_id?: string
@@ -5914,6 +5923,13 @@ export type Database = {
             referencedColumns: ["customer_id"]
           },
           {
+            foreignKeyName: "personal_tasks_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "personal_tasks_goods_reception_id_fkey"
             columns: ["goods_reception_id"]
             isOneToOne: false
@@ -5932,6 +5948,20 @@ export type Database = {
             columns: ["inventory_instance_id"]
             isOneToOne: false
             referencedRelation: "inventory_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_marketing_post_id_fkey"
+            columns: ["marketing_post_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_marketing_request_id_fkey"
+            columns: ["marketing_request_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_requests"
             referencedColumns: ["id"]
           },
           {
@@ -7022,11 +7052,14 @@ export type Database = {
           created_by: string
           customer_id: string | null
           due_at: string
+          event_id: string | null
           goods_reception_id: string | null
           id: string
           incident_id: string | null
           inventory_instance_id: string | null
           is_shared: boolean
+          marketing_post_id: string | null
+          marketing_request_id: string | null
           next_at: string | null
           notes: string | null
           notify_before_minutes: number | null
@@ -7052,11 +7085,14 @@ export type Database = {
           created_by: string
           customer_id?: string | null
           due_at: string
+          event_id?: string | null
           goods_reception_id?: string | null
           id?: string
           incident_id?: string | null
           inventory_instance_id?: string | null
           is_shared?: boolean
+          marketing_post_id?: string | null
+          marketing_request_id?: string | null
           next_at?: string | null
           notes?: string | null
           notify_before_minutes?: number | null
@@ -7082,11 +7118,14 @@ export type Database = {
           created_by?: string
           customer_id?: string | null
           due_at?: string
+          event_id?: string | null
           goods_reception_id?: string | null
           id?: string
           incident_id?: string | null
           inventory_instance_id?: string | null
           is_shared?: boolean
+          marketing_post_id?: string | null
+          marketing_request_id?: string | null
           next_at?: string | null
           notes?: string | null
           notify_before_minutes?: number | null
@@ -7139,6 +7178,13 @@ export type Database = {
             referencedColumns: ["customer_id"]
           },
           {
+            foreignKeyName: "reminders_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reminders_goods_reception_id_fkey"
             columns: ["goods_reception_id"]
             isOneToOne: false
@@ -7157,6 +7203,20 @@ export type Database = {
             columns: ["inventory_instance_id"]
             isOneToOne: false
             referencedRelation: "inventory_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_marketing_post_id_fkey"
+            columns: ["marketing_post_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_marketing_request_id_fkey"
+            columns: ["marketing_request_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_requests"
             referencedColumns: ["id"]
           },
           {

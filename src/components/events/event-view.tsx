@@ -43,6 +43,7 @@ import type {
 } from '@/types/events';
 import { ContactsCard, FilesCard, NotesCard, ResultsCard, ResultsDialog, hasResults } from './event-after';
 import { StageBadge, chf, useEventLabels, useEventsLimited, useEventsReadOnly } from './event-parts';
+import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { EventDialog, type EventChoices } from './event-dialog';
 import { EventProducts, deliveryDateOf } from './event-products';
 
@@ -129,11 +130,14 @@ export function EventView({
               <span>{labels.entry(choices.kinds, event.kind_id)}</span>
             </p>
           </div>
-          {live && (
-            <Button size="icon" variant="ghost" aria-label={t('event.edit')} onClick={() => setEditing(true)}>
-              <Pencil className="h-4 w-4" aria-hidden />
-            </Button>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            <QuickReminderButton viewerId={choices.viewerId} variant="ghost" compact link={{ type: 'event', id: event.id, label: event.name }} />
+            {live && (
+              <Button size="icon" variant="ghost" aria-label={t('event.edit')} onClick={() => setEditing(true)}>
+                <Pencil className="h-4 w-4" aria-hidden />
+              </Button>
+            )}
+          </div>
         </div>
 
         <dl className="mt-3 grid gap-x-4 gap-y-1.5 text-[13px] sm:grid-cols-[9rem_1fr]">

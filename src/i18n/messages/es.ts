@@ -2271,6 +2271,9 @@ export const es: Messages = {
     linkUnavailable: 'Elemento vinculado no disponible',
     removeLink: 'Quitar vínculo',
     linkType: {
+      event: 'Evento',
+      marketing_post: 'Publicación',
+      marketing_request: 'Solicitud a Marketing',
       customer: 'Cliente',
       order: 'Pedido',
       incident: 'Incidencia',
@@ -2430,6 +2433,10 @@ export const es: Messages = {
     emptyBody: 'Lo que te envíen aparece aquí, aunque lo hayas descartado en el móvil.',
   },
   event: {
+    withReminder: 'Crear un recordatorio para este evento',
+    remindWeekBefore: '1 semana antes',
+    remindDayBefore: 'Día antes',
+    remindDay: 'Día del evento',
     results: 'Resultados',
     resultsNone: 'Todavía no se ha dicho cómo fue.',
     markDoneResultsHint: 'Cómo fue. Se puede dejar vacío y completar después.',
@@ -3230,6 +3237,8 @@ export const es: Messages = {
     errTitle: 'Falta el título.',
   },
   mktReq: {
+    withReminder: 'Crear un recordatorio para esta solicitud',
+    remindDue: 'Para cuándo',
     title: 'Solicitudes a Marketing',
     subtitle: 'Pide a Marketing una publicación, un flyer, fotos… y sigue cómo va.',
     subtitleMarketing: 'Todo lo que el equipo pide a Marketing.',

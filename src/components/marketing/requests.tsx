@@ -25,6 +25,9 @@ import {
 } from '@/server/marketing-request-actions';
 import type { MarketingRequest, MarketingRequestFull } from '@/types/marketing';
 import { BrandDot } from './marketing-parts';
+import { QuickReminderButton } from '@/components/reminders/reminder-actions';
+import { ReminderDialog } from '@/components/reminders/reminder-dialog';
+import { RemindAfterCreate } from '@/components/reminders/remind-after-create';
 
 const STATUS_TONE: Record<RequestStatus, 'neutral' | 'accent' | 'done' | 'skipped'> = { new: 'neutral', in_progress: 'accent', done: 'done', cancelled: 'skipped' };
 const STATUS_LABEL: Record<RequestStatus, MessageKey> = {
@@ -48,7 +51,10 @@ export function RequestList({
   brands,
   allRequests,
   today,
+  viewerId,
 }: {
+  /** For a reminder right after sending a request. */
+  viewerId?: string;
   tab: 'open' | 'closed';
   requests: MarketingRequest[];
   brands: Brands;
@@ -114,18 +120,21 @@ export function RequestList({
           })}
         </Card>
       )}
-      {creating && <RequestDialog brands={brands} onClose={() => setCreating(false)} />}
+      {creating && <RequestDialog brands={brands} viewerId={viewerId} onClose={() => setCreating(false)} />}
     </>
   );
 }
 
-function RequestDialog({ request, brands, onClose }: { request?: MarketingRequestFull; brands: Brands; onClose: () => void }) {
+function RequestDialog({ request, brands, onClose, viewerId }: { request?: MarketingRequestFull; brands: Brands; onClose: () => void; viewerId?: string }) {
   const { t } = useI18n();
   const router = useRouter();
   const [title, setTitle] = useState(request?.title ?? '');
   const [description, setDescription] = useState(request?.description ?? '');
   const [brandId, setBrandId] = useState(request?.brand_id ?? '');
   const [due, setDue] = useState(request?.due_on ?? '');
+  // A reminder about the new request, offered once it is sent.
+  const [remind, setRemind] = useState(false);
+  const [created, setCreated] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -135,10 +144,27 @@ function RequestDialog({ request, brands, onClose }: { request?: MarketingReques
     startTransition(async () => {
       const res = await saveRequest({ title, description, brand_id: brandId || null, due_on: due || null }, request?.id);
       if (!res.ok) return setError(res.error === 'not_authorized' ? t('mktReq.errNotAuthorized') : t('common.error'));
+      if (!request && remind && viewerId) return setCreated(res.data.id);
       onClose();
       if (request) router.refresh();
       else router.push(`/marketing/requests/${res.data.id}`);
     });
+  }
+
+  // The request is sent; the reminder about it comes next, then its page.
+  if (created && viewerId) {
+    const done = () => { onClose(); router.push(`/marketing/requests/${created}`); };
+    return (
+      <ReminderDialog
+        open
+        viewerId={viewerId}
+        link={{ type: 'marketing_request', id: created, label: title }}
+        initialTitle={title}
+        quickDates={due ? [{ label: t('mktReq.remindDue'), date: due }] : undefined}
+        onClose={done}
+        onSaved={done}
+      />
+    );
   }
 
   return (
@@ -175,6 +201,7 @@ function RequestDialog({ request, brands, onClose }: { request?: MarketingReques
             <Input id="req-due" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
           </Field>
         </div>
+        {!request && viewerId && <RemindAfterCreate checked={remind} onChange={setRemind} label={t('mktReq.withReminder')} />}
         {!request && <p className="text-[12px] text-muted">{t('mktReq.filesAfter')}</p>}
       </div>
     </Dialog>
@@ -270,11 +297,14 @@ export function RequestView({
               {request.due_on && <span>· {t('mktReq.dueOn', { date: formatDate(request.due_on, 'weekday') })}</span>}
             </p>
           </div>
-          {mine && request.status === 'new' && (
-            <Button size="icon" variant="ghost" aria-label={t('common.edit')} onClick={() => setEditing(true)}>
-              <Pencil className="h-4 w-4" aria-hidden />
-            </Button>
-          )}
+          <div className="flex shrink-0 items-center gap-0.5">
+            <QuickReminderButton viewerId={viewerId} variant="ghost" compact link={{ type: 'marketing_request', id: request.id, label: request.title }} />
+            {mine && request.status === 'new' && (
+              <Button size="icon" variant="ghost" aria-label={t('common.edit')} onClick={() => setEditing(true)}>
+                <Pencil className="h-4 w-4" aria-hidden />
+              </Button>
+            )}
+          </div>
         </div>
         {request.description && <NoteText text={request.description} className="mt-3 text-[13.5px]" />}
 

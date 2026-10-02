@@ -16,9 +16,10 @@ import { deletePost, recordPostFile, removePostFile, setPostStatus } from '@/ser
 import type { MarketingPostFile, MarketingPostFull } from '@/types/marketing';
 import { BrandDot, PostStatusBadge, usePostLabels } from './marketing-parts';
 import { PostDialog, type PostChoices } from './post-dialog';
+import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 
 /** One post: everything about it, its images and files, and moving it along. */
-export function PostView({ post, canEdit, choices }: { post: MarketingPostFull; canEdit: boolean; choices: PostChoices }) {
+export function PostView({ post, canEdit, choices, viewerId }: { post: MarketingPostFull; canEdit: boolean; choices: PostChoices; viewerId: string }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
   const labels = usePostLabels();
@@ -95,6 +96,8 @@ export function PostView({ post, canEdit, choices }: { post: MarketingPostFull; 
               <PostStatusBadge status={post.status} />
             </p>
           </div>
+          <div className="flex shrink-0 items-center gap-0.5">
+            <QuickReminderButton viewerId={viewerId} variant="ghost" compact link={{ type: 'marketing_post', id: post.id, label: post.title }} />
           {canEdit && (
             <div className="flex gap-0.5">
               <Button size="icon" variant="ghost" aria-label={t('common.edit')} onClick={() => setEditing(true)}>
@@ -105,6 +108,7 @@ export function PostView({ post, canEdit, choices }: { post: MarketingPostFull; 
               </Button>
             </div>
           )}
+          </div>
         </div>
 
         <dl className="mt-3 grid gap-x-4 gap-y-1.5 text-[13px] sm:grid-cols-[9rem_1fr]">

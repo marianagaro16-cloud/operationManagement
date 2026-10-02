@@ -22,6 +22,7 @@ export default async function MarketingRequestsPage({ searchParams }: { searchPa
       brands={brands}
       allRequests={canEditMarketing(viewer.role, viewer.profile.team)}
       today={businessToday()}
+      viewerId={viewer.profile.id}
     />
   );
 }

@@ -11,7 +11,10 @@ import { NoteTextarea } from '@/components/ui/note-textarea';
 import { localizedName } from '@/lib/localized-content';
 import { saveEvent } from '@/server/event-actions';
 import type { EventListEntry, EventRow } from '@/types/events';
+import { DateTime } from 'luxon';
 import { useEventLabels } from './event-parts';
+import { ReminderDialog } from '@/components/reminders/reminder-dialog';
+import { RemindAfterCreate } from '@/components/reminders/remind-after-create';
 
 export interface EventChoices {
   kinds: EventListEntry[];
@@ -40,6 +43,9 @@ export function EventDialog({
   const [name, setName] = useState(event?.name ?? '');
   const [start, setStart] = useState(event?.start_date ?? today);
   const [end, setEnd] = useState(event?.end_date ?? today);
+  // A reminder about the new event, offered once it is saved.
+  const [remind, setRemind] = useState(false);
+  const [created, setCreated] = useState<string | null>(null);
   const [open, setOpen] = useState(event?.open_time?.slice(0, 5) ?? '');
   const [close, setClose] = useState(event?.close_time?.slice(0, 5) ?? '');
   const [placeName, setPlaceName] = useState(event?.place_name ?? '');
@@ -79,10 +85,32 @@ export function EventDialog({
         event?.id,
       );
       if (!res.ok) return setError(labels.error(res.error));
+      if (!event && remind) return setCreated(res.data.id);
       onClose();
       if (event) router.refresh();
       else router.push(`/events/${res.data.id}`);
     });
+  }
+
+  // The event is saved; the reminder about it comes next, then its page.
+  if (created) {
+    const day = (d: string, n: number) => DateTime.fromISO(d).plus({ days: n }).toISODate()!;
+    const done = () => { onClose(); router.push(`/events/${created}`); };
+    return (
+      <ReminderDialog
+        open
+        viewerId={choices.viewerId}
+        link={{ type: 'event', id: created, label: name }}
+        initialTitle={name}
+        quickDates={[
+          { label: t('event.remindWeekBefore'), date: day(start, -7) },
+          { label: t('event.remindDayBefore'), date: day(start, -1) },
+          { label: t('event.remindDay'), date: start },
+        ].filter((q) => q.date >= today)}
+        onClose={done}
+        onSaved={done}
+      />
+    );
   }
 
   return (
@@ -166,6 +194,7 @@ export function EventDialog({
         <Field label={t('event.description')} htmlFor="event-description">
           <NoteTextarea id="event-description" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
+        {!event && <RemindAfterCreate checked={remind} onChange={setRemind} label={t('event.withReminder')} />}
       </div>
     </Dialog>
   );

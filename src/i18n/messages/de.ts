@@ -2271,6 +2271,9 @@ export const de: Messages = {
     linkUnavailable: 'Verknüpftes Element nicht verfügbar',
     removeLink: 'Verknüpfung entfernen',
     linkType: {
+      event: 'Event',
+      marketing_post: 'Beitrag',
+      marketing_request: 'Marketing-Anfrage',
       customer: 'Kunde',
       order: 'Bestellung',
       incident: 'Vorfall',
@@ -2430,6 +2433,10 @@ export const de: Messages = {
     emptyBody: 'Was dir gesendet wird, erscheint hier — auch wenn du es auf dem Handy weggewischt hast.',
   },
   event: {
+    withReminder: 'Eine Erinnerung zu diesem Event erstellen',
+    remindWeekBefore: '1 Woche vorher',
+    remindDayBefore: 'Tag vorher',
+    remindDay: 'Eventtag',
     results: 'Ergebnisse',
     resultsNone: 'Noch nichts erfasst, wie es war.',
     markDoneResultsHint: 'Wie es war. Kann leer bleiben und später ergänzt werden.',
@@ -3230,6 +3237,8 @@ export const de: Messages = {
     errTitle: 'Der Titel fehlt.',
   },
   mktReq: {
+    withReminder: 'Eine Erinnerung zu dieser Anfrage erstellen',
+    remindDue: 'Fälligkeit',
     title: 'Anfragen an Marketing',
     subtitle: 'Bitte Marketing um einen Beitrag, Flyer, Fotos… und verfolge den Stand.',
     subtitleMarketing: 'Alles, was das Team von Marketing möchte.',

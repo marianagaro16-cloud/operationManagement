@@ -11,5 +11,5 @@ export default async function MarketingPostPage({ params }: { params: { id: stri
   if (!viewer || !canReadMarketing(viewer.role, viewer.profile.team)) redirect('/dashboard');
   const [post, choices] = await Promise.all([getPost(params.id), getPostChoices()]);
   if (!post) notFound();
-  return <PostView post={post} canEdit={canEditMarketing(viewer.role, viewer.profile.team)} choices={choices} />;
+  return <PostView post={post} canEdit={canEditMarketing(viewer.role, viewer.profile.team)} choices={choices} viewerId={viewer.profile.id} />;
 }
