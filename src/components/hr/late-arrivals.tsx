@@ -28,6 +28,18 @@ export function useMinutes() {
 
 type Tally = { total: number; unexcused: number; minutes: number };
 
+/** "1 justificada · 2 sin justificar" — only what is there, never "0 sin justificar". */
+function useSplit() {
+  const { t } = useI18n();
+  return (n: Tally) =>
+    [
+      n.total - n.unexcused > 0 ? t('hrLate.excusedCount', { count: n.total - n.unexcused }) : null,
+      n.unexcused > 0 ? t('hrLate.unexcusedCount', { count: n.unexcused }) : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+}
+
 function tally(list: HrLateArrival[], kind: 'late' | 'early', from: string, to?: string): Tally {
   const within = list.filter((a) => a.kind === kind && a.arrival_date >= from && (!to || a.arrival_date <= to));
   return {
@@ -41,6 +53,7 @@ function tally(list: HrLateArrival[], kind: 'late' | 'early', from: string, to?:
 export function LateSinceEvaluation({ arrivals, since }: { arrivals: HrLateArrival[]; since: string | null }) {
   const { t, formatDate } = useI18n();
   const minutes = useMinutes();
+  const split = useSplit();
   const late = tally(arrivals, 'late', since ?? '0000-01-01');
   const early = tally(arrivals, 'early', since ?? '0000-01-01');
   if (late.total + early.total === 0) return null;
@@ -51,14 +64,14 @@ export function LateSinceEvaluation({ arrivals, since }: { arrivals: HrLateArriv
       {late.total > 0 && (
         <span>
           <strong>{t('hrLate.lateCount', { count: late.total })}</strong>
-          <span className="text-muted"> ({t('hrLate.unexcusedCount', { count: late.unexcused })} · {minutes(late.minutes)})</span>
+          <span className="text-muted"> ({split(late)} · {minutes(late.minutes)})</span>
         </span>
       )}
       {early.total > 0 && (
         <span>
           {late.total > 0 && '· '}
           <strong>{t('hrLate.earlyCount', { count: early.total })}</strong>
-          <span className="text-muted"> ({t('hrLate.unexcusedCount', { count: early.unexcused })})</span>
+          <span className="text-muted"> ({split(early)})</span>
         </span>
       )}
     </p>
@@ -85,6 +98,7 @@ export function LateTab({
 }) {
   const { t, formatDate, locale } = useI18n();
   const minutes = useMinutes();
+  const split = useSplit();
   const router = useRouter();
   const [editing, setEditing] = useState<HrLateArrival | 'new' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -124,13 +138,12 @@ export function LateTab({
               <span className="text-[11.5px] text-muted">{t('hrLate.lateShort')}</span>
             </p>
             <p className="text-[11px] text-muted">
-              {t('hrLate.unexcusedCount', { count: late.unexcused })}
-              {late.minutes > 0 && ` · ${minutes(late.minutes)}`}
+              {late.total > 0 ? [split(late), minutes(late.minutes)].filter(Boolean).join(' · ') : '—'}
             </p>
             <p className="mt-1 flex items-baseline gap-1.5">
               <span className="text-[16px] font-semibold tabular leading-tight text-warn">{early.total}</span>
               <span className="text-[11.5px] text-muted">{t('hrLate.earlyShort')}</span>
-              {early.total > 0 && <span className="text-[11px] text-muted">· {t('hrLate.unexcusedCount', { count: early.unexcused })}</span>}
+              {early.total > 0 && <span className="text-[11px] text-muted">· {split(early)}</span>}
             </p>
           </Card>
         ))}

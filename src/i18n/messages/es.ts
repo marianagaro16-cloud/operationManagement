@@ -3121,6 +3121,7 @@ export const es: Messages = {
     noColor: 'Sin color',
   },
   hrLate: {
+    excusedCount: '{count} justificada(s)',
     tab: 'Llegadas',
     record: 'Registrar llegada',
     edit: 'Corregir llegada',

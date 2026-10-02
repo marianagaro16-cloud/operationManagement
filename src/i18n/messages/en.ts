@@ -3153,6 +3153,7 @@ export const en = {
     noColor: 'No colour',
   },
   hrLate: {
+    excusedCount: '{count} excused',
     tab: 'Arrivals',
     record: 'Record arrival',
     edit: 'Correct arrival',

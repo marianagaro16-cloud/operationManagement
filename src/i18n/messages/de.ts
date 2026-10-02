@@ -3121,6 +3121,7 @@ export const de: Messages = {
     noColor: 'Ohne Farbe',
   },
   hrLate: {
+    excusedCount: '{count} entschuldigt',
     tab: 'Ankünfte',
     record: 'Ankunft erfassen',
     edit: 'Ankunft korrigieren',
