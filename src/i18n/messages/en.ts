@@ -3295,6 +3295,10 @@ export const en = {
     errNotAuthorized: 'You cannot change this request (already in progress, or not yours).',
   },
   production: {
+    mineTitle: 'My production',
+    mineSubtitle: 'What you produced in the last three months.',
+    mineOrdersMonth: 'Orders this month',
+    mineUnitsMonth: 'Units this month',
     errBestBefore: 'The best-before date is missing.',
     changeQuantity: 'Change this day\'s quantity',
     changeQuantityHint: 'For this day only; the order\'s usual quantity stays.',

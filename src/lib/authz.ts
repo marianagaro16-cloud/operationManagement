@@ -48,6 +48,15 @@ export function canEditMarketing(role: Role, team: Team): boolean {
   return team === 'marketing' || role === 'admin' || role === 'owner';
 }
 
+/**
+ * Asks Marketing for something: Marketing, Sales, managers, power users, Admin
+ * and Owners — not the floor's plain Users nor the Production manager.
+ * Mirrors can_request_marketing().
+ */
+export function canRequestMarketing(role: Role, team: Team): boolean {
+  return team === 'marketing' || team === 'sales' || ['admin', 'owner', 'manager', 'power_user'].includes(role);
+}
+
 /** Reads it: those, Sales and Managers. Mirrors can_read_marketing(). */
 export function canReadMarketing(role: Role, team: Team): boolean {
   return canEditMarketing(role, team) || isSales(role, team) || role === 'manager';

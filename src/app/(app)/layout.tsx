@@ -9,6 +9,7 @@ import { AccountStatusScreen } from '@/components/shell/account-status';
 import { ChoosePasswordScreen } from '@/components/shell/choose-password';
 import { canEditMarketing, canUseReminders } from '@/lib/authz';
 import { countNewRequests } from '@/server/marketing-requests';
+import { hasOwnProduction } from '@/server/production';
 
 /**
  * The approval gate. A pending, rejected or deactivated account never reaches
@@ -36,13 +37,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // entry, on every screen.
   // …and unread notifications, as a count on the inbox icon. Both at once.
   // …and evaluations they were asked to fill in, if ever.
-  const [reminderAttention, inboxUnread, evaluations, collections, marketingNew] = await Promise.all([
+  const [reminderAttention, inboxUnread, evaluations, collections, marketingNew, ownProduction] = await Promise.all([
     canUseReminders(viewer) ? getReminderAttentionCount() : Promise.resolve(0),
     getUnreadInboxCount(),
     getMyEvaluationCounts(),
     isCollections(),
     // New requests waiting for Marketing: a count on its menu entry.
     canEditMarketing(viewer.role, viewer.profile.team) ? countNewRequests() : Promise.resolve(0),
+    // Production orders of one's own: a 'My production' entry.
+    hasOwnProduction(viewer.profile.id),
   ]);
 
   return (
@@ -54,6 +57,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       evaluations={evaluations}
       collections={collections}
       marketingNew={marketingNew}
+      ownProduction={ownProduction}
     >
       {children}
     </AppShell>

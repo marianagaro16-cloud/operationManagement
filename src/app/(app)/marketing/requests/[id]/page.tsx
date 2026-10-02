@@ -3,13 +3,14 @@ import { getViewer } from '@/server/data';
 import { getRequest } from '@/server/marketing-requests';
 import { getPostChoices } from '@/server/marketing';
 import { RequestView } from '@/components/marketing/requests';
-import { canEditMarketing } from '@/lib/authz';
+import { canEditMarketing, canRequestMarketing } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MarketingRequestPage({ params }: { params: { id: string } }) {
   const viewer = await getViewer();
   if (!viewer) redirect('/login');
+  if (!canRequestMarketing(viewer.role, viewer.profile.team)) redirect('/dashboard');
   // Not found and not theirs look the same: RLS returned nothing.
   const [request, { brands }] = await Promise.all([getRequest(params.id), getPostChoices()]);
   if (!request) notFound();

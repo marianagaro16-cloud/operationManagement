@@ -13,7 +13,7 @@ import { PresenceBeacon } from './presence-beacon';
 import { FormNoteSubmit } from '@/components/ui/enter-to-save';
 import { InboxLink } from './inbox-link';
 import { QuickNoteButton } from '@/components/notes/quick-note-button';
-import { atLeast, can, canReadMarketing, isExternal, isMarketing, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
+import { atLeast, can, canReadMarketing, canRequestMarketing, isExternal, isMarketing, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 import { opensManagement } from '@/components/admin/sections';
 
@@ -45,8 +45,11 @@ export function AppShell({
   evaluations = { total: 0, pending: 0 },
   collections = false,
   marketingNew = 0,
+  ownProduction = false,
   children,
 }: {
+  /** Has production orders of their own: 'My production'. */
+  ownProduction?: boolean;
   /** New requests waiting for Marketing; a count on its entry. */
   marketingNew?: number;
   /** On the collections team: the Cobranza entry. */
@@ -139,6 +142,10 @@ export function AppShell({
     ...(plansWork
       ? [{ href: '/production', label: t('production.navLabel'), icon: Factory, primary: false, group: 'operation' as const }]
       : []),
+    // What one produced oneself — past days only.
+    ...(ownProduction && !plansWork
+      ? [{ href: '/production/mine', label: t('production.mineTitle'), icon: Factory, primary: false, group: 'operation' as const }]
+      : []),
     ...activitiesFor('production'),
 
     // ---- customers ----
@@ -165,8 +172,10 @@ export function AppShell({
     ...(isSales(role, profile.team as Team) || marketing
       ? [{ href: '/events', label: t('event.navLabel'), icon: PartyPopper, primary: marketing, group: 'marketing' as const }]
       : []),
-    // Requests to Marketing: anyone asks; Marketing sees the new ones counted.
-    { href: '/marketing/requests', label: t('mktReq.title'), icon: Inbox, primary: false, badge: marketingNew, group: 'marketing' as const },
+    // Requests to Marketing: not for the floor's Users nor the Production manager.
+    ...(canRequestMarketing(role, profile.team as Team)
+      ? [{ href: '/marketing/requests', label: t('mktReq.title'), icon: Inbox, primary: false, badge: marketingNew, group: 'marketing' as const }]
+      : []),
 
     // ---- the team ----
     // One entry; absences, evaluations and worker files are its tabs.

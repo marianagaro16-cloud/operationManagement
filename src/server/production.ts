@@ -85,3 +85,40 @@ export async function getProductionOverview(today: string, until: string, since:
     })),
   };
 }
+
+/** What the viewer produced — their own days only, the last three months. */
+export async function getMyProduction(viewerId: string, since: string): Promise<MadeProduction[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('production_records')
+    .select(
+      'occurrence_id, produced_quantity, target_quantity, lot_number, best_before, shortfall_reason, shortfall_note, recorded_at, product:products ( name ), occurrence:task_occurrences!inner ( effective_due_date, assignee_id )',
+    )
+    .eq('occurrence.assignee_id', viewerId)
+    .gte('recorded_at', `${since}T00:00:00Z`)
+    .order('recorded_at', { ascending: false })
+    .limit(300);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as (ProductionRecord & {
+    occurrence_id: string;
+    recorded_at: string;
+    product: { name: string } | null;
+    occurrence: { effective_due_date: string } | null;
+  })[]).map(({ product, occurrence, ...r }) => ({
+    ...r,
+    due: occurrence?.effective_due_date ?? r.recorded_at.slice(0, 10),
+    product_name: product?.name ?? '—',
+    recorded_by_name: null,
+  }));
+}
+
+/** Does this person have production orders of their own? Decides their menu entry. */
+export async function hasOwnProduction(viewerId: string): Promise<boolean> {
+  const supabase = createClient();
+  const { count } = await supabase
+    .from('task_assignees')
+    .select('task_id, task:tasks!inner ( product_id )', { count: 'exact', head: true })
+    .eq('user_id', viewerId)
+    .not('task.product_id', 'is', null);
+  return (count ?? 0) > 0;
+}

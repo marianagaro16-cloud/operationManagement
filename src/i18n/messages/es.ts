@@ -3263,6 +3263,10 @@ export const es: Messages = {
     errNotAuthorized: 'No puedes cambiar esta solicitud (ya está en proceso, o no es tuya).',
   },
   production: {
+    mineTitle: 'Mi producción',
+    mineSubtitle: 'Lo que has producido en los últimos tres meses.',
+    mineOrdersMonth: 'Órdenes este mes',
+    mineUnitsMonth: 'Unidades este mes',
     errBestBefore: 'Falta la fecha de consumo preferente.',
     changeQuantity: 'Cambiar cantidad de este día',
     changeQuantityHint: 'Solo para este día; la cantidad habitual de la orden no cambia.',

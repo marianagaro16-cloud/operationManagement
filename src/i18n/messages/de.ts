@@ -3263,6 +3263,10 @@ export const de: Messages = {
     errNotAuthorized: 'Du kannst diese Anfrage nicht ändern (schon in Arbeit oder nicht deine).',
   },
   production: {
+    mineTitle: 'Meine Produktion',
+    mineSubtitle: 'Was du in den letzten drei Monaten produziert hast.',
+    mineOrdersMonth: 'Aufträge diesen Monat',
+    mineUnitsMonth: 'Einheiten diesen Monat',
     errBestBefore: 'Das Mindesthaltbarkeitsdatum fehlt.',
     changeQuantity: 'Menge für diesen Tag ändern',
     changeQuantityHint: 'Nur für diesen Tag; die übliche Menge bleibt.',
