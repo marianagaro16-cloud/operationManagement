@@ -15,6 +15,8 @@ import { PageHeader } from '@/components/shell/app-shell';
 import { filterByQuery } from '@/lib/search';
 import { saveEquipment, setEquipmentActive } from '@/server/equipment-actions';
 import type { Equipment, EquipmentDay, EquipmentRow } from '@/server/equipment';
+import type { Repair } from '@/server/repairs';
+import { RepairRow } from './repairs';
 
 /** The company's machines and installations, with their last and next maintenance. */
 export function EquipmentList({ list, canManage, today }: { list: EquipmentRow[]; canManage: boolean; today: string }) {
@@ -88,7 +90,10 @@ export function EquipmentView({
   days,
   canManage,
   today,
+  repairs = [],
 }: {
+  /** Repair reports about this machine, newest first. */
+  repairs?: Repair[];
   equipment: Equipment;
   activities: { id: string; title: string; is_active: boolean }[];
   days: EquipmentDay[];
@@ -202,6 +207,13 @@ export function EquipmentView({
             )}
           </Card>
         </div>
+        <div className="space-y-4">
+        {repairs.length > 0 && (
+          <Card className="overflow-hidden">
+            <h2 className="px-3 pb-1 pt-3 text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('repair.title')}</h2>
+            <div className="divide-y divide-border">{repairs.map((r) => <RepairRow key={r.id} r={r} showReporter />)}</div>
+          </Card>
+        )}
         <Card className="p-3">
           <h2 className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('equipment.history')}</h2>
           {history.length === 0 ? (
@@ -221,6 +233,7 @@ export function EquipmentView({
             </ul>
           )}
         </Card>
+        </div>
       </div>
 
       {editing && <EquipmentDialog equipment={equipment} onClose={() => setEditing(false)} />}

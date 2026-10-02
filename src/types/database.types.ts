@@ -7203,6 +7203,89 @@ export type Database = {
           },
         ]
       }
+      repair_requests: {
+        Row: {
+          cost: number | null
+          created_at: string
+          description: string | null
+          equipment_id: string | null
+          fixed_at: string | null
+          fixed_by: string | null
+          id: string
+          place: string | null
+          reported_by: string
+          resolution: string | null
+          status: string
+          task_id: string | null
+          title: string
+          updated_at: string
+          urgency: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          equipment_id?: string | null
+          fixed_at?: string | null
+          fixed_by?: string | null
+          id?: string
+          place?: string | null
+          reported_by?: string
+          resolution?: string | null
+          status?: string
+          task_id?: string | null
+          title: string
+          updated_at?: string
+          urgency?: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          equipment_id?: string | null
+          fixed_at?: string | null
+          fixed_by?: string | null
+          id?: string
+          place?: string | null
+          reported_by?: string
+          resolution?: string | null
+          status?: string
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+          urgency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_requests_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_requests_fixed_by_fkey"
+            columns: ["fixed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_requests_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_requests_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           granted_by: string | null
@@ -8806,6 +8889,7 @@ export type Database = {
       is_collections: { Args: never; Returns: boolean }
       is_external: { Args: never; Returns: boolean }
       is_goods_reception_assignee: { Args: never; Returns: boolean }
+      is_maintenance: { Args: never; Returns: boolean }
       is_marketing: { Args: never; Returns: boolean }
       is_owner: { Args: never; Returns: boolean }
       is_owner_account: { Args: { p_profile_id: string }; Returns: boolean }

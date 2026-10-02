@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, BookOpen, Boxes, Factory, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, Wrench, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, BookOpen, Boxes, Factory, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, Siren, Wrench, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -48,8 +48,11 @@ export function AppShell({
   marketingNew = 0,
   ownProduction = false,
   myTeams = [],
+  repairsNew = 0,
   children,
 }: {
+  /** New repair reports waiting for Maintenance. */
+  repairsNew?: number;
   /** The areas this person runs: their team, and any extra (Freddy: Maintenance). */
   myTeams?: Team[];
   /** Has production orders of their own: 'My production'. */
@@ -157,6 +160,8 @@ export function AppShell({
     ...(myTeams.includes('maintenance') || ['admin', 'owner', 'manager'].includes(role)
       ? [{ href: '/maintenance/equipment', label: t('equipment.title'), icon: Wrench, primary: false, group: 'maintenance' as const }]
       : []),
+    // Something broken: anyone in the company reports it (not the external account).
+    { href: '/maintenance/repairs', label: t('repair.title'), icon: Siren, primary: false, badge: myTeams.includes('maintenance') ? repairsNew : 0, group: 'maintenance' as const },
 
     // ---- customers ----
     // Sales: customers, prospects, planning, report, summary. The Ventas team, Admin and Owners.
@@ -210,7 +215,7 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/events', '/collections', '/marketing', '/maintenance/equipment'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/events', '/collections', '/marketing', '/maintenance/equipment', '/maintenance/repairs'];
 
   /*
    * Entries that hold several screens as tabs. The tabs keep their own

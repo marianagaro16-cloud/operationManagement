@@ -271,3 +271,17 @@ export async function sendToMarketing(payload: PushPayload, exclude?: string | n
   if (error) throw new Error(error.message);
   return sendToUsers(((data ?? []) as { id: string }[]).map((p) => p.id).filter((id) => id !== exclude), payload);
 }
+
+/** Send to Maintenance: whoever runs it (team_managers) and its team, leaving out whoever caused it. */
+export async function sendToMaintenance(payload: PushPayload, exclude?: string | null): Promise<number> {
+  const admin = createAdminClient();
+  const [{ data: team }, { data: managers }] = await Promise.all([
+    admin.from('profiles').select('id').eq('status', 'approved').eq('team', 'maintenance'),
+    admin.from('team_managers').select('profile_id').eq('team', 'maintenance'),
+  ]);
+  const ids = [...new Set([
+    ...((team ?? []) as { id: string }[]).map((p) => p.id),
+    ...((managers ?? []) as { profile_id: string }[]).map((m) => m.profile_id),
+  ])].filter((id) => id !== exclude);
+  return sendToUsers(ids, payload);
+}

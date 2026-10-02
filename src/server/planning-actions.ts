@@ -241,9 +241,11 @@ const oneOffSchema = z.object({
   /** A production order: the product and how many units. Both or neither. */
   product_id: z.string().uuid().nullable().default(null),
   target_quantity: z.number().positive().max(1_000_000).nullable().default(null),
+  /** The equipment a maintenance one-off is about (a repair, say). */
+  equipment_id: z.string().uuid().nullable().default(null),
 }).refine((v) => (v.product_id === null) === (v.target_quantity === null), { message: 'production_incomplete' });
 
-export type OneOffInput = z.infer<typeof oneOffSchema>;
+export type OneOffInput = z.input<typeof oneOffSchema>;
 
 /**
  * An activity that happens once, on one day.
@@ -261,7 +263,7 @@ export async function createOneOffTask(input: OneOffInput): Promise<ActionResult
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_task' };
   }
-  const { title, description, date, team, product_id, target_quantity } = parsed.data;
+  const { title, description, date, team, product_id, target_quantity, equipment_id } = parsed.data;
   const people = [...new Set(parsed.data.assignee_ids)];
   const supabase = createClient();
 
@@ -277,6 +279,7 @@ export async function createOneOffTask(input: OneOffInput): Promise<ActionResult
       starts_on: date,
       product_id,
       target_quantity,
+      equipment_id,
     })
     .select('id')
     .single();
