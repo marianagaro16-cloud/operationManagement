@@ -19,6 +19,7 @@ import { WorkerDialog, useHrError, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
 import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrLateArrival, HrLateReason, HrNoteType, HrStats, HrWorkerFile } from '@/types/hr';
 import { LateSinceEvaluation, LateTab } from './late-arrivals';
+import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { RequestStatus } from './evaluation-parts';
 import { teamLabelKey } from '@/lib/authz';
 
@@ -158,7 +159,7 @@ export function WorkerFile({
         ))}
       </nav>
 
-      {tab === 'log' && <LogTab file={file} noteTypes={noteTypes} today={today} />}
+      {tab === 'log' && <LogTab file={file} noteTypes={noteTypes} today={today} viewerId={viewerId} />}
       {tab === 'late' && (
         <LateTab
           workerId={worker.id}
@@ -185,7 +186,7 @@ export function WorkerFile({
 
 /* ---------------------------------- log ---------------------------------- */
 
-function LogTab({ file, noteTypes, today }: { file: HrWorkerFile; noteTypes: HrNoteType[]; today: string }) {
+function LogTab({ file, noteTypes, today, viewerId }: { file: HrWorkerFile; noteTypes: HrNoteType[]; today: string; viewerId: string }) {
   const { t, locale, formatDate } = useI18n();
   const [adding, setAdding] = useState(false);
   const [typeFilter, setTypeFilter] = useState('');
@@ -233,6 +234,10 @@ function LogTab({ file, noteTypes, today }: { file: HrWorkerFile; noteTypes: HrN
                   <span className="tabular font-medium text-fg">{formatDate(n.note_date, 'medium')}</span>
                   {n.type && <Badge tone="accent">{localizedName(n.type, locale)}</Badge>}
                   {n.author_name && <span>{t('hr.by', { name: n.author_name })}</span>}
+                  {/* A follow-up on this note, linked to it. */}
+                  <span className="ml-auto">
+                    <QuickReminderButton viewerId={viewerId} variant="ghost" compact link={{ type: 'hr_note', id: n.id, label: `${file.worker.name} · ${formatDate(n.note_date, 'medium')}` }} />
+                  </span>
                 </div>
                 <div className="mt-1.5 text-[13px] leading-relaxed">
                   <NoteText text={n.body} />

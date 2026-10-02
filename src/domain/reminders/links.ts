@@ -17,6 +17,7 @@ export const LINK_TYPES = [
   'event',
   'marketing_post',
   'marketing_request',
+  'hr_note',
 ] as const;
 
 export type LinkType = (typeof LINK_TYPES)[number];
@@ -32,6 +33,7 @@ export const LINK_COLUMN: Record<LinkType, string> = {
   event: 'event_id',
   marketing_post: 'marketing_post_id',
   marketing_request: 'marketing_request_id',
+  hr_note: 'hr_note_id',
 };
 
 export function isLinkType(value: unknown): value is LinkType {
@@ -50,6 +52,7 @@ export interface LinkedRecords {
   event_id?: string | null;
   marketing_post_id?: string | null;
   marketing_request_id?: string | null;
+  hr_note_id?: string | null;
   customer?: { id: string; name: string } | null;
   order?: { id: string; reference: number } | null;
   incident?: { id: string; incident_number: string | null } | null;
@@ -60,6 +63,8 @@ export interface LinkedRecords {
   event?: { id: string; name: string; start_date: string } | null;
   marketing_post?: { id: string; title: string } | null;
   marketing_request?: { id: string; title: string } | null;
+  /** Only when the viewer may open the worker's file (RLS). */
+  hr_note?: { id: string; note_date: string; worker_id: string; worker: { name: string } | null } | null;
 }
 
 export interface ResolvedLink {
@@ -90,6 +95,8 @@ export function linkHref(type: LinkType, id: string): string {
     case 'event':             return `/events/${id}`;
     case 'marketing_post':    return `/marketing/${id}`;
     case 'marketing_request': return `/marketing/requests/${id}`;
+    // The note's own file is resolved from the record: see resolveLink.
+    case 'hr_note':           return '/hr';
   }
 }
 
@@ -97,7 +104,9 @@ export function resolveLink(row: LinkedRecords): ResolvedLink | null {
   for (const type of LINK_TYPES) {
     const id = row[LINK_COLUMN[type] as keyof LinkedRecords] as string | null;
     if (!id) continue;
-    return { type, id, label: linkLabel(type, row), href: linkHref(type, id) };
+    // A log note opens its worker's file, which only the record knows.
+    const href = type === 'hr_note' && row.hr_note ? `/hr/${row.hr_note.worker_id}` : linkHref(type, id);
+    return { type, id, label: linkLabel(type, row), href };
   }
   return null;
 }
@@ -120,13 +129,14 @@ function linkLabel(type: LinkType, row: LinkedRecords): string | null {
     case 'event':             return row.event ? `${row.event.name} · ${row.event.start_date}` : null;
     case 'marketing_post':    return row.marketing_post?.title ?? null;
     case 'marketing_request': return row.marketing_request?.title ?? null;
+    case 'hr_note':           return row.hr_note ? `${row.hr_note.worker?.name ?? '—'} · ${row.hr_note.note_date}` : null;
   }
 }
 
 /** The PostgREST embed for every kind, shared by reminders and personal tasks. */
 export const LINK_EMBEDS = `
   customer_id, order_id, incident_id, goods_reception_id, task_id, inventory_instance_id, product_id,
-  event_id, marketing_post_id, marketing_request_id,
+  event_id, marketing_post_id, marketing_request_id, hr_note_id,
   customer:customers ( id, name ),
   order:orders ( id, reference ),
   incident:incidents ( id, incident_number ),
@@ -136,5 +146,6 @@ export const LINK_EMBEDS = `
   product:products ( id, code, name, family, presentation ),
   event:events ( id, name, start_date ),
   marketing_post:marketing_posts ( id, title ),
-  marketing_request:marketing_requests ( id, title )
+  marketing_request:marketing_requests ( id, title ),
+  hr_note:hr_notes ( id, note_date, worker_id, worker:hr_workers ( name ) )
 `;

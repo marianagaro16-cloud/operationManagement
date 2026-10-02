@@ -2271,6 +2271,7 @@ export const de: Messages = {
     linkUnavailable: 'Verknüpftes Element nicht verfügbar',
     removeLink: 'Verknüpfung entfernen',
     linkType: {
+      hr_note: 'Aktennotiz',
       event: 'Event',
       marketing_post: 'Beitrag',
       marketing_request: 'Marketing-Anfrage',

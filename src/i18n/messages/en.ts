@@ -2303,6 +2303,7 @@ export const en = {
     linkUnavailable: 'Linked item not available',
     removeLink: 'Remove link',
     linkType: {
+      hr_note: 'Log note',
       event: 'Event',
       marketing_post: 'Post',
       marketing_request: 'Marketing request',

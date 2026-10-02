@@ -2271,6 +2271,7 @@ export const es: Messages = {
     linkUnavailable: 'Elemento vinculado no disponible',
     removeLink: 'Quitar vínculo',
     linkType: {
+      hr_note: 'Nota de bitácora',
       event: 'Evento',
       marketing_post: 'Publicación',
       marketing_request: 'Solicitud a Marketing',

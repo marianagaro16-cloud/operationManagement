@@ -5832,6 +5832,7 @@ export type Database = {
           due_time: string | null
           event_id: string | null
           goods_reception_id: string | null
+          hr_note_id: string | null
           id: string
           incident_id: string | null
           inventory_instance_id: string | null
@@ -5858,6 +5859,7 @@ export type Database = {
           due_time?: string | null
           event_id?: string | null
           goods_reception_id?: string | null
+          hr_note_id?: string | null
           id?: string
           incident_id?: string | null
           inventory_instance_id?: string | null
@@ -5884,6 +5886,7 @@ export type Database = {
           due_time?: string | null
           event_id?: string | null
           goods_reception_id?: string | null
+          hr_note_id?: string | null
           id?: string
           incident_id?: string | null
           inventory_instance_id?: string | null
@@ -5934,6 +5937,13 @@ export type Database = {
             columns: ["goods_reception_id"]
             isOneToOne: false
             referencedRelation: "goods_receptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_hr_note_id_fkey"
+            columns: ["hr_note_id"]
+            isOneToOne: false
+            referencedRelation: "hr_notes"
             referencedColumns: ["id"]
           },
           {
@@ -7054,6 +7064,7 @@ export type Database = {
           due_at: string
           event_id: string | null
           goods_reception_id: string | null
+          hr_note_id: string | null
           id: string
           incident_id: string | null
           inventory_instance_id: string | null
@@ -7087,6 +7098,7 @@ export type Database = {
           due_at: string
           event_id?: string | null
           goods_reception_id?: string | null
+          hr_note_id?: string | null
           id?: string
           incident_id?: string | null
           inventory_instance_id?: string | null
@@ -7120,6 +7132,7 @@ export type Database = {
           due_at?: string
           event_id?: string | null
           goods_reception_id?: string | null
+          hr_note_id?: string | null
           id?: string
           incident_id?: string | null
           inventory_instance_id?: string | null
@@ -7189,6 +7202,13 @@ export type Database = {
             columns: ["goods_reception_id"]
             isOneToOne: false
             referencedRelation: "goods_receptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_hr_note_id_fkey"
+            columns: ["hr_note_id"]
+            isOneToOne: false
+            referencedRelation: "hr_notes"
             referencedColumns: ["id"]
           },
           {
