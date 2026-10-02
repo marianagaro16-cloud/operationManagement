@@ -157,6 +157,8 @@ const taskInputSchema = z.object({
   /** A production order: the product and how many units. Both or neither. */
   product_id: z.string().uuid().nullable().default(null),
   target_quantity: z.number().positive().max(1_000_000).nullable().default(null),
+  /** The machine or installation a maintenance activity is about. */
+  equipment_id: z.string().uuid().nullable().default(null),
 }).refine((v) => (v.product_id === null) === (v.target_quantity === null), { message: 'production_incomplete' });
 
 export type TaskInput = z.infer<typeof taskInputSchema>;

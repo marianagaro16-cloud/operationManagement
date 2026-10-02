@@ -57,6 +57,15 @@ export function canRequestMarketing(role: Role, team: Team): boolean {
   return team === 'marketing' || team === 'sales' || ['admin', 'owner', 'manager', 'power_user'].includes(role);
 }
 
+/**
+ * Keeps the equipment list and plans Maintenance: whoever runs it (Freddy),
+ * Admin and Owners. Mirrors can_manage_maintenance().
+ */
+export function canManageMaintenance(role: Role, held: ReadonlySet<Permission>, myTeams: Team[]): boolean {
+  return role === 'admin' || role === 'owner' || can(role, held, 'tasks.manage_definitions')
+    || (can(role, held, 'tasks.manage_own_team') && myTeams.includes('maintenance'));
+}
+
 /** Reads it: those, Sales and Managers. Mirrors can_read_marketing(). */
 export function canReadMarketing(role: Role, team: Team): boolean {
   return canEditMarketing(role, team) || isSales(role, team) || role === 'manager';

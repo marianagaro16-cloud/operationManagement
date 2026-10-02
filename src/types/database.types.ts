@@ -1274,6 +1274,65 @@ export type Database = {
         }
         Relationships: []
       }
+      equipment: {
+        Row: {
+          brand: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          location: string | null
+          model: string | null
+          name: string
+          notes: string | null
+          serial_number: string | null
+          service_contact: string | null
+          service_email: string | null
+          service_phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          model?: string | null
+          name: string
+          notes?: string | null
+          serial_number?: string | null
+          service_contact?: string | null
+          service_email?: string | null
+          service_phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          model?: string | null
+          name?: string
+          notes?: string | null
+          serial_number?: string | null
+          service_contact?: string | null
+          service_email?: string | null
+          service_phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_cost_types: {
         Row: {
           created_at: string
@@ -7975,6 +8034,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          equipment_id: string | null
           frequency: Database["public"]["Enums"]["task_frequency"]
           id: string
           incident_id: string | null
@@ -7994,6 +8054,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          equipment_id?: string | null
           frequency: Database["public"]["Enums"]["task_frequency"]
           id?: string
           incident_id?: string | null
@@ -8013,6 +8074,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          equipment_id?: string | null
           frequency?: Database["public"]["Enums"]["task_frequency"]
           id?: string
           incident_id?: string | null
@@ -8040,6 +8102,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
             referencedColumns: ["id"]
           },
           {
@@ -8317,6 +8386,7 @@ export type Database = {
       can_change_series: { Args: { p_series_id: string }; Returns: boolean }
       can_edit_marketing: { Args: never; Returns: boolean }
       can_manage_incident: { Args: { p_incident_id: string }; Returns: boolean }
+      can_manage_maintenance: { Args: never; Returns: boolean }
       can_organize_meetings: { Args: never; Returns: boolean }
       can_plan_coverage: { Args: { p_absence_id: string }; Returns: boolean }
       can_read_marketing: { Args: never; Returns: boolean }

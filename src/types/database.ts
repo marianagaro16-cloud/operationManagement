@@ -63,6 +63,8 @@ export interface Task {
   /** A production order: the product and how many units to make. Both or neither. */
   product_id?: string | null;
   target_quantity?: number | null;
+  /** The equipment a maintenance activity is about. */
+  equipment_id?: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

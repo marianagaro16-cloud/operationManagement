@@ -44,6 +44,7 @@ const EMPTY: TaskInput = {
   assignee_ids: [],
   product_id: null,
   target_quantity: null,
+  equipment_id: null,
 };
 
 export function TaskManager({
@@ -53,7 +54,10 @@ export function TaskManager({
   people,
   reminderViewerId,
   products = [],
+  equipment = [],
 }: {
+  /** For maintenance activities: the machine they are about. */
+  equipment?: { id: string; name: string }[];
   /** For production orders: what can be made. */
   products?: { id: string; name: string }[];
   tasks: TaskRow[];
@@ -249,6 +253,7 @@ export function TaskManager({
           defaultTeam={area}
           people={people}
           products={products}
+          equipment={equipment}
           onClose={() => {
             setCreating(false);
             setEditing(null);
@@ -292,11 +297,14 @@ function TaskDialog({
   defaultTeam,
   people,
   products,
+  equipment,
   onClose,
   onSaved,
 }: {
   /** The area whose tab is open: a new activity starts there. */
   defaultTeam: Team;
+  /** For maintenance activities: the machine they are about. */
+  equipment: { id: string; name: string }[];
   products: { id: string; name: string }[];
   task: TaskRow | null;
   categories: Category[];
@@ -321,6 +329,7 @@ function TaskDialog({
           team: task.team,
           assignee_ids: task.assignee_ids,
           product_id: task.product_id ?? null,
+          equipment_id: task.equipment_id ?? null,
           target_quantity: task.target_quantity != null ? Number(task.target_quantity) : null,
         }
       : { ...EMPTY, team: defaultTeam },
@@ -441,6 +450,16 @@ function TaskDialog({
             ))}
           </Select>
         </Field>
+
+        {/* A maintenance activity can be about a machine: its days become the machine's history. */}
+        {form.team === 'maintenance' && equipment.length > 0 && (
+          <Field label={t('equipment.forActivity')} hint={t('equipment.forActivityHint')} htmlFor="task-equipment">
+            <Select id="task-equipment" value={form.equipment_id ?? ''} onChange={(e) => setForm({ ...form, equipment_id: e.target.value || null })}>
+              <option value="">{t('common.none')}</option>
+              {equipment.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}
+            </Select>
+          </Field>
+        )}
 
         <div className="space-y-2 rounded-lg border border-border p-3">
           <Checkbox

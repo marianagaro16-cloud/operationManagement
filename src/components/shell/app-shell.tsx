@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, BookOpen, Boxes, Factory, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, BookOpen, Boxes, Factory, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, Wrench, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ type NavGroup = 'day' | 'logistics' | 'operation' | 'production' | 'maintenance'
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; primary: boolean; badge?: number; group: NavGroup };
 const FOLDED_KEY = 'nav.folded';
 /** Closed to the external (Marketing) account. */
-const EXTERNAL_HIDDEN = ['/production', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/inventory', '/calendar', '/absences', '/hr', '/evaluations', '/collections', '/sales'];
+const EXTERNAL_HIDDEN = ['/maintenance', '/production', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/inventory', '/calendar', '/absences', '/hr', '/evaluations', '/collections', '/sales'];
 const NAV_GROUPS: NavGroup[] = ['day', 'logistics', 'operation', 'production', 'maintenance', 'customers', 'marketing', 'team', 'manage'];
 const GROUP_LABEL: Record<Exclude<NavGroup, 'manage'>, MessageKey> = {
   day: 'nav.groupDay',
@@ -154,6 +154,9 @@ export function AppShell({
     ...activitiesFor('production'),
     // ---- maintenance ----
     ...activitiesFor('maintenance'),
+    ...(myTeams.includes('maintenance') || ['admin', 'owner', 'manager'].includes(role)
+      ? [{ href: '/maintenance/equipment', label: t('equipment.title'), icon: Wrench, primary: false, group: 'maintenance' as const }]
+      : []),
 
     // ---- customers ----
     // Sales: customers, prospects, planning, report, summary. The Ventas team, Admin and Owners.
@@ -207,7 +210,7 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/events', '/collections', '/marketing'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/events', '/collections', '/marketing', '/maintenance/equipment'];
 
   /*
    * Entries that hold several screens as tabs. The tabs keep their own
