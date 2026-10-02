@@ -185,6 +185,10 @@ export function generateOccurrences(
   const out: PlannedOccurrence[] = [];
 
   switch (config.kind) {
+    // No rule: placed on days by hand, never generated.
+    case 'as_needed':
+      return [];
+
     case 'daily': {
       const allowed = config.weekdays && config.weekdays.length > 0 ? new Set(config.weekdays) : null;
       for (let d = start; d <= end; d = d.plus({ days: 1 })) {

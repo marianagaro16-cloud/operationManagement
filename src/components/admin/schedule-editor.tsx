@@ -240,6 +240,8 @@ export function ScheduleEditor({
 /** The config a newly chosen frequency starts from. */
 export function defaultConfigFor(frequency: Frequency): ScheduleConfig | null {
   switch (frequency) {
+    case 'as_needed':
+      return { kind: 'as_needed' };
     case 'daily':
       return { kind: 'daily', weekdays: DEFAULT_DAILY_WEEKDAYS };
     case 'weekly':

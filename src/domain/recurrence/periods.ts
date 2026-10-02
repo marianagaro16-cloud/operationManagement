@@ -65,6 +65,8 @@ export function periodKeyForDate(
   config: ScheduleConfig | null,
 ): string | null {
   switch (frequency) {
+    // Placed by hand on a day: the day is its period.
+    case 'as_needed':
     case 'daily':
       return dailyPeriodKey(date);
     case 'weekly':
@@ -105,6 +107,7 @@ export function periodWindow(
 ): { start: BusinessDate; end: BusinessDate } {
   const dt = parseBusinessDate(dueDate);
   switch (frequency) {
+    case 'as_needed':
     case 'daily':
       return { start: dueDate, end: dueDate };
     case 'weekly':

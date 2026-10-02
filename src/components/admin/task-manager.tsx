@@ -35,8 +35,9 @@ const EMPTY: TaskInput = {
   description: null,
   translations: {},
   category_id: null,
-  frequency: 'daily',
-  schedule_config: { kind: 'daily' },
+  // Placed on days as the operation needs it; 'daily' is for what must appear every day.
+  frequency: 'as_needed',
+  schedule_config: { kind: 'as_needed' },
   is_skippable: false,
   is_active: true,
   team: 'operations',

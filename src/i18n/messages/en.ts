@@ -199,6 +199,7 @@ export const en = {
     blockedSubtitle: 'Waiting on something outside this list',
   },
   frequency: {
+    as_needed: 'As needed',
     one_off: 'One-off',
     daily: 'Daily',
     weekly: 'Weekly',

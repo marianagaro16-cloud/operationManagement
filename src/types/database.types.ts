@@ -9109,6 +9109,7 @@ export type Database = {
         | "monthly"
         | "semiannual"
         | "one_off"
+        | "as_needed"
       team: "production" | "operations" | "sales" | "logistics" | "marketing"
       user_role:
         | "admin"
@@ -9311,6 +9312,7 @@ export const Constants = {
         "monthly",
         "semiannual",
         "one_off",
+        "as_needed",
       ],
       team: ["production", "operations", "sales", "logistics", "marketing"],
       user_role: [

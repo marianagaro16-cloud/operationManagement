@@ -197,6 +197,7 @@ export const de: Messages = {
     blockedSubtitle: 'Wartet auf etwas ausserhalb dieser Liste',
   },
   frequency: {
+    as_needed: 'Nach Bedarf',
     one_off: 'Einmalig',
     daily: 'Täglich',
     weekly: 'Wöchentlich',

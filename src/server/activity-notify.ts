@@ -14,6 +14,7 @@ import { sendToUser } from './push';
  */
 
 const FREQUENCY_ES: Record<Frequency, string> = {
+  as_needed: 'según necesidad',
   daily: 'diaria',
   weekly: 'semanal',
   biweekly: 'quincenal',

@@ -5,7 +5,7 @@ import type { BusinessDate, Weekday } from '@/lib/datetime';
  * Frequencies mirror the operational vocabulary of the Excel workbook this
  * system replaces (Diarias / Semanales / Quincenales / Mensuales / Semestrales).
  */
-export const FREQUENCIES = ['daily', 'weekly', 'biweekly', 'monthly', 'semiannual'] as const;
+export const FREQUENCIES = ['as_needed', 'daily', 'weekly', 'biweekly', 'monthly', 'semiannual'] as const;
 export type Frequency = (typeof FREQUENCIES)[number];
 
 /**
@@ -48,6 +48,8 @@ export type MonthDay = z.infer<typeof monthDaySchema>;
  * reach the database, and again before the engine will generate from it.
  */
 export const scheduleConfigSchema = z.discriminatedUnion('kind', [
+  /** No rule: placed on days in the work plan as the operation needs it (2026-10-02). */
+  z.object({ kind: z.literal('as_needed') }),
   z.object({
     kind: z.literal('daily'),
     /** Restrict to certain ISO weekdays. Omitted/empty = every day. */
@@ -77,6 +79,7 @@ export type ScheduleConfig = z.infer<typeof scheduleConfigSchema>;
 
 /** The frequency a config is valid for — guards against mismatched pairs. */
 export const CONFIG_KIND_FOR_FREQUENCY: Record<Frequency, ScheduleConfig['kind']> = {
+  as_needed: 'as_needed',
   daily: 'daily',
   weekly: 'weekly',
   biweekly: 'biweekly',

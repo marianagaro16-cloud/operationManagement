@@ -197,6 +197,7 @@ export const es: Messages = {
     blockedSubtitle: 'Esperando algo fuera de esta lista',
   },
   frequency: {
+    as_needed: 'Según necesidad',
     one_off: 'Puntual',
     daily: 'Diaria',
     weekly: 'Semanal',
