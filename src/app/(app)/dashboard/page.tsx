@@ -14,6 +14,7 @@ import { getMyPendingEvaluations } from '@/server/hr-evaluations';
 import { PendingEvaluations } from '@/components/hr/pending-evaluations';
 import { getUpcomingCelebrations } from '@/server/hr-celebrations';
 import { countMyFollowUpsDue } from '@/server/hr';
+import { getGuideAccess } from '@/server/guide';
 import { CelebrationsCard } from '@/components/hr/celebrations-card';
 import { countMyLateActivities, getActivityKinds, getDayRoutePoints, getPlanDay, getQuietCustomers } from '@/server/sales';
 import { TodayPlanCard } from '@/components/sales/today-plan-card';
@@ -170,6 +171,8 @@ export default async function DashboardPage() {
 
   // Whom the viewer covers today; while it lasts, that person's work is theirs to do.
   const myPeriods = coverageToday.coverage.filter((c) => c.coverer_id === viewer?.profile.id);
+  // Whose guide the viewer can open: the link under "You are covering…".
+  const guideOwners = myPeriods.length > 0 ? (await getGuideAccess()).guides.map((g) => g.profile_id) : [];
   const coveredWork = await getCoveredWork([...new Set(myPeriods.map((c) => c.absent_profile_id))], today);
   const nowHm = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Zurich', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
 
@@ -192,7 +195,7 @@ export default async function DashboardPage() {
             <TodayPlanCard activities={todayPlan} kinds={kinds} points={visitPoints} viewerId={viewer?.profile.id ?? ''} routeOnly />
             {myPeriods.length > 0 && (
               <div className="mt-4">
-                <CoveringNowCard periods={myPeriods} now={nowHm} activities={coveredWork.activities} inventories={coveredWork.inventories} />
+                <CoveringNowCard periods={myPeriods} now={nowHm} activities={coveredWork.activities} inventories={coveredWork.inventories} guideOwners={guideOwners} />
               </div>
             )}
           </>

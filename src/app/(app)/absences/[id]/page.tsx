@@ -7,6 +7,9 @@ import { CoveragePlanner } from '@/components/absences/coverage-planner';
 import { Handover } from '@/components/absences/handover';
 import { canSeeHandover, getHandover, getHandoverSuggestions } from '@/server/handover';
 import { displayName } from '@/lib/utils';
+import { getGuideSummary } from '@/server/guide';
+import { GuideSummary } from '@/components/guide/guide-summary';
+import { businessToday } from '@/lib/datetime';
 import { PERMISSIONS, isAdminRole, isConfigurable } from '@/lib/authz';
 import type { AbsenceStatus } from '@/types/absences';
 
@@ -37,6 +40,9 @@ export default async function AbsenceCoveragePage({ params }: { params: { id: st
     access.see ? getHandover(brief.id) : null,
     own ? getHandoverSuggestions(brief.profile_id, brief.start_date, brief.end_date) : [],
   ]);
+
+  // The covered days so far, as the guide was left. Empty without a guide, or for who may not read it.
+  const guideDays = await getGuideSummary(brief.profile_id, coverage.map((c) => c.cover_date), businessToday());
 
   const days = workingDays(brief, hours)
     .map((date) => ({ date, window: requiredWindow(brief, date, hours) }))
@@ -69,6 +75,7 @@ export default async function AbsenceCoveragePage({ params }: { params: { id: st
           suggestions={suggestions}
         />
       )}
+      <GuideSummary days={guideDays} profileId={brief.profile_id} />
     </>
   );
 }

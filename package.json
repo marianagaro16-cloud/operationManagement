@@ -42,6 +42,7 @@
     "verify:presence": "node scripts/verify-presence.mjs",
     "verify:inbox": "node scripts/verify-inbox.mjs",
     "verify:hr-notes": "node scripts/verify-hr-notes.mjs",
+    "verify:guides": "node scripts/verify-guides.mjs",
     "products:prefill-weights": "tsx scripts/prefill-product-weights.ts",
     "perf": "node scripts/perf-baseline.mjs"
   },

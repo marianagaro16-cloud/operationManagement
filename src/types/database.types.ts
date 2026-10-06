@@ -2239,6 +2239,273 @@ export type Database = {
           },
         ]
       }
+      guide_articles: {
+        Row: {
+          blocks: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          removed_at: string | null
+          sort_order: number
+          title: string
+          topic: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          removed_at?: string | null
+          sort_order?: number
+          title: string
+          topic?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          removed_at?: string | null
+          sort_order?: number
+          title?: string
+          topic?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_articles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_articles_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guide_checks: {
+        Row: {
+          check_date: string
+          checked_by: string | null
+          comment: string | null
+          point_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          check_date: string
+          checked_by?: string | null
+          comment?: string | null
+          point_id: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          check_date?: string
+          checked_by?: string | null
+          comment?: string | null
+          point_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_checks_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_checks_point_id_fkey"
+            columns: ["point_id"]
+            isOneToOne: false
+            referencedRelation: "guide_points"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guide_notices: {
+        Row: {
+          guide_id: string
+          kind: string
+          notice_date: string
+          sent_at: string
+        }
+        Insert: {
+          guide_id: string
+          kind: string
+          notice_date: string
+          sent_at?: string
+        }
+        Update: {
+          guide_id?: string
+          kind?: string
+          notice_date?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_notices_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "guides"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      guide_points: {
+        Row: {
+          article_id: string | null
+          body: string | null
+          created_at: string
+          created_by: string | null
+          deadline: string | null
+          guide_id: string
+          id: string
+          kind: string
+          removed_at: string | null
+          sort_order: number
+          supplier_id: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+          weekdays: number[]
+        }
+        Insert: {
+          article_id?: string | null
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          guide_id: string
+          id?: string
+          kind?: string
+          removed_at?: string | null
+          sort_order?: number
+          supplier_id?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          weekdays: number[]
+        }
+        Update: {
+          article_id?: string | null
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          guide_id?: string
+          id?: string
+          kind?: string
+          removed_at?: string | null
+          sort_order?: number
+          supplier_id?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          weekdays?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_points_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "guide_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_points_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_points_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "guides"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "guide_points_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_points_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          day_notes: Json
+          intro: string | null
+          profile_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          day_notes?: Json
+          intro?: string | null
+          profile_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          day_notes?: Json
+          intro?: string | null
+          profile_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guides_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guides_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       handover_events: {
         Row: {
           absence_id: string
@@ -8027,6 +8294,54 @@ export type Database = {
           },
         ]
       }
+      supplier_order_info: {
+        Row: {
+          contact: string | null
+          deadline: string | null
+          how: string | null
+          minimum: string | null
+          notes: string | null
+          supplier_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          contact?: string | null
+          deadline?: string | null
+          how?: string | null
+          minimum?: string | null
+          notes?: string | null
+          supplier_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          contact?: string | null
+          deadline?: string | null
+          how?: string | null
+          minimum?: string | null
+          notes?: string | null
+          supplier_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_order_info_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: true
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_order_info_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           created_at: string
@@ -8894,6 +9209,18 @@ export type Database = {
         }
       }
       get_viewer: { Args: never; Returns: Json }
+      guide_access: { Args: never; Returns: Json }
+      guide_can_edit: { Args: never; Returns: boolean }
+      guide_can_see: { Args: { p_owner_id: string }; Returns: boolean }
+      guide_check: {
+        Args: { p_comment: string; p_point_id: string; p_status: string }
+        Returns: undefined
+      }
+      guide_covers: {
+        Args: { p_date: string; p_owner_id: string }
+        Returns: boolean
+      }
+      guide_reader: { Args: never; Returns: boolean }
       handover_item_progress: {
         Args: { p_item_id: string; p_note: string; p_status: string }
         Returns: undefined

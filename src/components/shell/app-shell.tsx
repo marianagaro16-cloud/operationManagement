@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, BookOpen, Boxes, Factory, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, Siren, Wrench, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, BookMarked, BookOpen, Boxes, Factory, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, Siren, Wrench, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -49,8 +49,11 @@ export function AppShell({
   ownProduction = false,
   myTeams = [],
   repairsNew = 0,
+  guide = false,
   children,
 }: {
+  /** May open some guide: writes them, has one, or covers someone who has. */
+  guide?: boolean;
   /** New repair reports waiting for Maintenance. */
   repairsNew?: number;
   /** The areas this person runs: their team, and any extra (Freddy: Maintenance). */
@@ -148,6 +151,8 @@ export function AppShell({
     // future dates, so it belongs to whoever plans work; the Production manager
     // plans only Production's.
     ...activitiesFor('operations'),
+    // What a person does day by day, for whoever covers them.
+    ...(guide ? [{ href: '/guide', label: t('guide.navLabel'), icon: BookMarked, primary: false, group: 'operation' as const }] : []),
     // Production orders: what is to make and what was made. For planners.
     ...(plansWork
       ? [{ href: '/production', label: t('production.navLabel'), icon: Factory, primary: false, group: 'operation' as const }]

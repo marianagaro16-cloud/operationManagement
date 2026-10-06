@@ -11,6 +11,7 @@ import { canEditMarketing, canUseReminders } from '@/lib/authz';
 import { countNewRequests } from '@/server/marketing-requests';
 import { hasOwnProduction } from '@/server/production';
 import { countNewRepairs } from '@/server/repairs';
+import { getGuideAccess } from '@/server/guide';
 
 /**
  * The approval gate. A pending, rejected or deactivated account never reaches
@@ -38,7 +39,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // entry, on every screen.
   // …and unread notifications, as a count on the inbox icon. Both at once.
   // …and evaluations they were asked to fill in, if ever.
-  const [reminderAttention, inboxUnread, evaluations, collections, marketingNew, ownProduction, myTeams, repairsNew] = await Promise.all([
+  const [reminderAttention, inboxUnread, evaluations, collections, marketingNew, ownProduction, myTeams, repairsNew, guideAccess] = await Promise.all([
     canUseReminders(viewer) ? getReminderAttentionCount() : Promise.resolve(0),
     getUnreadInboxCount(),
     getMyEvaluationCounts(),
@@ -50,6 +51,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     getMyTeams(viewer.profile.id, viewer.profile.team),
     // New repair reports: counted for Maintenance (RLS shows anyone else only their own).
     viewer.profile.team === 'maintenance' || viewer.profile.role === 'production_manager' ? countNewRepairs() : Promise.resolve(0),
+    // Guides: for who writes them, has one, or covers someone who has.
+    getGuideAccess(),
   ]);
 
   return (
@@ -64,6 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ownProduction={ownProduction}
       myTeams={myTeams}
       repairsNew={repairsNew}
+      guide={guideAccess.edit || guideAccess.guides.length > 0}
     >
       {children}
     </AppShell>

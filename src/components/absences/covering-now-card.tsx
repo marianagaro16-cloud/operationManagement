@@ -24,7 +24,10 @@ export function CoveringNowCard({
   now,
   activities,
   inventories,
+  guideOwners = [],
 }: {
+  /** The people who have a guide for whoever covers them. */
+  guideOwners?: string[];
   periods: CoverageEntry[];
   /** "HH:MM" in Zurich, when the page was made. */
   now: string;
@@ -73,6 +76,11 @@ export function CoveringNowCard({
               <Link href={`/absences/${c.absence_id}#handover`} className="text-[12.5px] font-medium text-accent hover:underline">
                 {t('handover.see')}
               </Link>
+              {guideOwners.includes(c.absent_profile_id) && (
+                <Link href={`/guide?tab=days&person=${c.absent_profile_id}`} className="ml-3 text-[12.5px] font-medium text-accent hover:underline">
+                  {t('guide.todayLink')}
+                </Link>
+              )}
               {c.permissions.length > 0 && (
                 <p className="mt-1 flex flex-wrap items-center gap-1 text-[12px] text-muted">
                   {t('coverage.permissionsGiven')}
