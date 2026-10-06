@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { Dialog } from '@/components/ui/dialog';
-import { PageHeader } from '@/components/shell/app-shell';
 import {
   Badge,
   Card,
@@ -38,17 +37,21 @@ import { NoteText } from '@/components/ui/note';
  * reminder read together on a Monday morning, rather than opening customers
  * one at a time to find out which need booking.
  *
- * NOT visible to a plain user. RLS returns them nothing at all; this screen
- * is simply where the people who may read them do.
+ * Shown as a tab of the Guías: read by whoever manages customers and by
+ * whoever can read a guide — the person covering the office among them —
+ * and written by whoever manages customers.
  */
 export function SpecificationManager({
   specifications,
   types,
   customers,
+  canEdit,
 }: {
   specifications: CustomerSpecification[];
   types: SpecificationType[];
   customers: Customer[];
+  /** Adds, changes and retires: whoever manages customers. */
+  canEdit: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -97,16 +100,7 @@ export function SpecificationManager({
 
   return (
     <>
-      <PageHeader
-        title={t('spec.title')}
-        subtitle={t('spec.subtitle')}
-        action={
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" aria-hidden />
-            {t('spec.new')}
-          </Button>
-        }
-      />
+      <p className="mb-3 text-[13px] text-muted">{t('spec.subtitle')}</p>
 
       {error && <div className="mb-3"><ErrorState message={error} /></div>}
 
@@ -153,6 +147,13 @@ export function SpecificationManager({
             {t('spec.showRetired', { count: inactiveCount })}
           </button>
         )}
+
+        {canEdit && (
+          <Button size="sm" variant="primary" className="ml-auto" onClick={() => setCreating(true)}>
+            <Plus className="h-3.5 w-3.5" aria-hidden />
+            {t('spec.new')}
+          </Button>
+        )}
       </div>
 
       {grouped.length === 0 ? (
@@ -161,7 +162,7 @@ export function SpecificationManager({
           body={specifications.length === 0 ? t('spec.emptyBody') : undefined}
           icon={<ClipboardList className="h-5 w-5" aria-hidden />}
           action={
-            specifications.length === 0 ? (
+            specifications.length === 0 && canEdit ? (
               <Button variant="primary" onClick={() => setCreating(true)}>
                 <Plus className="h-4 w-4" aria-hidden />
                 {t('spec.new')}
@@ -200,23 +201,27 @@ export function SpecificationManager({
                         </Badge>
                       )}
 
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label={t('common.edit')}
-                        onClick={() => setEditing(spec)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" aria-hidden />
-                      </Button>
+                      {canEdit && (
+                        <>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label={t('common.edit')}
+                            onClick={() => setEditing(spec)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" aria-hidden />
+                          </Button>
 
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={pending}
-                        onClick={() => toggleActive(spec)}
-                      >
-                        {t(spec.is_active ? 'spec.retire' : 'spec.restore')}
-                      </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={pending}
+                            onClick={() => toggleActive(spec)}
+                          >
+                            {t(spec.is_active ? 'spec.retire' : 'spec.restore')}
+                          </Button>
+                        </>
+                      )}
                     </li>
                   ))}
                 </ul>

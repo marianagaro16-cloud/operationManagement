@@ -3373,6 +3373,7 @@ export const en = {
     tabDays: 'Day by day',
     tabArticles: 'Articles',
     tabSuppliers: 'Suppliers',
+    tabCustomers: 'Customers',
     whose: 'Whose',
     of: '{name}’s guide',
     newGuide: 'New guide',

@@ -67,7 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ownProduction={ownProduction}
       myTeams={myTeams}
       repairsNew={repairsNew}
-      guide={guideAccess.edit || guideAccess.guides.length > 0}
+      guide={guideAccess.edit || guideAccess.guides.length > 0 || viewer.can('customers.manage')}
     >
       {children}
     </AppShell>

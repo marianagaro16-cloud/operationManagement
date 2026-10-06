@@ -3341,6 +3341,7 @@ export const es: Messages = {
     tabDays: 'Día a día',
     tabArticles: 'Artículos',
     tabSuppliers: 'Proveedores',
+    tabCustomers: 'Clientes',
     whose: 'De quién',
     of: 'Guía de {name}',
     newGuide: 'Nueva guía',

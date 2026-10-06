@@ -5,10 +5,12 @@ import { GuideView, type GuideTab } from '@/components/guide/guide-view';
 import { isoWeekday, pointsOn } from '@/domain/guide/guide';
 import { businessToday } from '@/lib/datetime';
 import { displayName } from '@/lib/utils';
+import { getCustomerSpecifications, getCustomers, getSpecificationTypes } from '@/server/orders';
+import { SpecificationManager } from '@/components/admin/specification-manager';
 
 export const dynamic = 'force-dynamic';
 
-const TABS: GuideTab[] = ['days', 'articles', 'suppliers'];
+const TABS: GuideTab[] = ['days', 'articles', 'suppliers', 'customers'];
 
 /**
  * Guides: what a person does day by day, for whoever covers them. Guarded
@@ -19,9 +21,13 @@ export default async function GuidePage({ searchParams }: { searchParams: { tab?
   const viewer = await getViewer();
   if (!viewer) redirect('/login');
   const access = await getGuideAccess();
-  if (!access.edit && access.guides.length === 0) redirect('/dashboard');
+  const reader = access.edit || access.guides.length > 0;
+  // Whoever manages customers keeps their specifications here, guide or not.
+  const managesCustomers = viewer.can('customers.manage');
+  if (!reader && !managesCustomers) redirect('/dashboard');
 
-  const tab = TABS.includes(searchParams.tab as GuideTab) ? (searchParams.tab as GuideTab) : 'days';
+  const wanted = TABS.includes(searchParams.tab as GuideTab) ? (searchParams.tab as GuideTab) : 'days';
+  const tab: GuideTab = reader ? wanted : 'customers';
   const today = businessToday();
   // The one asked for; else the one being covered today, one's own, the first.
   const selected =
@@ -30,11 +36,15 @@ export default async function GuidePage({ searchParams }: { searchParams: { tab?
     access.guides.find((g) => g.profile_id === viewer.profile.id) ??
     access.guides[0];
 
-  const [guide, articles, suppliers, users] = await Promise.all([
+  const [guide, articles, suppliers, users, specifications, specTypes, customers] = await Promise.all([
     selected ? getGuide(selected.profile_id) : null,
-    getArticles(),
-    getSupplierCards(),
+    reader ? getArticles() : [],
+    reader ? getSupplierCards() : [],
     access.edit ? getUsers() : [],
+    // Retired ones too, for whoever keeps the list: they are history, behind a toggle.
+    tab === 'customers' ? getCustomerSpecifications(managesCustomers) : [],
+    tab === 'customers' ? getSpecificationTypes() : [],
+    tab === 'customers' && managesCustomers ? getCustomers(true) : [],
   ]);
   const todayTasks = guide ? pointsOn(guide.points, isoWeekday(today)).filter((p) => p.kind === 'task') : [];
   const checks = await getGuideChecks(todayTasks.map((p) => p.id), today);
@@ -53,6 +63,8 @@ export default async function GuidePage({ searchParams }: { searchParams: { tab?
       checks={checks}
       articles={articles}
       suppliers={suppliers}
+      reader={reader}
+      customers={<SpecificationManager specifications={specifications} types={specTypes} customers={customers} canEdit={managesCustomers} />}
     />
   );
 }

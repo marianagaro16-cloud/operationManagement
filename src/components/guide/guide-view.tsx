@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowDown, ArrowUp, BookOpen, Check, Clock, Pencil, Plus, ShieldCheck, Trash2, Truck } from 'lucide-react';
@@ -24,7 +24,7 @@ import {
 } from '@/server/guide-actions';
 import type { Guide, GuideAccess, GuideArticleBrief, GuideCheck, GuidePoint, SupplierCard } from '@/types/guide';
 
-export type GuideTab = 'days' | 'articles' | 'suppliers';
+export type GuideTab = 'days' | 'articles' | 'suppliers' | 'customers';
 
 /** A weekday's name in the viewer's language; 1 = Monday. */
 function useWeekdayName() {
@@ -62,7 +62,13 @@ export function GuideView({
   checks,
   articles,
   suppliers,
+  reader,
+  customers,
 }: {
+  /** Reads guides at all. Someone who only manages customers gets the Clientes tab alone. */
+  reader: boolean;
+  /** The Clientes tab, made by the page: the standing notes per customer. */
+  customers: ReactNode;
   access: GuideAccess;
   tab: GuideTab;
   /** The guide being read; null when there is none to show. */
@@ -77,9 +83,14 @@ export function GuideView({
 }) {
   const { t } = useI18n();
   const tabs: { key: GuideTab; label: string }[] = [
-    { key: 'days', label: t('guide.tabDays') },
-    { key: 'articles', label: t('guide.tabArticles') },
-    { key: 'suppliers', label: t('guide.tabSuppliers') },
+    ...(reader
+      ? [
+          { key: 'days' as const, label: t('guide.tabDays') },
+          { key: 'articles' as const, label: t('guide.tabArticles') },
+          { key: 'suppliers' as const, label: t('guide.tabSuppliers') },
+        ]
+      : []),
+    { key: 'customers', label: t('guide.tabCustomers') },
   ];
   const person = guide ? `&person=${guide.profile_id}` : '';
 
@@ -107,6 +118,7 @@ export function GuideView({
       )}
       {tab === 'articles' && <ArticlesTab articles={articles} canEdit={access.edit} />}
       {tab === 'suppliers' && <SuppliersTab suppliers={suppliers} canEdit={access.edit} />}
+      {tab === 'customers' && customers}
     </>
   );
 }
