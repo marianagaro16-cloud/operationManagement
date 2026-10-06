@@ -382,6 +382,23 @@ function byCustomer(orders: OrderWithProgress[]) {
   return [...groups.entries()];
 }
 
+/**
+ * What leaves the same way is prepared together: the DHL orders in one block,
+ * the Planzer ones in another, as on the Ready tab. Within a block, by customer.
+ */
+function byMethodThenCustomer(orders: OrderWithProgress[]) {
+  const groups = new Map<string, { name: string; orders: OrderWithProgress[] }>();
+  for (const o of orders) {
+    const key = o.delivery_method?.id ?? 'none';
+    const group = groups.get(key) ?? { name: o.delivery_method?.name ?? '—', orders: [] };
+    group.orders.push(o);
+    groups.set(key, group);
+  }
+  return [...groups.entries()]
+    .map(([key, g]) => ({ key, name: g.name, count: g.orders.length, customers: byCustomer(g.orders) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function ToPrepareTab({
   toPrepare,
   carriedOver,
@@ -418,7 +435,10 @@ function ToPrepareTab({
             </div>
           </div>
           <div className="space-y-3">
-            {carriedOver.map((order) => (
+            {/* The late ones too: those that leave the same way, side by side. */}
+            {[...carriedOver]
+              .sort((a, b) => (a.delivery_method?.name ?? '').localeCompare(b.delivery_method?.name ?? ''))
+              .map((order) => (
               <div key={order.id}>
                 <h3 className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13.5px] font-medium">
                   {order.customer.name}
@@ -436,15 +456,26 @@ function ToPrepareTab({
         </section>
       )}
 
-      {byCustomer(toPrepare).map(([customerName, orders]) => (
-        <section key={customerName}>
-          <h2 className="mb-2 flex flex-wrap items-center gap-2 text-[15px] font-semibold">
-            {customerName}
-            <CustomerTypeBadge type={orders[0].customer.customer_type} />
+      {byMethodThenCustomer(toPrepare).map((group) => (
+        <section key={group.key}>
+          <h2 className="mb-2 flex items-center gap-2 border-b border-border pb-1.5 text-[15px] font-semibold">
+            <Truck className="h-4 w-4 text-muted" aria-hidden />
+            {group.name}
+            <span className="text-[12.5px] font-normal tabular text-muted">{group.count}</span>
           </h2>
-          <div className="space-y-3">
-            {orders.map((order) => (
-              <OrderPreparationCard key={order.id} order={order} canManage={canManage} bulk={bulk} />
+          <div className="space-y-4">
+            {group.customers.map(([customerName, orders]) => (
+              <div key={customerName}>
+                <h3 className="mb-1.5 flex flex-wrap items-center gap-2 text-[13.5px] font-medium">
+                  {customerName}
+                  <CustomerTypeBadge type={orders[0].customer.customer_type} />
+                </h3>
+                <div className="space-y-3">
+                  {orders.map((order) => (
+                    <OrderPreparationCard key={order.id} order={order} canManage={canManage} bulk={bulk} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </section>
