@@ -102,9 +102,11 @@ export async function registerAbsence(profileId: string, input: AbsenceInput): P
     p_end_date: v.end_date,
     p_first_day: v.first_day,
     p_last_day: v.last_day,
-    p_start_time: v.start_time ?? undefined,
-    p_end_time: v.end_time ?? undefined,
-    p_note: v.note ?? undefined,
+    // Sent as null, never left out: the function has no defaults, and a missing
+    // argument is "function not found" to PostgREST.
+    p_start_time: (v.start_time ?? null) as unknown as string,
+    p_end_time: (v.end_time ?? null) as unknown as string,
+    p_note: (v.note ?? null) as unknown as string,
   });
   if (error) return fail(error);
   const id = data as string;
