@@ -90,6 +90,7 @@ const NOW_ICON: Record<NowKind, typeof Zap> = {
   planLate: CalendarCheck,
   planToday: CalendarCheck,
   evaluationsDue: ClipboardCheck,
+  hrFollowUps: ClipboardCheck,
   absencesToApprove: CalendarOff,
   coverageGaps: AlertTriangle,
   meetingInvites: Users,

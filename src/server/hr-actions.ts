@@ -8,6 +8,9 @@ import type { ActionResult } from './actions';
 import { HR_ALLOWED_MIME, HR_BUCKET, HR_MAX_BYTES } from '@/lib/hr';
 import { HR_ARRIVAL_SETTINGS, getArrivalSettings, type HrArrivalSetting } from './hr';
 import { sendToHrForWorker } from './push';
+import { WARNING_LEVELS } from '@/domain/hr/note-structure';
+import { localToUtc } from '@/domain/reminders/schedule';
+import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 
 /*
  * Human resources writes. Who may do what is RLS's decision (hr_can, and
@@ -89,29 +92,181 @@ export async function saveWorker(input: WorkerInput, workerId?: string): Promise
 
 /* --------------------------------- notes -------------------------------- */
 
-const noteSchema = z.object({
+const sectionText = z.string().trim().max(10000).nullable().optional().transform((v) => v || null);
+
+/** Who was there: an account, a worker file, or a name typed in. */
+const participantSchema = z.object({
+  profile_id: z.string().uuid().nullable(),
+  worker_id: z.string().uuid().nullable(),
+  name: z.string().trim().min(1).max(200),
+});
+
+/** What a note says. Whether it is complete for its type is the database's check. */
+const contentSchema = z.object({
+  sections: z.record(z.string(), z.string().trim().max(10000)),
+  warning_level: z.enum(WARNING_LEVELS).nullable(),
+  follow_up_text: sectionText,
+  follow_up_on: DATE.nullable(),
+  no_follow_up_reason: sectionText,
+  participants: z.array(participantSchema).max(40),
+  /** What the follow-up reminder is called, in the writer's language. */
+  reminder_title: z.string().trim().min(1).max(200),
+});
+
+const noteSchema = contentSchema.extend({
   worker_id: z.string().uuid(),
   type_id: z.string().uuid({ message: 'type_required' }),
   note_date: DATE,
-  body: z.string().trim().min(1, { message: 'body_required' }).max(10000),
 });
 
-/** Adds a note. Files are uploaded afterwards, under the returned id. */
-export async function addNote(input: z.input<typeof noteSchema>): Promise<ActionResult<{ id: string }>> {
+const NOTE_ERRORS = [
+  'section_required', 'sections_required', 'level_required', 'follow_up_required', 'follow_up_date_invalid',
+  'follow_up_closed', 'already_complete', 'participant_not_found', 'type_required', 'invalid_date', 'body_required',
+];
+
+function failNote(error: unknown): { ok: false; error: string } {
+  const message = String((error as { message?: string })?.message ?? error);
+  return { ok: false, error: NOTE_ERRORS.find((code) => message.includes(code)) ?? fail(error).error };
+}
+
+/**
+ * The follow-up of a note as a reminder at 9:00 that day: for the writer and
+ * for the participants who may open the file themselves, linked to the note.
+ * A reminder that cannot be created never undoes the note; the note says when.
+ */
+async function remindFollowUp(
+  supabase: ReturnType<typeof createClient>,
+  noteId: string,
+  followupId: string | null,
+  date: string,
+  title: string,
+  notes: string | null,
+): Promise<boolean> {
+  if (date < businessToday()) return false;
+  const dueAt = localToUtc(date, '09:00');
+  if (!dueAt) return false;
+  const { data: audience } = await supabase.rpc('hr_note_reminder_audience', { p_note_id: noteId, p_followup_id: followupId });
+  const { error } = await supabase.rpc('reminder_save', {
+    p_id: null,
+    p_title: title,
+    p_notes: notes ? notes.slice(0, 4000) : null,
+    p_due_at: dueAt,
+    p_timezone: BUSINESS_TZ,
+    p_recurrence: 'none',
+    p_notify_before: null,
+    p_link_type: 'hr_note',
+    p_link_id: noteId,
+    p_participants: (audience ?? []) as string[],
+  });
+  if (error) console.error('[hr] follow-up reminder', error.message);
+  else revalidatePath('/reminders');
+  return !error;
+}
+
+export type NoteInput = z.input<typeof noteSchema>;
+
+/**
+ * Adds a note with the sections of its type. Files are uploaded afterwards,
+ * under the returned id. `reminded` says whether its follow-up got a reminder.
+ */
+export async function addNote(input: NoteInput): Promise<ActionResult<{ id: string; reminded: boolean }>> {
   const parsed = noteSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_note' };
+  const v = parsed.data;
 
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data, error } = await supabase
-    .from('hr_notes')
-    .insert({ ...parsed.data, created_by: user?.id ?? null })
-    .select('id')
-    .single();
-  if (error) return fail(error);
+  const { data, error } = await supabase.rpc('hr_note_add', {
+    p_worker_id: v.worker_id,
+    p_type_id: v.type_id,
+    p_note_date: v.note_date,
+    p_sections: v.sections,
+    p_warning_level: v.warning_level,
+    p_follow_up_text: v.follow_up_text,
+    p_follow_up_on: v.follow_up_on,
+    p_no_follow_up_reason: v.no_follow_up_reason,
+    p_participants: v.participants,
+  });
+  if (error) return failNote(error);
+  const id = data as string;
 
-  revalidateHr(parsed.data.worker_id);
-  return { ok: true, data: { id: (data as { id: string }).id } };
+  const reminded = v.follow_up_on
+    ? await remindFollowUp(supabase, id, null, v.follow_up_on, v.reminder_title, v.follow_up_text)
+    : false;
+
+  revalidateHr(v.worker_id);
+  revalidatePath('/dashboard');
+  return { ok: true, data: { id, reminded } };
+}
+
+const followUpSchema = z.discriminatedUnion('kind', [
+  // What came of the follow-up: it ends here, or it continues on a new date.
+  z.object({
+    kind: z.literal('followup'),
+    note_id: z.string().uuid(),
+    worker_id: z.string().uuid(),
+    entry_date: DATE,
+    body: z.string().trim().min(1, { message: 'body_required' }).max(10000),
+    closes: z.boolean(),
+    next_text: sectionText,
+    next_on: DATE.nullable(),
+    participants: z.array(participantSchema).max(40),
+    reminder_title: z.string().trim().min(1).max(200),
+  }),
+  // The sections a note from before the structure lacks. Once.
+  contentSchema.extend({
+    kind: z.literal('completion'),
+    note_id: z.string().uuid(),
+    worker_id: z.string().uuid(),
+    entry_date: DATE,
+  }),
+]);
+
+export type FollowUpInput = z.input<typeof followUpSchema>;
+
+/**
+ * Adds an entry to a note — by its author or an Admin. The note itself is
+ * never touched. The reminders of the follow-up it answers are ticked off for
+ * the writer, and a new date gets a new one.
+ */
+export async function addFollowUp(input: FollowUpInput): Promise<ActionResult<{ reminded: boolean }>> {
+  const parsed = followUpSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_note' };
+  const v = parsed.data;
+  const nextOn = v.kind === 'followup' ? (v.closes ? null : v.next_on) : v.follow_up_on;
+  const nextText = v.kind === 'followup' ? v.next_text : v.follow_up_text;
+
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('hr_note_followup_add', {
+    p_note_id: v.note_id,
+    p_kind: v.kind,
+    p_entry_date: v.entry_date,
+    p_body: v.kind === 'followup' ? v.body : null,
+    p_sections: v.kind === 'completion' ? v.sections : null,
+    p_warning_level: v.kind === 'completion' ? v.warning_level : null,
+    p_closes: v.kind === 'followup' && v.closes,
+    p_next_text: nextText,
+    p_next_on: nextOn,
+    p_no_follow_up_reason: v.kind === 'completion' ? v.no_follow_up_reason : null,
+    p_participants: v.participants,
+  });
+  if (error) return failNote(error);
+
+  if (v.kind === 'followup') {
+    // The follow-up happened: its reminders are done. Only the writer's own
+    // come back under RLS, and one that will not close is no reason to fail.
+    const { data: open } = await supabase.from('reminders').select('id').eq('hr_note_id', v.note_id).eq('status', 'open');
+    for (const r of (open ?? []) as { id: string }[]) {
+      await supabase.rpc('reminder_complete', { p_id: r.id, p_next_due_at: null });
+    }
+  }
+  const reminded = nextOn
+    ? await remindFollowUp(supabase, v.note_id, data as string, nextOn, v.reminder_title, nextText ?? (v.kind === 'followup' ? v.body : null))
+    : false;
+
+  revalidateHr(v.worker_id);
+  revalidatePath('/dashboard');
+  revalidatePath('/reminders');
+  return { ok: true, data: { reminded } };
 }
 
 const attachmentSchema = z.object({

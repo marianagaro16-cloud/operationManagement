@@ -59,6 +59,18 @@ export default async function WorkerFilePage({
   );
   const scope = incidentScope(viewer.role, viewer.profile.team);
 
+  // Who can be named on a note: everyone with a file the viewer may see, and
+  // every account without one. An account and its file are one person.
+  const filed = new Set(workers.map((w) => w.profile_id).filter(Boolean));
+  const people = [
+    ...workers.map((w) => ({ profile_id: w.profile_id, worker_id: w.id, name: w.name })),
+    ...users
+      .filter((u) => u.status === 'approved' && !filed.has(u.id))
+      .map((u) => ({ profile_id: u.id, worker_id: null, name: displayName(u) })),
+  ]
+    .filter((p) => p.profile_id !== viewer.profile.id)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <WorkerFile
       file={file}
@@ -78,6 +90,8 @@ export default async function WorkerFilePage({
       lateArrivals={lateArrivals}
       lateReasons={lateReasons}
       viewerId={viewer.profile.id}
+      viewerName={displayName(viewer.profile)}
+      people={people}
       earlyTolerance={arrivalSettings?.hr_early_tolerance_minutes}
     />
   );

@@ -5,10 +5,13 @@ import type {
   HrCriterion,
   HrEvalTemplate,
   HrEvaluation,
+  HrFollowUp,
   HrLateArrival,
   HrLateReason,
   HrNote,
   HrNoteType,
+  HrOpenFollowUp,
+  HrParticipant,
   HrStats,
   HrTranslations,
   HrWorker,
@@ -49,10 +52,16 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
       supabase
         .from('hr_notes')
         .select(`
-          id, note_date, body, created_at,
-          type:hr_note_types ( id, name, slug, translations ),
+          id, note_date, body, created_at, created_by,
+          sections, warning_level, follow_up_text, follow_up_on, no_follow_up_reason,
+          type:hr_note_types ( id, name, slug, structure, translations ),
           author:profiles!hr_notes_created_by_fkey ( name, email ),
-          attachments:hr_note_attachments ( id, file_name, mime_type, storage_path )
+          attachments:hr_note_attachments ( id, file_name, mime_type, storage_path ),
+          participants:hr_note_participants!hr_note_participants_note_id_fkey ( id, followup_id, profile_id, worker_id, name ),
+          follow_ups:hr_note_followups (
+            id, kind, entry_date, body, sections, warning_level, closes, next_text, next_on, no_follow_up_reason, created_at,
+            author:profiles!hr_note_followups_created_by_fkey ( name, email )
+          )
         `)
         .eq('worker_id', id)
         .order('note_date', { ascending: false })
@@ -73,12 +82,19 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
   if (notesError) throw new Error(notesError.message);
   if (evalError) throw new Error(evalError.message);
 
-  type RawNote = {
-    id: string; note_date: string; body: string; created_at: string;
-    type: HrNote['type'];
+  type RawParticipant = HrParticipant & { followup_id: string | null };
+  type RawNote = Omit<HrNote, 'author_name' | 'attachments' | 'participants' | 'follow_ups'> & {
     author: { name: string | null; email: string } | null;
     attachments: { id: string; file_name: string; mime_type: string; storage_path: string }[] | null;
+    participants: RawParticipant[] | null;
+    follow_ups: (Omit<HrFollowUp, 'author_name' | 'participants'> & { author: { name: string | null; email: string } | null })[] | null;
   };
+  // Who was there, for the note itself (null) or for one later entry.
+  const present = (n: RawNote, followupId: string | null): HrParticipant[] =>
+    (n.participants ?? [])
+      .filter((p) => p.followup_id === followupId)
+      .map(({ id, profile_id, worker_id, name }) => ({ id, profile_id, worker_id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   const rawNotes = (notes ?? []) as unknown as RawNote[];
 
   // One signing call for every file in the log; links last an hour.
@@ -101,9 +117,19 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
       id: n.id,
       note_date: n.note_date,
       body: n.body,
+      sections: n.sections,
+      warning_level: n.warning_level,
+      follow_up_text: n.follow_up_text,
+      follow_up_on: n.follow_up_on,
+      no_follow_up_reason: n.no_follow_up_reason,
       created_at: n.created_at,
+      created_by: n.created_by,
       type: n.type,
       author_name: authorName(n.author),
+      participants: present(n, null),
+      follow_ups: [...(n.follow_ups ?? [])]
+        .sort((a, b) => a.created_at.localeCompare(b.created_at))
+        .map(({ author, ...f }) => ({ ...f, author_name: authorName(author), participants: present(n, f.id) })),
       attachments: (n.attachments ?? []).map((a) => ({
         id: a.id,
         file_name: a.file_name,
@@ -130,9 +156,39 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
   };
 }
 
+/**
+ * Every note whose follow-up is still open, soonest first — of the files the
+ * viewer may open (RLS). The list marks its workers with it; Inicio counts
+ * the viewer's own that are due.
+ */
+export async function getOpenFollowUps(): Promise<HrOpenFollowUp[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('hr_note_follow_up_state')
+    .select('note_id, worker_id, created_by, due_on')
+    .eq('closed', false)
+    .not('due_on', 'is', null)
+    .order('due_on');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as HrOpenFollowUp[];
+}
+
+/** The viewer's own follow-ups due today or before, and whether any is already late. */
+export async function countMyFollowUpsDue(profileId: string, today: BusinessDate): Promise<{ count: number; late: boolean }> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('hr_note_follow_up_state')
+    .select('due_on')
+    .eq('closed', false)
+    .eq('created_by', profileId)
+    .lte('due_on', today);
+  const due = (data ?? []) as unknown as { due_on: string }[];
+  return { count: due.length, late: due.some((d) => d.due_on < today) };
+}
+
 export async function getNoteTypes(includeInactive = false): Promise<HrNoteType[]> {
   const supabase = createClient();
-  let query = supabase.from('hr_note_types').select('id, slug, name, translations, sort_order, is_active').order('sort_order');
+  let query = supabase.from('hr_note_types').select('id, slug, name, structure, translations, sort_order, is_active').order('sort_order');
   if (!includeInactive) query = query.eq('is_active', true);
   const { data, error } = await query;
   if (error) throw new Error(error.message);

@@ -13,6 +13,7 @@ import { canUseReminders, isAdminRole, isSales } from '@/lib/authz';
 import { getMyPendingEvaluations } from '@/server/hr-evaluations';
 import { PendingEvaluations } from '@/components/hr/pending-evaluations';
 import { getUpcomingCelebrations } from '@/server/hr-celebrations';
+import { countMyFollowUpsDue } from '@/server/hr';
 import { CelebrationsCard } from '@/components/hr/celebrations-card';
 import { countMyLateActivities, getActivityKinds, getDayRoutePoints, getPlanDay, getQuietCustomers } from '@/server/sales';
 import { TodayPlanCard } from '@/components/sales/today-plan-card';
@@ -66,7 +67,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes, hrFollowUps] = await Promise.all([
     // Today and what is late — no week ahead: one's own are listed, the team's counted.
     getDashboardData(0),
     getOrderDashboardSummary(today),
@@ -104,6 +105,8 @@ export default async function DashboardPage() {
     viewer ? countFollowUpsDue(viewer.profile.id, today) : 0,
     // The latest quick notes, pinned first.
     viewer ? getNotes({ limit: 4 }) : [],
+    // Follow-ups of the log notes the viewer wrote.
+    viewer?.can('hr.manage') ? countMyFollowUpsDue(viewer.profile.id, today) : { count: 0, late: false },
   ]);
 
   // ---- whoever plans: their own activities, and the team in one line per area ----
@@ -162,6 +165,7 @@ export default async function DashboardPage() {
     coverageGaps,
     meetingInvites,
     collectionFollowUps,
+    hrFollowUps,
   });
 
   // Whom the viewer covers today; while it lasts, that person's work is theirs to do.

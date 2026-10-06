@@ -14,11 +14,12 @@ import { NoteTextarea } from '@/components/ui/note-textarea';
 import { createClient } from '@/lib/supabase/client';
 import { HR_ALLOWED_MIME, HR_BUCKET, HR_MAX_BYTES } from '@/lib/hr';
 import { localizedName, localizedNameDescription } from '@/lib/localized-content';
-import { addEvaluation, addNote, recordNoteAttachment } from '@/server/hr-actions';
+import { addEvaluation } from '@/server/hr-actions';
 import { WorkerDialog, useHrError, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
-import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrLateArrival, HrLateReason, HrNoteType, HrStats, HrWorkerFile } from '@/types/hr';
+import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrLateArrival, HrLateReason, HrNoteType, HrPerson, HrStats, HrWorkerFile } from '@/types/hr';
 import { LateSinceEvaluation, LateTab } from './late-arrivals';
+import { LogTab } from './note-log';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { RequestStatus } from './evaluation-parts';
 import { teamLabelKey } from '@/lib/authz';
@@ -45,6 +46,8 @@ export function WorkerFile({
   lateArrivals,
   lateReasons,
   viewerId,
+  viewerName,
+  people,
   earlyTolerance = 10,
 }: {
   /** Minutes before the agreed time that are still fine. */
@@ -53,6 +56,9 @@ export function WorkerFile({
   lateArrivals: HrLateArrival[];
   lateReasons: HrLateReason[];
   viewerId: string;
+  viewerName: string;
+  /** Whom a note's participants are picked from, without the viewer. */
+  people: HrPerson[];
   file: HrWorkerFile;
   tab: HrTab;
   noteTypes: HrNoteType[];
@@ -159,7 +165,9 @@ export function WorkerFile({
         ))}
       </nav>
 
-      {tab === 'log' && <LogTab file={file} noteTypes={noteTypes} today={today} viewerId={viewerId} />}
+      {tab === 'log' && (
+        <LogTab file={file} noteTypes={noteTypes} people={people} today={today} viewerId={viewerId} viewerName={viewerName} isAdmin={isAdmin} />
+      )}
       {tab === 'late' && (
         <LateTab
           workerId={worker.id}
@@ -181,229 +189,6 @@ export function WorkerFile({
         <WorkerDialog worker={worker} accounts={accounts} teams={teams} onClose={() => setEditing(false)} />
       )}
     </>
-  );
-}
-
-/* ---------------------------------- log ---------------------------------- */
-
-function LogTab({ file, noteTypes, today, viewerId }: { file: HrWorkerFile; noteTypes: HrNoteType[]; today: string; viewerId: string }) {
-  const { t, locale, formatDate } = useI18n();
-  const [adding, setAdding] = useState(false);
-  const [typeFilter, setTypeFilter] = useState('');
-
-  const shown = typeFilter ? file.notes.filter((n) => n.type?.id === typeFilter) : file.notes;
-  // Every type that appears in the log, including one Admin has since switched off.
-  const types = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const n of file.notes) if (n.type) map.set(n.type.id, localizedName(n.type, locale));
-    return [...map.entries()];
-  }, [file.notes, locale]);
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {types.length > 1 ? (
-          <Select
-            aria-label={t('hr.noteType')}
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="h-8 w-auto py-0 text-[12.5px]"
-          >
-            <option value="">{t('hr.allTypes')}</option>
-            {types.map(([id, name]) => (
-              <option key={id} value={id}>{name}</option>
-            ))}
-          </Select>
-        ) : (
-          <span />
-        )}
-        <Button size="sm" variant="primary" onClick={() => setAdding(true)}>
-          <Plus className="h-3.5 w-3.5" aria-hidden />
-          {t('hr.newNote')}
-        </Button>
-      </div>
-
-      {shown.length === 0 ? (
-        <EmptyState title={t('hr.noNotes')} />
-      ) : (
-        <ul className="space-y-2">
-          {shown.map((n) => (
-            <li key={n.id}>
-              <Card className="p-3">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
-                  <span className="tabular font-medium text-fg">{formatDate(n.note_date, 'medium')}</span>
-                  {n.type && <Badge tone="accent">{localizedName(n.type, locale)}</Badge>}
-                  {n.author_name && <span>{t('hr.by', { name: n.author_name })}</span>}
-                  {/* A follow-up on this note, linked to it. */}
-                  <span className="ml-auto">
-                    <QuickReminderButton viewerId={viewerId} variant="ghost" compact link={{ type: 'hr_note', id: n.id, label: `${file.worker.name} · ${formatDate(n.note_date, 'medium')}` }} />
-                  </span>
-                </div>
-                <div className="mt-1.5 text-[13px] leading-relaxed">
-                  <NoteText text={n.body} />
-                </div>
-                {n.attachments.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {n.attachments.map((a) =>
-                      a.signed_url && a.mime_type.startsWith('image/') ? (
-                        <a key={a.id} href={a.signed_url} target="_blank" rel="noreferrer" title={a.file_name}>
-                          {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL */}
-                          <img
-                            src={a.signed_url}
-                            alt={a.file_name}
-                            className="h-20 w-20 rounded-md border border-border object-cover"
-                          />
-                        </a>
-                      ) : (
-                        <a
-                          key={a.id}
-                          href={a.signed_url ?? undefined}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex max-w-full items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] hover:bg-surface-2"
-                        >
-                          <FileText className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                          <span className="truncate">{a.file_name}</span>
-                        </a>
-                      ),
-                    )}
-                  </div>
-                )}
-              </Card>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {adding && (
-        <NoteDialog workerId={file.worker.id} noteTypes={noteTypes} today={today} onClose={() => setAdding(false)} />
-      )}
-    </div>
-  );
-}
-
-function NoteDialog({
-  workerId,
-  noteTypes,
-  today,
-  onClose,
-}: {
-  workerId: string;
-  noteTypes: HrNoteType[];
-  today: string;
-  onClose: () => void;
-}) {
-  const { t, locale } = useI18n();
-  const router = useRouter();
-  const errorText = useHrError();
-  const [typeId, setTypeId] = useState(noteTypes[0]?.id ?? '');
-  const [date, setDate] = useState(today);
-  const [body, setBody] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
-  const [errors, setErrors] = useState<string[]>([]);
-  const [saved, setSaved] = useState(false);
-  const [pending, startTransition] = useTransition();
-
-  function pickFiles(list: FileList | null) {
-    const picked = [...(list ?? [])];
-    const problems: string[] = [];
-    const ok = picked.filter((f) => {
-      if (!HR_ALLOWED_MIME.includes(f.type)) problems.push(t('hr.errFileType', { name: f.name }));
-      else if (f.size > HR_MAX_BYTES) problems.push(t('hr.errFileTooLarge', { name: f.name }));
-      else return true;
-      return false;
-    });
-    setErrors(problems);
-    setFiles(ok);
-  }
-
-  function submit() {
-    setErrors([]);
-    startTransition(async () => {
-      const res = await addNote({ worker_id: workerId, type_id: typeId, note_date: date, body });
-      if (!res.ok) return setErrors([errorText(res.error)]);
-      const noteId = res.data.id;
-
-      // Straight from the browser to storage: a server action carries at most
-      // 1 MB. The storage policy checks the note folder the file goes into.
-      const supabase = createClient();
-      const failed: string[] = [];
-      for (const file of files) {
-        const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
-        const path = `${noteId}/${crypto.randomUUID()}.${ext}`;
-        const upload = await supabase.storage.from(HR_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
-        const recorded = upload.error
-          ? upload
-          : await recordNoteAttachment(
-              { note_id: noteId, storage_path: path, file_name: file.name, mime_type: file.type, size_bytes: file.size },
-              workerId,
-            );
-        if ('error' in recorded && recorded.error) failed.push(t('hr.errFile', { name: file.name }));
-      }
-
-      router.refresh();
-      if (failed.length === 0) return onClose();
-      // The note is saved either way; say which files did not make it.
-      setSaved(true);
-      setErrors(failed);
-    });
-  }
-
-  return (
-    <Dialog
-      open
-      onClose={onClose}
-      title={t('hr.newNote')}
-      description={t('hr.notePermanent')}
-      className="max-w-lg"
-      footer={
-        saved ? (
-          <Button variant="primary" onClick={onClose}>{t('common.close')}</Button>
-        ) : (
-          <>
-            <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
-            <Button variant="primary" onClick={submit} loading={pending} disabled={!body.trim() || !typeId}>
-              {t('common.save')}
-            </Button>
-          </>
-        )
-      }
-    >
-      <div className="space-y-3.5">
-        {errors.map((e) => (
-          <ErrorState key={e} message={e} />
-        ))}
-        {!saved && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={t('hr.noteType')} htmlFor="note-type">
-                <Select id="note-type" value={typeId} onChange={(e) => setTypeId(e.target.value)}>
-                  {noteTypes.map((ty) => (
-                    <option key={ty.id} value={ty.id}>{localizedName(ty, locale)}</option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label={t('hr.noteDate')} htmlFor="note-date">
-                <Input id="note-date" type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} />
-              </Field>
-            </div>
-            <Field label={t('hr.noteBody')} required htmlFor="note-body">
-              <NoteTextarea id="note-body" rows={5} value={body} onChange={(e) => setBody(e.target.value)} />
-            </Field>
-            <Field label={t('hr.noteFiles')} htmlFor="note-files">
-              <input
-                id="note-files"
-                type="file"
-                multiple
-                accept={HR_ALLOWED_MIME.join(',')}
-                onChange={(e) => pickFiles(e.target.files)}
-                className="block w-full text-[12.5px] file:mr-3 file:rounded-md file:border-0 file:bg-surface-2 file:px-3 file:py-1.5 file:text-[12.5px]"
-              />
-            </Field>
-          </>
-        )}
-      </div>
-    </Dialog>
   );
 }
 

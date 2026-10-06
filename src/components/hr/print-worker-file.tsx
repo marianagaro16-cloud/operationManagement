@@ -4,7 +4,9 @@ import { useEffect } from 'react';
 import { useI18n } from '@/i18n';
 import { teamLabelKey } from '@/lib/authz';
 import { localizedName } from '@/lib/localized-content';
-import type { HrLateArrival, HrWorkerFile } from '@/types/hr';
+import { NOTE_SECTIONS, followUpState, warningNumbers, type NoteStructure } from '@/domain/hr/note-structure';
+import type { MessageKey } from '@/i18n';
+import type { HrLateArrival, HrParticipant, HrWorkerFile } from '@/types/hr';
 
 /**
  * A worker's whole file on a plain page — details, log, arrivals and
@@ -17,6 +19,33 @@ export function PrintWorkerFile({ file, arrivals }: { file: HrWorkerFile; arriva
     const timer = setTimeout(() => window.print(), 400);
     return () => clearTimeout(timer);
   }, []);
+  const numbers = warningNumbers(notes);
+  const today = new Date().toISOString().slice(0, 10);
+
+  /** The sections of a note or a later entry, its follow-up, and who was there. */
+  const content = (
+    structure: NoteStructure,
+    sections: Record<string, string> | null,
+    followUpOn: string | null,
+    followUpText: string | null,
+    noFollowUpReason: string | null,
+    participants: HrParticipant[],
+  ) => {
+    const rows: [string, string][] = [
+      ...NOTE_SECTIONS[structure]
+        .filter((s) => sections?.[s.key])
+        .map((s): [string, string] => [t(`hrNote.s_${structure}_${s.key}` as MessageKey), sections![s.key]!]),
+      ...(followUpOn ? [[`${t('hrNote.followUp')} · ${formatDate(followUpOn, 'medium')}`, followUpText ?? ''] as [string, string]] : []),
+      ...(noFollowUpReason ? [[t('hrNote.noFollowUpLabel'), noFollowUpReason] as [string, string]] : []),
+      ...(participants.length ? [[t('hrNote.participants'), participants.map((p) => p.name).join(', ')] as [string, string]] : []),
+    ];
+    return rows.map(([label, text]) => (
+      <p key={label} className="whitespace-pre-wrap">
+        <span className="text-neutral-500">{label}: </span>
+        {text}
+      </p>
+    ));
+  };
 
   const details: [string, string | null][] = [
     [t('roles.team'), t(teamLabelKey(worker.team))],
@@ -48,16 +77,37 @@ export function PrintWorkerFile({ file, arrivals }: { file: HrWorkerFile; arriva
 
       <Section title={t('hr.tabLog')} empty={notes.length === 0}>
         <ul className="space-y-2">
-          {notes.map((n) => (
-            <li key={n.id} className="break-inside-avoid">
-              <p className="font-medium">
-                {formatDate(n.note_date, 'medium')}
-                {n.type && ` · ${localizedName(n.type, locale)}`}
-                {n.author_name && <span className="font-normal text-neutral-500"> · {n.author_name}</span>}
-              </p>
-              <p className="whitespace-pre-wrap">{n.body}</p>
-            </li>
-          ))}
+          {notes.map((n) => {
+            const structure: NoteStructure = n.type?.structure ?? 'general';
+            const level = n.warning_level ?? n.follow_ups.find((f) => f.kind === 'completion')?.warning_level;
+            const state = followUpState(n, today);
+            return (
+              <li key={n.id} className="break-inside-avoid">
+                <p className="font-medium">
+                  {formatDate(n.note_date, 'medium')}
+                  {n.type && ` · ${localizedName(n.type, locale)}`}
+                  {level && ` · ${t(`hrNote.level_${level}` as MessageKey)}`}
+                  {numbers.has(n.id) && ` · ${t('hrNote.warningNumber', { n: numbers.get(n.id)! })}`}
+                  {state.status === 'closed' && ` · ${t('hrNote.statusClosed')}`}
+                  {state.dueOn && ` · ${t(state.status === 'overdue' ? 'hrNote.statusOverdue' : 'hrNote.statusOpen', { date: formatDate(state.dueOn, 'medium') })}`}
+                  {n.author_name && <span className="font-normal text-neutral-500"> · {n.author_name}</span>}
+                </p>
+                {n.body && <p className="whitespace-pre-wrap">{n.body}</p>}
+                {content(structure, n.sections, n.follow_up_on, n.follow_up_text, n.no_follow_up_reason, n.participants)}
+                {n.follow_ups.map((f) => (
+                  <div key={f.id} className="ml-4 mt-1 border-l border-neutral-300 pl-2">
+                    <p className="font-medium">
+                      {formatDate(f.entry_date, 'medium')} · {t(f.kind === 'completion' ? 'hrNote.completed' : 'hrNote.followUp')}
+                      {f.closes && ` · ${t('hrNote.closed')}`}
+                      {f.author_name && <span className="font-normal text-neutral-500"> · {f.author_name}</span>}
+                    </p>
+                    {f.body && <p className="whitespace-pre-wrap">{f.body}</p>}
+                    {content(structure, f.sections, f.next_on, f.next_text, f.no_follow_up_reason, f.participants)}
+                  </div>
+                ))}
+              </li>
+            );
+          })}
         </ul>
       </Section>
 

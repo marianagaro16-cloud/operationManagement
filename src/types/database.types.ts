@@ -2933,6 +2933,13 @@ export type Database = {
             foreignKeyName: "hr_note_attachments_note_id_fkey"
             columns: ["note_id"]
             isOneToOne: false
+            referencedRelation: "hr_note_follow_up_state"
+            referencedColumns: ["note_id"]
+          },
+          {
+            foreignKeyName: "hr_note_attachments_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
             referencedRelation: "hr_notes"
             referencedColumns: ["id"]
           },
@@ -2945,6 +2952,139 @@ export type Database = {
           },
         ]
       }
+      hr_note_followups: {
+        Row: {
+          body: string | null
+          closes: boolean
+          created_at: string
+          created_by: string | null
+          entry_date: string
+          id: string
+          kind: string
+          next_on: string | null
+          next_text: string | null
+          no_follow_up_reason: string | null
+          note_id: string
+          sections: Json | null
+          warning_level: string | null
+        }
+        Insert: {
+          body?: string | null
+          closes?: boolean
+          created_at?: string
+          created_by?: string | null
+          entry_date: string
+          id?: string
+          kind: string
+          next_on?: string | null
+          next_text?: string | null
+          no_follow_up_reason?: string | null
+          note_id: string
+          sections?: Json | null
+          warning_level?: string | null
+        }
+        Update: {
+          body?: string | null
+          closes?: boolean
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          id?: string
+          kind?: string
+          next_on?: string | null
+          next_text?: string | null
+          no_follow_up_reason?: string | null
+          note_id?: string
+          sections?: Json | null
+          warning_level?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_note_followups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_note_followups_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "hr_note_follow_up_state"
+            referencedColumns: ["note_id"]
+          },
+          {
+            foreignKeyName: "hr_note_followups_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "hr_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_note_participants: {
+        Row: {
+          followup_id: string | null
+          id: string
+          name: string
+          note_id: string
+          profile_id: string | null
+          worker_id: string | null
+        }
+        Insert: {
+          followup_id?: string | null
+          id?: string
+          name: string
+          note_id: string
+          profile_id?: string | null
+          worker_id?: string | null
+        }
+        Update: {
+          followup_id?: string | null
+          id?: string
+          name?: string
+          note_id?: string
+          profile_id?: string | null
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_note_participants_followup_id_fkey"
+            columns: ["followup_id"]
+            isOneToOne: false
+            referencedRelation: "hr_note_followups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_note_participants_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "hr_note_follow_up_state"
+            referencedColumns: ["note_id"]
+          },
+          {
+            foreignKeyName: "hr_note_participants_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "hr_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_note_participants_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_note_participants_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_note_types: {
         Row: {
           created_at: string
@@ -2953,6 +3093,7 @@ export type Database = {
           name: string
           slug: string
           sort_order: number
+          structure: string
           translations: Json
           updated_at: string
         }
@@ -2963,6 +3104,7 @@ export type Database = {
           name: string
           slug: string
           sort_order?: number
+          structure?: string
           translations?: Json
           updated_at?: string
         }
@@ -2973,6 +3115,7 @@ export type Database = {
           name?: string
           slug?: string
           sort_order?: number
+          structure?: string
           translations?: Json
           updated_at?: string
         }
@@ -2980,30 +3123,45 @@ export type Database = {
       }
       hr_notes: {
         Row: {
-          body: string
+          body: string | null
           created_at: string
           created_by: string | null
+          follow_up_on: string | null
+          follow_up_text: string | null
           id: string
+          no_follow_up_reason: string | null
           note_date: string
+          sections: Json | null
           type_id: string
+          warning_level: string | null
           worker_id: string
         }
         Insert: {
-          body: string
+          body?: string | null
           created_at?: string
           created_by?: string | null
+          follow_up_on?: string | null
+          follow_up_text?: string | null
           id?: string
+          no_follow_up_reason?: string | null
           note_date: string
+          sections?: Json | null
           type_id: string
+          warning_level?: string | null
           worker_id: string
         }
         Update: {
-          body?: string
+          body?: string | null
           created_at?: string
           created_by?: string | null
+          follow_up_on?: string | null
+          follow_up_text?: string | null
           id?: string
+          no_follow_up_reason?: string | null
           note_date?: string
+          sections?: Json | null
           type_id?: string
+          warning_level?: string | null
           worker_id?: string
         }
         Relationships: [
@@ -5943,6 +6101,13 @@ export type Database = {
             foreignKeyName: "personal_tasks_hr_note_id_fkey"
             columns: ["hr_note_id"]
             isOneToOne: false
+            referencedRelation: "hr_note_follow_up_state"
+            referencedColumns: ["note_id"]
+          },
+          {
+            foreignKeyName: "personal_tasks_hr_note_id_fkey"
+            columns: ["hr_note_id"]
+            isOneToOne: false
             referencedRelation: "hr_notes"
             referencedColumns: ["id"]
           },
@@ -7208,6 +7373,13 @@ export type Database = {
             foreignKeyName: "reminders_hr_note_id_fkey"
             columns: ["hr_note_id"]
             isOneToOne: false
+            referencedRelation: "hr_note_follow_up_state"
+            referencedColumns: ["note_id"]
+          },
+          {
+            foreignKeyName: "reminders_hr_note_id_fkey"
+            columns: ["hr_note_id"]
+            isOneToOne: false
             referencedRelation: "hr_notes"
             referencedColumns: ["id"]
           },
@@ -8396,6 +8568,31 @@ export type Database = {
       }
     }
     Views: {
+      hr_note_follow_up_state: {
+        Row: {
+          closed: boolean | null
+          created_by: string | null
+          due_on: string | null
+          note_id: string | null
+          worker_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_notes_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lot_allocation_search: {
         Row: {
           brand_id: string | null
@@ -8757,6 +8954,66 @@ export type Database = {
       }
       hr_is_self: { Args: { p_worker_id: string }; Returns: boolean }
       hr_late_editable: { Args: { p_id: string }; Returns: boolean }
+      hr_note_add: {
+        Args: {
+          p_follow_up_on: string
+          p_follow_up_text: string
+          p_no_follow_up_reason: string
+          p_note_date: string
+          p_participants: Json
+          p_sections: Json
+          p_type_id: string
+          p_warning_level: string
+          p_worker_id: string
+        }
+        Returns: string
+      }
+      hr_note_check_content: {
+        Args: {
+          p_follow_up_on: string
+          p_follow_up_text: string
+          p_from: string
+          p_no_follow_up_reason: string
+          p_sections: Json
+          p_structure: string
+          p_warning_level: string
+        }
+        Returns: undefined
+      }
+      hr_note_follow_up_rule: { Args: { p_structure: string }; Returns: string }
+      hr_note_followup_add: {
+        Args: {
+          p_body: string
+          p_closes: boolean
+          p_entry_date: string
+          p_kind: string
+          p_next_on: string
+          p_next_text: string
+          p_no_follow_up_reason: string
+          p_note_id: string
+          p_participants: Json
+          p_sections: Json
+          p_warning_level: string
+        }
+        Returns: string
+      }
+      hr_note_put_participants: {
+        Args: {
+          p_followup_id: string
+          p_note_id: string
+          p_people: Json
+          p_uid: string
+        }
+        Returns: undefined
+      }
+      hr_note_reminder_audience: {
+        Args: { p_followup_id?: string; p_note_id: string }
+        Returns: string[]
+      }
+      hr_note_required_sections: {
+        Args: { p_structure: string }
+        Returns: string[]
+      }
       hr_scope: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       hr_worker_stats: {
         Args: { p_from: string; p_to: string; p_worker_id: string }

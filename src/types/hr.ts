@@ -1,4 +1,5 @@
 import type { Team } from '@/lib/authz';
+import type { NoteStructure, WarningLevel } from '@/domain/hr/note-structure';
 
 /** German and English overrides; Spanish is in the base fields. */
 export type HrTranslations = Partial<Record<'de' | 'en', { name?: string | null; description?: string | null }>>;
@@ -25,6 +26,8 @@ export interface HrNoteType {
   id: string;
   slug: string;
   name: string;
+  /** Which sections a note of this type asks for. */
+  structure: NoteStructure;
   translations: HrTranslations;
   sort_order: number;
   is_active: boolean;
@@ -59,14 +62,66 @@ export interface HrAttachment {
   signed_url: string | null;
 }
 
+/** Someone who was there: an app account, a worker file, or just a name. */
+export interface HrParticipant {
+  id: string;
+  profile_id: string | null;
+  worker_id: string | null;
+  name: string;
+}
+
+/** Whom a note's participants are picked from; one entry per person. */
+export interface HrPerson {
+  profile_id: string | null;
+  worker_id: string | null;
+  name: string;
+}
+
+/** An entry added to a note later: what came of its follow-up, or the sections an old note lacks. */
+export interface HrFollowUp {
+  id: string;
+  kind: 'followup' | 'completion';
+  entry_date: string;
+  body: string | null;
+  sections: Record<string, string> | null;
+  warning_level: WarningLevel | null;
+  /** Nothing more to follow up. */
+  closes: boolean;
+  next_text: string | null;
+  next_on: string | null;
+  no_follow_up_reason: string | null;
+  created_at: string;
+  author_name: string | null;
+  participants: HrParticipant[];
+}
+
 export interface HrNote {
   id: string;
   note_date: string;
-  body: string;
+  /** The free text of a note written before notes had sections. */
+  body: string | null;
+  /** By section key; null for a note in the old format. */
+  sections: Record<string, string> | null;
+  warning_level: WarningLevel | null;
+  follow_up_text: string | null;
+  follow_up_on: string | null;
+  no_follow_up_reason: string | null;
   created_at: string;
-  type: { id: string; name: string; slug: string; translations: HrTranslations } | null;
+  created_by: string | null;
+  type: { id: string; name: string; slug: string; structure: NoteStructure; translations: HrTranslations } | null;
   author_name: string | null;
   attachments: HrAttachment[];
+  participants: HrParticipant[];
+  /** Oldest first. */
+  follow_ups: HrFollowUp[];
+}
+
+/** A note whose follow-up is still open. */
+export interface HrOpenFollowUp {
+  note_id: string;
+  worker_id: string;
+  created_by: string | null;
+  due_on: string;
 }
 
 export interface HrEvaluation {

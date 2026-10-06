@@ -70,6 +70,7 @@ export function HrConfig({
             {t('hr.newNoteType')}
           </Button>
         </div>
+        <p className="mb-1.5 px-0.5 text-[12px] text-muted">{t('hrNote.structureHint')}</p>
         <Card className="overflow-hidden">
           <ul className="divide-y divide-border">
             {noteTypes.map((ty) =>

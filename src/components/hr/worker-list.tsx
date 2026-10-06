@@ -17,20 +17,29 @@ import { teamLabelKey } from '@/lib/authz';
 /** Everyone with a file, the people who still work here first. */
 export function WorkerList({
   workers,
+  followUps,
+  onlyFollowUps = false,
   accounts,
   teams,
 }: {
   workers: HrWorker[];
+  /** Workers with a note whose follow-up is still open, or already late. */
+  followUps: Record<string, 'open' | 'overdue'>;
+  /** Start on those only: where Inicio's line leads. */
+  onlyFollowUps?: boolean;
   accounts: HrAccount[];
   teams: Team[];
 }) {
   const { t, formatDate } = useI18n();
   const [creating, setCreating] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  const [onlyOpen, setOnlyOpen] = useState(onlyFollowUps);
 
   const teamLabel = (team: Team) => (t(teamLabelKey(team)));
   const linked = new Set(workers.map((w) => w.profile_id).filter(Boolean));
-  const shown = workers.filter((w) => showInactive || w.is_active);
+  const openCount = workers.filter((w) => followUps[w.id]).length;
+  // Someone who left can still have a follow-up open.
+  const shown = workers.filter((w) => (onlyOpen && openCount > 0 ? followUps[w.id] : showInactive || w.is_active));
   const inactiveCount = workers.filter((w) => !w.is_active).length;
 
   return (
@@ -58,6 +67,15 @@ export function WorkerList({
         />
       )}
 
+      {openCount > 0 && (
+        <Checkbox
+          className="mb-3"
+          label={t('hrNote.onlyOpen', { count: openCount })}
+          checked={onlyOpen}
+          onChange={(e) => setOnlyOpen(e.target.checked)}
+        />
+      )}
+
       {shown.length === 0 ? (
         <EmptyState title={t('hr.noWorkers')} body={t('hr.noWorkersBody')} />
       ) : (
@@ -77,6 +95,11 @@ export function WorkerList({
                       {w.start_date && <span>· {t('hr.since', { date: formatDate(w.start_date, 'medium') })}</span>}
                     </p>
                   </div>
+                  {followUps[w.id] && (
+                    <Badge tone={followUps[w.id] === 'overdue' ? 'late' : 'accent'}>
+                      {t(followUps[w.id] === 'overdue' ? 'hrNote.listOverdue' : 'hrNote.listOpen')}
+                    </Badge>
+                  )}
                   {!w.is_active && <Badge tone="neutral">{t('hr.inactive')}</Badge>}
                   <ChevronRight className="h-4 w-4 shrink-0 text-subtle" aria-hidden />
                 </Link>
