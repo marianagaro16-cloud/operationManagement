@@ -17,14 +17,15 @@ import { localizedName, localizedNameDescription } from '@/lib/localized-content
 import { addEvaluation } from '@/server/hr-actions';
 import { WorkerDialog, useHrError, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
-import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrLateArrival, HrLateReason, HrNoteType, HrPerson, HrStats, HrWorkerFile } from '@/types/hr';
+import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrKey, HrLateArrival, HrLateReason, HrNoteType, HrPerson, HrStats, HrWorkerFile } from '@/types/hr';
 import { LateSinceEvaluation, LateTab } from './late-arrivals';
 import { LogTab } from './note-log';
+import { KeyRegister } from './key-register';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { RequestStatus } from './evaluation-parts';
 import { teamLabelKey } from '@/lib/authz';
 
-export type HrTab = 'log' | 'late' | 'evaluations' | 'app';
+export type HrTab = 'log' | 'late' | 'keys' | 'evaluations' | 'app';
 
 /**
  * One worker's file: who they are, the log, their evaluations, and — when
@@ -45,6 +46,7 @@ export function WorkerFile({
   isAdmin,
   lateArrivals,
   lateReasons,
+  keys,
   viewerId,
   viewerName,
   people,
@@ -55,6 +57,8 @@ export function WorkerFile({
   /** Late arrivals, newest first, and the reasons to pick from. */
   lateArrivals: HrLateArrival[];
   lateReasons: HrLateReason[];
+  /** The keys this worker holds or held. */
+  keys: HrKey[];
   viewerId: string;
   viewerName: string;
   /** Whom a note's participants are picked from, without the viewer. */
@@ -92,6 +96,7 @@ export function WorkerFile({
   const tabs: { key: HrTab; label: string; count?: number }[] = [
     { key: 'log', label: t('hr.tabLog'), count: file.notes.length },
     { key: 'late', label: t('hrLate.tab'), count: lateArrivals.length },
+    { key: 'keys', label: t('hrKey.tab'), count: keys.filter((k) => !k.returned_on).length },
     { key: 'evaluations', label: t('hr.tabEvaluations'), count: file.evaluations.length },
     { key: 'app', label: t('hr.tabApp') },
   ];
@@ -168,6 +173,7 @@ export function WorkerFile({
       {tab === 'log' && (
         <LogTab file={file} noteTypes={noteTypes} people={people} today={today} viewerId={viewerId} viewerName={viewerName} isAdmin={isAdmin} />
       )}
+      {tab === 'keys' && <KeyRegister keys={keys} worker={{ id: worker.id, name: worker.name }} today={today} isAdmin={isAdmin} />}
       {tab === 'late' && (
         <LateTab
           workerId={worker.id}

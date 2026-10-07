@@ -261,3 +261,20 @@ export interface HrLateArrival {
   author_name: string | null;
   created_at: string;
 }
+
+/** A key someone holds, or held: a worker with a file, or anyone else by name. */
+export interface HrKey {
+  id: string;
+  key_number: string;
+  opens: string | null;
+  worker_id: string | null;
+  /** The worker's name; null for someone without a file. */
+  worker_name: string | null;
+  holder_name: string | null;
+  /** Who someone without a file is: company, phone. */
+  holder_detail: string | null;
+  handed_on: string;
+  /** Null while they still have it. */
+  returned_on: string | null;
+  note: string | null;
+}

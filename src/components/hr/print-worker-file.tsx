@@ -16,13 +16,13 @@ import {
   type NoteStructure,
 } from '@/domain/hr/note-structure';
 import type { MessageKey } from '@/i18n';
-import type { HrAgreement, HrLateArrival, HrNoteEvent, HrParticipant, HrWorkerFile } from '@/types/hr';
+import type { HrAgreement, HrKey, HrLateArrival, HrNoteEvent, HrParticipant, HrWorkerFile } from '@/types/hr';
 
 /**
  * A worker's whole file on a plain page — details, log, arrivals and
  * evaluations — to print or save as PDF. Opens the print dialog once drawn.
  */
-export function PrintWorkerFile({ file, arrivals }: { file: HrWorkerFile; arrivals: HrLateArrival[] }) {
+export function PrintWorkerFile({ file, arrivals, keys }: { file: HrWorkerFile; arrivals: HrLateArrival[]; keys: HrKey[] }) {
   const { t, formatDate, locale } = useI18n();
   const { worker, notes, evaluations } = file;
   useEffect(() => {
@@ -108,6 +108,31 @@ export function PrintWorkerFile({ file, arrivals }: { file: HrWorkerFile; arriva
           </div>
         ))}
       </dl>
+
+      <Section title={t('hrKey.tab')} empty={keys.length === 0}>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-neutral-300 text-left text-neutral-500">
+              <th className="py-1 pr-2 font-medium">{t('hrKey.fieldNumber')}</th>
+              <th className="py-1 pr-2 font-medium">{t('hrKey.fieldOpens')}</th>
+              <th className="py-1 pr-2 font-medium">{t('hrKey.fieldHanded')}</th>
+              <th className="py-1 pr-2 font-medium">{t('hrKey.fieldReturned')}</th>
+              <th className="py-1 font-medium">{t('hrKey.fieldNote')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {keys.map((k) => (
+              <tr key={k.id} className="border-b border-neutral-200 align-top">
+                <td className="py-1 pr-2 font-medium">{k.key_number}</td>
+                <td className="py-1 pr-2">{k.opens}</td>
+                <td className="py-1 pr-2">{formatDate(k.handed_on, 'short')}</td>
+                <td className="py-1 pr-2">{k.returned_on ? formatDate(k.returned_on, 'short') : '—'}</td>
+                <td className="py-1">{k.note}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Section>
 
       <Section title={t('hr.tabLog')} empty={notes.length === 0}>
         {summary.total > 0 && (

@@ -603,3 +603,54 @@ export async function setArrivalSetting(key: HrArrivalSetting, n: number): Promi
   revalidatePath('/admin/hr');
   return { ok: true, data: undefined };
 }
+
+/* ---------------------------------- keys ---------------------------------- */
+
+const keySchema = z
+  .object({
+    key_number: z.string().trim().min(1, { message: 'key_number_required' }).max(50),
+    opens: optionalText,
+    /** A worker with a file, or someone else by name. */
+    worker_id: z.string().uuid().nullable(),
+    holder_name: z.string().trim().max(200).nullable().optional().transform((v) => v || null),
+    holder_detail: optionalText,
+    handed_on: DATE,
+    returned_on: DATE.nullable(),
+    note: optionalText,
+  })
+  .refine((v) => !!v.worker_id !== !!v.holder_name, { message: 'holder_required' })
+  .refine((v) => !v.returned_on || v.returned_on >= v.handed_on, { message: 'returned_before_handed' });
+
+export type KeyInput = z.input<typeof keySchema>;
+
+/** Record a key handed over, or change it — returning it is setting the day it came back. */
+export async function saveKey(input: KeyInput, id?: string): Promise<ActionResult> {
+  const parsed = keySchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid' };
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'not_authorized' };
+  // Someone with a file is named by it.
+  const row = { ...parsed.data, holder_detail: parsed.data.worker_id ? null : parsed.data.holder_detail, updated_by: user.id };
+
+  if (id) {
+    const { data, error } = await supabase.from('hr_keys').update(row).eq('id', id).select('id');
+    if (error) return fail(error);
+    if (!data?.length) return { ok: false, error: 'not_authorized' };
+  } else {
+    const { error } = await supabase.from('hr_keys').insert({ ...row, created_by: user.id });
+    if (error) return fail(error);
+  }
+  revalidatePath('/hr', 'layout');
+  return { ok: true, data: undefined };
+}
+
+/** Removes a row recorded by mistake. Admin only (RLS). */
+export async function deleteKey(id: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('hr_keys').delete().eq('id', id).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidatePath('/hr', 'layout');
+  return { ok: true, data: undefined };
+}

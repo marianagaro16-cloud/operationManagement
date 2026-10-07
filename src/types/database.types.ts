@@ -3055,6 +3055,76 @@ export type Database = {
           },
         ]
       }
+      hr_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          handed_on: string
+          holder_detail: string | null
+          holder_name: string | null
+          id: string
+          key_number: string
+          note: string | null
+          opens: string | null
+          returned_on: string | null
+          updated_at: string
+          updated_by: string | null
+          worker_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          handed_on: string
+          holder_detail?: string | null
+          holder_name?: string | null
+          id?: string
+          key_number: string
+          note?: string | null
+          opens?: string | null
+          returned_on?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          worker_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          handed_on?: string
+          holder_detail?: string | null
+          holder_name?: string | null
+          id?: string
+          key_number?: string
+          note?: string | null
+          opens?: string | null
+          returned_on?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_keys_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_keys_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_keys_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_late_arrivals: {
         Row: {
           arrival_date: string
@@ -9365,6 +9435,7 @@ export type Database = {
         Args: { p_team: Database["public"]["Enums"]["team"] }
         Returns: boolean
       }
+      hr_can_key: { Args: { p_worker_id: string }; Returns: boolean }
       hr_can_note: { Args: { p_note_id: string }; Returns: boolean }
       hr_can_worker: { Args: { p_worker_id: string }; Returns: boolean }
       hr_celebration_recipients: {

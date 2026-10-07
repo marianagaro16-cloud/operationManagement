@@ -6,6 +6,7 @@ import type {
   HrCriterion,
   HrEvalTemplate,
   HrEvaluation,
+  HrKey,
   HrFollowUp,
   HrLateArrival,
   HrLateReason,
@@ -321,4 +322,27 @@ export async function getArrivalSettings(): Promise<Record<HrArrivalSetting, num
 /** From how many unexcused late arrivals in a month HR is told. */
 export async function getLateAlertThreshold(): Promise<number> {
   return (await getArrivalSettings()).hr_late_alert_threshold;
+}
+
+/**
+ * The key register, keys still out first — one worker's, or everyone's: the
+ * files the viewer may open (RLS) and the people without a file.
+ */
+export async function getKeys(workerId?: string): Promise<HrKey[]> {
+  const supabase = createClient();
+  let query = supabase
+    .from('hr_keys')
+    .select('id, key_number, opens, worker_id, holder_name, holder_detail, handed_on, returned_on, note, worker:hr_workers ( name )')
+    .order('handed_on', { ascending: false });
+  if (workerId) query = query.eq('worker_id', workerId);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  type Raw = Omit<HrKey, 'worker_name'> & { worker: { name: string } | null };
+  return ((data ?? []) as unknown as Raw[])
+    .map(({ worker, ...k }) => ({ ...k, worker_name: worker?.name ?? null }))
+    .sort(
+      (a, b) =>
+        Number(!!a.returned_on) - Number(!!b.returned_on) ||
+        a.key_number.localeCompare(b.key_number, undefined, { numeric: true }),
+    );
 }
