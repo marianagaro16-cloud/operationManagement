@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { getViewer } from './data';
+import { ordersReadOnly } from '@/lib/authz';
 import type { BusinessDate } from '@/lib/datetime';
 import type { Database } from '@/types/database.types';
 
@@ -118,6 +119,10 @@ export interface LotSearchResult {
  * is "open the order and correct it there", and that is unreachable without
  * it.
  *
+ * A read-only order viewer — the production manager — searches lots too: the
+ * Tracker writes nothing, and the route lets them in. Left out here, they got
+ * the screen with every search coming back empty.
+ *
  * NOT enforced by RLS, deliberately. `lot_allocations` must stay readable by
  * every approved user because Lotnummerkontrol is how they do their job;
  * narrowing that policy to gate a reporting screen would break preparation.
@@ -126,7 +131,7 @@ export interface LotSearchResult {
  */
 export async function canUseLotTracker(): Promise<boolean> {
   const viewer = await getViewer();
-  return viewer?.can('orders.manage') ?? false;
+  return !!viewer && (viewer.can('orders.manage') || ordersReadOnly(viewer.role));
 }
 
 /** `%` and `_` are LIKE wildcards; a lot number containing one is not. */
