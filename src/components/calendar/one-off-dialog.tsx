@@ -61,7 +61,9 @@ export function OneOffDialog({
   const eligible = people.filter((p) => teams.includes(p.team));
   const [assignees, setAssignees] = useState<string[]>([]);
   // A production order: a product and how many units; recorded when done.
-  const [isProduction, setIsProduction] = useState(false);
+  // Only Operaciones' activities can be one.
+  const [ticked, setIsProduction] = useState(false);
+  const isProduction = ticked && team === 'operations';
   const [productId, setProductId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState('');
   const amount = Number(quantity.replace(',', '.'));
@@ -129,7 +131,7 @@ export function OneOffDialog({
           {t('plan.oneOffHint', { date: formatDate(date, 'weekday') })}
         </p>
 
-        {products.length > 0 && (
+        {products.length > 0 && team === 'operations' && (
           <div className="space-y-2 rounded-lg border border-border p-3">
             <Checkbox label={t('production.isOrder')} checked={isProduction} onChange={(e) => setIsProduction(e.target.checked)} />
             {isProduction && (
