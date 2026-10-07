@@ -29,8 +29,10 @@ const TAB_PERMISSION: Record<ReportTab, Permission> = {
 /**
  * The tabs this viewer gets, in order. Empty means the screen is not theirs.
  *
- * Preparation is Operaciones' work, not for a read-only order viewer; and
- * Activities adds up every team's tasks, not for someone confined to one.
+ * The order report and Preparation are Operaciones' work, not for a read-only
+ * order viewer (the production manager); and Activities adds up every team's
+ * tasks, not for someone confined to one. The production manager keeps
+ * Activities: what they read there is their own areas' only (RLS).
  */
 export function allowedReportTabs(viewer: {
   role: Role;
@@ -40,7 +42,7 @@ export function allowedReportTabs(viewer: {
   return REPORT_TABS.filter(
     (tab) =>
       viewer.can(TAB_PERMISSION[tab])
-      && !(tab === 'preparation' && ordersReadOnly(viewer.role))
+      && !((tab === 'orders' || tab === 'preparation') && ordersReadOnly(viewer.role))
       && !(tab === 'tasks' && teamScope(viewer.role, viewer.profile.team) !== null),
   );
 }

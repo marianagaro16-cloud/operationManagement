@@ -153,8 +153,9 @@ export function AppShell({
     ...activitiesFor('operations'),
     // What a person does day by day, for whoever covers them.
     ...(guide ? [{ href: '/guide', label: t('guide.navLabel'), icon: BookMarked, primary: false, group: 'operation' as const }] : []),
-    // Production orders: what is to make and what was made. For planners.
-    ...(plansWork
+    // Production orders: what is to make and what was made. For whoever plans
+    // Operaciones' work — production orders are Operaciones' alone.
+    ...(plansWork && (role !== 'production_manager' || myTeams.includes('operations'))
       ? [{ href: '/production', label: t('production.navLabel'), icon: Factory, primary: false, group: 'operation' as const }]
       : []),
     // What one produced oneself — past days only.

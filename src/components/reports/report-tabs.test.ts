@@ -19,9 +19,9 @@ describe('which report tabs a viewer gets', () => {
     expect(allowedReportTabs(viewer('power_user', REPORTING))).toEqual(REPORT_TABS);
   });
 
-  it('keeps preparation from the production manager, and nothing else', () => {
+  it('keeps the order report and preparation from the production manager', () => {
     expect(allowedReportTabs(viewer('production_manager', REPORTING, 'production')))
-      .toEqual(['orders', 'tasks', 'inventory', 'incidents', 'reception']);
+      .toEqual(['tasks', 'inventory', 'incidents', 'reception']);
   });
 
   it('opens only incidents for someone who holds the incident log alone', () => {

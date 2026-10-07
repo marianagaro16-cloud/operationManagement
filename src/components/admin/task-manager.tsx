@@ -341,13 +341,15 @@ function TaskDialog({
   // A production order: completed by recording what was made, not by a tick.
   const [isProduction, setIsProduction] = useState(!!task?.product_id);
   const [quantity, setQuantity] = useState(task?.target_quantity != null ? String(Number(task.target_quantity)) : '');
-  const productionReady = !isProduction || (!!form.product_id && Number(quantity.replace(',', '.')) > 0);
+  // Only Operaciones' activities can be one; moved to another area it stops being one.
+  const production = isProduction && form.team === 'operations';
+  const productionReady = !production || (!!form.product_id && Number(quantity.replace(',', '.')) > 0);
 
   function submit() {
     setError(null);
     startTransition(async () => {
       const res = await saveTask(
-        isProduction
+        production
           ? { ...form, target_quantity: Number(quantity.replace(',', '.')) }
           : { ...form, product_id: null, target_quantity: null },
         task?.id,
@@ -461,6 +463,8 @@ function TaskDialog({
           </Field>
         )}
 
+        {/* Production orders are Operaciones' alone. */}
+        {form.team === 'operations' && (
         <div className="space-y-2 rounded-lg border border-border p-3">
           <Checkbox
             label={t('production.isOrder')}
@@ -487,6 +491,7 @@ function TaskDialog({
           )}
           {isProduction && <p className="text-[12px] text-muted">{t('production.isOrderHint')}</p>}
         </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('admin.taskCategory')} htmlFor="task-cat">
