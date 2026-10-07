@@ -9,7 +9,7 @@ import type { Meeting, MeetingSeries } from '@/types/meetings';
 
 const COLUMNS = `
   id, series_id, detached, organizer_id, title, agenda, place, place_detail, meeting_date, start_time, end_time,
-  status, minutes, minutes_at,
+  status, minutes, minutes_at, hr_record,
   organizer:profiles!meetings_organizer_id_fkey ( name, email ),
   invitees:meeting_invitees ( profile_id, response, note, person:profiles ( name, email ) )
 `;

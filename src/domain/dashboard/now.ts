@@ -26,6 +26,8 @@ export type NowKind =
   | 'absencesToApprove'
   | 'coverageGaps'
   | 'meetingInvites'
+  | 'meetingRecords'
+  | 'meetingFollowUps'
   | 'collectionFollowUps';
 
 /** late: past its moment. today: due now or today. */
@@ -63,6 +65,10 @@ export interface NowInput {
   coverageGaps: number;
   /** Meeting invitations not yet answered. */
   meetingInvites: number;
+  /** Meetings for the files the viewer organised whose record is not registered; late after two days. */
+  meetingRecords: { count: number; late: boolean; href: string };
+  /** Follow-ups of registered meetings the viewer organised, due today or before. */
+  meetingFollowUps: { count: number; late: boolean; href: string };
   /** Collection cases of the viewer due for follow-up today or before. */
   collectionFollowUps: number;
 }
@@ -81,6 +87,8 @@ const ORDER: NowKind[] = [
   'planLate',
   'evaluationsDue',
   'hrFollowUps',
+  'meetingRecords',
+  'meetingFollowUps',
   'absencesToApprove',
   'coverageGaps',
   'meetingInvites',
@@ -101,6 +109,8 @@ export function buildNowItems(input: NowInput): NowItem[] {
     { kind: 'planLate', level: 'late', count: input.planLate, href: '/sales?tab=planning' },
     { kind: 'evaluationsDue', level: 'today', count: input.evaluationsDue, href: '/evaluations' },
     { kind: 'hrFollowUps', level: input.hrFollowUps.late ? 'late' : 'today', count: input.hrFollowUps.count, href: '/hr?followups=1' },
+    { kind: 'meetingRecords', level: input.meetingRecords.late ? 'late' : 'today', count: input.meetingRecords.count, href: input.meetingRecords.href },
+    { kind: 'meetingFollowUps', level: input.meetingFollowUps.late ? 'late' : 'today', count: input.meetingFollowUps.count, href: input.meetingFollowUps.href },
     { kind: 'absencesToApprove', level: 'today', count: input.absencesToApprove, href: '/absences?tab=approve' },
     { kind: 'coverageGaps', level: 'today', count: input.coverageGaps, href: '/absences?tab=calendar' },
     { kind: 'meetingInvites', level: 'today', count: input.meetingInvites, href: '/meetings' },

@@ -16,13 +16,14 @@ import {
   type NoteStructure,
 } from '@/domain/hr/note-structure';
 import type { MessageKey } from '@/i18n';
+import type { MeetingRecord } from '@/types/meetings';
 import type { HrAgreement, HrKey, HrLateArrival, HrNoteEvent, HrParticipant, HrWorkerFile } from '@/types/hr';
 
 /**
  * A worker's whole file on a plain page — details, log, arrivals and
  * evaluations — to print or save as PDF. Opens the print dialog once drawn.
  */
-export function PrintWorkerFile({ file, arrivals, keys }: { file: HrWorkerFile; arrivals: HrLateArrival[]; keys: HrKey[] }) {
+export function PrintWorkerFile({ file, arrivals, keys, meetings }: { file: HrWorkerFile; arrivals: HrLateArrival[]; keys: HrKey[]; meetings: MeetingRecord[] }) {
   const { t, formatDate, locale } = useI18n();
   const { worker, notes, evaluations } = file;
   useEffect(() => {
@@ -32,8 +33,11 @@ export function PrintWorkerFile({ file, arrivals, keys }: { file: HrWorkerFile; 
   const numbers = warningNumbers(notes);
   const today = new Date().toISOString().slice(0, 10);
 
-  const summary = noteSummary(notes, today);
-  const typeNames = new Map(notes.flatMap((n) => (n.type ? [[n.type.id, localizedName(n.type, locale)] as const] : [])));
+  const summary = noteSummary(notes, today, meetings);
+  const typeNames = new Map<string, string>([
+    ...notes.flatMap((n) => (n.type ? [[n.type.id, localizedName(n.type, locale)] as const] : [])),
+    ['meeting', t('meetingRecord.logBadge')],
+  ]);
   const status = (key: AgreementStatus) => t(`hrNote.result_${key}` as MessageKey);
 
   /**
@@ -195,6 +199,56 @@ export function PrintWorkerFile({ file, arrivals, keys }: { file: HrWorkerFile; 
                           .filter((r) => r.followup_id === f.id)
                           .map((r): [string, string] => [status(r.result), r.comment ? `${a.body} — ${r.comment}` : a.body]),
                       ),
+                    )}
+                  </div>
+                ))}
+              </li>
+            );
+          })}
+        </ul>
+      </Section>
+
+      <Section title={t('meetingRecord.printTitle')} empty={meetings.length === 0}>
+        <ul className="space-y-3">
+          {meetings.map((m) => {
+            const agreed = m.points.flatMap((p) => p.agreements);
+            return (
+              <li key={m.meeting_id} className="break-inside-avoid">
+                <p className="font-medium">
+                  {formatDate(m.meeting_date, 'medium')} · {m.start_time.slice(0, 5)}–{m.end_time.slice(0, 5)} · {m.title}
+                  <span className="font-normal text-neutral-500"> · {m.organizer_name}</span>
+                </p>
+                <p><span className="text-neutral-500">{t('meetingRecord.attendees')}: </span>{m.attendees.map((a) => a.name).join(', ')}</p>
+                {m.points.map((p, i) => (
+                  <div key={p.id} className="mt-1">
+                    <p className="font-medium">
+                      {i + 1}. {p.title}
+                      {p.topic && <span className="font-normal text-neutral-500"> · {t(`hrNote.topic_${p.topic}` as MessageKey)}</span>}
+                    </p>
+                    {p.situation && <p className="whitespace-pre-wrap"><span className="text-neutral-500">{t('meetingRecord.situation')}: </span>{p.situation}</p>}
+                    {p.discussed && <p className="whitespace-pre-wrap"><span className="text-neutral-500">{t('meetingRecord.discussed')}: </span>{p.discussed}</p>}
+                    {p.agreements.map((a, n) => (
+                      <p key={a.id} className="whitespace-pre-wrap">
+                        <span className="text-neutral-500">{t('hrNote.agreementN', { n: n + 1 })}: </span>
+                        {a.body} ({a.responsible_all ? t('meetingRecord.allAttendees') : a.responsible_name}
+                        {a.due_on && ` · ${t('meetingRecord.until', { date: formatDate(a.due_on, 'medium') })}`}) — {status(agreementStatus(a))}
+                      </p>
+                    ))}
+                    {p.no_agreements_reason && <p><span className="text-neutral-500">{t('meetingRecord.noAgreementsLabel')}: </span>{p.no_agreements_reason}</p>}
+                  </div>
+                ))}
+                {m.entries.map((e) => (
+                  <div key={e.id} className="ml-4 mt-1 border-l border-neutral-300 pl-2">
+                    <p className="font-medium">
+                      {formatDate(e.entry_date, 'medium')} · {t(e.kind === 'followup' ? 'hrNote.followUp' : 'meetingRecord.addendum')}
+                      {e.closes && ` · ${t('hrNote.closed')}`}
+                      {e.author_name && <span className="font-normal text-neutral-500"> · {e.author_name}</span>}
+                    </p>
+                    <p className="whitespace-pre-wrap">{e.body}</p>
+                    {agreed.flatMap((a) =>
+                      a.results.filter((r) => r.entry_id === e.id).map((r) => (
+                        <p key={a.id}><span className="text-neutral-500">{status(r.result)}: </span>{r.comment ? `${a.body} — ${r.comment}` : a.body}</p>
+                      )),
                     )}
                   </div>
                 ))}

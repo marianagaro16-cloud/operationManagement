@@ -16,6 +16,8 @@ const none: NowInput = {
   absencesToApprove: 0,
   coverageGaps: 0,
   meetingInvites: 0,
+  meetingRecords: { count: 0, late: false, href: '/meetings' },
+  meetingFollowUps: { count: 0, late: false, href: '/meetings' },
   collectionFollowUps: 0,
 };
 

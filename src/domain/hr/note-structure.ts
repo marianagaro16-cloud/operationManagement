@@ -268,8 +268,20 @@ type SummaryNote = NoteWithTopic &
     type: { id: string } | null;
   };
 
-/** What the last twelve months of a log are about, and how its agreements went. */
-export function noteSummary(notes: SummaryNote[], today: string): NoteSummary {
+/** A registered meeting the worker attended: each of its points has a topic of its own. */
+export interface SummaryMeeting {
+  meeting_date: string;
+  points: { topic: NoteTopic | null; agreements: { results: { result: AgreementResult }[] }[] }[];
+}
+
+/** The type a meeting counts under in the summary. */
+export const MEETING_TYPE = 'meeting';
+
+/**
+ * What the last twelve months of a log are about, and how its agreements
+ * went. A meeting counts once in the total and once under each of its topics.
+ */
+export function noteSummary(notes: SummaryNote[], today: string, meetings: SummaryMeeting[] = []): NoteSummary {
   const from = `${Number(today.slice(0, 4)) - 1}${today.slice(4)}`;
   const recent = notes.filter((n) => n.note_date > from && n.note_date <= today);
 
@@ -288,6 +300,16 @@ export function noteSummary(notes: SummaryNote[], today: string): NoteSummary {
     types.set(type, (types.get(type) ?? 0) + 1);
     byTopic.set(topic, types);
   }
+  const attended = meetings.filter((m) => m.meeting_date > from && m.meeting_date <= today);
+  for (const m of attended) {
+    for (const a of m.points.flatMap((p) => p.agreements)) agreements[agreementStatus(a)] += 1;
+    for (const topic of new Set(m.points.map((p) => p.topic))) {
+      if (!topic) continue;
+      const types = byTopic.get(topic) ?? new Map<string, number>();
+      types.set(MEETING_TYPE, (types.get(MEETING_TYPE) ?? 0) + 1);
+      byTopic.set(topic, types);
+    }
+  }
 
   const topics = NOTE_TOPICS.filter((topic) => byTopic.has(topic))
     .map((topic) => {
@@ -295,5 +317,5 @@ export function noteSummary(notes: SummaryNote[], today: string): NoteSummary {
       return { topic, count: types.reduce((sum, ty) => sum + ty.count, 0), types };
     })
     .sort((a, b) => b.count - a.count);
-  return { total: recent.length, topics, noTopic, agreements };
+  return { total: recent.length + attended.length, topics, noTopic, agreements };
 }

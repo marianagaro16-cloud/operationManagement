@@ -5507,6 +5507,98 @@ export type Database = {
           },
         ]
       }
+      meeting_agreement_results: {
+        Row: {
+          agreement_id: string
+          comment: string | null
+          entry_id: string
+          id: string
+          result: string
+        }
+        Insert: {
+          agreement_id: string
+          comment?: string | null
+          entry_id: string
+          id?: string
+          result: string
+        }
+        Update: {
+          agreement_id?: string
+          comment?: string | null
+          entry_id?: string
+          id?: string
+          result?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_agreement_results_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_record_agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_agreement_results_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_record_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_attendees: {
+        Row: {
+          id: string
+          meeting_id: string
+          name: string
+          profile_id: string | null
+          worker_id: string | null
+        }
+        Insert: {
+          id?: string
+          meeting_id: string
+          name: string
+          profile_id?: string | null
+          worker_id?: string | null
+        }
+        Update: {
+          id?: string
+          meeting_id?: string
+          name?: string
+          profile_id?: string | null
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_attendees_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_record_follow_up_state"
+            referencedColumns: ["meeting_id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_records"
+            referencedColumns: ["meeting_id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_invitees: {
         Row: {
           meeting_id: string
@@ -5576,6 +5668,267 @@ export type Database = {
           {
             foreignKeyName: "meeting_notices_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_record_agreements: {
+        Row: {
+          body: string
+          due_on: string | null
+          id: string
+          meeting_id: string
+          point_id: string
+          responsible_all: boolean
+          responsible_name: string | null
+          responsible_profile_id: string | null
+          responsible_worker_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          body?: string
+          due_on?: string | null
+          id?: string
+          meeting_id: string
+          point_id: string
+          responsible_all?: boolean
+          responsible_name?: string | null
+          responsible_profile_id?: string | null
+          responsible_worker_id?: string | null
+          sort_order: number
+        }
+        Update: {
+          body?: string
+          due_on?: string | null
+          id?: string
+          meeting_id?: string
+          point_id?: string
+          responsible_all?: boolean
+          responsible_name?: string | null
+          responsible_profile_id?: string | null
+          responsible_worker_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_record_agreements_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_record_follow_up_state"
+            referencedColumns: ["meeting_id"]
+          },
+          {
+            foreignKeyName: "meeting_record_agreements_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_records"
+            referencedColumns: ["meeting_id"]
+          },
+          {
+            foreignKeyName: "meeting_record_agreements_point_id_fkey"
+            columns: ["point_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_record_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_record_agreements_responsible_profile_id_fkey"
+            columns: ["responsible_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_record_agreements_responsible_worker_id_fkey"
+            columns: ["responsible_worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_record_entries: {
+        Row: {
+          body: string
+          closes: boolean
+          created_at: string
+          created_by: string | null
+          entry_date: string
+          id: string
+          kind: string
+          meeting_id: string
+          next_on: string | null
+        }
+        Insert: {
+          body: string
+          closes?: boolean
+          created_at?: string
+          created_by?: string | null
+          entry_date: string
+          id?: string
+          kind: string
+          meeting_id: string
+          next_on?: string | null
+        }
+        Update: {
+          body?: string
+          closes?: boolean
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          id?: string
+          kind?: string
+          meeting_id?: string
+          next_on?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_record_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_record_entries_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_record_follow_up_state"
+            referencedColumns: ["meeting_id"]
+          },
+          {
+            foreignKeyName: "meeting_record_entries_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_records"
+            referencedColumns: ["meeting_id"]
+          },
+        ]
+      }
+      meeting_record_points: {
+        Row: {
+          discussed: string | null
+          id: string
+          meeting_id: string
+          no_agreements_reason: string | null
+          situation: string | null
+          sort_order: number
+          title: string
+          topic: string | null
+        }
+        Insert: {
+          discussed?: string | null
+          id?: string
+          meeting_id: string
+          no_agreements_reason?: string | null
+          situation?: string | null
+          sort_order: number
+          title?: string
+          topic?: string | null
+        }
+        Update: {
+          discussed?: string | null
+          id?: string
+          meeting_id?: string
+          no_agreements_reason?: string | null
+          situation?: string | null
+          sort_order?: number
+          title?: string
+          topic?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_record_points_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_record_follow_up_state"
+            referencedColumns: ["meeting_id"]
+          },
+          {
+            foreignKeyName: "meeting_record_points_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_records"
+            referencedColumns: ["meeting_id"]
+          },
+        ]
+      }
+      meeting_records: {
+        Row: {
+          end_time: string
+          follow_up_on: string | null
+          meeting_date: string
+          meeting_id: string
+          organizer_id: string | null
+          organizer_name: string
+          place: string | null
+          place_detail: string | null
+          registered_at: string | null
+          registered_by: string | null
+          start_time: string
+          title: string
+          updated_at: string
+          written_by: string | null
+        }
+        Insert: {
+          end_time: string
+          follow_up_on?: string | null
+          meeting_date: string
+          meeting_id: string
+          organizer_id?: string | null
+          organizer_name: string
+          place?: string | null
+          place_detail?: string | null
+          registered_at?: string | null
+          registered_by?: string | null
+          start_time: string
+          title: string
+          updated_at?: string
+          written_by?: string | null
+        }
+        Update: {
+          end_time?: string
+          follow_up_on?: string | null
+          meeting_date?: string
+          meeting_id?: string
+          organizer_id?: string | null
+          organizer_name?: string
+          place?: string | null
+          place_detail?: string | null
+          registered_at?: string | null
+          registered_by?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string
+          written_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_records_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: true
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_records_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_records_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_records_written_by_fkey"
+            columns: ["written_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -5739,6 +6092,7 @@ export type Database = {
           created_by: string | null
           detached: boolean
           end_time: string
+          hr_record: boolean
           id: string
           meeting_date: string
           minutes: string | null
@@ -5761,6 +6115,7 @@ export type Database = {
           created_by?: string | null
           detached?: boolean
           end_time: string
+          hr_record?: boolean
           id?: string
           meeting_date: string
           minutes?: string | null
@@ -5783,6 +6138,7 @@ export type Database = {
           created_by?: string | null
           detached?: boolean
           end_time?: string
+          hr_record?: boolean
           id?: string
           meeting_date?: string
           minutes?: string | null
@@ -9175,6 +9531,31 @@ export type Database = {
           },
         ]
       }
+      meeting_record_follow_up_state: {
+        Row: {
+          closed: boolean | null
+          due_on: string | null
+          meeting_id: string | null
+          organizer_id: string | null
+          title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_records_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: true
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_records_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       absence_brief: {
@@ -9845,6 +10226,30 @@ export type Database = {
           start_date: string
           start_time: string
         }[]
+      }
+      meeting_record_can_see: {
+        Args: { p_meeting_id: string }
+        Returns: boolean
+      }
+      meeting_record_entry_add: {
+        Args: {
+          p_body: string
+          p_closes: boolean
+          p_entry_date: string
+          p_kind: string
+          p_meeting_id: string
+          p_next_on: string
+          p_results: Json
+        }
+        Returns: string
+      }
+      meeting_record_save: {
+        Args: { p_content: Json; p_meeting_id: string; p_register: boolean }
+        Returns: undefined
+      }
+      meeting_set_hr_record: {
+        Args: { p_meeting_id: string; p_on: boolean }
+        Returns: undefined
       }
       my_team: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       my_teams: { Args: never; Returns: Database["public"]["Enums"]["team"][] }

@@ -43,6 +43,7 @@
     "verify:inbox": "node scripts/verify-inbox.mjs",
     "verify:hr-notes": "node scripts/verify-hr-notes.mjs",
     "verify:hr-keys": "node scripts/verify-hr-keys.mjs",
+    "verify:meeting-records": "node scripts/verify-meeting-records.mjs",
     "verify:guides": "node scripts/verify-guides.mjs",
     "products:prefill-weights": "tsx scripts/prefill-product-weights.ts",
     "perf": "node scripts/perf-baseline.mjs"

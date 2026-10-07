@@ -94,6 +94,8 @@ const NOW_ICON: Record<NowKind, typeof Zap> = {
   absencesToApprove: CalendarOff,
   coverageGaps: AlertTriangle,
   meetingInvites: Users,
+  meetingRecords: ClipboardCheck,
+  meetingFollowUps: ClipboardCheck,
   collectionFollowUps: Receipt,
 };
 

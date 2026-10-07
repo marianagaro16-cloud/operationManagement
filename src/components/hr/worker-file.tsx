@@ -21,6 +21,7 @@ import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrKey, H
 import { LateSinceEvaluation, LateTab } from './late-arrivals';
 import { LogTab } from './note-log';
 import { KeyRegister } from './key-register';
+import type { MeetingRecord } from '@/types/meetings';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { RequestStatus } from './evaluation-parts';
 import { teamLabelKey } from '@/lib/authz';
@@ -47,6 +48,7 @@ export function WorkerFile({
   lateArrivals,
   lateReasons,
   keys,
+  meetings,
   viewerId,
   viewerName,
   people,
@@ -59,6 +61,8 @@ export function WorkerFile({
   lateReasons: HrLateReason[];
   /** The keys this worker holds or held. */
   keys: HrKey[];
+  /** The registered meetings this worker attended; they read as part of the log. */
+  meetings: MeetingRecord[];
   viewerId: string;
   viewerName: string;
   /** Whom a note's participants are picked from, without the viewer. */
@@ -94,7 +98,7 @@ export function WorkerFile({
   ].filter(Boolean) as string[];
 
   const tabs: { key: HrTab; label: string; count?: number }[] = [
-    { key: 'log', label: t('hr.tabLog'), count: file.notes.length },
+    { key: 'log', label: t('hr.tabLog'), count: file.notes.length + meetings.length },
     { key: 'late', label: t('hrLate.tab'), count: lateArrivals.length },
     { key: 'keys', label: t('hrKey.tab'), count: keys.filter((k) => !k.returned_on).length },
     { key: 'evaluations', label: t('hr.tabEvaluations'), count: file.evaluations.length },
@@ -171,7 +175,7 @@ export function WorkerFile({
       </nav>
 
       {tab === 'log' && (
-        <LogTab file={file} noteTypes={noteTypes} people={people} today={today} viewerId={viewerId} viewerName={viewerName} isAdmin={isAdmin} />
+        <LogTab file={file} meetings={meetings} noteTypes={noteTypes} people={people} today={today} viewerId={viewerId} viewerName={viewerName} isAdmin={isAdmin} />
       )}
       {tab === 'keys' && <KeyRegister keys={keys} worker={{ id: worker.id, name: worker.name }} today={today} isAdmin={isAdmin} />}
       {tab === 'late' && (

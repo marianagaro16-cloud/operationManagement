@@ -5,7 +5,7 @@ import { runEvaluationDeadlineReminders } from '@/server/hr-eval-notify';
 import { runCelebrationNotices } from '@/server/hr-celebrations';
 import { runPlanNotices, runQuietCustomersSummary } from '@/server/sales-notify';
 import { runCoverageNotices } from '@/server/coverage-notify';
-import { runMeetingNotices } from '@/server/meeting-jobs';
+import { runMeetingNotices, runMeetingRecordNotices } from '@/server/meeting-jobs';
 import { runCollectionNotices } from '@/server/collection-notify';
 import { runGuideNotices } from '@/server/guide-notify';
 
@@ -51,6 +51,8 @@ export async function GET(request: Request) {
     const coverage = await runCoverageNotices();
     // Meetings: 15 minutes before, to whoever attends.
     const meetings = await runMeetingNotices();
+    // Meetings for the files, from 09:00: a record still to register, a follow-up due.
+    const meetingRecords = await runMeetingRecordNotices();
     // Collections: from 08:00, the cases due for follow-up today, to their responsible.
     const collections = await runCollectionNotices();
     // Guides: at 14:00 whoever covers is reminded of the open points; at 16:00 the approvers hear what was left.
@@ -65,6 +67,7 @@ export async function GET(request: Request) {
       planNotices: plan.soon,
       coverageNotices: coverage.sent,
       meetingNotices: meetings.sent,
+      meetingRecordNotices: meetingRecords.sent,
       collectionNotices: collections.sent,
       guideNotices: guides.sent,
     });

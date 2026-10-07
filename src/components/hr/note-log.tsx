@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CornerDownRight, FileText, Plus, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
@@ -22,6 +23,7 @@ import {
   FOLLOW_UP_RULE,
   HAS_EVENT,
   NOTE_SECTIONS,
+  MEETING_TYPE,
   NOTE_TOPICS,
   WARNING_LEVELS,
   agreementStatus,
@@ -43,6 +45,8 @@ import {
 } from '@/domain/hr/note-structure';
 import { TEAMS, teamLabelKey, type Team } from '@/lib/authz';
 import { useHrError } from './worker-dialog';
+import { MeetingRecordContent } from '@/components/meetings/meeting-record-view';
+import type { MeetingRecord } from '@/types/meetings';
 import type { HrAgreement, HrFollowUp, HrNote, HrNoteEvent, HrNoteType, HrParticipant, HrPerson, HrWorkerFile } from '@/types/hr';
 
 /*
@@ -112,6 +116,7 @@ function useNoteError() {
 
 export function LogTab({
   file,
+  meetings,
   noteTypes,
   people,
   today,
@@ -120,6 +125,8 @@ export function LogTab({
   isAdmin,
 }: {
   file: HrWorkerFile;
+  /** The registered meetings this worker attended, shown among the notes by date. */
+  meetings: MeetingRecord[];
   noteTypes: HrNoteType[];
   /** Whom participants are picked from, without the viewer. */
   people: HrPerson[];
@@ -138,18 +145,29 @@ export function LogTab({
   const shown = file.notes.filter(
     (n) => (!typeFilter || n.type?.id === typeFilter) && (!topicFilter || noteTopic(n) === topicFilter),
   );
-  const topics = NOTE_TOPICS.filter((topic) => file.notes.some((n) => noteTopic(n) === topic));
+  const shownMeetings = meetings.filter(
+    (m) => (!typeFilter || typeFilter === MEETING_TYPE) && (!topicFilter || m.points.some((p) => p.topic === topicFilter)),
+  );
+  // Notes and meetings together, the latest first.
+  const rows = [
+    ...shown.map((note) => ({ date: note.note_date, at: note.created_at, note, meeting: null })),
+    ...shownMeetings.map((meeting) => ({ date: meeting.meeting_date, at: meeting.registered_at ?? '', note: null, meeting })),
+  ].sort((a, b) => b.date.localeCompare(a.date) || b.at.localeCompare(a.at));
+  const topics = NOTE_TOPICS.filter(
+    (topic) => file.notes.some((n) => noteTopic(n) === topic) || meetings.some((m) => m.points.some((p) => p.topic === topic)),
+  );
   // Every type that appears in the log, including one Admin has since switched off.
   const types = useMemo(() => {
     const map = new Map<string, string>();
     for (const n of file.notes) if (n.type) map.set(n.type.id, localizedName(n.type, locale));
+    if (meetings.length > 0) map.set(MEETING_TYPE, t('meetingRecord.logBadge'));
     return [...map.entries()];
-  }, [file.notes, locale]);
+  }, [file.notes, meetings.length, locale, t]);
   const numbers = useMemo(() => warningNumbers(file.notes), [file.notes]);
 
   return (
     <div className="space-y-3">
-      <LogSummary notes={file.notes} today={today} typeNames={new Map(types)} topic={topicFilter} onTopic={setTopicFilter} />
+      <LogSummary notes={file.notes} meetings={meetings} today={today} typeNames={new Map(types)} topic={topicFilter} onTopic={setTopicFilter} />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-2">
@@ -186,11 +204,32 @@ export function LogTab({
         </Button>
       </div>
 
-      {shown.length === 0 ? (
+      {rows.length === 0 ? (
         <EmptyState title={t('hr.noNotes')} />
       ) : (
         <ul className="space-y-2">
-          {shown.map((n) => {
+          {rows.map((row) => {
+            if (row.meeting) {
+              const m = row.meeting;
+              return (
+                <li key={m.meeting_id}>
+                  <Card className="p-3">
+                    <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
+                      <span className="tabular font-medium text-fg">{formatDate(m.meeting_date, 'medium')}</span>
+                      <Badge tone="accent">{t('meetingRecord.logBadge')}</Badge>
+                      <span className="tabular">{m.start_time.slice(0, 5)}–{m.end_time.slice(0, 5)}</span>
+                      <span>{t('meeting.byName', { name: m.organizer_name })}</span>
+                      {(isAdmin || m.organizer_id === viewerId) && (
+                        <Link href={`/meetings/${m.meeting_id}`} className="ml-auto text-accent hover:underline">{t('meetingRecord.openMeeting')}</Link>
+                      )}
+                    </div>
+                    <p className="mb-2 text-[14px] font-semibold leading-snug">{m.title}</p>
+                    <MeetingRecordContent record={m} today={today} />
+                  </Card>
+                </li>
+              );
+            }
+            const n = row.note;
             const structure: NoteStructure = n.type?.structure ?? 'general';
             const completion = n.follow_ups.find((f) => f.kind === 'completion');
             const level = n.warning_level ?? completion?.warning_level ?? null;
@@ -357,19 +396,21 @@ export function LogTab({
 /** What the last twelve months of the log are about, and how its agreements went. A topic filters the log. */
 function LogSummary({
   notes,
+  meetings,
   today,
   typeNames,
   topic,
   onTopic,
 }: {
   notes: HrNote[];
+  meetings: MeetingRecord[];
   today: string;
   typeNames: Map<string, string>;
   topic: NoteTopic | '';
   onTopic: (topic: NoteTopic | '') => void;
 }) {
   const { t } = useI18n();
-  const summary = useMemo(() => noteSummary(notes, today), [notes, today]);
+  const summary = useMemo(() => noteSummary(notes, today, meetings), [notes, today, meetings]);
   if (summary.total === 0) return null;
   const agreed = (['met', 'partly', 'not_met', 'pending'] as const).filter((status) => summary.agreements[status] > 0);
 

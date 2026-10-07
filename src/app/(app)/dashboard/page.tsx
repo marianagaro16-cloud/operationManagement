@@ -28,6 +28,7 @@ import { CoveringNowCard } from '@/components/absences/covering-now-card';
 import { getAgenda } from '@/server/agenda';
 import { TodayCard } from '@/components/agenda/today-card';
 import { countUnansweredInvites } from '@/server/meetings';
+import { getMeetingRecordWork } from '@/server/meeting-records';
 import { countFollowUpsDue } from '@/server/collections';
 import { CoverageTodayCard } from '@/components/absences/coverage-today-card';
 import { TeamTodayCard, type TeamToday } from '@/components/tasks/team-today-card';
@@ -68,7 +69,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes, hrFollowUps] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes, hrFollowUps, meetingWork] = await Promise.all([
     // Today and what is late — no week ahead: one's own are listed, the team's counted.
     getDashboardData(0),
     getOrderDashboardSummary(today),
@@ -108,6 +109,8 @@ export default async function DashboardPage() {
     viewer ? getNotes({ limit: 4 }) : [],
     // Follow-ups of the log notes the viewer wrote.
     viewer?.can('hr.manage') ? countMyFollowUpsDue(viewer.profile.id, today) : { count: 0, late: false },
+    // Meetings for the files the viewer organised: records to register, follow-ups due.
+    viewer ? getMeetingRecordWork(viewer.profile.id, today) : null,
   ]);
 
   // ---- whoever plans: their own activities, and the team in one line per area ----
@@ -165,6 +168,8 @@ export default async function DashboardPage() {
     absencesToApprove,
     coverageGaps,
     meetingInvites,
+    meetingRecords: { count: meetingWork?.toRegister.count ?? 0, late: meetingWork?.toRegister.late ?? false, href: meetingWork?.toRegister.first ? `/meetings/${meetingWork.toRegister.first}` : '/meetings' },
+    meetingFollowUps: { count: meetingWork?.followUps.count ?? 0, late: meetingWork?.followUps.late ?? false, href: meetingWork?.followUps.first ? `/meetings/${meetingWork.followUps.first}` : '/meetings' },
     collectionFollowUps,
     hrFollowUps,
   });

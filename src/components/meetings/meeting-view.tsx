@@ -13,6 +13,9 @@ import { NoteTextarea } from '@/components/ui/note-textarea';
 import { answerMeeting, cancelMeeting, endSeries, saveMinutes } from '@/server/meeting-actions';
 import type { Meeting, MeetingSeries } from '@/types/meetings';
 import { MeetingDialog } from './meeting-dialog';
+import { MeetingRecordCard } from './meeting-record';
+import type { NotePerson } from '@/domain/hr/note-structure';
+import type { MeetingRecord } from '@/types/meetings';
 import { ResponseBadge, hm, useMeetingLabels, useMonthlyLabel } from './meeting-parts';
 
 /** One meeting: when, where, what; who comes; one's answer; the minutes. */
@@ -26,7 +29,16 @@ export function MeetingView({
   today,
   nowHm,
   summaries,
+  record,
+  attendable,
+  canFile,
 }: {
+  /** Its record for the workers' files, draft or registered. */
+  record: MeetingRecord | null;
+  /** Whom its attendees are picked from: worker files and accounts. */
+  attendable: NotePerson[];
+  /** The viewer has access to workers' files. */
+  canFile: boolean;
   /** Sales summaries attached to it. */
   summaries: { id: string; title: string }[];
   meeting: Meeting;
@@ -187,6 +199,7 @@ export function MeetingView({
               <p className="text-[12.5px] text-muted">{started ? t('meeting.noMinutes') : t('meeting.minutesLater')}</p>
             )}
           </Card>
+          <MeetingRecordCard meeting={meeting} record={record} people={attendable} today={today} started={started} canChange={canChange} canRegister={canFile} />
         </div>
         <Card className="p-3">
           <h2 className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-muted">

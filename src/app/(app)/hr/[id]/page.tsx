@@ -3,6 +3,7 @@ import { DateTime } from 'luxon';
 import { getUsers, getViewer, getMyTeams } from '@/server/data';
 import { getCriteria, getArrivalSettings, getEvalTemplates, getKeys, getLateArrivals, getLateReasons, getNoteTypes, getWorkerFile, getWorkerStats, getWorkers } from '@/server/hr';
 import { getWorkerEvalRequests } from '@/server/hr-evaluations';
+import { getWorkerMeetingRecords } from '@/server/meeting-records';
 import { WorkerFile, type HrTab } from '@/components/hr/worker-file';
 import { displayName } from '@/lib/utils';
 import { TEAMS, incidentScope, isAdminRole } from '@/lib/authz';
@@ -39,7 +40,9 @@ export default async function WorkerFilePage({
   const from = searchParams.from && ISO.test(searchParams.from) ? searchParams.from : defaultFrom;
   const to = searchParams.to && ISO.test(searchParams.to) ? searchParams.to : today;
 
-  const [keys, noteTypes, criteria, users, workers, stats, evalRequests, templates, lateArrivals, lateReasons, arrivalSettings] = await Promise.all([
+  const [meetings, keys, noteTypes, criteria, users, workers, stats, evalRequests, templates, lateArrivals, lateReasons, arrivalSettings] = await Promise.all([
+    // The registered meetings they attended: part of the log.
+    getWorkerMeetingRecords(file.worker.id),
     // Counted on the tab.
     getKeys(file.worker.id),
     getNoteTypes(),
@@ -91,6 +94,7 @@ export default async function WorkerFilePage({
       isAdmin={isAdminRole(viewer.role)}
       lateArrivals={lateArrivals}
       keys={keys}
+      meetings={meetings}
       lateReasons={lateReasons}
       viewerId={viewer.profile.id}
       viewerName={displayName(viewer.profile)}

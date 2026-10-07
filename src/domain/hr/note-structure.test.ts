@@ -158,4 +158,22 @@ describe('agreements and the summary', () => {
     ]);
     expect(summary.agreements).toEqual({ met: 1, partly: 1, not_met: 1, pending: 1 });
   });
+
+  it('a meeting counts once in the total and once under each of its topics', () => {
+    const point = (topic: NoteTopic, ...list: AgreementResult[][]) => ({ topic, agreements: list.map((r) => results(...r)) });
+    const summary = noteSummary(
+      [{ note_date: '2026-10-01', topic: 'quality', type: { id: 'warning' }, agreements: [], follow_ups: [] }],
+      '2026-10-06',
+      [
+        { meeting_date: '2026-10-05', points: [point('quality', ['met']), point('hygiene_safety', []), point('quality')] },
+        { meeting_date: '2025-01-05', points: [point('rules')] },
+      ],
+    );
+    expect(summary.total).toBe(2);
+    expect(summary.topics).toEqual([
+      { topic: 'quality', count: 2, types: [{ id: 'warning', count: 1 }, { id: 'meeting', count: 1 }] },
+      { topic: 'hygiene_safety', count: 1, types: [{ id: 'meeting', count: 1 }] },
+    ]);
+    expect(summary.agreements).toEqual({ met: 1, partly: 0, not_met: 0, pending: 1 });
+  });
 });
