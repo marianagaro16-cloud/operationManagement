@@ -332,14 +332,14 @@ export async function getKeys(workerId?: string): Promise<HrKey[]> {
   const supabase = createClient();
   let query = supabase
     .from('hr_keys')
-    .select('id, key_number, opens, worker_id, holder_name, holder_detail, handed_on, returned_on, note, worker:hr_workers ( name )')
+    .select('id, key_number, opens, worker_id, profile_id, holder_name, holder_detail, handed_on, returned_on, note, worker:hr_workers ( name ), profile:profiles!hr_keys_profile_id_fkey ( name, email )')
     .order('handed_on', { ascending: false });
   if (workerId) query = query.eq('worker_id', workerId);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  type Raw = Omit<HrKey, 'worker_name'> & { worker: { name: string } | null };
+  type Raw = Omit<HrKey, 'worker_name' | 'profile_name'> & { worker: { name: string } | null; profile: { name: string | null; email: string } | null };
   return ((data ?? []) as unknown as Raw[])
-    .map(({ worker, ...k }) => ({ ...k, worker_name: worker?.name ?? null }))
+    .map(({ worker, profile, ...k }) => ({ ...k, worker_name: worker?.name ?? null, profile_name: authorName(profile) }))
     .sort(
       (a, b) =>
         Number(!!a.returned_on) - Number(!!b.returned_on) ||

@@ -610,15 +610,16 @@ const keySchema = z
   .object({
     key_number: z.string().trim().min(1, { message: 'key_number_required' }).max(50),
     opens: optionalText,
-    /** A worker with a file, or someone else by name. */
+    /** A worker with a file, an account without one, or someone else by name. */
     worker_id: z.string().uuid().nullable(),
+    profile_id: z.string().uuid().nullable(),
     holder_name: z.string().trim().max(200).nullable().optional().transform((v) => v || null),
     holder_detail: optionalText,
     handed_on: DATE,
     returned_on: DATE.nullable(),
     note: optionalText,
   })
-  .refine((v) => !!v.worker_id !== !!v.holder_name, { message: 'holder_required' })
+  .refine((v) => [v.worker_id, v.profile_id, v.holder_name].filter(Boolean).length === 1, { message: 'holder_required' })
   .refine((v) => !v.returned_on || v.returned_on >= v.handed_on, { message: 'returned_before_handed' });
 
 export type KeyInput = z.input<typeof keySchema>;
@@ -630,8 +631,8 @@ export async function saveKey(input: KeyInput, id?: string): Promise<ActionResul
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'not_authorized' };
-  // Someone with a file is named by it.
-  const row = { ...parsed.data, holder_detail: parsed.data.worker_id ? null : parsed.data.holder_detail, updated_by: user.id };
+  // Someone with a file or an account is named by it.
+  const row = { ...parsed.data, holder_detail: parsed.data.holder_name ? parsed.data.holder_detail : null, updated_by: user.id };
 
   if (id) {
     const { data, error } = await supabase.from('hr_keys').update(row).eq('id', id).select('id');

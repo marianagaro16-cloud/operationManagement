@@ -76,6 +76,12 @@ async function main() {
   const externalKey = res.data?.id;
   if (externalKey) created.keys.push(externalKey);
 
+  res = await manager.client.from('hr_keys').insert(row({ key_number: 'ZZ-30', worker_id: null, profile_id: boss.id })).select('id').single();
+  check('…and the key of an account without a file, like an owner', !res.error, why(res));
+  res = await boss.client.from('hr_keys').select('id').eq('profile_id', boss.id);
+  check('…which that person sees in the register', (res.data ?? []).length === 1, why(res));
+  res = await manager.client.from('hr_keys').insert(row({ profile_id: boss.id }));
+  check('a holder is not a worker and an account at once', Boolean(res.error), why(res));
   res = await manager.client.from('hr_keys').insert(row({ holder_name: 'Both' }));
   check('a holder is a worker or a name, not both', Boolean(res.error), why(res));
   res = await manager.client.from('hr_keys').insert(row({ worker_id: null }));

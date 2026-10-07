@@ -3066,6 +3066,7 @@ export type Database = {
           key_number: string
           note: string | null
           opens: string | null
+          profile_id: string | null
           returned_on: string | null
           updated_at: string
           updated_by: string | null
@@ -3081,6 +3082,7 @@ export type Database = {
           key_number: string
           note?: string | null
           opens?: string | null
+          profile_id?: string | null
           returned_on?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -3096,6 +3098,7 @@ export type Database = {
           key_number?: string
           note?: string | null
           opens?: string | null
+          profile_id?: string | null
           returned_on?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -3105,6 +3108,13 @@ export type Database = {
           {
             foreignKeyName: "hr_keys_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_keys_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

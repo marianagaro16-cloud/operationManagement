@@ -17,12 +17,14 @@ import type { HrKey } from '@/types/hr';
  * The key register: who holds which key, since when, and when it came back.
  *
  * On a worker's file it lists that worker's keys; on its own page, everyone's
- * — workers and people without a file, who are recorded by name.
+ * — workers, accounts without a file (the owners) and anyone else, by name.
  */
 
-type Holder = { id: string; name: string };
+/** Someone from the lists: a worker with a file, or an account without one. */
+type Holder = { kind: 'worker' | 'account'; id: string; name: string };
 
-const holderName = (k: HrKey) => k.worker_name ?? k.holder_name ?? '';
+const holderName = (k: HrKey) => k.worker_name ?? k.profile_name ?? k.holder_name ?? '';
+const holderKey = (kind: Holder['kind'], id: string) => `${kind}:${id}`;
 
 function useKeyError() {
   const { t } = useI18n();
@@ -39,7 +41,7 @@ function useKeyError() {
 }
 
 /** The whole register on its own page. */
-export function KeyRegisterPage(props: { keys: HrKey[]; workers: Holder[]; today: string; isAdmin: boolean }) {
+export function KeyRegisterPage(props: { keys: HrKey[]; holders: Holder[]; today: string; isAdmin: boolean }) {
   const { t } = useI18n();
   return (
     <>
@@ -55,16 +57,16 @@ export function KeyRegisterPage(props: { keys: HrKey[]; workers: Holder[]; today
 
 export function KeyRegister({
   keys,
-  workers,
+  holders,
   worker,
   today,
   isAdmin,
 }: {
   keys: HrKey[];
   /** Whom a key can be handed to, when the register is everyone's. */
-  workers?: Holder[];
+  holders?: Holder[];
   /** On a worker's file: every key here is theirs. */
-  worker?: Holder;
+  worker?: { id: string; name: string };
   today: string;
   /** Only an Admin removes a row. */
   isAdmin: boolean;
@@ -96,6 +98,7 @@ export function KeyRegister({
           key_number: k.key_number,
           opens: k.opens,
           worker_id: k.worker_id,
+          profile_id: k.profile_id,
           holder_name: k.holder_name,
           holder_detail: k.holder_detail,
           handed_on: k.handed_on,
@@ -151,11 +154,11 @@ export function KeyRegister({
                       ) : (
                         <span>{holderName(k)}</span>
                       ))}
-                    {!worker && !k.worker_id && <Badge tone="neutral">{t('hrKey.noFile')}</Badge>}
+                    {!worker && k.holder_name && <Badge tone="neutral">{t('hrKey.noFile')}</Badge>}
                     {k.returned_on && <Badge tone="done">{t('hrKey.returnedOn', { date: formatDate(k.returned_on, 'medium') })}</Badge>}
                   </p>
                   <p className="mt-0.5 flex flex-wrap gap-x-1.5 text-[11.5px] text-muted">
-                    {[k.opens, !k.worker_id && k.holder_detail, t('hrKey.since', { date: formatDate(k.handed_on, 'medium') }), k.note]
+                    {[k.opens, k.holder_name && k.holder_detail, t('hrKey.since', { date: formatDate(k.handed_on, 'medium') }), k.note]
                       .filter(Boolean)
                       .join(' · ')}
                   </p>
@@ -185,7 +188,7 @@ export function KeyRegister({
       {editing && (
         <KeyDialog
           entry={editing === 'new' ? null : editing}
-          workers={workers ?? []}
+          holders={holders ?? []}
           worker={worker}
           today={today}
           onClose={() => setEditing(null)}
@@ -216,14 +219,14 @@ export function KeyRegister({
 
 function KeyDialog({
   entry,
-  workers,
+  holders,
   worker,
   today,
   onClose,
 }: {
   entry: HrKey | null;
-  workers: Holder[];
-  worker?: Holder;
+  holders: Holder[];
+  worker?: { id: string; name: string };
   today: string;
   onClose: () => void;
 }) {
@@ -232,9 +235,16 @@ function KeyDialog({
   const keyError = useKeyError();
   const [number, setNumber] = useState(entry?.key_number ?? '');
   const [opens, setOpens] = useState(entry?.opens ?? '');
-  // On a worker's file the holder is that worker; elsewhere a worker or a name.
-  const [kind, setKind] = useState<'worker' | 'other'>(entry && !entry.worker_id ? 'other' : 'worker');
-  const [workerId, setWorkerId] = useState(worker?.id ?? entry?.worker_id ?? '');
+  // On a worker's file the holder is that worker; elsewhere someone from the list, or a name.
+  const [kind, setKind] = useState<'listed' | 'other'>(entry?.holder_name ? 'other' : 'listed');
+  const [listed, setListed] = useState(
+    worker ? holderKey('worker', worker.id) : entry?.worker_id ? holderKey('worker', entry.worker_id) : entry?.profile_id ? holderKey('account', entry.profile_id) : '',
+  );
+  // Someone who has since left or lost their account still holds what they hold.
+  const options =
+    entry && !entry.holder_name && !worker && !holders.some((h) => holderKey(h.kind, h.id) === listed)
+      ? [{ kind: entry.worker_id ? ('worker' as const) : ('account' as const), id: (entry.worker_id ?? entry.profile_id)!, name: holderName(entry) }, ...holders]
+      : holders;
   const [name, setName] = useState(entry?.holder_name ?? '');
   const [detail, setDetail] = useState(entry?.holder_detail ?? '');
   const [handedOn, setHandedOn] = useState(entry?.handed_on ?? today);
@@ -243,8 +253,9 @@ function KeyDialog({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const byWorker = !!worker || kind === 'worker';
-  const complete = !!number.trim() && !!handedOn && (byWorker ? !!workerId : !!name.trim()) && (!returnedOn || returnedOn >= handedOn);
+  const byList = !!worker || kind === 'listed';
+  const [listedKind, listedId] = listed.split(':');
+  const complete = !!number.trim() && !!handedOn && (byList ? !!listedId : !!name.trim()) && (!returnedOn || returnedOn >= handedOn);
 
   function submit() {
     setError(null);
@@ -253,9 +264,10 @@ function KeyDialog({
         {
           key_number: number,
           opens,
-          worker_id: byWorker ? workerId : null,
-          holder_name: byWorker ? null : name,
-          holder_detail: byWorker ? null : detail,
+          worker_id: byList && listedKind === 'worker' ? listedId! : null,
+          profile_id: byList && listedKind === 'account' ? listedId! : null,
+          holder_name: byList ? null : name,
+          holder_detail: byList ? null : detail,
           handed_on: handedOn,
           returned_on: returnedOn || null,
           note,
@@ -297,17 +309,17 @@ function KeyDialog({
               {t('hrKey.holder')}
               <span className="ml-0.5 text-late">*</span>
             </legend>
-            {(['worker', 'other'] as const).map((value) => (
+            {(['listed', 'other'] as const).map((value) => (
               <label key={value} className={cn('flex items-center gap-2 text-[13.5px]', kind === value && 'font-medium')}>
                 <input type="radio" name="key-holder" className="h-4 w-4 accent-accent" checked={kind === value} onChange={() => setKind(value)} />
-                {t(value === 'worker' ? 'hrKey.holderWorker' : 'hrKey.holderOther')}
+                {t(value === 'listed' ? 'hrKey.holderWorker' : 'hrKey.holderOther')}
               </label>
             ))}
-            {kind === 'worker' ? (
-              <Select aria-label={t('hrKey.holderWorker')} value={workerId} onChange={(e) => setWorkerId(e.target.value)}>
+            {kind === 'listed' ? (
+              <Select aria-label={t('hrKey.holderWorker')} value={listed} onChange={(e) => setListed(e.target.value)}>
                 <option value="">{t('hrNote.pick')}</option>
-                {workers.map((w) => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
+                {options.map((h) => (
+                  <option key={holderKey(h.kind, h.id)} value={holderKey(h.kind, h.id)}>{h.name}</option>
                 ))}
               </Select>
             ) : (
