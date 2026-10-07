@@ -78,16 +78,26 @@ async function main() {
     ['conversation', 'recognition', 'warning', 'training'].every((s) => types.find((t) => t.slug === s)?.structure === s)
       && types.find((t) => t.slug === 'other')?.structure === 'general');
 
+  const agreement = (body, over = {}) => ({ body, responsible: { profile_id: null, worker_id: worker.id, name: 'x' }, due_on: day(7), ...over });
+  // A type without a moment or agreements: recognition, training, the general one.
+  const plainNote = { p_event_on: null, p_event_time: null, p_event_area: null, p_agreements: [] };
+  const warningSections = { what: 'a', rule: 'b', response: 'c', consequence: 'e' };
+
   const add = (who, over = {}) => who.client.rpc('hr_note_add', {
     p_worker_id: worker.id,
     p_type_id: type('conversation'),
     p_note_date: day(-3),
-    p_sections: { reason: 'Tiempos muertos', points: '- Acomodo del maíz', agreements: 'Avisar al terminar' },
+    p_sections: { reason: 'Tiempos muertos', points: '- Acomodo del maíz' },
     p_warning_level: null,
     p_follow_up_text: 'Revisar tiempos muertos',
     p_follow_up_on: day(7),
     p_no_follow_up_reason: null,
     p_participants: [],
+    p_topic: 'productivity',
+    p_event_on: day(-4),
+    p_event_time: '07:20',
+    p_event_area: 'production',
+    p_agreements: [agreement('Avisar al terminar'), agreement('Acomodar el maíz antes de las 14:00', { responsible: { profile_id: colleague.id, worker_id: null, name: 'x' } })],
     ...over,
   });
 
@@ -97,16 +107,39 @@ async function main() {
   });
   check('a note cannot be inserted around the sections', Boolean(direct.error));
 
-  let res = await add(author, { p_sections: { reason: 'a', points: 'b', agreements: '  ' } });
-  check('a conversation without its agreements is refused', errorIs(res, 'section_required'), why(res));
+  let res = await add(author, { p_sections: { reason: 'a', points: '  ' } });
+  check('a conversation without one of its sections is refused', errorIs(res, 'section_required'), why(res));
+  res = await add(author, { p_topic: null });
+  check('…and without its topic', errorIs(res, 'topic_required'), why(res));
+  res = await add(author, { p_topic: 'gossip' });
+  check('…and with a topic that is not on the list', errorIs(res, 'topic_required'), why(res));
+  res = await add(author, { p_event_time: null });
+  check('…and without the time it happened', errorIs(res, 'event_required'), why(res));
+  res = await add(author, { p_event_area: null });
+  check('…and without the area', errorIs(res, 'event_required'), why(res));
+  res = await add(author, { p_event_on: day(-1) });
+  check('…and when it happened after the note', errorIs(res, 'event_date_invalid'), why(res));
+  res = await add(author, { p_agreements: [] });
+  check('…and without an agreement', errorIs(res, 'agreement_required'), why(res));
+  res = await add(author, { p_agreements: [agreement('  ')] });
+  check('…and with an agreement that says nothing', errorIs(res, 'agreement_incomplete'), why(res));
+  res = await add(author, { p_agreements: [agreement('a', { responsible: null })] });
+  check('…or has nobody responsible', errorIs(res, 'agreement_incomplete'), why(res));
+  res = await add(author, { p_agreements: [agreement('a', { due_on: day(-10) })] });
+  check('…or is due before the note', errorIs(res, 'agreement_incomplete'), why(res));
   res = await add(author, { p_follow_up_text: null, p_follow_up_on: null });
-  check('…and without a follow-up or the reason there is none', errorIs(res, 'follow_up_required'), why(res));
+  check('…and without a follow-up', errorIs(res, 'follow_up_required'), why(res));
   res = await add(author, { p_follow_up_on: null });
   check('…and with a follow-up that has no date', errorIs(res, 'follow_up_required'), why(res));
   res = await add(author, { p_follow_up_on: day(-10) });
   check('…and with a follow-up before the note', errorIs(res, 'follow_up_date_invalid'), why(res));
   res = await add(author, { p_follow_up_text: null, p_follow_up_on: null, p_no_follow_up_reason: 'Tema cerrado' });
-  check('"no follow-up needed" with its reason is accepted', !res.error, why(res));
+  check('with agreements "no follow-up needed" is not accepted', errorIs(res, 'follow_up_required'), why(res));
+  const training = { p_type_id: type('training'), p_sections: { topic: 'a', reason: 'b', trainer: 'c', duration: 'd', result: 'e' }, ...plainNote };
+  res = await add(author, { ...training, p_follow_up_text: null, p_follow_up_on: null, p_no_follow_up_reason: 'Ya lo domina' });
+  check('…without them it is, with its reason', !res.error, why(res));
+  res = await add(author, { ...training, p_agreements: [agreement('a')] });
+  check('a training takes no agreements', errorIs(res, 'invalid_note'), why(res));
   res = await add(author, { p_note_date: day(2) });
   check('a note cannot be dated in the future', errorIs(res, 'invalid_date'), why(res));
 
@@ -129,6 +162,22 @@ async function main() {
   check('the worker picked from the file carries their account too',
     people?.some((p) => p.worker_id === worker.id && p.profile_id === subject.id && p.name === 'ZZ Test worker'));
 
+  const { data: stored } = await author.client.from('hr_notes').select('topic, event_on, event_time, event_area').eq('id', noteId).single();
+  check('the note keeps its topic and the moment it happened',
+    stored?.topic === 'productivity' && stored.event_on === day(-4) && stored.event_time?.startsWith('07:20') && stored.event_area === 'production', JSON.stringify(stored));
+  const { data: agreed } = await author.client.from('hr_note_agreements')
+    .select('id, body, responsible_name, responsible_worker_id, responsible_profile_id, due_on').eq('note_id', noteId).order('sort_order');
+  check('its agreements are stored one by one, in order, with who and by when',
+    agreed?.length === 2 && agreed[0].body === 'Avisar al terminar' && agreed[0].responsible_name === 'ZZ Test worker'
+      && agreed[0].responsible_worker_id === worker.id && agreed[0].responsible_profile_id === subject.id
+      && agreed[1].responsible_profile_id === colleague.id && agreed[1].due_on === day(7), JSON.stringify(agreed));
+  const direct2 = await author.client.from('hr_note_agreements').insert({
+    note_id: noteId, sort_order: 9, body: 'x', responsible_name: 'x', due_on: day(7),
+  });
+  check('an agreement cannot be inserted around the note', Boolean(direct2.error));
+  const hiddenAgreements = await plain.client.from('hr_note_agreements').select('id').eq('note_id', noteId);
+  check('someone without access to files cannot read the agreements', (hiddenAgreements.data ?? []).length === 0);
+
   res = await author.client.rpc('hr_note_reminder_audience', { p_note_id: noteId, p_followup_id: null });
   const audience = res.data ?? [];
   check('reminded: the writer and the participant who may open the file',
@@ -136,16 +185,22 @@ async function main() {
   check('never the worker the note is about, nor someone without access to files',
     !audience.includes(subject.id) && !audience.includes(plain.id), why(res));
 
-  res = await add(author, { p_type_id: type('warning'), p_sections: { what: 'a', rule: 'b', response: 'c', agreements: 'd', consequence: 'e' } });
+  res = await add(author, { p_type_id: type('warning'), p_sections: warningSections });
   check('a warning without its level is refused', errorIs(res, 'level_required'), why(res));
-  res = await add(author, { p_type_id: type('warning'), p_warning_level: 'written', p_sections: { what: 'a', rule: 'b', response: 'c', agreements: 'd', consequence: 'e' } });
-  check('a warning with level and sections is saved', !res.error, why(res));
-  res = await add(author, { p_type_id: type('recognition'), p_sections: { what: 'a', impact: 'b', why: 'c', how: 'd' } });
+  res = await add(author, { p_type_id: type('warning'), p_warning_level: 'written', p_sections: warningSections });
+  check('a warning with level, moment, sections and agreements is saved', !res.error, why(res));
+  const recognition = { p_type_id: type('recognition'), p_sections: { what: 'a', impact: 'b', why: 'c', how: 'd' }, ...plainNote };
+  res = await add(author, recognition);
   check('a recognition takes no follow-up', errorIs(res, 'invalid_note'), why(res));
-  res = await add(author, { p_type_id: type('recognition'), p_sections: { what: 'a', impact: 'b', why: 'c', how: 'd' }, p_follow_up_text: null, p_follow_up_on: null });
-  check('a recognition with its four sections is saved', !res.error, why(res));
-  res = await add(author, { p_type_id: type('other'), p_sections: { reason: 'a', detail: 'b' }, p_follow_up_text: null, p_follow_up_on: null });
-  check('the general structure may go without a follow-up', !res.error, why(res));
+  res = await add(author, { ...recognition, p_follow_up_text: null, p_follow_up_on: null, p_event_on: day(-4) });
+  check('…nor a moment', errorIs(res, 'invalid_note'), why(res));
+  res = await add(author, { ...recognition, p_follow_up_text: null, p_follow_up_on: null });
+  check('a recognition with its topic and four sections is saved', !res.error, why(res));
+  const general = { p_type_id: type('other'), p_sections: { reason: 'a', detail: 'b' }, ...plainNote };
+  res = await add(author, { ...general, p_follow_up_text: null, p_follow_up_on: null });
+  check('the general structure may go without agreements or a follow-up', !res.error, why(res));
+  res = await add(author, { ...general, p_follow_up_text: null, p_follow_up_on: null, p_agreements: [agreement('a')] });
+  check('…but not with agreements and no follow-up', errorIs(res, 'follow_up_required'), why(res));
 
   res = await add(plain);
   check('someone without access to files cannot write a note', errorIs(res, 'not_authorized'), why(res));
@@ -171,6 +226,16 @@ async function main() {
     p_next_on: day(14),
     p_no_follow_up_reason: null,
     p_participants: [],
+    p_topic: null,
+    p_event_on: null,
+    p_event_time: null,
+    p_event_area: null,
+    p_agreements: null,
+    // The first agreement was kept, the second only in part.
+    p_results: [
+      { agreement_id: agreed[0].id, result: 'met', comment: null },
+      { agreement_id: agreed[1].id, result: 'partly', comment: 'Dos días no se acomodó' },
+    ],
     ...over,
   });
 
@@ -180,15 +245,27 @@ async function main() {
   check('an entry must close the follow-up or set the next date', errorIs(res, 'follow_up_required'), why(res));
   res = await follow(author, { p_body: ' ' });
   check('…and say what happened', errorIs(res, 'body_required'), why(res));
+  res = await follow(author, { p_results: [{ agreement_id: agreed[0].id, result: 'met', comment: null }] });
+  check('…and mark every agreement', errorIs(res, 'result_required'), why(res));
+  res = await follow(author, { p_results: [{ agreement_id: agreed[0].id, result: 'met', comment: null }, { agreement_id: agreed[1].id, result: 'not_met', comment: ' ' }] });
+  check('…saying what was missing when one was not fully met', errorIs(res, 'result_comment_required'), why(res));
   res = await follow(author);
-  check('the author sets a new date', !res.error, why(res));
+  check('the author marks the agreements and sets a new date', !res.error, why(res));
   s = await state();
   check('the follow-up moves to the new date', s?.due_on === day(14) && s.closed === false, JSON.stringify(s));
+  const { data: marks } = await author.client.from('hr_note_agreement_results').select('agreement_id, result, comment').in('agreement_id', agreed.map((a) => a.id));
+  check('each agreement has its result',
+    marks?.length === 2 && marks.some((m) => m.agreement_id === agreed[0].id && m.result === 'met')
+      && marks.some((m) => m.agreement_id === agreed[1].id && m.result === 'partly' && m.comment === 'Dos días no se acomodó'), JSON.stringify(marks));
+  const hiddenMarks = await plain.client.from('hr_note_agreement_results').select('id').in('agreement_id', agreed.map((a) => a.id));
+  check('…that someone without access to files cannot read', (hiddenMarks.data ?? []).length === 0);
   res = await follow(boss, { p_closes: true, p_next_on: null });
-  check('an Admin closes it', !res.error, why(res));
+  check('an agreement already met is not marked again', errorIs(res, 'invalid_note'), why(res));
+  res = await follow(boss, { p_closes: true, p_next_on: null, p_results: [{ agreement_id: agreed[1].id, result: 'met', comment: null }] });
+  check('an Admin marks what was still open and closes it', !res.error, why(res));
   s = await state();
   check('it is closed', s?.closed === true, JSON.stringify(s));
-  res = await follow(author, { p_closes: true, p_next_on: null });
+  res = await follow(author, { p_closes: true, p_next_on: null, p_results: [] });
   check('nothing more is added once closed', errorIs(res, 'follow_up_closed'), why(res));
   const edit = await author.client.from('hr_notes').update({ follow_up_text: 'changed' }).eq('id', noteId).select('id');
   check('the note itself still cannot be changed', Boolean(edit.error) || (edit.data ?? []).length === 0);
@@ -204,27 +281,41 @@ async function main() {
     p_kind: 'completion',
     p_entry_date: day(0),
     p_body: null,
-    p_sections: { reason: 'a', points: 'b', agreements: 'c' },
+    p_sections: { reason: 'a', points: 'b' },
     p_warning_level: null,
     p_closes: false,
     p_next_text: 'Revisar',
     p_next_on: day(5),
     p_no_follow_up_reason: null,
     p_participants: [],
+    p_topic: 'quality',
+    p_event_on: day(-30),
+    p_event_time: '10:00',
+    p_event_area: 'operations',
+    p_agreements: [agreement('Revisar la calidad', { due_on: day(5) })],
+    p_results: null,
     ...over,
   });
   res = await completion({ p_sections: { reason: 'a' } });
   check('completing it asks for the sections of its type', errorIs(res, 'section_required'), why(res));
+  res = await completion({ p_topic: null });
+  check('…its topic', errorIs(res, 'topic_required'), why(res));
+  res = await completion({ p_agreements: [] });
+  check('…and its agreements', errorIs(res, 'agreement_required'), why(res));
   res = await completion();
   check('it is completed, the original text untouched', !res.error, why(res));
+  const { data: given } = await author.client.from('hr_note_agreements').select('followup_id, body').eq('note_id', old.id);
+  check('…its agreement stored with the entry that gave it', given?.length === 1 && given[0].followup_id === res.data, JSON.stringify(given));
   const { data: after } = await admin.from('hr_notes').select('body, sections').eq('id', old.id).single();
   check('…body as written, no sections on the note itself', after?.body === 'Se habló de tiempos muertos.' && after.sections === null);
   res = await completion();
   check('only once', errorIs(res, 'already_complete'), why(res));
   res = await author.client.rpc('hr_note_followup_add', {
     p_note_id: noteId, p_kind: 'completion', p_entry_date: day(0), p_body: null,
-    p_sections: { reason: 'a', points: 'b', agreements: 'c' }, p_warning_level: null, p_closes: false,
-    p_next_text: null, p_next_on: null, p_no_follow_up_reason: 'x', p_participants: [],
+    p_sections: { reason: 'a', points: 'b' }, p_warning_level: null, p_closes: false,
+    p_next_text: 'Revisar', p_next_on: day(5), p_no_follow_up_reason: null, p_participants: [],
+    p_topic: 'quality', p_event_on: day(-30), p_event_time: '10:00', p_event_area: 'operations',
+    p_agreements: [agreement('a')], p_results: null,
   });
   check('a note that has its sections is not "completed"', Boolean(res.error), why(res));
 

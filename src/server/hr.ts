@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { BusinessDate } from '@/lib/datetime';
 import { HR_BUCKET } from '@/lib/hr';
 import type {
+  HrAgreement,
   HrCriterion,
   HrEvalTemplate,
   HrEvaluation,
@@ -54,12 +55,18 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
         .select(`
           id, note_date, body, created_at, created_by,
           sections, warning_level, follow_up_text, follow_up_on, no_follow_up_reason,
+          topic, event_on, event_time, event_area,
           type:hr_note_types ( id, name, slug, structure, translations ),
           author:profiles!hr_notes_created_by_fkey ( name, email ),
           attachments:hr_note_attachments ( id, file_name, mime_type, storage_path ),
           participants:hr_note_participants!hr_note_participants_note_id_fkey ( id, followup_id, profile_id, worker_id, name ),
+          agreements:hr_note_agreements!hr_note_agreements_note_id_fkey (
+            id, followup_id, sort_order, body, responsible_name, due_on,
+            results:hr_note_agreement_results!hr_note_agreement_results_agreement_id_fkey ( followup_id, result, comment )
+          ),
           follow_ups:hr_note_followups (
             id, kind, entry_date, body, sections, warning_level, closes, next_text, next_on, no_follow_up_reason, created_at,
+            topic, event_on, event_time, event_area,
             author:profiles!hr_note_followups_created_by_fkey ( name, email )
           )
         `)
@@ -83,11 +90,28 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
   if (evalError) throw new Error(evalError.message);
 
   type RawParticipant = HrParticipant & { followup_id: string | null };
-  type RawNote = Omit<HrNote, 'author_name' | 'attachments' | 'participants' | 'follow_ups'> & {
+  type RawAgreement = HrAgreement & { followup_id: string | null; sort_order: number };
+  type RawNote = Omit<HrNote, 'author_name' | 'attachments' | 'participants' | 'follow_ups' | 'agreements'> & {
     author: { name: string | null; email: string } | null;
     attachments: { id: string; file_name: string; mime_type: string; storage_path: string }[] | null;
     participants: RawParticipant[] | null;
-    follow_ups: (Omit<HrFollowUp, 'author_name' | 'participants'> & { author: { name: string | null; email: string } | null })[] | null;
+    agreements: RawAgreement[] | null;
+    follow_ups: (Omit<HrFollowUp, 'author_name' | 'participants' | 'agreements'> & { author: { name: string | null; email: string } | null })[] | null;
+  };
+  // What was agreed, on the note itself (null) or on the entry that completed it;
+  // each one's results in the order of the follow-ups that gave them.
+  const agreed = (n: RawNote, followupId: string | null): HrAgreement[] => {
+    const when = new Map((n.follow_ups ?? []).map((f) => [f.id, f.created_at]));
+    return (n.agreements ?? [])
+      .filter((a) => a.followup_id === followupId)
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map(({ id, body, responsible_name, due_on, results }) => ({
+        id,
+        body,
+        responsible_name,
+        due_on,
+        results: [...(results ?? [])].sort((a, b) => (when.get(a.followup_id) ?? '').localeCompare(when.get(b.followup_id) ?? '')),
+      }));
   };
   // Who was there, for the note itself (null) or for one later entry.
   const present = (n: RawNote, followupId: string | null): HrParticipant[] =>
@@ -122,14 +146,24 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
       follow_up_text: n.follow_up_text,
       follow_up_on: n.follow_up_on,
       no_follow_up_reason: n.no_follow_up_reason,
+      topic: n.topic,
+      event_on: n.event_on,
+      event_time: n.event_time,
+      event_area: n.event_area,
       created_at: n.created_at,
       created_by: n.created_by,
       type: n.type,
       author_name: authorName(n.author),
       participants: present(n, null),
+      agreements: agreed(n, null),
       follow_ups: [...(n.follow_ups ?? [])]
         .sort((a, b) => a.created_at.localeCompare(b.created_at))
-        .map(({ author, ...f }) => ({ ...f, author_name: authorName(author), participants: present(n, f.id) })),
+        .map(({ author, ...f }) => ({
+          ...f,
+          author_name: authorName(author),
+          participants: present(n, f.id),
+          agreements: agreed(n, f.id),
+        })),
       attachments: (n.attachments ?? []).map((a) => ({
         id: a.id,
         file_name: a.file_name,

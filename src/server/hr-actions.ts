@@ -8,7 +8,7 @@ import type { ActionResult } from './actions';
 import { HR_ALLOWED_MIME, HR_BUCKET, HR_MAX_BYTES } from '@/lib/hr';
 import { HR_ARRIVAL_SETTINGS, getArrivalSettings, type HrArrivalSetting } from './hr';
 import { sendToHrForWorker } from './push';
-import { WARNING_LEVELS } from '@/domain/hr/note-structure';
+import { AGREEMENT_RESULTS, NOTE_TOPICS, WARNING_LEVELS } from '@/domain/hr/note-structure';
 import { localToUtc } from '@/domain/reminders/schedule';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 
@@ -21,6 +21,7 @@ import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
  */
 
 const DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'invalid_date' });
+const TIME = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, { message: 'invalid_time' });
 const optionalText = z.string().trim().max(2000).nullable().optional().transform((v) => v || null);
 
 function fail(error: unknown): { ok: false; error: string } {
@@ -101,10 +102,22 @@ const participantSchema = z.object({
   name: z.string().trim().min(1).max(200),
 });
 
+/** One thing that was agreed: what, who is responsible and by when. */
+const agreementSchema = z.object({
+  body: z.string().trim().min(1, { message: 'agreement_incomplete' }).max(2000),
+  responsible: participantSchema,
+  due_on: DATE,
+});
+
 /** What a note says. Whether it is complete for its type is the database's check. */
 const contentSchema = z.object({
   sections: z.record(z.string(), z.string().trim().max(10000)),
   warning_level: z.enum(WARNING_LEVELS).nullable(),
+  topic: z.enum(NOTE_TOPICS, { message: 'topic_required' }),
+  event_on: DATE.nullable(),
+  event_time: TIME.nullable(),
+  event_area: z.enum(TEAMS).nullable(),
+  agreements: z.array(agreementSchema).max(30),
   follow_up_text: sectionText,
   follow_up_on: DATE.nullable(),
   no_follow_up_reason: sectionText,
@@ -122,6 +135,8 @@ const noteSchema = contentSchema.extend({
 const NOTE_ERRORS = [
   'section_required', 'sections_required', 'level_required', 'follow_up_required', 'follow_up_date_invalid',
   'follow_up_closed', 'already_complete', 'participant_not_found', 'type_required', 'invalid_date', 'body_required',
+  'topic_required', 'event_required', 'event_date_invalid', 'agreement_required', 'agreement_incomplete',
+  'result_required', 'result_comment_required',
 ];
 
 function failNote(error: unknown): { ok: false; error: string } {
@@ -185,6 +200,11 @@ export async function addNote(input: NoteInput): Promise<ActionResult<{ id: stri
     p_follow_up_on: v.follow_up_on,
     p_no_follow_up_reason: v.no_follow_up_reason,
     p_participants: v.participants,
+    p_topic: v.topic,
+    p_event_on: v.event_on,
+    p_event_time: v.event_time,
+    p_event_area: v.event_area,
+    p_agreements: v.agreements,
   });
   if (error) return failNote(error);
   const id = data as string;
@@ -209,6 +229,10 @@ const followUpSchema = z.discriminatedUnion('kind', [
     closes: z.boolean(),
     next_text: sectionText,
     next_on: DATE.nullable(),
+    /** How each agreement not yet met went. */
+    results: z
+      .array(z.object({ agreement_id: z.string().uuid(), result: z.enum(AGREEMENT_RESULTS), comment: sectionText }))
+      .max(60),
     participants: z.array(participantSchema).max(40),
     reminder_title: z.string().trim().min(1).max(200),
   }),
@@ -248,6 +272,12 @@ export async function addFollowUp(input: FollowUpInput): Promise<ActionResult<{ 
     p_next_on: nextOn,
     p_no_follow_up_reason: v.kind === 'completion' ? v.no_follow_up_reason : null,
     p_participants: v.participants,
+    p_topic: v.kind === 'completion' ? v.topic : null,
+    p_event_on: v.kind === 'completion' ? v.event_on : null,
+    p_event_time: v.kind === 'completion' ? v.event_time : null,
+    p_event_area: v.kind === 'completion' ? v.event_area : null,
+    p_agreements: v.kind === 'completion' ? v.agreements : null,
+    p_results: v.kind === 'followup' ? v.results : null,
   });
   if (error) return failNote(error);
 
@@ -444,8 +474,6 @@ export async function saveEvalTemplate(input: z.input<typeof templateSchema>, id
 }
 
 /* ----------------------------- late arrivals ----------------------------- */
-
-const TIME = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, { message: 'invalid_time' });
 
 const lateSchema = z
   .object({

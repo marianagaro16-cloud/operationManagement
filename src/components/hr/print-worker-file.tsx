@@ -4,9 +4,19 @@ import { useEffect } from 'react';
 import { useI18n } from '@/i18n';
 import { teamLabelKey } from '@/lib/authz';
 import { localizedName } from '@/lib/localized-content';
-import { NOTE_SECTIONS, followUpState, warningNumbers, type NoteStructure } from '@/domain/hr/note-structure';
+import {
+  NOTE_SECTIONS,
+  agreementStatus,
+  followUpState,
+  noteAgreements,
+  noteSummary,
+  noteTopic,
+  warningNumbers,
+  type AgreementStatus,
+  type NoteStructure,
+} from '@/domain/hr/note-structure';
 import type { MessageKey } from '@/i18n';
-import type { HrLateArrival, HrParticipant, HrWorkerFile } from '@/types/hr';
+import type { HrAgreement, HrLateArrival, HrNoteEvent, HrParticipant, HrWorkerFile } from '@/types/hr';
 
 /**
  * A worker's whole file on a plain page — details, log, arrivals and
@@ -22,7 +32,14 @@ export function PrintWorkerFile({ file, arrivals }: { file: HrWorkerFile; arriva
   const numbers = warningNumbers(notes);
   const today = new Date().toISOString().slice(0, 10);
 
-  /** The sections of a note or a later entry, its follow-up, and who was there. */
+  const summary = noteSummary(notes, today);
+  const typeNames = new Map(notes.flatMap((n) => (n.type ? [[n.type.id, localizedName(n.type, locale)] as const] : [])));
+  const status = (key: AgreementStatus) => t(`hrNote.result_${key}` as MessageKey);
+
+  /**
+   * The content of a note or a later entry: when and where, its sections, what
+   * was agreed and how each agreement went, its follow-up, and who was there.
+   */
   const content = (
     structure: NoteStructure,
     sections: Record<string, string> | null,
@@ -30,17 +47,34 @@ export function PrintWorkerFile({ file, arrivals }: { file: HrWorkerFile; arriva
     followUpText: string | null,
     noFollowUpReason: string | null,
     participants: HrParticipant[],
+    event: HrNoteEvent,
+    agreements: HrAgreement[],
+    results: [string, string][] = [],
   ) => {
     const rows: [string, string][] = [
+      ...(event.event_on
+        ? [[
+            t('hrNote.event'),
+            [
+              [formatDate(event.event_on, 'medium'), event.event_time?.slice(0, 5)].filter(Boolean).join(', '),
+              event.event_area && t(teamLabelKey(event.event_area)),
+            ].filter(Boolean).join(' · '),
+          ] as [string, string]]
+        : []),
       ...NOTE_SECTIONS[structure]
         .filter((s) => sections?.[s.key])
         .map((s): [string, string] => [t(`hrNote.s_${structure}_${s.key}` as MessageKey), sections![s.key]!]),
+      ...agreements.map((a, i): [string, string] => [
+        t('hrNote.agreementN', { n: i + 1 }),
+        `${a.body} (${t('hrNote.agreementMeta', { name: a.responsible_name, date: formatDate(a.due_on, 'medium') })}) — ${status(agreementStatus(a))}`,
+      ]),
+      ...results,
       ...(followUpOn ? [[`${t('hrNote.followUp')} · ${formatDate(followUpOn, 'medium')}`, followUpText ?? ''] as [string, string]] : []),
       ...(noFollowUpReason ? [[t('hrNote.noFollowUpLabel'), noFollowUpReason] as [string, string]] : []),
       ...(participants.length ? [[t('hrNote.participants'), participants.map((p) => p.name).join(', ')] as [string, string]] : []),
     ];
-    return rows.map(([label, text]) => (
-      <p key={label} className="whitespace-pre-wrap">
+    return rows.map(([label, text], i) => (
+      <p key={i} className="whitespace-pre-wrap">
         <span className="text-neutral-500">{label}: </span>
         {text}
       </p>
@@ -76,16 +110,42 @@ export function PrintWorkerFile({ file, arrivals }: { file: HrWorkerFile; arriva
       </dl>
 
       <Section title={t('hr.tabLog')} empty={notes.length === 0}>
+        {summary.total > 0 && (
+          <div className="mb-3 break-inside-avoid border border-neutral-300 p-2">
+            <p className="font-medium">{t('hrNote.summaryTitle', { count: summary.total })}</p>
+            {summary.topics.map((row) => (
+              <p key={row.topic}>
+                {t(`hrNote.topic_${row.topic}` as MessageKey)}: {row.count}
+                <span className="text-neutral-500">
+                  {' '}({row.types.map((ty) => `${ty.count} ${typeNames.get(ty.id) ?? t('hr.noteType')}`).join(', ')})
+                </span>
+              </p>
+            ))}
+            {summary.noTopic > 0 && <p className="text-neutral-500">{t('hrNote.summaryNoTopic', { count: summary.noTopic })}</p>}
+            {Object.values(summary.agreements).some((count) => count > 0) && (
+              <p>
+                <span className="text-neutral-500">{t('hrNote.agreements')}: </span>
+                {(['met', 'partly', 'not_met', 'pending'] as const)
+                  .filter((key) => summary.agreements[key] > 0)
+                  .map((key) => `${status(key)} ${summary.agreements[key]}`)
+                  .join(' · ')}
+              </p>
+            )}
+          </div>
+        )}
         <ul className="space-y-2">
           {notes.map((n) => {
             const structure: NoteStructure = n.type?.structure ?? 'general';
             const level = n.warning_level ?? n.follow_ups.find((f) => f.kind === 'completion')?.warning_level;
             const state = followUpState(n, today);
+            const topic = noteTopic(n);
+            const agreements = noteAgreements(n);
             return (
               <li key={n.id} className="break-inside-avoid">
                 <p className="font-medium">
                   {formatDate(n.note_date, 'medium')}
                   {n.type && ` · ${localizedName(n.type, locale)}`}
+                  {topic && ` · ${t(`hrNote.topic_${topic}` as MessageKey)}`}
                   {level && ` · ${t(`hrNote.level_${level}` as MessageKey)}`}
                   {numbers.has(n.id) && ` · ${t('hrNote.warningNumber', { n: numbers.get(n.id)! })}`}
                   {state.status === 'closed' && ` · ${t('hrNote.statusClosed')}`}
@@ -93,7 +153,7 @@ export function PrintWorkerFile({ file, arrivals }: { file: HrWorkerFile; arriva
                   {n.author_name && <span className="font-normal text-neutral-500"> · {n.author_name}</span>}
                 </p>
                 {n.body && <p className="whitespace-pre-wrap">{n.body}</p>}
-                {content(structure, n.sections, n.follow_up_on, n.follow_up_text, n.no_follow_up_reason, n.participants)}
+                {content(structure, n.sections, n.follow_up_on, n.follow_up_text, n.no_follow_up_reason, n.participants, n, n.agreements)}
                 {n.follow_ups.map((f) => (
                   <div key={f.id} className="ml-4 mt-1 border-l border-neutral-300 pl-2">
                     <p className="font-medium">
@@ -102,7 +162,15 @@ export function PrintWorkerFile({ file, arrivals }: { file: HrWorkerFile; arriva
                       {f.author_name && <span className="font-normal text-neutral-500"> · {f.author_name}</span>}
                     </p>
                     {f.body && <p className="whitespace-pre-wrap">{f.body}</p>}
-                    {content(structure, f.sections, f.next_on, f.next_text, f.no_follow_up_reason, f.participants)}
+                    {content(
+                      structure, f.sections, f.next_on, f.next_text, f.no_follow_up_reason, f.participants, f, f.agreements,
+                      // How this entry found each agreement it checked.
+                      agreements.flatMap((a) =>
+                        a.results
+                          .filter((r) => r.followup_id === f.id)
+                          .map((r): [string, string] => [status(r.result), r.comment ? `${a.body} — ${r.comment}` : a.body]),
+                      ),
+                    )}
                   </div>
                 ))}
               </li>

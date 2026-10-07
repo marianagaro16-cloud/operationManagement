@@ -3164,6 +3164,117 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_note_agreement_results: {
+        Row: {
+          agreement_id: string
+          comment: string | null
+          followup_id: string
+          id: string
+          result: string
+        }
+        Insert: {
+          agreement_id: string
+          comment?: string | null
+          followup_id: string
+          id?: string
+          result: string
+        }
+        Update: {
+          agreement_id?: string
+          comment?: string | null
+          followup_id?: string
+          id?: string
+          result?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_note_agreement_results_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "hr_note_agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_note_agreement_results_followup_id_fkey"
+            columns: ["followup_id"]
+            isOneToOne: false
+            referencedRelation: "hr_note_followups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_note_agreements: {
+        Row: {
+          body: string
+          due_on: string
+          followup_id: string | null
+          id: string
+          note_id: string
+          responsible_name: string
+          responsible_profile_id: string | null
+          responsible_worker_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          body: string
+          due_on: string
+          followup_id?: string | null
+          id?: string
+          note_id: string
+          responsible_name: string
+          responsible_profile_id?: string | null
+          responsible_worker_id?: string | null
+          sort_order: number
+        }
+        Update: {
+          body?: string
+          due_on?: string
+          followup_id?: string | null
+          id?: string
+          note_id?: string
+          responsible_name?: string
+          responsible_profile_id?: string | null
+          responsible_worker_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_note_agreements_followup_id_fkey"
+            columns: ["followup_id"]
+            isOneToOne: false
+            referencedRelation: "hr_note_followups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_note_agreements_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "hr_note_follow_up_state"
+            referencedColumns: ["note_id"]
+          },
+          {
+            foreignKeyName: "hr_note_agreements_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "hr_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_note_agreements_responsible_profile_id_fkey"
+            columns: ["responsible_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_note_agreements_responsible_worker_id_fkey"
+            columns: ["responsible_worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_note_attachments: {
         Row: {
           created_at: string
@@ -3226,6 +3337,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           entry_date: string
+          event_area: Database["public"]["Enums"]["team"] | null
+          event_on: string | null
+          event_time: string | null
           id: string
           kind: string
           next_on: string | null
@@ -3233,6 +3347,7 @@ export type Database = {
           no_follow_up_reason: string | null
           note_id: string
           sections: Json | null
+          topic: string | null
           warning_level: string | null
         }
         Insert: {
@@ -3241,6 +3356,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           entry_date: string
+          event_area?: Database["public"]["Enums"]["team"] | null
+          event_on?: string | null
+          event_time?: string | null
           id?: string
           kind: string
           next_on?: string | null
@@ -3248,6 +3366,7 @@ export type Database = {
           no_follow_up_reason?: string | null
           note_id: string
           sections?: Json | null
+          topic?: string | null
           warning_level?: string | null
         }
         Update: {
@@ -3256,6 +3375,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           entry_date?: string
+          event_area?: Database["public"]["Enums"]["team"] | null
+          event_on?: string | null
+          event_time?: string | null
           id?: string
           kind?: string
           next_on?: string | null
@@ -3263,6 +3385,7 @@ export type Database = {
           no_follow_up_reason?: string | null
           note_id?: string
           sections?: Json | null
+          topic?: string | null
           warning_level?: string | null
         }
         Relationships: [
@@ -3393,12 +3516,16 @@ export type Database = {
           body: string | null
           created_at: string
           created_by: string | null
+          event_area: Database["public"]["Enums"]["team"] | null
+          event_on: string | null
+          event_time: string | null
           follow_up_on: string | null
           follow_up_text: string | null
           id: string
           no_follow_up_reason: string | null
           note_date: string
           sections: Json | null
+          topic: string | null
           type_id: string
           warning_level: string | null
           worker_id: string
@@ -3407,12 +3534,16 @@ export type Database = {
           body?: string | null
           created_at?: string
           created_by?: string | null
+          event_area?: Database["public"]["Enums"]["team"] | null
+          event_on?: string | null
+          event_time?: string | null
           follow_up_on?: string | null
           follow_up_text?: string | null
           id?: string
           no_follow_up_reason?: string | null
           note_date: string
           sections?: Json | null
+          topic?: string | null
           type_id: string
           warning_level?: string | null
           worker_id: string
@@ -3421,12 +3552,16 @@ export type Database = {
           body?: string | null
           created_at?: string
           created_by?: string | null
+          event_area?: Database["public"]["Enums"]["team"] | null
+          event_on?: string | null
+          event_time?: string | null
           follow_up_on?: string | null
           follow_up_text?: string | null
           id?: string
           no_follow_up_reason?: string | null
           note_date?: string
           sections?: Json | null
+          topic?: string | null
           type_id?: string
           warning_level?: string | null
           worker_id?: string
@@ -9283,26 +9418,40 @@ export type Database = {
       hr_late_editable: { Args: { p_id: string }; Returns: boolean }
       hr_note_add: {
         Args: {
+          p_agreements: Json
+          p_event_area: Database["public"]["Enums"]["team"]
+          p_event_on: string
+          p_event_time: string
           p_follow_up_on: string
           p_follow_up_text: string
           p_no_follow_up_reason: string
           p_note_date: string
           p_participants: Json
           p_sections: Json
+          p_topic: string
           p_type_id: string
           p_warning_level: string
           p_worker_id: string
         }
         Returns: string
       }
+      hr_note_agreements_rule: {
+        Args: { p_structure: string }
+        Returns: string
+      }
       hr_note_check_content: {
         Args: {
+          p_agreements: Json
+          p_event_area: Database["public"]["Enums"]["team"]
+          p_event_on: string
+          p_event_time: string
           p_follow_up_on: string
           p_follow_up_text: string
           p_from: string
           p_no_follow_up_reason: string
           p_sections: Json
           p_structure: string
+          p_topic: string
           p_warning_level: string
         }
         Returns: undefined
@@ -9310,19 +9459,33 @@ export type Database = {
       hr_note_follow_up_rule: { Args: { p_structure: string }; Returns: string }
       hr_note_followup_add: {
         Args: {
+          p_agreements: Json
           p_body: string
           p_closes: boolean
           p_entry_date: string
+          p_event_area: Database["public"]["Enums"]["team"]
+          p_event_on: string
+          p_event_time: string
           p_kind: string
           p_next_on: string
           p_next_text: string
           p_no_follow_up_reason: string
           p_note_id: string
           p_participants: Json
+          p_results: Json
           p_sections: Json
+          p_topic: string
           p_warning_level: string
         }
         Returns: string
+      }
+      hr_note_person: {
+        Args: { p_person: Json }
+        Returns: Record<string, unknown>
+      }
+      hr_note_put_agreements: {
+        Args: { p_agreements: Json; p_followup_id: string; p_note_id: string }
+        Returns: undefined
       }
       hr_note_put_participants: {
         Args: {
@@ -9341,6 +9504,7 @@ export type Database = {
         Args: { p_structure: string }
         Returns: string[]
       }
+      hr_note_topics: { Args: never; Returns: string[] }
       hr_scope: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       hr_worker_stats: {
         Args: { p_from: string; p_to: string; p_worker_id: string }

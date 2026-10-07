@@ -1,5 +1,5 @@
 import type { Team } from '@/lib/authz';
-import type { NoteStructure, WarningLevel } from '@/domain/hr/note-structure';
+import type { AgreementResult, NoteStructure, NoteTopic, WarningLevel } from '@/domain/hr/note-structure';
 
 /** German and English overrides; Spanish is in the base fields. */
 export type HrTranslations = Partial<Record<'de' | 'en', { name?: string | null; description?: string | null }>>;
@@ -77,14 +77,34 @@ export interface HrPerson {
   name: string;
 }
 
+/** One thing that was agreed: what, who is responsible and by when. */
+export interface HrAgreement {
+  id: string;
+  body: string;
+  responsible_name: string;
+  due_on: string;
+  /** What each follow-up said of it, oldest first. */
+  results: { followup_id: string; result: AgreementResult; comment: string | null }[];
+}
+
+/** When and where what a note is about happened. */
+export interface HrNoteEvent {
+  topic: NoteTopic | null;
+  event_on: string | null;
+  event_time: string | null;
+  event_area: Team | null;
+}
+
 /** An entry added to a note later: what came of its follow-up, or the sections an old note lacks. */
-export interface HrFollowUp {
+export interface HrFollowUp extends HrNoteEvent {
   id: string;
   kind: 'followup' | 'completion';
   entry_date: string;
   body: string | null;
   sections: Record<string, string> | null;
   warning_level: WarningLevel | null;
+  /** The agreements a completion gave an old note. */
+  agreements: HrAgreement[];
   /** Nothing more to follow up. */
   closes: boolean;
   next_text: string | null;
@@ -95,7 +115,7 @@ export interface HrFollowUp {
   participants: HrParticipant[];
 }
 
-export interface HrNote {
+export interface HrNote extends HrNoteEvent {
   id: string;
   note_date: string;
   /** The free text of a note written before notes had sections. */
@@ -103,6 +123,7 @@ export interface HrNote {
   /** By section key; null for a note in the old format. */
   sections: Record<string, string> | null;
   warning_level: WarningLevel | null;
+  agreements: HrAgreement[];
   follow_up_text: string | null;
   follow_up_on: string | null;
   no_follow_up_reason: string | null;
