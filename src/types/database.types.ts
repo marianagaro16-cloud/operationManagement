@@ -3789,7 +3789,9 @@ export type Database = {
       }
       hr_notes: {
         Row: {
+          asked_by: string | null
           body: string | null
+          confidential: boolean
           created_at: string
           created_by: string | null
           event_area: Database["public"]["Enums"]["team"] | null
@@ -3807,7 +3809,9 @@ export type Database = {
           worker_id: string
         }
         Insert: {
+          asked_by?: string | null
           body?: string | null
+          confidential?: boolean
           created_at?: string
           created_by?: string | null
           event_area?: Database["public"]["Enums"]["team"] | null
@@ -3825,7 +3829,9 @@ export type Database = {
           worker_id: string
         }
         Update: {
+          asked_by?: string | null
           body?: string | null
+          confidential?: boolean
           created_at?: string
           created_by?: string | null
           event_area?: Database["public"]["Enums"]["team"] | null
@@ -10556,6 +10562,7 @@ export type Database = {
         Args: { p_worker_id: string }
         Returns: string[]
       }
+      hr_confidential_hidden: { Args: { p_worker_id: string }; Returns: number }
       hr_eval_admin_may: { Args: { p_request_id: string }; Returns: boolean }
       hr_eval_answer: {
         Args: {
@@ -10604,6 +10611,8 @@ export type Database = {
       hr_note_add: {
         Args: {
           p_agreements: Json
+          p_asked_by?: string
+          p_confidential?: boolean
           p_event_area: Database["public"]["Enums"]["team"]
           p_event_on: string
           p_event_time: string
@@ -10641,6 +10650,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      hr_note_employee_topics: { Args: never; Returns: string[] }
       hr_note_follow_up_rule: { Args: { p_structure: string }; Returns: string }
       hr_note_followup_add: {
         Args: {

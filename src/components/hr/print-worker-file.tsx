@@ -13,7 +13,8 @@ import {
   noteTopic,
   warningNumbers,
   type AgreementStatus,
-  type NoteStructure,
+  type NoteForm,
+  noteForm,
 } from '@/domain/hr/note-structure';
 import type { MessageKey } from '@/i18n';
 import type { MeetingRecord } from '@/types/meetings';
@@ -45,7 +46,7 @@ export function PrintWorkerFile({ file, arrivals, keys, meetings }: { file: HrWo
    * was agreed and how each agreement went, its follow-up, and who was there.
    */
   const content = (
-    structure: NoteStructure,
+    structure: NoteForm,
     sections: Record<string, string> | null,
     followUpOn: string | null,
     followUpText: string | null,
@@ -164,7 +165,7 @@ export function PrintWorkerFile({ file, arrivals, keys, meetings }: { file: HrWo
         )}
         <ul className="space-y-2">
           {notes.map((n) => {
-            const structure: NoteStructure = n.type?.structure ?? 'general';
+            const structure = noteForm(n.type?.structure ?? 'general', n.asked_by);
             const level = n.warning_level ?? n.follow_ups.find((f) => f.kind === 'completion')?.warning_level;
             const state = followUpState(n, today);
             const topic = noteTopic(n);
@@ -174,6 +175,8 @@ export function PrintWorkerFile({ file, arrivals, keys, meetings }: { file: HrWo
                 <p className="font-medium">
                   {formatDate(n.note_date, 'medium')}
                   {n.type && ` · ${localizedName(n.type, locale)}`}
+                  {n.asked_by === 'employee' && ` · ${t('hrNote.askedByEmployeeBadge')}`}
+                  {n.confidential && ` · ${t('hrNote.confidential')}`}
                   {topic && ` · ${t(`hrNote.topic_${topic}` as MessageKey)}`}
                   {level && ` · ${t(`hrNote.level_${level}` as MessageKey)}`}
                   {numbers.has(n.id) && ` · ${t('hrNote.warningNumber', { n: numbers.get(n.id)! })}`}

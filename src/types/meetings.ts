@@ -1,4 +1,4 @@
-import type { AgreementResult, NoteTopic } from '@/domain/hr/note-structure';
+import type { AgreementResult, CompanyTopic } from '@/domain/hr/note-structure';
 
 /** Internal meetings. */
 
@@ -70,7 +70,7 @@ export interface MeetingAgreement {
 export interface MeetingRecordPoint {
   id: string;
   title: string;
-  topic: NoteTopic | null;
+  topic: CompanyTopic | null;
   situation: string | null;
   discussed: string | null;
   no_agreements_reason: string | null;

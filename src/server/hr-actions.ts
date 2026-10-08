@@ -8,7 +8,7 @@ import type { ActionResult } from './actions';
 import { HR_ALLOWED_MIME, HR_BUCKET, HR_MAX_BYTES } from '@/lib/hr';
 import { HR_ARRIVAL_SETTINGS, getArrivalSettings, type HrArrivalSetting } from './hr';
 import { sendToHrForWorker } from './push';
-import { AGREEMENT_RESULTS, NOTE_TOPICS, WARNING_LEVELS } from '@/domain/hr/note-structure';
+import { AGREEMENT_RESULTS, ALL_TOPICS, ASKED_BY, WARNING_LEVELS } from '@/domain/hr/note-structure';
 import { localToUtc } from '@/domain/reminders/schedule';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 
@@ -113,7 +113,7 @@ const agreementSchema = z.object({
 const contentSchema = z.object({
   sections: z.record(z.string(), z.string().trim().max(10000)),
   warning_level: z.enum(WARNING_LEVELS).nullable(),
-  topic: z.enum(NOTE_TOPICS, { message: 'topic_required' }),
+  topic: z.enum(ALL_TOPICS as [string, ...string[]], { message: 'topic_required' }),
   event_on: DATE.nullable(),
   event_time: TIME.nullable(),
   event_area: z.enum(TEAMS).nullable(),
@@ -130,6 +130,10 @@ const noteSchema = contentSchema.extend({
   worker_id: z.string().uuid(),
   type_id: z.string().uuid({ message: 'type_required' }),
   note_date: DATE,
+  /** Who asked to talk: a conversation only. */
+  asked_by: z.enum(ASKED_BY).nullable().optional().transform((v) => v ?? null),
+  /** Read only by whoever writes it, Admin and the Owners. */
+  confidential: z.boolean().optional().default(false),
 });
 
 const NOTE_ERRORS = [
@@ -205,6 +209,8 @@ export async function addNote(input: NoteInput): Promise<ActionResult<{ id: stri
     p_event_time: v.event_time,
     p_event_area: v.event_area,
     p_agreements: v.agreements,
+    p_asked_by: v.asked_by,
+    p_confidential: v.asked_by === 'employee' && v.confidential,
   });
   if (error) return failNote(error);
   const id = data as string;

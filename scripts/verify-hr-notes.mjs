@@ -322,6 +322,72 @@ async function main() {
   const { data: open } = await author.client.from('hr_note_follow_up_state').select('note_id, due_on').eq('worker_id', worker.id).eq('closed', false).not('due_on', 'is', null);
   check('the open follow-ups of the file: the warning and the completed old note',
     open?.length === 2 && open.some((o) => o.note_id === old.id && o.due_on === day(5)), JSON.stringify(open));
+
+  console.log('\nA conversation the employee asked for');
+  const asked = (who, over = {}) => add(who, {
+    p_asked_by: 'employee',
+    p_confidential: true,
+    p_sections: { raised: 'Pide cambiar al turno de mañana', answered: 'Se revisa con producción' },
+    p_topic: 'schedule_leave',
+    p_agreements: [],
+    p_follow_up_text: null,
+    p_follow_up_on: null,
+    p_no_follow_up_reason: 'Se resolvió en el momento',
+    ...over,
+  });
+  res = await asked(author, { p_sections: { reason: 'x', points: 'y' } });
+  check('needs what they raised and what was answered', errorIs(res, 'section_required'), why(res));
+  res = await asked(author, { p_topic: 'productivity' });
+  check('has its own topics', errorIs(res, 'topic_required'), why(res));
+  res = await add(author, { p_topic: 'personal' });
+  check('which a conversation the company asked for does not take', errorIs(res, 'topic_required'), why(res));
+  res = await asked(author, { p_no_follow_up_reason: null });
+  check('needs a next step with its date, or the reason there is none', errorIs(res, 'follow_up_required'), why(res));
+  res = await asked(author, { p_type_id: type('recognition') });
+  check('only a conversation says who asked for it', errorIs(res, 'invalid_note'), why(res));
+  res = await add(author, { p_confidential: true });
+  check('only it can be confidential', errorIs(res, 'invalid_note'), why(res));
+  res = await asked(author, { p_confidential: false });
+  check('without the tick it is read with the file, like any note',
+    !res.error && (await colleague.client.from('hr_notes').select('id').eq('id', res.data)).data?.length === 1, why(res));
+  res = await colleague.client.rpc('hr_confidential_hidden', { p_worker_id: worker.id });
+  check('and nothing is hidden from the colleague yet', res.data === 0, why(res));
+  res = await asked(author);
+  check('is saved without agreements', !res.error && !!res.data, why(res));
+  const askedId = res.data;
+  res = await asked(author, {
+    p_agreements: [agreement('Confirmar el cambio de turno', { responsible: { profile_id: author.id, worker_id: null, name: 'x' } })],
+    p_follow_up_text: 'Confirmar con producción', p_follow_up_on: day(7), p_no_follow_up_reason: null,
+  });
+  check('or with them, and then a follow-up', !res.error, why(res));
+  const askedWithAgreement = res.data;
+
+  const reads = async (who, table, column, id) => (await who.client.from(table).select('id').eq(column, id)).data?.length ?? 0;
+  check('whoever wrote it reads it', (await reads(author, 'hr_notes', 'id', askedId)) === 1);
+  check('an Admin reads it', (await reads(boss, 'hr_notes', 'id', askedId)) === 1);
+  check('a colleague with the same access to the file does not', (await reads(colleague, 'hr_notes', 'id', askedId)) === 0);
+  check('nor its agreements', (await reads(author, 'hr_note_agreements', 'note_id', askedWithAgreement)) === 1
+    && (await reads(colleague, 'hr_note_agreements', 'note_id', askedWithAgreement)) === 0);
+  check('nor who was there', (await reads(author, 'hr_note_participants', 'note_id', askedId)) >= 1
+    && (await reads(colleague, 'hr_note_participants', 'note_id', askedId)) === 0);
+  res = await colleague.client.from('hr_note_follow_up_state').select('note_id').eq('note_id', askedWithAgreement);
+  check('nor that it has a follow-up open', res.data?.length === 0, why(res));
+  res = await colleague.client.rpc('hr_note_reminder_audience', { p_note_id: askedWithAgreement });
+  check('nor who is reminded of it', errorIs(res, 'not_authorized'), why(res));
+  res = await colleague.client.rpc('hr_confidential_hidden', { p_worker_id: worker.id });
+  check('the colleague is told two notes are hidden, not what they say', res.data === 2, why(res));
+  res = await author.client.rpc('hr_confidential_hidden', { p_worker_id: worker.id });
+  check('nothing is hidden from whoever wrote them', res.data === 0, why(res));
+  res = await boss.client.rpc('hr_confidential_hidden', { p_worker_id: worker.id });
+  check('nor from an Admin', res.data === 0, why(res));
+  res = await plain.client.rpc('hr_confidential_hidden', { p_worker_id: worker.id });
+  check('and whoever cannot open the file learns nothing', res.data === 0, why(res));
+  res = await colleague.client.from('hr_notes').select('id').eq('worker_id', worker.id);
+  check('the colleague still reads the other notes of the file', (res.data?.length ?? 0) > 0 && !res.data.some((n) => n.id === askedId), why(res));
+  const { data: storedAsked } = await admin.from('hr_notes').select('asked_by').in('id', [askedId, noteId]);
+  check('who asked is kept: the employee here, the company on an ordinary conversation',
+    storedAsked?.map((n) => n.asked_by).sort().join() === 'company,employee', JSON.stringify(storedAsked));
+  check('a confidential note says so', (await admin.from('hr_notes').select('confidential').eq('id', askedId).single()).data?.confidential === true);
 }
 
 async function cleanup() {

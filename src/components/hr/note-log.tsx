@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { CornerDownRight, FileText, Plus, X } from 'lucide-react';
+import { CornerDownRight, FileText, Lock, Plus, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -19,18 +19,22 @@ import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import {
   AGREEMENTS_RULE,
   AGREEMENT_RESULTS,
+  ALL_TOPICS,
+  ASKED_BY,
   EMPTY_CONTENT,
   FOLLOW_UP_RULE,
   HAS_EVENT,
   NOTE_SECTIONS,
   MEETING_TYPE,
-  NOTE_TOPICS,
   WARNING_LEVELS,
   agreementStatus,
   filledAgreements,
   followUpState,
+  formTopics,
+  mayBeConfidential,
   missingContent,
   noteAgreements,
+  noteForm,
   noteSummary,
   noteTopic,
   skipsFollowUp,
@@ -39,6 +43,7 @@ import {
   type AgreementResult,
   type AgreementStatus,
   type NoteContent,
+  type NoteForm,
   type NoteStructure,
   type NoteTopic,
   type WarningLevel,
@@ -64,7 +69,7 @@ const personKey = (p: HrPerson) => p.profile_id ?? p.worker_id ?? `n:${p.name.to
 const STATUS_TONE = { met: 'done', partly: 'warn', not_met: 'late', pending: 'neutral' } as const satisfies Record<AgreementStatus, string>;
 
 /** What the form holds, as the action takes it: only this structure's own content. */
-function toPayload(structure: NoteStructure, c: NoteContent) {
+function toPayload(structure: NoteForm, c: NoteContent) {
   const skipped = skipsFollowUp(structure, c);
   const planned = FOLLOW_UP_RULE[structure] !== 'none' && !skipped && !!c.follow_up_text.trim();
   const event = HAS_EVENT[structure];
@@ -153,7 +158,7 @@ export function LogTab({
     ...shown.map((note) => ({ date: note.note_date, at: note.created_at, note, meeting: null })),
     ...shownMeetings.map((meeting) => ({ date: meeting.meeting_date, at: meeting.registered_at ?? '', note: null, meeting })),
   ].sort((a, b) => b.date.localeCompare(a.date) || b.at.localeCompare(a.at));
-  const topics = NOTE_TOPICS.filter(
+  const topics = ALL_TOPICS.filter(
     (topic) => file.notes.some((n) => noteTopic(n) === topic) || meetings.some((m) => m.points.some((p) => p.topic === topic)),
   );
   // Every type that appears in the log, including one Admin has since switched off.
@@ -204,6 +209,13 @@ export function LogTab({
         </Button>
       </div>
 
+      {file.hidden_notes > 0 && (
+        <p className="flex items-center gap-1.5 px-0.5 text-[12.5px] text-muted">
+          <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          {t('hrNote.hiddenNotes', { count: file.hidden_notes })}
+        </p>
+      )}
+
       {rows.length === 0 ? (
         <EmptyState title={t('hr.noNotes')} />
       ) : (
@@ -230,7 +242,7 @@ export function LogTab({
               );
             }
             const n = row.note;
-            const structure: NoteStructure = n.type?.structure ?? 'general';
+            const structure = noteForm(n.type?.structure ?? 'general', n.asked_by);
             const completion = n.follow_ups.find((f) => f.kind === 'completion');
             const level = n.warning_level ?? completion?.warning_level ?? null;
             const number = numbers.get(n.id);
@@ -244,6 +256,13 @@ export function LogTab({
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
                     <span className="tabular font-medium text-fg">{formatDate(n.note_date, 'medium')}</span>
                     {n.type && <Badge tone="accent">{localizedName(n.type, locale)}</Badge>}
+                    {n.confidential && (
+                      <Badge tone="warn" title={t('hrNote.confidentialHint')}>
+                        <Lock className="h-3 w-3" aria-hidden />
+                        {t('hrNote.confidential')}
+                      </Badge>
+                    )}
+                    {n.asked_by === 'employee' && <Badge tone="neutral">{t('hrNote.askedByEmployeeBadge')}</Badge>}
                     {topic && <Badge tone="neutral">{t(`hrNote.topic_${topic}` as MessageKey)}</Badge>}
                     {structure === 'warning' && (level || number) && (
                       <Badge tone="warn">
@@ -469,7 +488,7 @@ function NoteContentView({
   agreements,
   results = [],
 }: {
-  structure: NoteStructure;
+  structure: NoteForm;
   sections: Record<string, string> | null;
   followUpText: string | null;
   followUpOn: string | null;
@@ -582,7 +601,7 @@ function ContentFields({
   responsibles,
   defaultResponsible,
 }: {
-  structure: NoteStructure;
+  structure: NoteForm;
   content: NoteContent;
   onChange: (content: NoteContent) => void;
   /** The day of the note: what happened is not after it, the follow-up and the agreements not before. */
@@ -608,7 +627,7 @@ function ContentFields({
       <Field label={t('hrNote.topic')} hint={t('hrNote.topicHint')} required htmlFor="note-topic">
         <Select id="note-topic" value={content.topic ?? ''} onChange={(e) => set({ topic: (e.target.value || null) as NoteTopic | null })}>
           <option value="">{t('hrNote.pick')}</option>
-          {NOTE_TOPICS.map((topic) => (
+          {formTopics(structure).map((topic) => (
             <option key={topic} value={topic}>{t(`hrNote.topic_${topic}` as MessageKey)}</option>
           ))}
         </Select>
@@ -891,7 +910,9 @@ function NoteDialog({
   const [pending, startTransition] = useTransition();
 
   const type = noteTypes.find((ty) => ty.id === typeId);
-  const structure: NoteStructure = type?.structure ?? 'general';
+  const isConversation = type?.structure === 'conversation';
+  // Asked by the employee, a conversation has its own content and topics.
+  const structure = noteForm(type?.structure ?? 'general', content.asked_by);
   const complete = !!type && !!date && missingContent(structure, content, date).length === 0;
   const warningNumber = file.notes.filter((n) => n.type?.structure === 'warning').length + 1;
 
@@ -918,6 +939,8 @@ function NoteDialog({
         type_id: typeId,
         note_date: date,
         ...payload,
+        asked_by: isConversation ? content.asked_by : null,
+        confidential: content.confidential,
         participants,
         reminder_title: t('hrNote.reminderTitle', { worker: file.worker.name, type: localizedName(type, locale) }),
       });
@@ -990,6 +1013,42 @@ function NoteDialog({
                 <Input id="note-date" type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} />
               </Field>
             </div>
+            {isConversation && (
+              <fieldset className="space-y-2 rounded-lg border border-border p-3">
+                <legend className="px-1 text-[13px] font-medium">{t('hrNote.askedBy')}</legend>
+                <div className="flex gap-1 rounded-lg border border-border p-0.5" role="radiogroup" aria-label={t('hrNote.askedBy')}>
+                  {ASKED_BY.map((who) => (
+                    <button
+                      key={who}
+                      type="button"
+                      role="radio"
+                      aria-checked={content.asked_by === who}
+                      // The two have different topics: the one chosen for the other does not carry over.
+                      onClick={() => content.asked_by !== who && setContent({ ...content, asked_by: who, topic: null, confidential: false })}
+                      className={cn(
+                        'flex-1 rounded-md px-3 py-1.5 text-[13px] font-medium',
+                        content.asked_by === who ? 'bg-accent text-accent-fg' : 'text-muted hover:text-fg',
+                      )}
+                    >
+                      {t(`hrNote.askedBy_${who}` as MessageKey)}
+                    </button>
+                  ))}
+                </div>
+                {mayBeConfidential(type?.structure ?? 'general', content.asked_by) && (
+                  <>
+                    <Checkbox
+                      label={t('hrNote.confidential')}
+                      checked={content.confidential}
+                      onChange={(e) => setContent({ ...content, confidential: e.target.checked })}
+                    />
+                    <p className="flex items-start gap-1.5 text-[12px] text-muted">
+                      <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                      {t('hrNote.confidentialHint')}
+                    </p>
+                  </>
+                )}
+              </fieldset>
+            )}
             <ContentFields
               structure={structure}
               content={content}

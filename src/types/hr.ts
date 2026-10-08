@@ -1,5 +1,5 @@
 import type { Team } from '@/lib/authz';
-import type { AgreementResult, NoteStructure, NoteTopic, WarningLevel } from '@/domain/hr/note-structure';
+import type { AgreementResult, AskedBy, NoteStructure, NoteTopic, WarningLevel } from '@/domain/hr/note-structure';
 
 /** German and English overrides; Spanish is in the base fields. */
 export type HrTranslations = Partial<Record<'de' | 'en', { name?: string | null; description?: string | null }>>;
@@ -123,6 +123,10 @@ export interface HrNote extends HrNoteEvent {
   /** By section key; null for a note in the old format. */
   sections: Record<string, string> | null;
   warning_level: WarningLevel | null;
+  /** Who asked for a conversation. Null for other types and older notes. */
+  asked_by: AskedBy | null;
+  /** Read only by whoever wrote it, Admin and the Owners. */
+  confidential: boolean;
   agreements: HrAgreement[];
   follow_up_text: string | null;
   follow_up_on: string | null;
@@ -172,6 +176,8 @@ export interface HrStats {
 export interface HrWorkerFile {
   worker: HrWorker;
   notes: HrNote[];
+  /** Confidential notes of this file the viewer cannot read: how many, never what. */
+  hidden_notes: number;
   evaluations: HrEvaluation[];
 }
 

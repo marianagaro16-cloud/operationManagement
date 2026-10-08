@@ -10,7 +10,7 @@ import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteText } from '@/components/ui/note';
 import { NoteTextarea } from '@/components/ui/note-textarea';
-import { AGREEMENT_RESULTS, NOTE_TOPICS, agreementStatus, type AgreementResult, type NotePerson, type NoteTopic } from '@/domain/hr/note-structure';
+import { AGREEMENT_RESULTS, NOTE_TOPICS, agreementStatus, type AgreementResult, type NotePerson, type CompanyTopic } from '@/domain/hr/note-structure';
 import { EMPTY_AGREEMENT, agendaPoints, emptyPoint, missingRecord, recordContent, type RecordAgreementDraft, type RecordDraft, type RecordPointDraft } from '@/domain/meetings/record';
 import { addMeetingRecordEntry, saveMeetingRecord, setMeetingForFiles } from '@/server/meeting-record-actions';
 import type { Meeting, MeetingRecord } from '@/types/meetings';
@@ -354,7 +354,7 @@ function RecordEditor({
                   <Input id={`record-title-${i}`} value={point.title} maxLength={300} onChange={(e) => setPoint(i, { title: e.target.value })} />
                 </Field>
                 <Field label={t('hrNote.topic')} required htmlFor={`record-topic-${i}`}>
-                  <Select id={`record-topic-${i}`} value={point.topic ?? ''} onChange={(e) => setPoint(i, { topic: (e.target.value || null) as NoteTopic | null })}>
+                  <Select id={`record-topic-${i}`} value={point.topic ?? ''} onChange={(e) => setPoint(i, { topic: (e.target.value || null) as CompanyTopic | null })}>
                     <option value="">{t('hrNote.pick')}</option>
                     {NOTE_TOPICS.map((topic) => (
                       <option key={topic} value={topic}>{t(`hrNote.topic_${topic}` as MessageKey)}</option>

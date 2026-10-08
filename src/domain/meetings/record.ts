@@ -7,7 +7,7 @@
  *
  * Pure: the form and the tests read the same rules.
  */
-import type { NotePerson, NoteTopic } from '@/domain/hr/note-structure';
+import type { NotePerson, CompanyTopic } from '@/domain/hr/note-structure';
 
 export interface RecordAgreementDraft {
   body: string;
@@ -20,7 +20,7 @@ export interface RecordAgreementDraft {
 
 export interface RecordPointDraft {
   title: string;
-  topic: NoteTopic | null;
+  topic: CompanyTopic | null;
   situation: string;
   discussed: string;
   no_agreements: boolean;

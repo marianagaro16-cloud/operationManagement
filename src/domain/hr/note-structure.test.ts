@@ -4,6 +4,8 @@ import {
   agreementStatus,
   filledAgreements,
   followUpState,
+  mayBeConfidential,
+  noteForm,
   missingContent,
   noteSummary,
   warningNumbers,
@@ -175,5 +177,47 @@ describe('agreements and the summary', () => {
       { topic: 'hygiene_safety', count: 1, types: [{ id: 'meeting', count: 1 }] },
     ]);
     expect(summary.agreements).toEqual({ met: 1, partly: 0, not_met: 0, pending: 1 });
+  });
+});
+
+describe('a conversation the employee asked for', () => {
+  const asked: NoteContent = {
+    ...EMPTY_CONTENT,
+    asked_by: 'employee',
+    topic: 'schedule_leave',
+    event_on: '2026-10-05',
+    event_time: '07:20',
+    event_area: 'production',
+    sections: { raised: 'Pide el turno de mañana', answered: 'Se revisa con producción' },
+    no_follow_up: true,
+    no_follow_up_reason: 'Se resolvió en el momento',
+  };
+
+  it('takes its own form only when the employee asked', () => {
+    expect(noteForm('conversation', 'employee')).toBe('employee_talk');
+    expect(noteForm('conversation', 'company')).toBe('conversation');
+    expect(noteForm('conversation', null)).toBe('conversation');
+    expect(noteForm('warning', 'employee')).toBe('warning');
+  });
+
+  it('is complete with what was raised and answered, without agreements', () => {
+    expect(missingContent('employee_talk', asked, '2026-10-06')).toEqual([]);
+  });
+
+  it('needs a next step with its date, or the reason there is none', () => {
+    expect(missingContent('employee_talk', { ...asked, no_follow_up: false }, '2026-10-06')).toEqual(['follow_up_text', 'follow_up_on']);
+    expect(missingContent('employee_talk', { ...asked, no_follow_up_reason: '' }, '2026-10-06')).toEqual(['no_follow_up_reason']);
+  });
+
+  it('has topics of its own, and the company\'s conversation keeps its', () => {
+    expect(missingContent('employee_talk', { ...asked, topic: 'productivity' }, '2026-10-06')).toEqual(['topic']);
+    expect(missingContent('conversation', { ...asked, topic: 'personal' }, '2026-10-06')).toContain('topic');
+  });
+
+  it('is the only note that can be marked confidential', () => {
+    expect(mayBeConfidential('conversation', 'employee')).toBe(true);
+    expect(mayBeConfidential('conversation', 'company')).toBe(false);
+    expect(mayBeConfidential('warning', 'employee')).toBe(false);
+    expect(EMPTY_CONTENT.confidential).toBe(false);
   });
 });

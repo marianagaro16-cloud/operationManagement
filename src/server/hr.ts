@@ -56,7 +56,7 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
         .select(`
           id, note_date, body, created_at, created_by,
           sections, warning_level, follow_up_text, follow_up_on, no_follow_up_reason,
-          topic, event_on, event_time, event_area,
+          topic, event_on, event_time, event_area, asked_by, confidential,
           type:hr_note_types ( id, name, slug, structure, translations ),
           author:profiles!hr_notes_created_by_fkey ( name, email ),
           attachments:hr_note_attachments ( id, file_name, mime_type, storage_path ),
@@ -88,6 +88,8 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
 
   if (!worker) return null;
   if (notesError) throw new Error(notesError.message);
+  // Confidential notes the viewer may not read are counted, nothing more.
+  const { data: hidden } = await supabase.rpc('hr_confidential_hidden', { p_worker_id: id });
   if (evalError) throw new Error(evalError.message);
 
   type RawParticipant = HrParticipant & { followup_id: string | null };
@@ -138,11 +140,14 @@ export async function getWorkerFile(id: string): Promise<HrWorkerFile | null> {
 
   return {
     worker: worker as HrWorker,
+    hidden_notes: Number(hidden ?? 0),
     notes: rawNotes.map((n) => ({
       id: n.id,
       note_date: n.note_date,
       body: n.body,
       sections: n.sections,
+      asked_by: n.asked_by,
+      confidential: n.confidential,
       warning_level: n.warning_level,
       follow_up_text: n.follow_up_text,
       follow_up_on: n.follow_up_on,
