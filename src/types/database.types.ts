@@ -1882,6 +1882,202 @@ export type Database = {
           },
         ]
       }
+      expected_deliveries: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          created_by: string
+          due_date: string
+          expected_date: string | null
+          expected_week: string | null
+          id: string
+          moved_count: number
+          note: string | null
+          pallets: number | null
+          reception_id: string | null
+          status: Database["public"]["Enums"]["expected_delivery_status"]
+          storage: Database["public"]["Enums"]["expected_storage"][]
+          supplier_id: string
+          transporter_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by: string
+          due_date: string
+          expected_date?: string | null
+          expected_week?: string | null
+          id?: string
+          moved_count?: number
+          note?: string | null
+          pallets?: number | null
+          reception_id?: string | null
+          status?: Database["public"]["Enums"]["expected_delivery_status"]
+          storage: Database["public"]["Enums"]["expected_storage"][]
+          supplier_id: string
+          transporter_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string
+          due_date?: string
+          expected_date?: string | null
+          expected_week?: string | null
+          id?: string
+          moved_count?: number
+          note?: string | null
+          pallets?: number | null
+          reception_id?: string | null
+          status?: Database["public"]["Enums"]["expected_delivery_status"]
+          storage?: Database["public"]["Enums"]["expected_storage"][]
+          supplier_id?: string
+          transporter_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expected_deliveries_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expected_deliveries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expected_deliveries_reception_id_fkey"
+            columns: ["reception_id"]
+            isOneToOne: true
+            referencedRelation: "goods_receptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expected_deliveries_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expected_deliveries_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expected_deliveries_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expected_delivery_lines: {
+        Row: {
+          created_at: string
+          delivery_id: string
+          description: string | null
+          id: string
+          product_id: string | null
+          quantity: number
+          received_quantity: number | null
+          sort_order: number
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_id: string
+          description?: string | null
+          id?: string
+          product_id?: string | null
+          quantity: number
+          received_quantity?: number | null
+          sort_order?: number
+          unit: string
+        }
+        Update: {
+          created_at?: string
+          delivery_id?: string
+          description?: string | null
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          received_quantity?: number | null
+          sort_order?: number
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expected_delivery_lines_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "expected_deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expected_delivery_lines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "expected_delivery_lines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expected_delivery_notices: {
+        Row: {
+          delivery_id: string
+          kind: string
+          notice_date: string
+          sent_at: string
+        }
+        Insert: {
+          delivery_id: string
+          kind: string
+          notice_date: string
+          sent_at?: string
+        }
+        Update: {
+          delivery_id?: string
+          kind?: string
+          notice_date?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expected_delivery_notices_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "expected_deliveries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goods_reception_assignees: {
         Row: {
           assigned_at: string
@@ -9656,12 +9852,14 @@ export type Database = {
       can_change_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
       can_change_series: { Args: { p_series_id: string }; Returns: boolean }
       can_edit_marketing: { Args: never; Returns: boolean }
+      can_manage_expected_deliveries: { Args: never; Returns: boolean }
       can_manage_incident: { Args: { p_incident_id: string }; Returns: boolean }
       can_manage_maintenance: { Args: never; Returns: boolean }
       can_organize_meetings: { Args: never; Returns: boolean }
       can_plan_coverage: { Args: { p_absence_id: string }; Returns: boolean }
       can_read_marketing: { Args: never; Returns: boolean }
       can_request_marketing: { Args: never; Returns: boolean }
+      can_see_expected_deliveries: { Args: never; Returns: boolean }
       can_see_handover: { Args: { p_absence_id: string }; Returns: boolean }
       can_see_marketing_request: { Args: { p_id: string }; Returns: boolean }
       can_see_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
@@ -10188,6 +10386,10 @@ export type Database = {
         Returns: boolean
       }
       is_sales: { Args: never; Returns: boolean }
+      link_expected_delivery: {
+        Args: { p_delivery: string; p_reception: string }
+        Returns: undefined
+      }
       list_reminders: {
         Args: {
           p_creator?: string
@@ -10291,6 +10493,10 @@ export type Database = {
           lot_number: string
           produced_on: string
         }[]
+      }
+      record_expected_received: {
+        Args: { p_delivery: string; p_lines: Json }
+        Returns: boolean
       }
       record_inbox_notification: {
         Args: {
@@ -10529,6 +10735,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      task_allowed: { Args: { p_task_id: string }; Returns: boolean }
       task_day_set_people: {
         Args: {
           p_due_date: string
@@ -10539,12 +10746,23 @@ export type Database = {
         Returns: undefined
       }
       task_in_team_scope: { Args: { p_task_id: string }; Returns: boolean }
+      task_manager_limited: { Args: never; Returns: boolean }
       task_people: { Args: { p_task_id: string }; Returns: string[] }
       task_resync_days: { Args: { p_task_id: string }; Returns: undefined }
+      task_row_allowed: {
+        Args: {
+          p_incident_id: string
+          p_task_id: string
+          p_team: Database["public"]["Enums"]["team"]
+        }
+        Returns: boolean
+      }
       team_scope: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       touch_presence: { Args: { p_path: string }; Returns: undefined }
     }
     Enums: {
+      expected_delivery_status: "expected" | "arrived" | "cancelled"
+      expected_storage: "dry" | "refrigerated" | "frozen"
       goods_reception_condition:
         | "good"
         | "damaged"
@@ -10749,6 +10967,8 @@ export const Constants = {
   },
   public: {
     Enums: {
+      expected_delivery_status: ["expected", "arrived", "cancelled"],
+      expected_storage: ["dry", "refrigerated", "frozen"],
       goods_reception_condition: [
         "good",
         "damaged",

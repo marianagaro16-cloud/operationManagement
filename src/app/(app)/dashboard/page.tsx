@@ -37,6 +37,7 @@ import { NotesCard } from '@/components/notes/notes-view';
 import { getNotes } from '@/server/notes';
 import { compareUrgency, deliveryUrgency } from '@/domain/orders/urgency';
 import { personalTaskPhase } from '@/domain/reminders/schedule';
+import { getExpectedSoon } from '@/server/expected-deliveries';
 
 // Always render fresh: task and order state change constantly during a shift.
 export const dynamic = 'force-dynamic';
@@ -69,7 +70,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes, hrFollowUps, meetingWork] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes, hrFollowUps, meetingWork, expectedSoon] = await Promise.all([
     // Today and what is late — no week ahead: one's own are listed, the team's counted.
     getDashboardData(0),
     getOrderDashboardSummary(today),
@@ -111,6 +112,8 @@ export default async function DashboardPage() {
     viewer?.can('hr.manage') ? countMyFollowUpsDue(viewer.profile.id, today) : { count: 0, late: false },
     // Meetings for the files the viewer organised: records to register, follow-ups due.
     viewer ? getMeetingRecordWork(viewer.profile.id, today) : null,
+    // Expected deliveries: what did not arrive, and today's and tomorrow's. RLS returns none to whoever does not see them.
+    viewer ? getExpectedSoon(today) : { late: [], soon: [] },
   ]);
 
   // ---- whoever plans: their own activities, and the team in one line per area ----
@@ -172,6 +175,8 @@ export default async function DashboardPage() {
     meetingFollowUps: { count: meetingWork?.followUps.count ?? 0, late: meetingWork?.followUps.late ?? false, href: meetingWork?.followUps.first ? `/meetings/${meetingWork.followUps.first}` : '/meetings' },
     collectionFollowUps,
     hrFollowUps,
+    lateDeliveries: expectedSoon.late,
+    deliveriesSoon: expectedSoon.soon,
   });
 
   // Whom the viewer covers today; while it lasts, that person's work is theirs to do.
@@ -191,7 +196,8 @@ export default async function DashboardPage() {
 
       {/* The viewer's day first. What is late from before is counted in "Ahora", not repeated here. */}
       <TodayCard
-        items={agendaToday.filter((i) => !((i.kind === 'activity' || i.kind === 'collection') && i.late))}
+        // …and so are the deliveries that did not arrive; a week without a day is not "today".
+        items={agendaToday.filter((i) => !((i.kind === 'activity' || i.kind === 'collection' || i.kind === 'delivery') && i.late) && !i.weekOnly)}
         today={today}
         kinds={kinds}
         extra={

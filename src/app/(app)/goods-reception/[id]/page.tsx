@@ -9,6 +9,7 @@ import {
   getTransporters,
   isReceptionAssignee,
 } from '@/server/goods-reception';
+import { getExpectedAccess, getExpectedForReception, getOpenExpectedForSupplier } from '@/server/expected-deliveries';
 import { canEditReception } from '@/domain/goods-reception/workflow';
 import { ReceptionDetailView } from '@/components/goods-reception/reception-detail';
 import { canUseReminders } from '@/lib/authz';
@@ -23,7 +24,13 @@ export const dynamic = 'force-dynamic';
  * the two can never disagree. RLS answers the same questions again on every
  * write, which is what actually enforces them.
  */
-export default async function ReceptionDetailPage({ params }: { params: { id: string } }) {
+export default async function ReceptionDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { report?: string };
+}) {
   const viewer = await getViewer();
   if (!viewer || viewer.profile.status !== 'approved') redirect('/dashboard');
 
@@ -38,6 +45,15 @@ export default async function ReceptionDetailPage({ params }: { params: { id: st
     isAssignee: assignee,
     canManageAll,
   });
+
+  // The expected delivery this reception closed — or, while it closed none,
+  // the ones still open from its supplier: "is it this one?".
+  const expectedAccess = await getExpectedAccess(viewer);
+  const expected = expectedAccess.see ? await getExpectedForReception(params.id) : null;
+  const expectedCandidates =
+    expectedAccess.see && !expected && canEdit && reception.supplier_id
+      ? await getOpenExpectedForSupplier(reception.supplier_id)
+      : [];
 
   const [suppliers, transporters, products, incidentTypes, history] = await Promise.all([
     getSuppliers(),
@@ -73,6 +89,10 @@ export default async function ReceptionDetailPage({ params }: { params: { id: st
       // stays a prop rather than a constant because the rule lives in SQL and
       // could be narrowed there without this page noticing.
       canSeeIncidents
+      expected={expected}
+      expectedCandidates={expectedCandidates}
+      canManageExpected={expectedAccess.manage}
+      reportDifference={searchParams.report === 'difference'}
       reminderViewerId={canUseReminders(viewer) ? viewer.profile.id : null}
     />
   );

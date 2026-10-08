@@ -4,6 +4,7 @@ import {
   type ReceptionCondition,
   type ReceptionStatus,
 } from './vocabulary';
+import { buildExpectedReport, type ExpectedReport, type ReportExpected } from './expected';
 
 /**
  * The monthly Goods Reception report, as pure aggregation.
@@ -117,6 +118,12 @@ export interface ReceptionReportPayload {
    * receptions and a count alone gives nobody anything to act on.
    */
   openReceptions: { id: string; reception_number: string; received_at: string; status: ReceptionStatus }[];
+
+  /**
+   * Announced against arrived, for the deliveries expected in the month.
+   * Absent from reports frozen before expected deliveries existed.
+   */
+  expected?: ExpectedReport;
 }
 
 /**
@@ -134,8 +141,10 @@ export function buildReceptionReport(params: {
   receptions: ReportReception[];
   /** How to name the "not recorded" bucket. Passed in so this stays i18n-free. */
   unrecordedLabel: string;
+  /** The deliveries expected in the month, and the day the report is taken. */
+  expected?: { rows: ReportExpected[]; today: string };
 }): ReceptionReportPayload {
-  const { period, receptions, unrecordedLabel } = params;
+  const { period, receptions, unrecordedLabel, expected } = params;
 
   const summary: ReceptionReportSummary = {
     total: receptions.length,
@@ -181,6 +190,8 @@ export function buildReceptionReport(params: {
         status: r.status,
       }))
       .sort((a, b) => a.received_at.localeCompare(b.received_at)),
+
+    ...(expected ? { expected: buildExpectedReport(expected.rows, expected.today) } : {}),
   };
 }
 

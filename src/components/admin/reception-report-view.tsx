@@ -10,6 +10,7 @@ import {
   type PartyPerformance,
   type ReceptionReportPayload,
 } from '@/domain/goods-reception/report';
+import type { ExpectedReport } from '@/domain/goods-reception/expected';
 import { useReceptionLabels } from '@/components/goods-reception/reception-bits';
 
 /**
@@ -74,6 +75,10 @@ export function ReceptionReportView({ payload }: { payload: ReceptionReportPaylo
 
       <PartyTable title={t('gr.bySupplier')} rows={payload.suppliers} />
       <PartyTable title={t('gr.byTransporter')} rows={payload.transporters} />
+
+      {payload.expected && payload.expected.summary.expected + payload.expected.summary.cancelled > 0 && (
+        <ExpectedTable report={payload.expected} />
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <BucketCard
@@ -186,6 +191,74 @@ function PartyTable({ title, rows }: { title: string; rows: PartyPerformance[] }
           </tbody>
         </table>
       </div>
+    </Card>
+  );
+}
+
+/**
+ * Announced against arrived. The same restraint as the tables above: a count
+ * of deliveries that came after their day, never a reason why.
+ */
+function ExpectedTable({ report }: { report: ExpectedReport }) {
+  const { t, formatDate } = useI18n();
+  const columns = ['expected', 'onTime', 'early', 'late', 'notArrived', 'pending', 'cancelled', 'moved'] as const;
+  const label = (c: (typeof columns)[number]) => t(`grx.rep.${c}` as MessageKey);
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-0">
+        <SectionHeading title={t('grx.rep.title')} subtitle={t('grx.rep.subtitle')} />
+      </CardHeader>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[44rem] border-collapse text-[13px]">
+          <thead>
+            <tr className="border-b border-border text-left">
+              <th className="px-4 py-2 font-semibold sm:px-5">{t('gr.supplier')}</th>
+              {columns.map((c) => <th key={c} className="px-3 py-2 text-right font-semibold">{label(c)}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {report.suppliers.map((row) => (
+              <tr key={row.id} className="border-b border-border">
+                <td className="px-4 py-2 sm:px-5">{row.name}</td>
+                {columns.map((c) => (
+                  <td key={c} className={`px-3 py-2 text-right tabular-nums ${(c === 'late' || c === 'notArrived') && row[c] > 0 ? 'font-semibold text-late' : ''}`}>
+                    {row[c]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            <tr className="font-semibold">
+              <td className="px-4 py-2 sm:px-5">{t('grx.rep.total')}</td>
+              {columns.map((c) => <td key={c} className="px-3 py-2 text-right tabular-nums">{report.summary[c]}</td>)}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {report.lateArrivals.length > 0 && (
+        <CardBody className="pt-4">
+          <p className="mb-1.5 text-[11.5px] font-medium uppercase tracking-wide text-subtle">{t('grx.rep.lateList')}</p>
+          <ul className="space-y-1">
+            {report.lateArrivals.map((row) => (
+              <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-x-3 text-[13px]">
+                <span>
+                  {row.supplier_name}
+                  <span className="text-muted"> · {t('grx.expectedFor', { when: formatDate(row.due_date, 'short') })}</span>
+                </span>
+                {row.arrived_on && row.reception_id ? (
+                  <Link href={`/goods-reception/${row.reception_id}`} className="text-late hover:underline">
+                    {t('grx.arrivedOn', { date: formatDate(row.arrived_on, 'short') })} · {t('grx.verdict.late', { days: row.days ?? 0 })}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-late">{t('grx.lateBadge')}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </CardBody>
+      )}
     </Card>
   );
 }

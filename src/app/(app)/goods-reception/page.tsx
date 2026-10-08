@@ -1,12 +1,16 @@
 import { redirect } from 'next/navigation';
 import { getUsers, getViewer } from '@/server/data';
 import {
+  getReceptionProducts,
   getReceptions,
   getSuppliers,
   getTransporters,
   isReceptionAssignee,
 } from '@/server/goods-reception';
+import { getExpectedAccess, getExpectedHistory, getOpenExpected } from '@/server/expected-deliveries';
 import { ReceptionList } from '@/components/goods-reception/reception-list';
+import { ExpectedList } from '@/components/goods-reception/expected-list';
+import { businessToday } from '@/lib/datetime';
 import {
   isQuantityCheck,
   isReceptionCondition,
@@ -22,6 +26,10 @@ export const dynamic = 'force-dynamic';
  * §11: EVERY approved user reads this, whatever their role. What assignment
  * decides is whether the New button appears, and RLS decides it again on the
  * write itself.
+ *
+ * Whoever sees the expected deliveries — the office and the reception list —
+ * gets two tabs and lands on what is coming; everyone else gets the list of
+ * what arrived, as always.
  *
  * Filters arrive from the query string and are narrowed here rather than
  * trusted: an unrecognised status would otherwise reach Postgres as an
@@ -39,6 +47,35 @@ export default async function GoodsReceptionPage({
     const value = searchParams[key];
     return typeof value === 'string' && value.length > 0 ? value : undefined;
   };
+
+  const access = await getExpectedAccess(viewer);
+  const canManageAll = viewer.can('goods_reception.manage_all');
+  // A link carrying filters and no tab is a link into what arrived.
+  const filtering = Object.keys(searchParams).some((key) => key !== 'tab' && key !== 'show');
+  const tab = access.see && (one('tab') === 'expected' || (!one('tab') && !filtering)) ? 'expected' : 'received';
+
+  if (tab === 'expected') {
+    const [open, history, suppliers, transporters, products, assignee] = await Promise.all([
+      getOpenExpected(),
+      one('show') === 'history' ? getExpectedHistory() : null,
+      getSuppliers(true),
+      getTransporters(true),
+      access.manage ? getReceptionProducts() : [],
+      isReceptionAssignee(viewer.profile.id),
+    ]);
+    return (
+      <ExpectedList
+        open={open}
+        history={history}
+        today={businessToday()}
+        suppliers={suppliers}
+        transporters={transporters}
+        products={products}
+        canManage={access.manage}
+        canRegister={assignee || canManageAll}
+      />
+    );
+  }
 
   const status = one('status');
   const condition = one('condition');
@@ -63,7 +100,7 @@ export default async function GoodsReceptionPage({
 
   const page = Math.max(1, Number(one('page') ?? '1') || 1);
 
-  const [receptions, suppliers, transporters, users, assignee] = await Promise.all([
+  const [receptions, suppliers, transporters, users, assignee, expected] = await Promise.all([
     getReceptions(filters, page),
     // Inactive suppliers are included so a filter on a deactivated one still
     // resolves — history keeps them, and a filter that cannot name them would
@@ -72,9 +109,8 @@ export default async function GoodsReceptionPage({
     getTransporters(true),
     getUsers(),
     isReceptionAssignee(viewer.profile.id),
+    access.see ? getOpenExpected() : null,
   ]);
-
-  const canManageAll = viewer.can('goods_reception.manage_all');
 
   return (
     <ReceptionList
@@ -87,6 +123,7 @@ export default async function GoodsReceptionPage({
       canCreate={assignee || canManageAll}
       canExport={viewer.can('reports.export')}
       isAssignee={assignee}
+      expected={expected}
     />
   );
 }

@@ -12,6 +12,8 @@ import { canComplete, canTransition } from '@/domain/goods-reception/workflow';
 import { buildReceptionReport } from '@/domain/goods-reception/report';
 import { getViewer } from './data';
 import { getReceptionsForMonth, isReceptionAssignee } from './goods-reception';
+import { getExpectedForMonth } from './expected-deliveries';
+import { businessToday } from '@/lib/datetime';
 import type { ActionResult } from './actions';
 
 /**
@@ -709,11 +711,15 @@ export async function generateReceptionReport(
   const viewer = await getViewer();
   if (!viewer?.can('reports.view')) return fail('not_authorized');
 
-  const receptions = await getReceptionsForMonth(parsed.data.month);
+  const [receptions, expected] = await Promise.all([
+    getReceptionsForMonth(parsed.data.month),
+    getExpectedForMonth(parsed.data.month),
+  ]);
   const payload = buildReceptionReport({
     period: parsed.data.month,
     receptions,
     unrecordedLabel: parsed.data.unrecorded_label,
+    expected: { rows: expected, today: businessToday() },
   });
 
   const supabase = createClient();

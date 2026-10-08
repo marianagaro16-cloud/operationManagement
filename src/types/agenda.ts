@@ -2,7 +2,7 @@ import type { MeetingResponse } from './meetings';
 
 /** One person's agenda: everything with a day, from every part of the app. */
 
-export type AgendaKind = 'activity' | 'inventory' | 'sales' | 'meeting' | 'coverage' | 'absence' | 'reminder' | 'personal' | 'collection';
+export type AgendaKind = 'activity' | 'inventory' | 'sales' | 'meeting' | 'coverage' | 'absence' | 'reminder' | 'personal' | 'collection' | 'delivery';
 
 export interface AgendaItem {
   /** Unique across kinds. */
@@ -24,4 +24,6 @@ export interface AgendaItem {
   /** What can be done right from the agenda. */
   action: 'complete_activity' | 'complete_personal' | 'answer_meeting' | null;
   response?: MeetingResponse;
+  /** An expected delivery with a week and no day yet: `date` is that week's Monday. */
+  weekOnly?: boolean;
 }

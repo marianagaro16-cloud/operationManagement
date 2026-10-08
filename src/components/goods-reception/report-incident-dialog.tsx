@@ -36,10 +36,13 @@ import { useReceptionError, useReceptionTime } from './reception-bits';
 export function ReportIncidentDialog({
   reception,
   incidentTypes,
+  initialDescription = '',
   onClose,
 }: {
   reception: ReceptionDetail;
   incidentTypes: IncidentType[];
+  /** Already written — the difference with what was expected. */
+  initialDescription?: string;
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -49,7 +52,7 @@ export function ReportIncidentDialog({
 
   const [typeId, setTypeId] = useState(incidentTypes[0]?.id ?? '');
   const [severity, setSeverity] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(initialDescription);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 

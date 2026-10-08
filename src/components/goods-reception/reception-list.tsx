@@ -23,6 +23,7 @@ import {
   RECEPTION_STATUSES,
 } from '@/domain/goods-reception/vocabulary';
 import type {
+  ExpectedDelivery,
   ReceptionListItem,
   ReceptionPage,
   Supplier,
@@ -30,6 +31,7 @@ import type {
 } from '@/types/goods-reception';
 import { ReceptionForm } from './reception-form';
 import { useReceptionLabels, useReceptionTime } from './reception-bits';
+import { ReceptionTabs } from './expected-bits';
 
 /**
  * The reception list.
@@ -49,7 +51,10 @@ export function ReceptionList({
   canCreate,
   canExport,
   isAssignee,
+  expected,
 }: {
+  /** What is still expected, for whoever sees it; null for everyone else, who get no tabs. */
+  expected: ExpectedDelivery[] | null;
   page: ReceptionPage;
   suppliers: Supplier[];
   transporters: Transporter[];
@@ -68,7 +73,7 @@ export function ReceptionList({
   const [showFilters, setShowFilters] = useState(false);
 
   const query = params.toString();
-  const filtered = [...params.keys()].some((k) => k !== 'page');
+  const filtered = [...params.keys()].some((k) => k !== 'page' && k !== 'tab');
 
   function setParam(key: string, value: string) {
     const next = new URLSearchParams(params.toString());
@@ -96,6 +101,8 @@ export function ReceptionList({
           ) : undefined
         }
       />
+
+      {expected && <ReceptionTabs tab="received" expectedCount={expected.length} />}
 
       {/* §11 makes everyone a reader. Saying WHY the New button is missing is
           what stops that reading as a broken screen. */}
@@ -264,6 +271,7 @@ export function ReceptionList({
         <ReceptionForm
           suppliers={suppliers}
           transporters={transporters}
+          expected={expected ?? []}
           onClose={() => setCreating(false)}
         />
       )}

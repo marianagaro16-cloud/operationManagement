@@ -8,6 +8,7 @@ import { runCoverageNotices } from '@/server/coverage-notify';
 import { runMeetingNotices, runMeetingRecordNotices } from '@/server/meeting-jobs';
 import { runCollectionNotices } from '@/server/collection-notify';
 import { runGuideNotices } from '@/server/guide-notify';
+import { runExpectedDeliveryNotices } from '@/server/expected-notify';
 
 // web-push needs Node crypto; it cannot run on the Edge runtime.
 export const runtime = 'nodejs';
@@ -57,6 +58,8 @@ export async function GET(request: Request) {
     const collections = await runCollectionNotices();
     // Guides: at 14:00 whoever covers is reminded of the open points; at 16:00 the approvers hear what was left.
     const guides = await runGuideNotices();
+    // Expected deliveries: the afternoon before and the morning of the day to whoever receives; what did not arrive to whoever entered it.
+    const deliveries = await runExpectedDeliveryNotices();
     return NextResponse.json({
       ok: true,
       ...result,
@@ -70,6 +73,7 @@ export async function GET(request: Request) {
       meetingRecordNotices: meetingRecords.sent,
       collectionNotices: collections.sent,
       guideNotices: guides.sent,
+      expectedDeliveryNotices: deliveries.sent,
     });
   } catch (e) {
     return NextResponse.json(

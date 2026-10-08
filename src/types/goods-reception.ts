@@ -9,6 +9,7 @@ import type {
   ReceptionStatus,
 } from '@/domain/goods-reception/vocabulary';
 import type { Product } from './orders';
+import type { ExpectedStatus, LineUnit, StorageType } from '@/domain/goods-reception/expected';
 
 export type { QuantityCheck, ReceptionCondition, ReceptionStatus };
 
@@ -164,4 +165,50 @@ export interface ReceptionReportSnapshot {
   generated_at: string;
   note: string | null;
   generator?: { name: string | null; email: string } | null;
+}
+
+/* --------------------------- expected deliveries -------------------------- */
+
+export type { ExpectedStatus, LineUnit, StorageType };
+
+/** One thing announced on an expected delivery: a catalogue product, or a description. */
+export interface ExpectedLine {
+  id: string;
+  delivery_id: string;
+  product_id: string | null;
+  description: string | null;
+  /** numeric(12,3): arrives from Postgres as a string. */
+  quantity: number | string;
+  unit: LineUnit;
+  /** What the receiver counted on arrival; null while not compared. */
+  received_quantity: number | string | null;
+  sort_order: number;
+  product?: Pick<Product, 'id' | 'code' | 'name' | 'family' | 'presentation'> | null;
+}
+
+/** A delivery the office announced. Mirrors 20270103090000_expected_deliveries.sql. */
+export interface ExpectedDelivery {
+  id: string;
+  supplier_id: string;
+  transporter_id: string | null;
+  /** Exactly one of the two: the day, or the Monday of a week without a day. */
+  expected_date: string | null;
+  expected_week: string | null;
+  due_date: string;
+  moved_count: number;
+  pallets: number | null;
+  storage: StorageType[];
+  note: string | null;
+  status: ExpectedStatus;
+  reception_id: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_by: string;
+  created_at: string;
+
+  supplier?: { id: string; name: string } | null;
+  transporter?: { id: string; name: string } | null;
+  creator?: { name: string | null; email: string } | null;
+  reception?: { id: string; reception_number: string; received_at: string } | null;
+  lines: ExpectedLine[];
 }

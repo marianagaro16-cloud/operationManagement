@@ -34,7 +34,7 @@ import {
   deleteReceptionEvidence,
   reopenReception,
 } from '@/server/goods-reception-actions';
-import type { ReceptionAuditEntry, ReceptionDetail, Supplier, Transporter } from '@/types/goods-reception';
+import type { ExpectedDelivery, ReceptionAuditEntry, ReceptionDetail, Supplier, Transporter } from '@/types/goods-reception';
 import type { Product } from '@/types/orders';
 import type { IncidentType } from '@/types/incidents';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
@@ -43,6 +43,7 @@ import { noteToPlainLine } from '@/domain/notes';
 import { ReceptionForm } from './reception-form';
 import { ExceptionEditor } from './exception-editor';
 import { ReportIncidentDialog } from './report-incident-dialog';
+import { ExpectedPanel } from './expected-panel';
 import {
   useAuditLabel,
   useReceptionError,
@@ -73,8 +74,19 @@ export function ReceptionDetailView({
   canManageAll,
   canReportIncident,
   canSeeIncidents,
+  expected,
+  expectedCandidates,
+  canManageExpected,
+  reportDifference,
   reminderViewerId,
 }: {
+  /** The expected delivery this reception closed; null when none, or when the viewer does not see them. */
+  expected: ExpectedDelivery | null;
+  /** Still expected from this supplier, while this reception closed none. */
+  expectedCandidates: ExpectedDelivery[];
+  canManageExpected: boolean;
+  /** Arrived here straight from registering a difference: the incident dialog opens, written. */
+  reportDifference: boolean;
   reception: ReceptionDetail;
   suppliers: Supplier[];
   transporters: Transporter[];
@@ -97,7 +109,8 @@ export function ReceptionDetailView({
   const auditLabel = useAuditLabel();
 
   const [editing, setEditing] = useState(false);
-  const [reporting, setReporting] = useState(false);
+  // What the incident dialog starts with: null closed, '' empty, or the difference already written.
+  const [reporting, setReporting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -193,6 +206,17 @@ export function ReceptionDetailView({
           </CardBody>
         </Card>
 
+        {/* ------------------------- expected delivery ---------------------- */}
+        <ExpectedPanel
+          reception={reception}
+          expected={expected}
+          candidates={expectedCandidates}
+          canEdit={canEdit}
+          canManage={canManageExpected}
+          onReport={canReportIncident ? setReporting : undefined}
+          reportNow={reportDifference}
+        />
+
         {/* ------------------------------ checks ---------------------------- */}
         <Card>
           <CardHeader className="pb-0">
@@ -232,7 +256,7 @@ export function ReceptionDetailView({
               title={t('gr.incidents')}
               action={
                 canReportIncident ? (
-                  <Button size="sm" variant="secondary" onClick={() => setReporting(true)}>
+                  <Button size="sm" variant="secondary" onClick={() => setReporting('')}>
                     <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
                     {t('gr.reportIncident')}
                   </Button>
@@ -344,11 +368,12 @@ export function ReceptionDetailView({
         />
       )}
 
-      {reporting && (
+      {reporting !== null && (
         <ReportIncidentDialog
           reception={reception}
           incidentTypes={incidentTypes}
-          onClose={() => setReporting(false)}
+          initialDescription={reporting}
+          onClose={() => setReporting(null)}
         />
       )}
     </>

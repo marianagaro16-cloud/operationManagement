@@ -9,11 +9,13 @@ import { getMeetingsFor } from './meetings';
 import { getAbsenceCalendar } from './absences';
 import { getUsers } from './data';
 import { displayName } from '@/lib/utils';
+import { personSeesExpected } from './expected-deliveries';
 
 /*
  * The agenda: one person's days, gathered from every part of the app — their
  * activities and counts, their sales plan, meetings, coverage and absences,
- * and (in their own agenda only) their reminders and personal tasks. Each
+ * the deliveries expected from suppliers (for whoever receives or announces
+ * them), and (in their own agenda only) their reminders and personal tasks. Each
  * part is read with the viewer's own access, so a manager looking at someone
  * sees what they may see and nothing more.
  */
@@ -28,13 +30,19 @@ export async function agendaPeople(viewer: { id: string; role: Role; team: Team 
     .map((u) => ({ id: u.id, name: displayName(u) }));
 }
 
+const DELIVERY_COLUMNS = 'id, status, expected_date, expected_week, due_date, pallets, storage, reception_id, supplier:suppliers ( name )';
+
 const zurich = (iso: string) => DateTime.fromISO(iso, { zone: 'utc' }).setZone(BUSINESS_TZ);
 
 export async function getAgenda(personId: string, from: string, to: string, own: boolean, today: string): Promise<AgendaItem[]> {
   const supabase = createClient();
   const items: AgendaItem[] = [];
 
-  const [occ, overdue, inv, sales, meetings, coverage, away, reminders, personal, collections] = await Promise.all([
+  // Expected deliveries are nobody's in particular: they show to whoever sees them.
+  const seesDeliveries = own || (await personSeesExpected(personId));
+  const todayInRange = today >= from && today <= to;
+
+  const [occ, overdue, inv, sales, meetings, coverage, away, reminders, personal, collections, deliveries, lateDeliveries] = await Promise.all([
     supabase
       .from('task_occurrences')
       .select('id, effective_due_date, status, task:tasks!inner ( title, translations )')
@@ -92,6 +100,20 @@ export async function getAgenda(personId: string, from: string, to: string, own:
       .is('closed_at', null)
       .lte('next_follow_up', to)
       .gte('next_follow_up', today >= from && today <= to ? '1900-01-01' : from),
+    // Expected deliveries of these days, and a week without a day when it
+    // overlaps them. RLS returns none to anyone who does not see them.
+    seesDeliveries
+      ? supabase
+          .from('expected_deliveries')
+          .select(DELIVERY_COLUMNS)
+          .in('status', ['expected', 'arrived'])
+          .or(`expected_date.lte.${to},expected_week.lte.${to}`)
+          .gte('due_date', from)
+      : Promise.resolve({ data: [] }),
+    // What did not arrive before these days: shown today, as late.
+    seesDeliveries && todayInRange
+      ? supabase.from('expected_deliveries').select(DELIVERY_COLUMNS).eq('status', 'expected').lt('due_date', from)
+      : Promise.resolve({ data: [] }),
   ]);
 
   // ---- activities ----
@@ -203,6 +225,23 @@ export async function getAgenda(personId: string, from: string, to: string, own:
       date: late && today >= from && today <= to ? today : c.next_follow_up, start: null, end: null,
       title: c.customer?.company_name ?? '', detail: `${c.stage === 'promise' ? 'promise' : 'follow_up'}:${Math.max(open, 0).toFixed(2)}`,
       href: `/collections/${c.id}`, done: false, late, action: null,
+    });
+  }
+
+  // ---- expected deliveries ----
+  type Delivery = {
+    id: string; status: 'expected' | 'arrived'; expected_date: string | null; expected_week: string | null; due_date: string;
+    pallets: number | null; storage: string[]; reception_id: string | null; supplier: { name: string } | null;
+  };
+  for (const d of ([...(deliveries.data ?? []), ...(lateDeliveries.data ?? [])] as unknown as Delivery[])) {
+    const late = d.status === 'expected' && d.due_date < today;
+    items.push({
+      key: `delivery-${d.id}`, kind: 'delivery', id: d.id,
+      date: d.due_date < from ? today : (d.expected_date ?? d.expected_week!), start: null, end: null,
+      title: d.supplier?.name ?? '', detail: `${d.pallets ?? ''}|${d.storage.join(',')}`,
+      href: d.reception_id ? `/goods-reception/${d.reception_id}` : '/goods-reception?tab=expected',
+      done: d.status === 'arrived', late, action: null,
+      weekOnly: !d.expected_date && d.due_date >= from,
     });
   }
 

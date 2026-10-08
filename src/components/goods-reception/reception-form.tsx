@@ -13,8 +13,10 @@ import {
 } from '@/domain/goods-reception/vocabulary';
 import { createReception, updateReception } from '@/server/goods-reception-actions';
 import type { ReceptionInput } from '@/server/goods-reception-actions';
-import type { GoodsReception, Supplier, Transporter } from '@/types/goods-reception';
+import { registerExpectedArrival } from '@/server/expected-delivery-actions';
+import type { ExpectedDelivery, GoodsReception, Supplier, Transporter } from '@/types/goods-reception';
 import { fromLocalInput, toLocalInput, useReceptionError, useReceptionLabels } from './reception-bits';
+import { ExpectedLines, LoadBadges, initialReceived, toReceived, useExpectedError, useExpectedLabels } from './expected-bits';
 
 /**
  * Registering a delivery.
@@ -28,28 +30,52 @@ import { fromLocalInput, toLocalInput, useReceptionError, useReceptionLabels } f
  * module. The delivery note already lists every article; anything unusual
  * about one of them is recorded afterwards as an exception, on the detail
  * page, where there is time to type.
+ *
+ * The one exception is a delivery the office announced: when the supplier has
+ * one open, the form asks whether this is it, and its lines — if it has any —
+ * are there to count against.
  */
 export function ReceptionForm({
   reception,
   suppliers,
   transporters,
+  expected = [],
+  arrivalOf,
   onClose,
 }: {
   /** Absent when registering a new delivery. */
   reception?: GoodsReception;
   suppliers: Supplier[];
   transporters: Transporter[];
+  /** Deliveries still expected, as far as the viewer sees them; a new reception may be one of them. */
+  expected?: ExpectedDelivery[];
+  /** Opened from an expected delivery: it starts out chosen. */
+  arrivalOf?: ExpectedDelivery;
   onClose: () => void;
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const labels = useReceptionLabels();
   const translateError = useReceptionError();
+  const translateExpectedError = useExpectedError();
+  const expectedLabels = useExpectedLabels();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const [supplierId, setSupplierId] = useState(reception?.supplier_id ?? '');
-  const [transporterId, setTransporterId] = useState(reception?.transporter_id ?? '');
+  const [supplierId, setSupplierId] = useState(reception?.supplier_id ?? arrivalOf?.supplier_id ?? '');
+  const [transporterId, setTransporterId] = useState(reception?.transporter_id ?? arrivalOf?.transporter_id ?? '');
+  // "Is it this one?" — only asked of a new reception.
+  const candidates = reception ? [] : expected.filter((d) => d.supplier_id === supplierId);
+  const [arrivalId, setArrivalId] = useState(arrivalOf?.id ?? '');
+  const arrival = candidates.find((d) => d.id === arrivalId) ?? null;
+  const [received, setReceived] = useState<Record<string, string>>(() => initialReceived(arrivalOf?.lines ?? []));
+
+  function chooseArrival(id: string) {
+    const chosen = candidates.find((d) => d.id === id);
+    setArrivalId(id);
+    setReceived(initialReceived(chosen?.lines ?? []));
+    if (chosen?.transporter_id && !transporterId) setTransporterId(chosen.transporter_id);
+  }
   const [deliveryNote, setDeliveryNote] = useState(reception?.delivery_note ?? '');
   // §14: defaults to now, correctable by hand. A delivery registered an hour
   // after it arrived should say when it arrived, not when somebody typed.
@@ -85,6 +111,19 @@ export function ReceptionForm({
     };
 
     startTransition(async () => {
+      if (arrival) {
+        const res = await registerExpectedArrival(input, arrival.id, toReceived(arrival.lines, received));
+        if (!res.ok) {
+          const message = translateExpectedError(res.error);
+          setError(message === res.error ? translateError(res.error) : message);
+          return;
+        }
+        onClose();
+        // A difference goes straight to reporting it, already written.
+        router.push(`/goods-reception/${res.data.id}${res.data.differs ? '?report=difference' : ''}`);
+        return;
+      }
+
       const res = reception
         ? await updateReception(reception.id, input)
         : await createReception(input);
@@ -121,7 +160,10 @@ export function ReceptionForm({
           <Select
             id="gr-supplier"
             value={supplierId}
-            onChange={(e) => setSupplierId(e.target.value)}
+            onChange={(e) => {
+              setSupplierId(e.target.value);
+              setArrivalId('');
+            }}
           >
             <option value="">—</option>
             {suppliers.map((s) => (
@@ -131,6 +173,47 @@ export function ReceptionForm({
             ))}
           </Select>
         </Field>
+
+        {candidates.length > 0 && (
+          <fieldset className="space-y-1.5 rounded-lg border border-accent/30 bg-accent/5 p-3">
+            <legend className="px-1 text-[13px] font-medium">{t('grx.suggestTitle')}</legend>
+            {candidates.map((d) => (
+              <label key={d.id} className="flex cursor-pointer items-start gap-2.5">
+                <input
+                  type="radio"
+                  name="gr-arrival"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-accent"
+                  checked={arrivalId === d.id}
+                  onChange={() => chooseArrival(d.id)}
+                />
+                <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-[13px]">
+                  <span className="font-medium">{expectedLabels.when(d)}</span>
+                  <LoadBadges delivery={d} />
+                </span>
+              </label>
+            ))}
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input
+                type="radio"
+                name="gr-arrival"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-accent"
+                checked={arrivalId === ''}
+                onChange={() => chooseArrival('')}
+              />
+              <span className="text-[13px]">{t('grx.suggestNone')}</span>
+            </label>
+          </fieldset>
+        )}
+
+        {arrival && arrival.lines.length > 0 && (
+          <Field label={t('grx.compareTitle')} hint={t('grx.compareHint')}>
+            <ExpectedLines
+              lines={arrival.lines}
+              received={received}
+              onReceived={(id, value) => setReceived((all) => ({ ...all, [id]: value }))}
+            />
+          </Field>
+        )}
 
         <Field label={t('gr.transporter')} hint={t('gr.noTransporter')} htmlFor="gr-transporter">
           <Select

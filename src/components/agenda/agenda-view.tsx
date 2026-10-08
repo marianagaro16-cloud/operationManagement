@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DateTime } from 'luxon';
 import {
-  BellRing, Boxes, Check, ChevronLeft, ChevronRight, ClipboardList, Handshake, ListTodo, Plane, Plus, Receipt, ShieldCheck, Users, X,
+  BellRing, Boxes, Check, ChevronLeft, ChevronRight, ClipboardList, Handshake, ListTodo, Plane, Plus, Receipt, ShieldCheck, Truck, Users, X,
 } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -34,6 +34,7 @@ const ICON: Record<AgendaKind, typeof Check> = {
   reminder: BellRing,
   personal: ListTodo,
   collection: Receipt,
+  delivery: Truck,
 };
 
 const TONE: Record<AgendaKind, string> = {
@@ -46,6 +47,7 @@ const TONE: Record<AgendaKind, string> = {
   reminder: 'border-l-subtle',
   personal: 'border-l-subtle',
   collection: 'border-l-late',
+  delivery: 'border-l-done',
 };
 
 const weekOf = (date: string) => {
@@ -86,7 +88,9 @@ export function AgendaView({
   const go = (next: { date?: string; person?: string }) =>
     startNav(() => router.push(`/agenda?date=${next.date ?? date}${(next.person ?? personId) !== viewerId ? `&person=${next.person ?? personId}` : ''}`));
   const shift = (weeks: number) => DateTime.fromISO(date, { zone: BUSINESS_TZ }).plus({ weeks }).toISODate()!;
-  const on = (d: string) => items.filter((i) => i.date === d);
+  const on = (d: string) => items.filter((i) => i.date === d && !i.weekOnly);
+  // Expected deliveries with a week and no day yet: above the days, not on one of them.
+  const thisWeek = items.filter((i) => i.weekOnly);
   const [creating, setCreating] = useState<{ what: 'reminder' | 'personal' | 'meeting'; date: string } | null>(null);
   const add = (d: string, compact = false) =>
     adding && (
@@ -121,6 +125,15 @@ export function AgendaView({
           </Select>
         )}
       </div>
+
+      {thisWeek.length > 0 && (
+        <div className="mb-3">
+          <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wider text-subtle">{t('agenda.weekNoDay')}</p>
+          <Card className="divide-y divide-border">
+            {thisWeek.map((i) => <Entry key={i.key} item={i} kinds={kinds} />)}
+          </Card>
+        </div>
+      )}
 
       {/* The computer: the week, side by side. */}
       <div className="hidden grid-cols-7 gap-2 lg:grid">
@@ -281,6 +294,12 @@ export function Entry({ item: i, kinds, compact = false }: { item: AgendaItem; k
 
   // A follow-up: "promise:1250.00" or "follow_up:1250.00".
   const [collectionWhat, collectionOpen] = i.kind === 'collection' && i.detail ? i.detail.split(':') : [null, null];
+  // An expected delivery: "17|dry,frozen" — pallets, and where they go.
+  const [pallets, storage] = i.kind === 'delivery' && i.detail ? i.detail.split('|') : [null, null];
+  const load = [
+    pallets ? (pallets === '1' ? t('grx.onePallet') : t('grx.palletsCount', { count: pallets })) : null,
+    ...(storage ? storage.split(',').map((s) => t(`grx.storageLabel.${s}` as MessageKey)) : []),
+  ].filter(Boolean).join(' · ');
   const title =
     i.kind === 'absence'
       ? t('agenda.away')
@@ -290,7 +309,9 @@ export function Entry({ item: i, kinds, compact = false }: { item: AgendaItem; k
           ? localizedTitle({ title: i.title, translations: i.translations } as TranslatableContent, locale)
           : i.title;
   const detail =
-    i.kind === 'activity' && i.detail === 'blocked'
+    i.kind === 'delivery'
+      ? load || null
+      : i.kind === 'activity' && i.detail === 'blocked'
       ? t('agenda.blocked')
       : i.kind === 'activity' && i.detail
         ? t('agenda.dueOn', { date: formatDate(i.detail, 'short') })

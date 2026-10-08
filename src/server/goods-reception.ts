@@ -14,6 +14,8 @@ import type {
   Transporter,
 } from '@/types/goods-reception';
 import type { Product } from '@/types/orders';
+import { businessToday } from '@/lib/datetime';
+import { getExpectedForMonth } from './expected-deliveries';
 
 /**
  * Goods Reception data access.
@@ -382,9 +384,14 @@ export async function getReceptionsForMonth(month: string): Promise<ReportRecept
  * free of i18n and the domain stays free of both.
  */
 export async function buildLiveReceptionReport(month: string, unrecordedLabel: string) {
-  const receptions = await getReceptionsForMonth(month);
+  const [receptions, expected] = await Promise.all([getReceptionsForMonth(month), getExpectedForMonth(month)]);
   return {
-    payload: buildReceptionReport({ period: month, receptions, unrecordedLabel }),
+    payload: buildReceptionReport({
+      period: month,
+      receptions,
+      unrecordedLabel,
+      expected: { rows: expected, today: businessToday() },
+    }),
     receptionIds: receptions.map((r) => r.id),
   };
 }

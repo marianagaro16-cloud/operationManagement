@@ -19,9 +19,21 @@ const none: NowInput = {
   meetingRecords: { count: 0, late: false, href: '/meetings' },
   meetingFollowUps: { count: 0, late: false, href: '/meetings' },
   collectionFollowUps: 0,
+  lateDeliveries: [],
+  deliveriesSoon: [],
 };
 
 describe('buildNowItems', () => {
+  it('lists expected deliveries: what did not arrive as late, today and tomorrow as due', () => {
+    const items = buildNowItems({ ...none, lateDeliveries: ['Rovey Seed'], deliveriesSoon: ['Intercheese', 'El Sol'], countsToday: 1 });
+    expect(items.map((i) => [i.kind, i.level, i.count])).toEqual([
+      ['lateDeliveries', 'late', 1],
+      ['deliveriesSoon', 'today', 2],
+      ['countsToday', 'today', 1],
+    ]);
+    expect(items[1]!.names).toEqual(['Intercheese', 'El Sol']);
+  });
+
   it('is empty when nothing is late or due', () => {
     expect(buildNowItems(none)).toEqual([]);
   });
