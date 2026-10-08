@@ -11,11 +11,30 @@ export interface SummaryNote {
   starred: boolean;
 }
 
+/** A registered Acta of the period, as it was when the summary was made. */
+export interface SummaryActa {
+  id: string;
+  date: string;
+  target: string;
+  target_kind: 'customer' | 'prospect';
+  kind_id: string;
+  salesperson: string;
+  points: {
+    /** The topic as it was named, in every language. */
+    topic: { name: string; translations: unknown } | null;
+    title: string;
+    discussed: string | null;
+    agreements: { body: string; responsible: string | null; due_on: string | null; status: 'met' | 'partly' | 'not_met' | 'pending' }[];
+  }[];
+}
+
 export interface SummaryContent {
   /** Activity kinds as they were named, for the snapshot to show in any language. */
   kinds: Record<string, { name: string; translations: unknown }>;
   /** Starred notes of the period. */
   highlights: SummaryNote[];
+  /** The Actas registered for the period's meetings. Absent from summaries shared before there were any. */
+  actas?: SummaryActa[];
   /** Every note of the period, by customer or prospect. */
   conversations: { target: string; target_kind: 'customer' | 'prospect'; notes: SummaryNote[] }[];
   activity: {

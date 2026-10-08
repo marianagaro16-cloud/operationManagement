@@ -3,7 +3,7 @@ import { isPushConfigured } from '@/server/push';
 import { runReminderNotifications } from '@/server/reminder-notify';
 import { runEvaluationDeadlineReminders } from '@/server/hr-eval-notify';
 import { runCelebrationNotices } from '@/server/hr-celebrations';
-import { runPlanNotices, runQuietCustomersSummary } from '@/server/sales-notify';
+import { runActaNotices, runPlanNotices, runQuietCustomersSummary } from '@/server/sales-notify';
 import { runCoverageNotices } from '@/server/coverage-notify';
 import { runMeetingNotices, runMeetingRecordNotices } from '@/server/meeting-jobs';
 import { runCollectionNotices } from '@/server/collection-notify';
@@ -48,6 +48,8 @@ export async function GET(request: Request) {
     const quiet = await runQuietCustomersSummary();
     // The sales planning: each salesperson's day at 08:00, and 15 minutes before a timed activity.
     const plan = await runPlanNotices();
+    // Actas of meetings with customers, from 09:00: one still to register after two days, a follow-up due.
+    const actas = await runActaNotices();
     // Coverage: the evening before, from 17:00, whoever covers someone tomorrow.
     const coverage = await runCoverageNotices();
     // Meetings: 15 minutes before, to whoever attends.
@@ -68,6 +70,7 @@ export async function GET(request: Request) {
       quietCustomersSummary: quiet.sent,
       planSummaries: plan.summaries,
       planNotices: plan.soon,
+      actaNotices: actas.sent,
       coverageNotices: coverage.sent,
       meetingNotices: meetings.sent,
       meetingRecordNotices: meetingRecords.sent,

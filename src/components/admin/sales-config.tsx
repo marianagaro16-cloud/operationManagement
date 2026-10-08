@@ -14,7 +14,7 @@ import { saveActivityKind, saveProspectListEntry } from '@/server/sales-actions'
 import { KindIcon } from '@/components/sales/activity-kind';
 import { KIND_ICONS, type ActivityKind, type KindIcon as KindIconName, type ProspectListEntry } from '@/types/sales';
 
-type List = 'sources' | 'lost_reasons' | 'kinds';
+type List = 'sources' | 'lost_reasons' | 'kinds' | 'acta_topics';
 type Row = ProspectListEntry & Partial<Pick<ActivityKind, 'icon' | 'behavior' | 'default_minutes'>>;
 type Editing = { list: List; row: Row | null };
 
@@ -26,11 +26,14 @@ export function SalesConfig({
   sources,
   lostReasons,
   kinds,
+  actaTopics,
 }: {
   sources: ProspectListEntry[];
   lostReasons: ProspectListEntry[];
   /** The kinds of activity: the planning's and the notes'. */
   kinds: ActivityKind[];
+  /** What a point of an Acta is about. */
+  actaTopics: ProspectListEntry[];
 }) {
   const { t, locale } = useI18n();
   const [editing, setEditing] = useState<Editing | null>(null);
@@ -74,6 +77,7 @@ export function SalesConfig({
       {section('sources', t('sales.source'), sources)}
       {section('lost_reasons', t('sales.lostReasons'), lostReasons)}
       {section('kinds', t('sales.kinds'), kinds, t('sales.kindsHint'))}
+      {section('acta_topics', t('acta.topics'), actaTopics, t('acta.topicsHint'))}
       {editing && <EntryDialog editing={editing} onClose={() => setEditing(null)} />}
     </>
   );

@@ -1,5 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
+import { agreementStatus } from '@/domain/hr/note-structure';
+import { getActaTopics, getActasBetween } from './sales-actas';
 import type { SalesSummary, SummaryContent, SummaryNote } from '@/types/summaries';
 
 /*
@@ -22,6 +24,8 @@ export async function buildSummary(from: string, to: string): Promise<SummaryCon
     { data: created },
     { data: closed },
     { data: events },
+    actas,
+    topics,
   ] = await Promise.all([
     supabase.from('sales_activity_kinds').select('id, name, translations'),
     supabase
@@ -46,6 +50,8 @@ export async function buildSummary(from: string, to: string): Promise<SummaryCon
       .gte('end_date', from)
       .neq('stage', 'idea')
       .order('start_date'),
+    getActasBetween(from, to),
+    getActaTopics(true),
   ]);
   if (cError) throw new Error(cError.message);
   if (pError) throw new Error(pError.message);
@@ -94,6 +100,23 @@ export async function buildSummary(from: string, to: string): Promise<SummaryCon
   return {
     kinds: Object.fromEntries((kinds ?? []).map((k) => [k.id, { name: k.name, translations: k.translations }])),
     highlights: notes.filter((n) => n.starred),
+    actas: actas.map((a) => ({
+      id: a.activity_id,
+      date: a.meeting_date,
+      target: a.target.name,
+      target_kind: a.target.kind,
+      kind_id: a.kind_id,
+      salesperson: a.salesperson_name,
+      points: a.points.map((p) => {
+        const topic = topics.find((entry) => entry.id === p.topic_id);
+        return {
+          topic: topic ? { name: topic.name, translations: topic.translations } : null,
+          title: p.title,
+          discussed: p.discussed,
+          agreements: p.agreements.map((g) => ({ body: g.body, responsible: g.responsible_name, due_on: g.due_on, status: agreementStatus(g) })),
+        };
+      }),
+    })),
     conversations: [...byTarget.values()].sort((a, b) => b.notes.length - a.notes.length || a.target.localeCompare(b.target)),
     activity: {
       byKind: [...counts.values()].sort((a, b) => b.done + b.not_done + b.planned - (a.done + a.not_done + a.planned)),

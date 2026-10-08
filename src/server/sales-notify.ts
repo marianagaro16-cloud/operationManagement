@@ -163,3 +163,81 @@ export async function runPlanNotices(now = new Date()): Promise<{ summaries: num
   }
   return { summaries, soon };
 }
+
+/** An owed Acta is chased once, this many days after the meeting. */
+const ACTA_AFTER_DAYS = 2;
+
+/**
+ * The Actas of meetings with customers, from 09:00: the salesperson is told
+ * once when a visit or an appointment done two days ago still has no
+ * registered Acta, and once on the day a registered Acta's follow-up is due.
+ * Claimed in the ledger first.
+ */
+export async function runActaNotices(now = new Date()): Promise<{ sent: number }> {
+  const local = DateTime.fromJSDate(now, { zone: BUSINESS_TZ });
+  if (local.hour < 9) return { sent: 0 };
+  const today = local.toISODate()!;
+  const admin = createAdminClient();
+
+  const [{ data: owed, error }, { data: due, error: dueError }] = await Promise.all([
+    admin
+      .from('sales_activities')
+      .select('id, salesperson_id, activity_date, customer:customers ( company_name ), prospect:prospects ( company_name ), acta:sales_actas ( registered_at )')
+      .eq('acta_required', true)
+      .eq('status', 'done')
+      .lte('activity_date', local.minus({ days: ACTA_AFTER_DAYS }).toISODate()!)
+      // Told once: what is older than a month was told long ago.
+      .gte('activity_date', local.minus({ days: 30 }).toISODate()!),
+    admin.from('sales_acta_follow_up_state').select('activity_id, salesperson_id, due_on').eq('closed', false).lte('due_on', today),
+  ]);
+  if (error ?? dueError) throw new Error(`acta notices: ${(error ?? dueError)!.message}`);
+
+  type Company = { company_name: string } | null;
+  type Owed = {
+    id: string; salesperson_id: string; activity_date: string; customer: Company; prospect: Company;
+    acta: { registered_at: string | null } | { registered_at: string | null }[] | null;
+  };
+  const followUps = (due ?? []) as unknown as { activity_id: string; salesperson_id: string; due_on: string }[];
+  const names = new Map<string, string>();
+  if (followUps.length) {
+    const { data: actas } = await admin
+      .from('sales_actas')
+      .select('activity_id, customer:customers ( company_name ), prospect:prospects ( company_name )')
+      .in('activity_id', followUps.map((f) => f.activity_id));
+    for (const a of (actas ?? []) as unknown as { activity_id: string; customer: Company; prospect: Company }[]) {
+      names.set(a.activity_id, a.customer?.company_name ?? a.prospect?.company_name ?? '');
+    }
+  }
+  const day = (date: string) => DateTime.fromISO(date, { zone: BUSINESS_TZ }).setLocale('es').toFormat('cccc d.M.');
+
+  const notices = [
+    ...((owed ?? []) as unknown as Owed[])
+      .filter((a) => !(Array.isArray(a.acta) ? a.acta[0] : a.acta)?.registered_at)
+      .map((a) => ({
+        activity: a.id, to: a.salesperson_id, kind: 'write',
+        title: 'Falta el acta de una reunión con cliente',
+        body: `${a.customer?.company_name ?? a.prospect?.company_name ?? ''} — ${day(a.activity_date)}`,
+      })),
+    ...followUps.map((f) => ({
+      activity: f.activity_id, to: f.salesperson_id, kind: `followup-${f.due_on}`,
+      title: 'Seguimiento de acta con cliente',
+      body: `${names.get(f.activity_id) ?? ''}: revisa los acuerdos.`,
+    })),
+  ];
+
+  let sent = 0;
+  for (const n of notices) {
+    const { data: claimed } = await admin
+      .from('sales_acta_notices')
+      .upsert({ activity_id: n.activity, profile_id: n.to, kind: n.kind }, { onConflict: 'activity_id,profile_id,kind', ignoreDuplicates: true })
+      .select('activity_id');
+    if (!claimed?.length) continue;
+    try {
+      await sendToUser(n.to, { title: n.title, body: n.body, url: `/sales/actas/${n.activity}`, tag: `acta-${n.kind}-${n.activity}` });
+      sent++;
+    } catch (err) {
+      console.error('sales-notify: acta notice failed', err);
+    }
+  }
+  return { sent };
+}

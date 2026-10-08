@@ -46,6 +46,7 @@
     "verify:meeting-records": "node scripts/verify-meeting-records.mjs",
     "verify:guides": "node scripts/verify-guides.mjs",
     "verify:expected": "node scripts/verify-expected-deliveries.mjs",
+    "verify:actas": "node scripts/verify-customer-actas.mjs",
     "products:prefill-weights": "tsx scripts/prefill-product-weights.ts",
     "perf": "node scripts/perf-baseline.mjs"
   },

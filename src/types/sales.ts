@@ -204,6 +204,8 @@ export interface SalesActivity {
   organiser_name: string;
   /** Others from the company taking part; it is in their Planning too. */
   participants: { id: string; name: string }[];
+  /** Its Acta: none owed, owed and not begun, begun, or registered. */
+  acta: 'none' | 'pending' | 'draft' | 'registered';
 }
 
 /** Where a salesperson's day starts and ends. */

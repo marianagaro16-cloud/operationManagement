@@ -6,6 +6,8 @@ import {
   getQuietCustomers, getSalesCustomers, getSalesPeople, getSalesReport, getVisitablePlaces,
 } from '@/server/sales';
 import { getMeetingsFor } from '@/server/meetings';
+import { getActaList, getActaTopics, getActaWork } from '@/server/sales-actas';
+import { ActaList } from '@/components/sales/acta-list';
 import { buildSummary, listSummaries } from '@/server/sales-summary';
 import { getFlaggedCustomers, getPrepayCustomers } from '@/server/collections';
 import { SummaryTab } from '@/components/summaries/summary-tab';
@@ -20,7 +22,7 @@ import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
 
-const TABS: SalesTab[] = ['customers', 'quiet', 'prospects', 'planning', 'report', 'summary'];
+const TABS: SalesTab[] = ['customers', 'quiet', 'prospects', 'planning', 'actas', 'report', 'summary'];
 
 /**
  * Sales: every customer, those going quiet, prospects, the planning, and the
@@ -48,7 +50,7 @@ export default async function SalesPage({
   const sumFrom = isDate(searchParams.from) ? searchParams.from! : monday.toISODate()!;
   const sumTo = isDate(searchParams.to) && searchParams.to! >= sumFrom ? searchParams.to! : monday.endOf('week').toISODate()!;
 
-  const [customers, quiet, prospects, people, customerTypes, lists, report, kinds, summary, previousSummaries, flagged, prepay] = await Promise.all([
+  const [customers, quiet, prospects, people, customerTypes, lists, report, kinds, summary, previousSummaries, flagged, prepay, actaWork, actas, actaTopics] = await Promise.all([
     tab === 'customers' ? getSalesCustomers() : Promise.resolve([]),
     getQuietCustomers(),
     tab === 'prospects' ? getProspects() : Promise.resolve([]),
@@ -56,17 +58,22 @@ export default async function SalesPage({
     tab === 'prospects' ? getCustomerTypes() : Promise.resolve([]),
     tab === 'prospects' ? getProspectLists(true) : Promise.resolve({ sources: [], lostReasons: [] }),
     tab === 'report' ? getSalesReport(month) : Promise.resolve(null),
-    needPeople ? getActivityKinds(true) : Promise.resolve([]),
+    needPeople || tab === 'actas' ? getActivityKinds(true) : Promise.resolve([]),
     tab === 'summary' ? buildSummary(sumFrom, sumTo) : Promise.resolve(null),
     tab === 'summary' ? listSummaries() : Promise.resolve([]),
     // Payments pending: a flag, nothing more.
     tab === 'customers' ? getFlaggedCustomers() : Promise.resolve(new Map<string, 'reminder' | 'pending'>()),
     tab === 'customers' ? getPrepayCustomers() : Promise.resolve([]),
+    // The viewer's own Actas to write and follow-ups due: the tab's count.
+    getActaWork(viewer.profile.id, today),
+    tab === 'actas' ? getActaList(today) : Promise.resolve([]),
+    tab === 'actas' ? getActaTopics(true) : Promise.resolve([]),
   ]);
 
   return (
     <>
-      <SalesHeader tab={tab} quietCount={quiet.length} />
+      <SalesHeader tab={tab} quietCount={quiet.length} actaCount={actaWork.toWrite.count + actaWork.followUps.count} />
+      {tab === 'actas' && <ActaList rows={actas} kinds={kinds} topics={actaTopics} today={today} />}
       {tab === 'quiet' && <QuietCustomerList customers={quiet} />}
       {tab === 'customers' && <SalesCustomerList customers={customers} today={today} flagged={Object.fromEntries(flagged)} prepay={prepay.map((c) => c.id)} />}
       {tab === 'planning' && (

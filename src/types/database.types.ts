@@ -8641,8 +8641,449 @@ export type Database = {
           },
         ]
       }
+      sales_acta_agreement_results: {
+        Row: {
+          agreement_id: string
+          comment: string | null
+          entry_id: string
+          id: string
+          result: string
+        }
+        Insert: {
+          agreement_id: string
+          comment?: string | null
+          entry_id: string
+          id?: string
+          result: string
+        }
+        Update: {
+          agreement_id?: string
+          comment?: string | null
+          entry_id?: string
+          id?: string
+          result?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_acta_agreement_results_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "sales_acta_agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_acta_agreement_results_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "sales_acta_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_acta_agreements: {
+        Row: {
+          activity_id: string
+          body: string
+          due_on: string | null
+          id: string
+          point_id: string
+          responsible_name: string | null
+          responsible_profile_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          activity_id: string
+          body?: string
+          due_on?: string | null
+          id?: string
+          point_id: string
+          responsible_name?: string | null
+          responsible_profile_id?: string | null
+          sort_order: number
+        }
+        Update: {
+          activity_id?: string
+          body?: string
+          due_on?: string | null
+          id?: string
+          point_id?: string
+          responsible_name?: string | null
+          responsible_profile_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_acta_agreements_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_acta_follow_up_state"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "sales_acta_agreements_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_actas"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "sales_acta_agreements_point_id_fkey"
+            columns: ["point_id"]
+            isOneToOne: false
+            referencedRelation: "sales_acta_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_acta_agreements_responsible_profile_id_fkey"
+            columns: ["responsible_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_acta_attendees: {
+        Row: {
+          activity_id: string
+          id: string
+          name: string
+          profile_id: string | null
+          role: string | null
+          side: string
+        }
+        Insert: {
+          activity_id: string
+          id?: string
+          name: string
+          profile_id?: string | null
+          role?: string | null
+          side: string
+        }
+        Update: {
+          activity_id?: string
+          id?: string
+          name?: string
+          profile_id?: string | null
+          role?: string | null
+          side?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_acta_attendees_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_acta_follow_up_state"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "sales_acta_attendees_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_actas"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "sales_acta_attendees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_acta_entries: {
+        Row: {
+          activity_id: string
+          body: string
+          closes: boolean
+          created_at: string
+          created_by: string | null
+          entry_date: string
+          id: string
+          kind: string
+          next_on: string | null
+        }
+        Insert: {
+          activity_id: string
+          body: string
+          closes?: boolean
+          created_at?: string
+          created_by?: string | null
+          entry_date: string
+          id?: string
+          kind: string
+          next_on?: string | null
+        }
+        Update: {
+          activity_id?: string
+          body?: string
+          closes?: boolean
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          id?: string
+          kind?: string
+          next_on?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_acta_entries_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_acta_follow_up_state"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "sales_acta_entries_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_actas"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "sales_acta_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_acta_notices: {
+        Row: {
+          activity_id: string
+          kind: string
+          profile_id: string
+          sent_at: string
+        }
+        Insert: {
+          activity_id: string
+          kind: string
+          profile_id: string
+          sent_at?: string
+        }
+        Update: {
+          activity_id?: string
+          kind?: string
+          profile_id?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_acta_notices_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_acta_notices_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_acta_points: {
+        Row: {
+          activity_id: string
+          discussed: string | null
+          id: string
+          sort_order: number
+          title: string
+          topic_id: string | null
+        }
+        Insert: {
+          activity_id: string
+          discussed?: string | null
+          id?: string
+          sort_order: number
+          title?: string
+          topic_id?: string | null
+        }
+        Update: {
+          activity_id?: string
+          discussed?: string | null
+          id?: string
+          sort_order?: number
+          title?: string
+          topic_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_acta_points_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_acta_follow_up_state"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "sales_acta_points_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_actas"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "sales_acta_points_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "sales_acta_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_acta_topics: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sales_actas: {
+        Row: {
+          activity_id: string
+          customer_id: string | null
+          end_time: string | null
+          follow_up_on: string | null
+          kind_id: string
+          meeting_date: string
+          place: string | null
+          place_detail: string | null
+          prospect_id: string | null
+          registered_at: string | null
+          registered_by: string | null
+          salesperson_id: string
+          salesperson_name: string
+          start_time: string | null
+          updated_at: string
+          written_by: string | null
+        }
+        Insert: {
+          activity_id: string
+          customer_id?: string | null
+          end_time?: string | null
+          follow_up_on?: string | null
+          kind_id: string
+          meeting_date: string
+          place?: string | null
+          place_detail?: string | null
+          prospect_id?: string | null
+          registered_at?: string | null
+          registered_by?: string | null
+          salesperson_id: string
+          salesperson_name: string
+          start_time?: string | null
+          updated_at?: string
+          written_by?: string | null
+        }
+        Update: {
+          activity_id?: string
+          customer_id?: string | null
+          end_time?: string | null
+          follow_up_on?: string | null
+          kind_id?: string
+          meeting_date?: string
+          place?: string | null
+          place_detail?: string | null
+          prospect_id?: string | null
+          registered_at?: string | null
+          registered_by?: string | null
+          salesperson_id?: string
+          salesperson_name?: string
+          start_time?: string | null
+          updated_at?: string
+          written_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_actas_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: true
+            referencedRelation: "sales_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_actas_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_actas_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "sales_actas_kind_id_fkey"
+            columns: ["kind_id"]
+            isOneToOne: false
+            referencedRelation: "sales_activity_kinds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_actas_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_actas_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_actas_salesperson_id_fkey"
+            columns: ["salesperson_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_actas_written_by_fkey"
+            columns: ["written_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_activities: {
         Row: {
+          acta_required: boolean
           activity_date: string
           activity_end: string | null
           activity_time: string | null
@@ -8664,6 +9105,7 @@ export type Database = {
           title: string | null
         }
         Insert: {
+          acta_required?: boolean
           activity_date: string
           activity_end?: string | null
           activity_time?: string | null
@@ -8685,6 +9127,7 @@ export type Database = {
           title?: string | null
         }
         Update: {
+          acta_required?: boolean
           activity_date?: string
           activity_end?: string | null
           activity_time?: string | null
@@ -9785,6 +10228,54 @@ export type Database = {
           },
         ]
       }
+      sales_acta_follow_up_state: {
+        Row: {
+          activity_id: string | null
+          closed: boolean | null
+          customer_id: string | null
+          due_on: string | null
+          meeting_date: string | null
+          prospect_id: string | null
+          salesperson_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_actas_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: true
+            referencedRelation: "sales_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_actas_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_actas_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "sales_actas_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_actas_salesperson_id_fkey"
+            columns: ["salesperson_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       absence_brief: {
@@ -10630,6 +11121,22 @@ export type Database = {
       role_rank: {
         Args: { r: Database["public"]["Enums"]["user_role"] }
         Returns: number
+      }
+      sales_acta_entry_add: {
+        Args: {
+          p_activity_id: string
+          p_body: string
+          p_closes: boolean
+          p_entry_date: string
+          p_kind: string
+          p_next_on: string
+          p_results: Json
+        }
+        Returns: string
+      }
+      sales_acta_save: {
+        Args: { p_activity_id: string; p_content: Json; p_register: boolean }
+        Returns: undefined
       }
       sales_can_change: { Args: { p_salesperson_id: string }; Returns: boolean }
       sales_customer_file: { Args: { p_customer_id: string }; Returns: Json }

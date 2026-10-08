@@ -29,6 +29,7 @@ import { getAgenda } from '@/server/agenda';
 import { TodayCard } from '@/components/agenda/today-card';
 import { countUnansweredInvites } from '@/server/meetings';
 import { getMeetingRecordWork } from '@/server/meeting-records';
+import { getActaWork } from '@/server/sales-actas';
 import { countFollowUpsDue } from '@/server/collections';
 import { CoverageTodayCard } from '@/components/absences/coverage-today-card';
 import { TeamTodayCard, type TeamToday } from '@/components/tasks/team-today-card';
@@ -70,7 +71,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes, hrFollowUps, meetingWork, expectedSoon] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes, hrFollowUps, meetingWork, expectedSoon, actaWork] = await Promise.all([
     // Today and what is late — no week ahead: one's own are listed, the team's counted.
     getDashboardData(0),
     getOrderDashboardSummary(today),
@@ -114,6 +115,8 @@ export default async function DashboardPage() {
     viewer ? getMeetingRecordWork(viewer.profile.id, today) : null,
     // Expected deliveries: what did not arrive, and today's and tomorrow's. RLS returns none to whoever does not see them.
     viewer ? getExpectedSoon(today) : { late: [], soon: [] },
+    // Visits and appointments with customers: Actas to write, follow-ups due. Sales only.
+    viewer && sales ? getActaWork(viewer.profile.id, today) : null,
   ]);
 
   // ---- whoever plans: their own activities, and the team in one line per area ----
@@ -173,6 +176,8 @@ export default async function DashboardPage() {
     meetingInvites,
     meetingRecords: { count: meetingWork?.toRegister.count ?? 0, late: meetingWork?.toRegister.late ?? false, href: meetingWork?.toRegister.first ? `/meetings/${meetingWork.toRegister.first}` : '/meetings' },
     meetingFollowUps: { count: meetingWork?.followUps.count ?? 0, late: meetingWork?.followUps.late ?? false, href: meetingWork?.followUps.first ? `/meetings/${meetingWork.followUps.first}` : '/meetings' },
+    actasToWrite: { count: actaWork?.toWrite.count ?? 0, late: actaWork?.toWrite.late ?? false, href: actaWork?.toWrite.first ? `/sales/actas/${actaWork.toWrite.first}` : '/sales?tab=actas' },
+    actaFollowUps: { count: actaWork?.followUps.count ?? 0, late: actaWork?.followUps.late ?? false, href: actaWork?.followUps.first ? `/sales/actas/${actaWork.followUps.first}` : '/sales?tab=actas' },
     collectionFollowUps,
     hrFollowUps,
     lateDeliveries: expectedSoon.late,

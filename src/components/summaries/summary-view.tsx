@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { Star } from 'lucide-react';
-import { useI18n } from '@/i18n';
+import { useI18n, type MessageKey } from '@/i18n';
 import { localizedName } from '@/lib/localized-content';
 import { NoteText } from '@/components/ui/note';
 import type { SummaryContent, SummaryNote } from '@/types/summaries';
@@ -79,6 +79,51 @@ export function SummaryView({ content, from, to }: { content: SummaryContent; fr
           </div>
         </div>
       </Block>
+
+      {/* Summaries shared before there were Actas do not have the block at all. */}
+      {content.actas && (
+        <Block title={t('acta.summaryTitle')}>
+          {content.actas.length === 0 ? (
+            <p className="text-[12.5px] text-muted">{t('summary.none')}</p>
+          ) : (
+            <div className="space-y-3">
+              {content.actas.map((a) => (
+                <div key={a.id} className="break-inside-avoid">
+                  <p className="text-[13.5px] font-semibold">
+                    {a.target}
+                    <span className="ml-2 text-[12px] font-normal text-muted">
+                      {formatDate(a.date, 'short')} · {kindName(a.kind_id)} · {a.salesperson}
+                      {a.target_kind === 'prospect' && ` · ${t('summary.prospect')}`}
+                    </span>
+                  </p>
+                  <ul className="space-y-1.5 border-l-2 border-border pl-3">
+                    {a.points.map((p, i) => {
+                      const topic = p.topic ? localizedName(p.topic, locale) : null;
+                      return (
+                        <li key={i} className="text-[13px]">
+                          <p className="font-medium">
+                            {p.title || topic}
+                            {topic && p.title && <span className="ml-1.5 text-[12px] font-normal text-muted">{topic}</span>}
+                          </p>
+                          {p.discussed && <NoteText text={p.discussed} className="text-[13px]" />}
+                          {p.agreements.map((g, n) => (
+                            <p key={n} className="text-[12.5px] text-muted">
+                              → <span className="text-fg">{g.body}</span>
+                              {g.responsible && ` · ${g.responsible}`}
+                              {g.due_on && ` · ${t('meetingRecord.until', { date: formatDate(g.due_on, 'short') })}`}
+                              {` · ${t(`hrNote.result_${g.status}` as MessageKey)}`}
+                            </p>
+                          ))}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </Block>
+      )}
 
       <Block title={t('summary.conversations')}>
         {content.conversations.length === 0 ? (

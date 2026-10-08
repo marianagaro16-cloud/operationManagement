@@ -18,6 +18,8 @@ const none: NowInput = {
   meetingInvites: 0,
   meetingRecords: { count: 0, late: false, href: '/meetings' },
   meetingFollowUps: { count: 0, late: false, href: '/meetings' },
+  actasToWrite: { count: 0, late: false, href: '/sales?tab=actas' },
+  actaFollowUps: { count: 0, late: false, href: '/sales?tab=actas' },
   collectionFollowUps: 0,
   lateDeliveries: [],
   deliveriesSoon: [],
@@ -32,6 +34,13 @@ describe('buildNowItems', () => {
       ['countsToday', 'today', 1],
     ]);
     expect(items[1]!.names).toEqual(['Intercheese', 'El Sol']);
+  });
+
+  it('lists the Actas still to write: due at first, late after two days', () => {
+    const due = buildNowItems({ ...none, actasToWrite: { count: 2, late: false, href: '/sales/actas/a' } });
+    expect(due.map((i) => [i.kind, i.level, i.count, i.href])).toEqual([['actasToWrite', 'today', 2, '/sales/actas/a']]);
+    const late = buildNowItems({ ...none, actasToWrite: { count: 1, late: true, href: '/sales/actas/a' }, actaFollowUps: { count: 1, late: false, href: '/sales/actas/b' } });
+    expect(late.map((i) => [i.kind, i.level])).toEqual([['actasToWrite', 'late'], ['actaFollowUps', 'today']]);
   });
 
   it('is empty when nothing is late or due', () => {

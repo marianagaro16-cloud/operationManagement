@@ -199,6 +199,8 @@ export async function getSalesReport(month: string): Promise<SalesReport> {
 
 const ACTIVITY_COLUMNS = `
   id, salesperson_id, kind_id, activity_date, activity_time, activity_end, title, place, place_detail, position, status,
+  acta_required,
+  written:sales_actas ( registered_at ),
   customer:customers ( id, company_name, street, postal_code, city, latitude, longitude ),
   prospect:prospects ( id, company_name, street, postal_code, city, latitude, longitude ),
   event:events ( id, name ),
@@ -211,15 +213,19 @@ type RawPlace = { id: string; company_name: string; street: string | null; posta
 type RawPerson = { id?: string; name: string | null; email: string };
 
 function toActivity(row: unknown): SalesActivity {
-  const { customer, prospect, organiser, participants, ...a } = row as Omit<SalesActivity, 'target' | 'organiser_name' | 'participants'> & {
+  const { customer, prospect, organiser, participants, acta_required, written, ...a } = row as Omit<SalesActivity, 'target' | 'organiser_name' | 'participants' | 'acta'> & {
+    acta_required: boolean;
+    written: { registered_at: string | null } | { registered_at: string | null }[] | null;
     customer: RawPlace | null;
     prospect: RawPlace | null;
     organiser: RawPerson | null;
     participants: { profile: RawPerson | null }[] | null;
   };
   const place = customer ?? prospect;
+  const acta = Array.isArray(written) ? written[0] : written;
   return {
     ...a,
+    acta: acta ? (acta.registered_at ? 'registered' : 'draft') : acta_required ? 'pending' : 'none',
     organiser_name: organiser ? organiser.name || organiser.email : '—',
     participants: (participants ?? [])
       .map((p) => p.profile)

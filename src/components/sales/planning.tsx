@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DateTime } from 'luxon';
 import {
-  AlertTriangle, ArrowDown, ArrowUp, Building2, CalendarPlus, Check, ChevronLeft, ChevronRight, Clock, Home, Map, MapPinOff,
+  AlertTriangle, ArrowDown, ArrowUp, Building2, CalendarPlus, Check, ChevronLeft, ChevronRight, Clock, FileCheck2, Home, Map, MapPinOff,
   Pencil, Plus, Route, Trash2, UserMinus, Users, X,
 } from 'lucide-react';
 import { useI18n } from '@/i18n';
@@ -276,6 +276,7 @@ export function PlanningView({
                     {a.target?.kind === 'prospect' && <Badge tone="warn">{t('sales.visitProspect')}</Badge>}
                     {a.status === 'done' && <Badge tone="done"><Check className="h-3 w-3" aria-hidden />{t('sales.visitDone')}</Badge>}
                     {a.status === 'not_done' && <Badge tone="neutral"><X className="h-3 w-3" aria-hidden />{t('sales.visitNotDone')}</Badge>}
+                    <ActaLink a={a} />
                   </div>
                   {a.target && a.title && <p className="text-[12px]">{a.title}</p>}
                   <WithWhom a={a} joined={joined(a)} />
@@ -512,6 +513,26 @@ function MeetingLine({ meeting: m }: { meeting: Meeting }) {
   );
 }
 
+/** A done visit's or appointment's Acta: still owed, begun, or registered. Opens it. */
+function ActaLink({ a, compact = false }: { a: SalesActivity; compact?: boolean }) {
+  const { t } = useI18n();
+  if (a.acta === 'none') return null;
+  const label = a.acta === 'pending' ? t('acta.pending') : a.acta === 'draft' ? t('acta.draft') : t('acta.one');
+  return (
+    <Link
+      href={`/sales/actas/${a.id}`}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-medium hover:opacity-80',
+        compact ? 'mt-1 text-[11px]' : 'text-2xs',
+        a.acta === 'registered' ? 'border-border text-muted' : 'border-warn/40 bg-warn/10 text-warn',
+      )}
+    >
+      <FileCheck2 className="h-3 w-3 shrink-0" aria-hidden />
+      {label}
+    </Link>
+  );
+}
+
 /** Who else takes part — or, in a participant's Planning, whose it is. */
 function WithWhom({ a, joined, compact = false }: { a: SalesActivity; joined: boolean; compact?: boolean }) {
   const { t } = useI18n();
@@ -736,15 +757,19 @@ function RecordDialog({ activity, kinds, today, onClose }: { activity: SalesActi
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const nextPlan = planNext ? toPlanInput(next, kinds, !activity.target) : null;
+  // A visit or an appointment with someone, done: what happened goes in its Acta.
+  const behavior = kinds.find((kind) => kind.id === activity.kind_id)?.behavior ?? 'plain';
+  const withActa = status === 'done' && !!activity.target && behavior !== 'plain';
 
-  function submit() {
+  function submit(writeActa = false) {
     if (planNext && !nextPlan) return;
     setError(null);
     startTransition(async () => {
-      const res = await recordActivity({ activity_id: activity.id, status, note: note || null, next: nextPlan });
+      const res = await recordActivity({ activity_id: activity.id, status, note: withActa ? null : note || null, next: nextPlan });
       if (!res.ok) return setError(res.error);
       router.refresh();
       if (res.data.next === 'failed') return setError(t('sales.planNextFailed'));
+      if (writeActa) return router.push(`/sales/actas/${activity.id}?write=1`);
       onClose();
     });
   }
@@ -758,7 +783,14 @@ function RecordDialog({ activity, kinds, today, onClose }: { activity: SalesActi
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
-          <Button variant="primary" onClick={submit} loading={pending} disabled={planNext && !nextPlan}>{t('common.save')}</Button>
+          {withActa ? (
+            <>
+              <Button variant="secondary" onClick={() => submit(false)} disabled={pending || (planNext && !nextPlan)}>{t('acta.later')}</Button>
+              <Button variant="primary" onClick={() => submit(true)} loading={pending} disabled={planNext && !nextPlan}>{t('acta.writeNow')}</Button>
+            </>
+          ) : (
+            <Button variant="primary" onClick={() => submit()} loading={pending} disabled={planNext && !nextPlan}>{t('common.save')}</Button>
+          )}
         </>
       }
     >
@@ -778,13 +810,20 @@ function RecordDialog({ activity, kinds, today, onClose }: { activity: SalesActi
             </button>
           ))}
         </div>
-        <Field
-          label={t('sales.visitWhatHappened')}
-          hint={activity.target ? t('sales.visitNoteHint') : undefined}
-          htmlFor="record-note"
-        >
-          <NoteTextarea id="record-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} autoFocus />
-        </Field>
+        {withActa ? (
+          <p className="flex items-start gap-2 rounded-lg border border-accent/25 bg-accent/[0.04] p-3 text-[12.5px]">
+            <FileCheck2 className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden />
+            {t('acta.owedHint')}
+          </p>
+        ) : (
+          <Field
+            label={t('sales.visitWhatHappened')}
+            hint={activity.target ? t('sales.visitNoteHint') : undefined}
+            htmlFor="record-note"
+          >
+            <NoteTextarea id="record-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} autoFocus />
+          </Field>
+        )}
         <label className="flex items-center gap-2 text-[13px] font-medium">
           <input type="checkbox" className="h-4 w-4 accent-accent" checked={planNext} onChange={(e) => setPlanNext(e.target.checked)} />
           {t('sales.planNext')}
@@ -974,6 +1013,7 @@ function WeekGrid({
                     )}
                     {range && <p className="truncate text-[11px] text-muted">{k.name(a.kind_id)}</p>}
                     <WithWhom a={a} joined={joined(a)} compact />
+                    <ActaLink a={a} compact />
                     {a.status === 'planned' && joined(a) && onLeave && (
                       <Button size="sm" variant="ghost" className="mt-1 h-6 px-1.5 text-[11px]" disabled={pending} onClick={() => onLeave(a)}>
                         <UserMinus className="h-3 w-3" aria-hidden />

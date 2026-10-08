@@ -6,15 +6,25 @@ import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/shell/app-shell';
 
 /** The Sales section's title and tabs: every customer, those going quiet, and prospects. */
-export type SalesTab = 'customers' | 'quiet' | 'prospects' | 'planning' | 'report' | 'summary';
+export type SalesTab = 'customers' | 'quiet' | 'prospects' | 'planning' | 'actas' | 'report' | 'summary';
 
-export function SalesHeader({ tab, quietCount }: { tab: SalesTab; quietCount: number }) {
+export function SalesHeader({
+  tab,
+  quietCount,
+  actaCount = 0,
+}: {
+  tab: SalesTab;
+  quietCount: number;
+  /** The viewer's Actas still to write, and their follow-ups due. */
+  actaCount?: number;
+}) {
   const { t } = useI18n();
   const tabs = [
     { key: 'customers', label: t('sales.tabCustomers'), href: '/sales' },
     { key: 'quiet', label: t('sales.tabQuiet'), href: '/sales?tab=quiet', count: quietCount },
     { key: 'prospects', label: t('sales.tabProspects'), href: '/sales?tab=prospects' },
     { key: 'planning', label: t('sales.tabPlanning'), href: '/sales?tab=planning' },
+    { key: 'actas', label: t('acta.many'), href: '/sales?tab=actas', count: actaCount },
     { key: 'report', label: t('sales.tabReport'), href: '/sales?tab=report' },
     { key: 'summary', label: t('summary.tab'), href: '/sales?tab=summary' },
   ] as const;

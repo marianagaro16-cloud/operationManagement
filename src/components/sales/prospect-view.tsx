@@ -17,6 +17,8 @@ import { useProspectError, useProspectLabels } from './prospect-parts';
 import { ProspectDialog, type ProspectChoices } from './prospect-dialog';
 import { KindBadge, useKinds } from './activity-kind';
 import { NoteDialog, PlanForTargetDialog, PlannedList } from './target-plan';
+import type { ActaRow, ActaTopic } from '@/types/sales-acta';
+import { TargetActas } from './acta-list';
 
 /** One prospect: who they are, where it stands, what is next, and every note. */
 export function ProspectView({
@@ -26,7 +28,12 @@ export function ProspectView({
   choices,
   customerTypeName,
   today,
+  actas,
+  actaTopics,
 }: {
+  /** The Actas of the visits and appointments with them, and those still owed. */
+  actas: ActaRow[];
+  actaTopics: ActaTopic[];
   prospect: Prospect;
   notes: ProspectNote[];
   /** What is still planned with them; every open prospect has something. */
@@ -138,6 +145,8 @@ export function ProspectView({
           ))}
         </dl>
       </Card>
+
+      <TargetActas rows={actas} kinds={choices.kinds} topics={actaTopics} today={today} />
 
       <div className="mb-2 flex items-center justify-between gap-3">
         <h2 className="text-[15px] font-semibold">{t('sales.notes')}</h2>

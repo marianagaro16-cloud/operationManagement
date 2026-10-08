@@ -28,6 +28,8 @@ export type NowKind =
   | 'meetingInvites'
   | 'meetingRecords'
   | 'meetingFollowUps'
+  | 'actasToWrite'
+  | 'actaFollowUps'
   | 'collectionFollowUps'
   | 'lateDeliveries'
   | 'deliveriesSoon';
@@ -71,6 +73,10 @@ export interface NowInput {
   meetingRecords: { count: number; late: boolean; href: string };
   /** Follow-ups of registered meetings the viewer organised, due today or before. */
   meetingFollowUps: { count: number; late: boolean; href: string };
+  /** The viewer's visits and appointments with customers whose Acta is not registered; late after two days. */
+  actasToWrite: { count: number; late: boolean; href: string };
+  /** Follow-ups of the viewer's registered Actas, due today or before. */
+  actaFollowUps: { count: number; late: boolean; href: string };
   /** Collection cases of the viewer due for follow-up today or before. */
   collectionFollowUps: number;
   /** Expected deliveries whose day passed with nothing registered: their suppliers. */
@@ -96,6 +102,8 @@ const ORDER: NowKind[] = [
   'hrFollowUps',
   'meetingRecords',
   'meetingFollowUps',
+  'actasToWrite',
+  'actaFollowUps',
   'absencesToApprove',
   'coverageGaps',
   'meetingInvites',
@@ -119,6 +127,8 @@ export function buildNowItems(input: NowInput): NowItem[] {
     { kind: 'hrFollowUps', level: input.hrFollowUps.late ? 'late' : 'today', count: input.hrFollowUps.count, href: '/hr?followups=1' },
     { kind: 'meetingRecords', level: input.meetingRecords.late ? 'late' : 'today', count: input.meetingRecords.count, href: input.meetingRecords.href },
     { kind: 'meetingFollowUps', level: input.meetingFollowUps.late ? 'late' : 'today', count: input.meetingFollowUps.count, href: input.meetingFollowUps.href },
+    { kind: 'actasToWrite', level: input.actasToWrite.late ? 'late' : 'today', count: input.actasToWrite.count, href: input.actasToWrite.href },
+    { kind: 'actaFollowUps', level: input.actaFollowUps.late ? 'late' : 'today', count: input.actaFollowUps.count, href: input.actaFollowUps.href },
     { kind: 'absencesToApprove', level: 'today', count: input.absencesToApprove, href: '/absences?tab=approve' },
     { kind: 'coverageGaps', level: 'today', count: input.coverageGaps, href: '/absences?tab=calendar' },
     { kind: 'meetingInvites', level: 'today', count: input.meetingInvites, href: '/meetings' },

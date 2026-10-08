@@ -96,6 +96,8 @@ const NOW_ICON: Record<NowKind, typeof Zap> = {
   meetingInvites: Users,
   meetingRecords: ClipboardCheck,
   meetingFollowUps: ClipboardCheck,
+  actasToWrite: ClipboardCheck,
+  actaFollowUps: ClipboardCheck,
   collectionFollowUps: Receipt,
   lateDeliveries: Truck,
   deliveriesSoon: Truck,

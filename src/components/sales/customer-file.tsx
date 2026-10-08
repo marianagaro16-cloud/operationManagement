@@ -15,6 +15,8 @@ import type { CollectionCaseRow } from '@/types/collections';
 import { KindBadge, useKinds } from './activity-kind';
 import { NoteDialog, PlanForTargetDialog, PlannedList } from './target-plan';
 import type { ActivityKind, Amount } from '@/types/sales';
+import type { ActaRow, ActaTopic } from '@/types/sales-acta';
+import { TargetActas } from './acta-list';
 import type { CustomerFileView } from '@/server/sales';
 
 const number = (n: number, digits = 0) =>
@@ -32,8 +34,13 @@ export function CustomerFile({
   today,
   collections,
   quickNotes = [],
+  actas,
+  actaTopics,
 }: {
   quickNotes?: QuickNote[];
+  /** The Actas of the visits and appointments with them, and those still owed. */
+  actas: ActaRow[];
+  actaTopics: ActaTopic[];
   /** Payments pending — and, for the collections team, the cases. */
   collections: { flagged: 'reminder' | 'pending' | null; prepay: boolean; cases: CollectionCaseRow[] | null };
   view: CustomerFileView;
@@ -185,6 +192,8 @@ export function CustomerFile({
 
       {/* The viewer's own quick notes about this customer (and those shared with them). */}
       <CustomerNotes notes={quickNotes} customer={{ id: customer.id, name: customer.company_name }} viewerId={viewerId} />
+
+      <TargetActas rows={actas} kinds={kinds} topics={actaTopics} today={today} />
 
       {/* Notes and follow-ups */}
       <div className="mb-2 flex items-center justify-between gap-3">

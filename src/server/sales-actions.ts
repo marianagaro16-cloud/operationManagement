@@ -493,15 +493,15 @@ const listEntrySchema = z.object({
 
 export type ProspectListInput = z.input<typeof listEntrySchema>;
 
-/** How we found a prospect, or why one was lost (RLS: is_admin). */
+/** How we found a prospect, why one was lost, or what a point of an Acta is about (RLS: is_admin). */
 export async function saveProspectListEntry(
-  list: 'sources' | 'lost_reasons',
+  list: 'sources' | 'lost_reasons' | 'acta_topics',
   input: ProspectListInput,
   id?: string,
 ): Promise<ActionResult> {
   const parsed = listEntrySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_entry' };
-  const table = list === 'sources' ? 'prospect_sources' : 'prospect_lost_reasons';
+  const table = list === 'sources' ? 'prospect_sources' : list === 'lost_reasons' ? 'prospect_lost_reasons' : 'sales_acta_topics';
   const supabase = createClient();
   const { error } = id
     ? await supabase.from(table).update(parsed.data).eq('id', id)
