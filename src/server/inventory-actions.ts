@@ -7,7 +7,7 @@ import { inventoryScheduleSchema, INVENTORY_FREQUENCIES, INVENTORY_KINDS } from 
 import { planTemplateRefresh } from '@/domain/inventory/refresh';
 import { sendToUser } from './push';
 import type { ActionResult } from './actions';
-import { notifyPhysicalCountDone, notifyShortShelfLife } from './inventory-notify';
+import { notifyPhysicalCountDone, notifyShortShelfLife, shareShortShelfLife } from './inventory-notify';
 
 /**
  * Inventory server actions.
@@ -299,6 +299,8 @@ export async function completeInventory(instanceId: string): Promise<ActionResul
   await notifyPhysicalCountDone(instanceId, user?.id ?? null);
   // And, where the template asks for it, what is close to expiring.
   await notifyShortShelfLife(instanceId);
+  // …told to Marketing as a request, and to Ventas and the owners.
+  await shareShortShelfLife(instanceId);
 
   revalidateInventory(instanceId);
   return { ok: true, data: undefined };

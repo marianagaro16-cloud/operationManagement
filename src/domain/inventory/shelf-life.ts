@@ -97,3 +97,25 @@ export function shortShelfLifeAlert(
     body: `${products} ${products === 1 ? 'producto vence' : 'productos vencen'} en menos de ${months} meses · KW ${isoWeek}: ${first.join(', ')}${more}`,
   };
 }
+
+/**
+ * The same list written out for Marketing and Sales: every batch, what is
+ * already past its date apart from what is about to be — a promotion is for
+ * the second, never the first.
+ */
+export function shortShelfLifeReport(
+  name: string,
+  isoWeek: number,
+  countDate: BusinessDate,
+  months: number,
+  lines: readonly ShortShelfLifeLine[],
+): { title: string; text: string } {
+  const date = (iso: string) => DateTime.fromISO(iso).toFormat('dd.MM.yyyy');
+  const row = (l: ShortShelfLifeLine) => `- ${l.itemName} × ${l.quantity} · ${date(l.expiryDate)}`;
+  const expired = lines.filter((l) => l.daysLeft < 0);
+  const soon = lines.filter((l) => l.daysLeft >= 0);
+  const parts = [`Inventario ${name} del ${date(countDate)} (KW ${isoWeek}).`];
+  if (soon.length) parts.push(`Vencen antes del ${date(shelfLifeThreshold(countDate, months))}:\n${soon.map(row).join('\n')}`);
+  if (expired.length) parts.push(`Ya vencidos:\n${expired.map(row).join('\n')}`);
+  return { title: `Productos con caducidad corta — ${name} KW ${isoWeek}`, text: parts.join('\n\n') };
+}

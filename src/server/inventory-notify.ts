@@ -5,9 +5,9 @@ import {
   selectInventoryNotifications,
   type NotifiableInventory,
 } from '@/domain/inventory/notifications';
-import { sendToPermissionHolders, sendToUsers } from './push';
+import { sendToMarketing, sendToPermissionHolders, sendToUsers } from './push';
 import { addDays, businessToday } from '@/lib/datetime';
-import { shortShelfLife, shortShelfLifeAlert } from '@/domain/inventory/shelf-life';
+import { shortShelfLife, shortShelfLifeAlert, shortShelfLifeReport } from '@/domain/inventory/shelf-life';
 
 /**
  * Inventory push alerts.
@@ -123,6 +123,18 @@ export async function runInventoryNotifications(now: Date = new Date()): Promise
       .eq('kind', n.kind);
 
     sent += recipients;
+  }
+
+  // Short expiry not yet told to Marketing and Sales — the request could not
+  // be made when the count was completed. Yesterday's and today's counts only.
+  const { data: completed } = await admin
+    .from('inventory_instances')
+    .select('id, template:inventory_templates!inner ( short_shelf_life_months )')
+    .gte('inventory_date', addDays(today, -1))
+    .not('completed_at', 'is', null)
+    .not('template.short_shelf_life_months', 'is', null);
+  for (const row of (completed ?? []) as { id: string }[]) {
+    if (!alreadySent.has(`${row.id}:short_shelf_life_commercial`)) sent += await shareShortShelfLife(row.id);
   }
 
   return { considered: inventories.length, sent };
@@ -260,6 +272,86 @@ export async function notifyShortShelfLife(instanceId: string): Promise<number> 
     return recipients;
   } catch (e) {
     console.error('[inventory] short-shelf-life notification failed', e);
+    return 0;
+  }
+}
+
+/**
+ * The same list, told commercially (decided 2026-10-08): a request to
+ * Marketing, so promotions can be planned with what is about to expire, and
+ * a notice to Ventas and the owners.
+ *
+ * The request is made in the name kept in app_settings
+ * ('inventory.short_expiry_requester' — Daniela), who then receives
+ * Marketing's comments; an owner if that is not set. Once per count, claimed
+ * in the ledger and released if the request could not be made, so the
+ * scheduler tries again. Never throws.
+ */
+export async function shareShortShelfLife(instanceId: string): Promise<number> {
+  const admin = createAdminClient();
+  const ledger = () => admin.from('inventory_notifications');
+  let claimed = false;
+  try {
+    const { data, error } = await admin
+      .from('inventory_instances')
+      .select(`
+        id, name_snapshot, iso_week, inventory_date,
+        template:inventory_templates ( short_shelf_life_months ),
+        items:inventory_instance_items ( id, item_name, entries:inventory_entries ( quantity, expiry_date ) )
+      `)
+      .eq('id', instanceId)
+      .maybeSingle();
+    if (error || !data) return 0;
+    const inv = data as unknown as {
+      id: string; name_snapshot: string; iso_week: number; inventory_date: string;
+      template: { short_shelf_life_months: number | null } | null;
+      items: { id: string; item_name: string; entries: { quantity: number | null; expiry_date: string | null }[] }[] | null;
+    };
+
+    const months = inv.template?.short_shelf_life_months;
+    if (!months) return 0;
+    const lines = shortShelfLife(inv.items ?? [], inv.inventory_date, months);
+    if (lines.length === 0) return 0;
+
+    const { error: claimError } = await ledger().insert({ instance_id: instanceId, kind: 'short_shelf_life_commercial', recipients: 0 });
+    if (claimError) return 0;
+    claimed = true;
+
+    const [{ data: setting }, { data: owners }, { data: sales }] = await Promise.all([
+      admin.from('app_settings').select('value').eq('key', 'inventory.short_expiry_requester').maybeSingle(),
+      admin.from('profiles').select('id').eq('status', 'approved').eq('role', 'owner').is('deleted_at', null),
+      admin.from('profiles').select('id').eq('status', 'approved').eq('team', 'sales').is('deleted_at', null),
+    ]);
+    const ownerIds = ((owners ?? []) as { id: string }[]).map((p) => p.id);
+    const salesIds = ((sales ?? []) as { id: string }[]).map((p) => p.id).filter((id) => !ownerIds.includes(id));
+    const requester = typeof setting?.value === 'string' ? setting.value : ownerIds[0];
+    if (!requester) throw new Error('nobody to make the request');
+
+    const { title, text } = shortShelfLifeReport(inv.name_snapshot, inv.iso_week, inv.inventory_date, months, lines);
+    const { data: request, error: requestError } = await admin
+      .from('marketing_requests')
+      .insert({
+        title,
+        description: `${text}\n\nPara planear promociones con estos productos.`.slice(0, 5000),
+        requested_by: requester,
+      })
+      .select('id')
+      .single();
+    if (requestError) throw new Error(requestError.message);
+
+    const notice = { title, body: text, level: 'warning' as const };
+    const recipients =
+      (await sendToMarketing({ ...notice, url: `/marketing/requests/${request.id}`, tag: `mkt-request-${request.id}` })) +
+      (await sendToUsers(ownerIds, { ...notice, url: `/marketing/requests/${request.id}`, tag: `short-expiry-${instanceId}` })) +
+      // Ventas does not open other people's requests: theirs leads to the count.
+      (await sendToUsers(salesIds, { ...notice, url: `/inventory/${instanceId}`, tag: `short-expiry-${instanceId}` }));
+
+    // The request exists and every notice is in the inbox whether or not a device was reached.
+    await ledger().update({ recipients }).eq('instance_id', instanceId).eq('kind', 'short_shelf_life_commercial');
+    return recipients;
+  } catch (e) {
+    console.error('[inventory] short-shelf-life request to marketing failed', e);
+    if (claimed) await ledger().delete().eq('instance_id', instanceId).eq('kind', 'short_shelf_life_commercial');
     return 0;
   }
 }

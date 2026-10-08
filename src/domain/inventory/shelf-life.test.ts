@@ -1,5 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { shelfLifeThreshold, shortShelfLife, shortShelfLifeAlert, type ShelfLifeItem } from './shelf-life';
+import { shelfLifeThreshold, shortShelfLife, shortShelfLifeAlert, shortShelfLifeReport, type ShelfLifeItem } from './shelf-life';
+
+describe('the list for Marketing and Sales', () => {
+  it('keeps what is already past its date apart from what is about to be', () => {
+    const line = (itemName: string, expiryDate: string, quantity: number, daysLeft: number) => ({ itemId: itemName, itemName, expiryDate, quantity, daysLeft });
+    const { title, text } = shortShelfLifeReport('Complementarios', 41, '2026-10-08', 3, [
+      line('Tiniebla', '2026-09-01', 498, -37),
+      line('Jarritos Guava', '2026-12-10', 22, 63),
+    ]);
+    expect(title).toBe('Productos con caducidad corta — Complementarios KW 41');
+    expect(text).toBe(
+      'Inventario Complementarios del 08.10.2026 (KW 41).\n\n' +
+        'Vencen antes del 08.01.2027:\n- Jarritos Guava × 22 · 10.12.2026\n\n' +
+        'Ya vencidos:\n- Tiniebla × 498 · 01.09.2026',
+    );
+  });
+});
 
 const COUNT = '2026-09-14';
 
