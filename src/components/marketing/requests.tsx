@@ -228,7 +228,7 @@ export function RequestView({
   const [comment, setComment] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
-  const mine = request.requested_by === viewerId;
+  const mine = request.requester_ids.includes(viewerId);
   const open = request.status === 'new' || request.status === 'in_progress';
   const images = request.files.filter((f) => f.mime_type.startsWith('image/') && f.url);
   const others = request.files.filter((f) => !images.includes(f));

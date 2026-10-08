@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { MARKETING_ALLOWED_MIME, MARKETING_MAX_BYTES, REQUESTS_BUCKET, REQUEST_STATUSES } from '@/lib/marketing';
-import { sendToMarketing, sendToUser } from './push';
+import { sendToMarketing, sendToUsers } from './push';
+import { requesterIds } from './marketing-requests';
 import type { ActionResult } from './actions';
 
 /*
@@ -89,9 +90,11 @@ export async function setRequestStatus(id: string, status: (typeof REQUEST_STATU
   if (error) return fail(error);
   if (!data?.length) return { ok: false, error: 'not_authorized' };
   const { title, requested_by } = data[0];
-  if (requested_by !== who?.id && (status === 'done' || status === 'in_progress')) {
+  // Everyone who asked hears it, whoever moved it aside.
+  const askers = (await requesterIds(id, requested_by)).filter((p) => p !== who?.id);
+  if (askers.length && (status === 'done' || status === 'in_progress')) {
     await tell(() =>
-      sendToUser(requested_by, {
+      sendToUsers(askers, {
         title: status === 'done' ? 'Tu solicitud a Marketing está lista' : 'Marketing está trabajando en tu solicitud',
         body: title,
         url: `/marketing/requests/${id}`,
@@ -115,7 +118,13 @@ export async function addRequestComment(id: string, body: string): Promise<Actio
   const { data: req } = await supabase.from('marketing_requests').select('title, requested_by').eq('id', id).maybeSingle();
   if (req) {
     const payload = { title: `${who.name || who.email} comentó «${req.title}»`, body: text.slice(0, 140), url: `/marketing/requests/${id}`, tag: `mkt-request-${id}` };
-    await tell(() => (req.requested_by === who.id ? sendToMarketing(payload, who.id) : sendToUser(req.requested_by, payload)));
+    // From someone who asked: to Marketing and to whoever asked with them. From Marketing: to everyone who asked.
+    const askers = await requesterIds(id, req.requested_by);
+    const others = askers.filter((p) => p !== who.id);
+    await tell(async () => {
+      if (askers.includes(who.id)) await sendToMarketing(payload, who.id);
+      await sendToUsers(others, payload);
+    });
   }
   revalidate(id);
   return { ok: true, data: undefined };

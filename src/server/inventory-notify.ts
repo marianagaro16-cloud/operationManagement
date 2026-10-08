@@ -281,9 +281,9 @@ export async function notifyShortShelfLife(instanceId: string): Promise<number> 
  * Marketing, so promotions can be planned with what is about to expire, and
  * a notice to Ventas and the owners.
  *
- * The request is made in the name kept in app_settings
- * ('inventory.short_expiry_requester' — Daniela), who then receives
- * Marketing's comments; an owner if that is not set. Once per count, claimed
+ * The request is asked by the people kept in app_settings
+ * ('inventory.short_expiry_requester' — Daniela, Mariana and Carlos), who
+ * then see it and receive Marketing's comments; an owner if that is not set. Once per count, claimed
  * in the ledger and released if the request could not be made, so the
  * scheduler tries again. Never throws.
  */
@@ -324,7 +324,8 @@ export async function shareShortShelfLife(instanceId: string): Promise<number> {
     ]);
     const ownerIds = ((owners ?? []) as { id: string }[]).map((p) => p.id);
     const salesIds = ((sales ?? []) as { id: string }[]).map((p) => p.id).filter((id) => !ownerIds.includes(id));
-    const requester = typeof setting?.value === 'string' ? setting.value : ownerIds[0];
+    const named = (Array.isArray(setting?.value) ? setting.value : [setting?.value]).filter((v): v is string => typeof v === 'string');
+    const [requester, ...askingToo] = named.length ? named : ownerIds.slice(0, 1);
     if (!requester) throw new Error('nobody to make the request');
 
     const { title, text } = shortShelfLifeReport(inv.name_snapshot, inv.iso_week, inv.inventory_date, months, lines);
@@ -338,13 +339,21 @@ export async function shareShortShelfLife(instanceId: string): Promise<number> {
       .select('id')
       .single();
     if (requestError) throw new Error(requestError.message);
+    if (askingToo.length) {
+      const { error: othersError } = await admin
+        .from('marketing_request_requesters')
+        .insert([...new Set(askingToo)].filter((id) => id !== requester).map((profile_id) => ({ request_id: request.id, profile_id })));
+      if (othersError) console.error('[inventory] short-shelf-life request: co-requesters not added', othersError.message);
+    }
+    // Whoever asked or is an owner opens the request; anyone else in Ventas, the count.
+    const opensRequest = new Set([requester, ...askingToo, ...ownerIds]);
+    const informed = [...new Set([...ownerIds, ...salesIds, requester, ...askingToo])];
 
     const notice = { title, body: text, level: 'warning' as const };
     const recipients =
       (await sendToMarketing({ ...notice, url: `/marketing/requests/${request.id}`, tag: `mkt-request-${request.id}` })) +
-      (await sendToUsers(ownerIds, { ...notice, url: `/marketing/requests/${request.id}`, tag: `short-expiry-${instanceId}` })) +
-      // Ventas does not open other people's requests: theirs leads to the count.
-      (await sendToUsers(salesIds, { ...notice, url: `/inventory/${instanceId}`, tag: `short-expiry-${instanceId}` }));
+      (await sendToUsers(informed.filter((id) => opensRequest.has(id)), { ...notice, url: `/marketing/requests/${request.id}`, tag: `short-expiry-${instanceId}` })) +
+      (await sendToUsers(informed.filter((id) => !opensRequest.has(id)), { ...notice, url: `/inventory/${instanceId}`, tag: `short-expiry-${instanceId}` }));
 
     // The request exists and every notice is in the inbox whether or not a device was reached.
     await ledger().update({ recipients }).eq('instance_id', instanceId).eq('kind', 'short_shelf_life_commercial');

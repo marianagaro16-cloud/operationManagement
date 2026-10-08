@@ -1,25 +1,42 @@
 import 'server-only';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { REQUESTS_BUCKET } from '@/lib/marketing';
 import type { MarketingRequest, MarketingRequestFull } from '@/types/marketing';
 
 /*
- * Requests to Marketing. RLS: whoever asked sees their own; Marketing, Admin
- * and Owners see them all.
+ * Requests to Marketing. RLS: whoever asked — alone or with others — sees
+ * their own; Marketing, Admin and Owners see them all.
  */
 
 const COLUMNS = `
   id, title, description, brand_id, due_on, status, requested_by, post_id, done_at, created_at,
   brand:brands ( name ),
-  requester:profiles!marketing_requests_requested_by_fkey ( name, email )
+  requester:profiles!marketing_requests_requested_by_fkey ( name, email ),
+  others:marketing_request_requesters ( profile_id, added_at, person:profiles ( name, email ) )
 `;
 
 type Person = { name: string | null; email: string } | null;
-type Raw = Omit<MarketingRequest, 'brand_name' | 'requester_name'> & { brand: { name: string } | null; requester: Person };
+type Raw = Omit<MarketingRequest, 'brand_name' | 'requester_name' | 'requester_ids'> & {
+  brand: { name: string } | null;
+  requester: Person;
+  others: { profile_id: string; added_at: string; person: Person }[] | null;
+};
 const nameOf = (p: Person) => (p ? p.name || p.email : null);
 
-function shape({ brand, requester, ...r }: Raw): MarketingRequest {
-  return { ...r, brand_name: brand?.name ?? null, requester_name: nameOf(requester) };
+function shape({ brand, requester, others, ...r }: Raw): MarketingRequest {
+  const with_ = [...(others ?? [])].sort((a, b) => a.added_at.localeCompare(b.added_at) || a.profile_id.localeCompare(b.profile_id));
+  return {
+    ...r,
+    brand_name: brand?.name ?? null,
+    requester_ids: [r.requested_by, ...with_.map((o) => o.profile_id)],
+    requester_name: [nameOf(requester), ...with_.map((o) => nameOf(o.person))].filter(Boolean).join(', ') || null,
+  };
+}
+
+/** Everyone who asked for a request: for the notices, read as the system. */
+export async function requesterIds(id: string, requestedBy: string): Promise<string[]> {
+  const { data } = await createAdminClient().from('marketing_request_requesters').select('profile_id').eq('request_id', id);
+  return [...new Set([requestedBy, ...((data ?? []) as { profile_id: string }[]).map((r) => r.profile_id)])];
 }
 
 /** Open ones by due date (none last), or closed ones newest first. */

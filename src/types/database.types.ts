@@ -5639,6 +5639,39 @@ export type Database = {
           },
         ]
       }
+      marketing_request_requesters: {
+        Row: {
+          added_at: string
+          profile_id: string
+          request_id: string
+        }
+        Insert: {
+          added_at?: string
+          profile_id: string
+          request_id: string
+        }
+        Update: {
+          added_at?: string
+          profile_id?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_request_requesters_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_request_requesters_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_requests: {
         Row: {
           brand_id: string | null
@@ -9808,6 +9841,7 @@ export type Database = {
         Returns: boolean
       }
       admin_delete_user: { Args: { p_user_id: string }; Returns: undefined }
+      asked_marketing_request: { Args: { p_id: string }; Returns: boolean }
       block_occurrence: {
         Args: { p_occurrence_id: string; p_reason: string }
         Returns: {

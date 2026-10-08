@@ -44,6 +44,9 @@ export interface MarketingRequest {
   due_on: string | null;
   status: import('@/lib/marketing').RequestStatus;
   requested_by: string;
+  /** Everyone who asked: requested_by first, then whoever asks with them. */
+  requester_ids: string[];
+  /** Their names, in that order. */
   requester_name: string | null;
   post_id: string | null;
   done_at: string | null;
