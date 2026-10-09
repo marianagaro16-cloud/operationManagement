@@ -138,7 +138,7 @@ export function buildNowItems(input: NowInput): NowItem[] {
     { kind: 'countsToday', level: 'today', count: input.countsToday, href: '/inventory' },
     { kind: 'planToday', level: 'today', count: input.planToday, href: '/sales?tab=planning' },
     // Blocked is not late — it waits on something else — but it needs eyes.
-    { kind: 'blockedActivities', level: 'today', count: input.blockedActivities, href: '#blocked' },
+    { kind: 'blockedActivities', level: 'today', count: input.blockedActivities, href: '#today' },
   ];
   return items
     .filter((i) => i.count > 0)

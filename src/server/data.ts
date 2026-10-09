@@ -185,16 +185,14 @@ export interface DashboardData {
   dailyToday: OccurrenceWithTask[];
   /** Due today, any other frequency. Drives the "extra tasks" banner. */
   extraToday: OccurrenceWithTask[];
-  /** Open, due before today. */
+  /** Open, due before today — blocked ones too: blocked work is still owed. */
   overdue: OccurrenceWithTask[];
   /** Open, due in the next `upcomingDays`. */
   upcoming: OccurrenceWithTask[];
   /**
-   * Waiting on something outside this list, whatever their due date.
-   *
-   * Not date-bucketed on purpose: blocked work is not late, so it is excluded
-   * from `overdue`, and without its own bucket a blocked occurrence from last
-   * week would simply disappear.
+   * Every blocked occurrence, whatever its due date — for the counts. Each is
+   * also in the list of its day (today's, or overdue): a block explains why
+   * the work was not done, it does not take it off the list.
    */
   blocked: OccurrenceWithTask[];
 }
@@ -228,25 +226,18 @@ export async function getDashboardData(upcomingDays = 7): Promise<DashboardData>
   // means the same thing on both halves of the screen.
   const buckets = bucketByDay(all, today, {
     dateOf: (o) => o.effective_due_date,
-    isOpen: (o) => o.status === 'pending',
+    // Blocked is open: the work is still to be done (decided 2026-10-09).
+    isOpen: (o) => o.status === 'pending' || o.status === 'blocked',
   });
 
   return {
     today,
     // The only task-specific split: the routine daily checklist is the
     // dashboard's spine, and anything else due today is an interruption.
-    dailyToday: buckets.today.filter(
-      (o) => o.task.frequency === 'daily' && o.status !== 'blocked',
-    ),
-    extraToday: buckets.today.filter(
-      (o) => o.task.frequency !== 'daily' && o.status !== 'blocked',
-    ),
+    dailyToday: buckets.today.filter((o) => o.task.frequency === 'daily'),
+    extraToday: buckets.today.filter((o) => o.task.frequency !== 'daily'),
     overdue: buckets.overdue,
     upcoming: buckets.upcoming,
-    // Blocked work is deliberately NOT bucketed by date. `isOpen` excludes it
-    // from overdue and upcoming — which is the point, it is not late — but
-    // that would also make a blocked occurrence from last week vanish from
-    // every list. It keeps its own section until somebody clears it.
     blocked: all.filter((o) => o.status === 'blocked'),
   };
 }

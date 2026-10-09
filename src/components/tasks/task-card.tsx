@@ -53,10 +53,10 @@ export function TaskCard({ occurrence, today, showDueDate, showAssignee, canSkip
   const status = optimisticStatus ?? occurrence.status;
 
   const due = occurrence.effective_due_date;
-  // Blocked work is never overdue: it is waiting on something, and calling it
-  // late puts the delay on the person who reported it.
+  // Blocked work is still owed: once its day has passed it is late like any
+  // other, with the reason beside it.
   const isBlocked = status === 'blocked';
-  const isOverdue = status === 'pending' && due < today;
+  const isOverdue = (status === 'pending' || isBlocked) && due < today;
   const late = isOverdue ? daysLate(due, today) : 0;
   const isDone = status === 'completed';
   const isSkipped = status === 'skipped';

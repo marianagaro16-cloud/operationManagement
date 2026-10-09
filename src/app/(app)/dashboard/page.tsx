@@ -136,7 +136,7 @@ export default async function DashboardPage() {
           return {
             team: tm,
             total: day.length,
-            done: day.filter((o) => o.status !== 'pending').length,
+            done: day.filter((o) => o.status === 'completed' || o.status === 'skipped').length,
             late: data.overdue.filter((o) => o.task.team === tm).length,
             blocked: data.blocked.filter((o) => o.task.team === tm).length,
           };
@@ -146,7 +146,7 @@ export default async function DashboardPage() {
 
   // ---- what the figures and "Now" count ----
   const todayAll = [...data.dailyToday, ...data.extraToday];
-  const activities = { done: todayAll.filter((o) => o.status !== 'pending').length, total: todayAll.length };
+  const activities = { done: todayAll.filter((o) => o.status === 'completed' || o.status === 'skipped').length, total: todayAll.length };
   const countsToday = [...inventory.overdue, ...inventory.dueToday];
   const now = new Date();
   const nowIso = now.toISOString();
@@ -159,7 +159,8 @@ export default async function DashboardPage() {
   const nowItems = buildNowItems({
     // One's own late days; the team's are counted on the team card.
     overdueActivities: myData.overdue.length,
-    blockedActivities: plans ? myData.blocked.length : 0,
+    // Today's only: a block from an earlier day is counted with the late ones.
+    blockedActivities: plans ? myData.blocked.filter((o) => o.effective_due_date >= today).length : 0,
     urgentOrders,
     overdueCounts: inventory.overdue.length,
     // Today's counts and sales activities are listed in "Hoy"; "Ahora" keeps what is late or urgent.

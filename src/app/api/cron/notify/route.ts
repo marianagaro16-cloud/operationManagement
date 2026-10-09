@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { selectNotifications, type NotifiableOrder } from '@/domain/orders/notifications';
 import { isPushConfigured, sendToApprovedUsers } from '@/server/push';
 import { runInventoryNotifications } from '@/server/inventory-notify';
+import { runBlockedReminders } from '@/server/block-notify';
 import { businessToday, addDays } from '@/lib/datetime';
 
 // web-push needs Node crypto; it cannot run on the Edge runtime.
@@ -54,6 +55,14 @@ export async function GET(request: Request) {
     inventory = { error: e instanceof Error ? e.message : String(e) };
   }
 
+  // What is still blocked, once each working morning. On its own for the same reason.
+  let blocked: { sent: number } | { error: string };
+  try {
+    blocked = await runBlockedReminders();
+  } catch (e) {
+    blocked = { error: e instanceof Error ? e.message : String(e) };
+  }
+
   try {
     // Only orders that could plausibly be urgent: today and the next day, so
     // an evening deadline still notifies. Cancelled orders are excluded.
@@ -76,7 +85,7 @@ export async function GET(request: Request) {
 
     const candidateIds = (orders ?? []).map((o) => (o as { id: string }).id);
     if (candidateIds.length === 0) {
-      return NextResponse.json({ ok: true, today, considered: 0, sent: 0, inventory });
+      return NextResponse.json({ ok: true, today, considered: 0, sent: 0, inventory, blocked });
     }
 
     // What has already gone out, so escalations notify once each.
@@ -148,6 +157,7 @@ export async function GET(request: Request) {
       notifications: pending.length,
       sent,
       inventory,
+      blocked,
       results,
     });
   } catch (e) {

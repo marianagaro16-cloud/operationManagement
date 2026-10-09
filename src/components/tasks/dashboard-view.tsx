@@ -1,6 +1,6 @@
 'use client';
 
-import { Ban, CheckCircle2, TriangleAlert } from 'lucide-react';
+import { CheckCircle2, TriangleAlert } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { EmptyState, Progress, SectionHeading } from '@/components/ui/primitives';
 import { TaskCard } from './task-card';
@@ -32,10 +32,11 @@ export function DashboardView({
   canSkip?: boolean;
 }) {
   const { t } = useI18n();
-  const { today, dailyToday, extraToday, overdue, upcoming, blocked } = data;
+  const { today, dailyToday, extraToday, overdue, upcoming } = data;
 
   const todayAll = [...dailyToday, ...extraToday];
-  const done = todayAll.filter((o) => o.status !== 'pending').length;
+  // Blocked is not done: the work is still owed.
+  const done = todayAll.filter((o) => o.status === 'completed' || o.status === 'skipped').length;
   const total = todayAll.length;
 
   return (
@@ -66,29 +67,8 @@ export function DashboardView({
         </section>
       )}
 
-      {/* ---------------- blocked ---------------- */}
-      {/* Beneath overdue and above today: it needs to be seen, but it is not
-          late and must not be read as such. Not date-bucketed — a block from
-          last week is still a block. */}
-      {blocked.length > 0 && (
-        <section id="blocked" className="scroll-mt-20">
-          <SectionHeading
-            title={t('task.blockedTitle')}
-            subtitle={t('task.blockedSubtitle')}
-            action={
-              <span className="inline-flex items-center gap-1 rounded-md bg-warn/10 px-1.5 py-0.5 text-2xs font-medium text-warn">
-                <Ban className="h-2.5 w-2.5" aria-hidden />
-                {blocked.length}
-              </span>
-            }
-          />
-          <ul className="space-y-2">
-            {blocked.map((o) => (
-              <TaskCard key={o.id} occurrence={o} today={today} canSkip={canSkip} showDueDate showAssignee={showUpcoming} />
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* Blocked work has no section of its own: it stays in the list of its
+          day — today's, or overdue — with its reason, until it is done. */}
 
       {/* ---------------- today ---------------- */}
       <section id="today" className="scroll-mt-20">
