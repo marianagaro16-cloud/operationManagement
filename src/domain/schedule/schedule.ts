@@ -53,6 +53,20 @@ export function pauseMinutes(hours: number): 0 | 15 | 30 | 60 {
   return 0;
 }
 
+/**
+ * The week's hours actually worked: each day's hours less that day's pause.
+ * A contract counts these — 100% is 42 hours worked — so a person's minimum
+ * and maximum are compared with this, not with the planned total.
+ */
+export function workedHours(blocks: Block[], personId: string, kinds: Map<string, KindRule>): number {
+  let total = 0;
+  for (let day = 0; day < 7; day++) {
+    const hours = dayHours(blocks, personId, day, kinds);
+    total += hours - pauseMinutes(hours) / 60;
+  }
+  return total;
+}
+
 /** "44.00", "5.50" — as the sheet printed it. */
 export function formatHours(hours: number): string {
   return (Math.round(hours * 100) / 100).toFixed(2);
@@ -76,7 +90,7 @@ export type ScheduleWarning =
 
 /**
  * What to look at again. Never a block:
- * - a person's week under their minimum or over their maximum;
+ * - a person's week under their minimum or over their maximum, in hours worked;
  * - a day people work on with no production lead among them;
  * - hours on a day the person is marked off, or has an approved absence.
  */
@@ -92,7 +106,7 @@ export function scheduleWarnings(
   const mine = blocks.filter((b) => known.has(b.person_id));
 
   for (const p of people) {
-    const hours = weekHours(mine, p.id, kinds);
+    const hours = workedHours(mine, p.id, kinds);
     // An empty row is a week not planned yet, not a week too short.
     if (hours > 0 && p.min_hours != null && hours < p.min_hours) out.push({ kind: 'under', person_id: p.id, hours, bound: p.min_hours });
     if (p.max_hours != null && hours > p.max_hours) out.push({ kind: 'over', person_id: p.id, hours, bound: p.max_hours });

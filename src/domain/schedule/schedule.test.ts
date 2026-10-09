@@ -10,6 +10,7 @@ import {
   weekDates,
   weekHours,
   weekStartOf,
+  workedHours,
   type Block,
   type KindRule,
 } from './schedule';
@@ -40,6 +41,11 @@ describe('hours', () => {
     expect(formatHours(weekHours(freddy, 'f', kinds))).toBe('44.00');
   });
 
+  it('takes the pause of each day off for the hours worked', () => {
+    // 9 + 9 + 8 + 9 + 9 planned; half an hour of pause on each of the five days.
+    expect(workedHours(freddy, 'f', kinds)).toBe(41.5);
+  });
+
   it('does not count a day off, with or without times', () => {
     const off = [block('p', 5, 1, null, null, 'free'), block('p', 6, 1, '08:00', '12:00', 'free')];
     expect(weekHours(off, 'p', kinds)).toBe(0);
@@ -65,12 +71,13 @@ describe('warnings', () => {
 
   it('warns under the minimum and over the maximum, but not for an empty row', () => {
     const blocks = [
-      ...[1, 2, 3, 4, 5].map((d) => block('lead', d, 1, '06:00', '16:00')), // 50 h
-      block('patty', 1, 1, '08:00', '16:00'), // 8 h
+      ...[1, 2, 3, 4, 5].map((d) => block('lead', d, 1, '06:00', '16:00')), // 50 h planned, 45 worked
+      block('lead', 6, 1, '06:00', '11:00'), // and five more
+      block('patty', 1, 1, '08:00', '16:00'), // 8 h planned, 7.5 worked
     ];
     const w = scheduleWarnings(blocks, people, kinds);
     expect(w).toContainEqual({ kind: 'over', person_id: 'lead', hours: 50, bound: 45 });
-    expect(w).toContainEqual({ kind: 'under', person_id: 'patty', hours: 8, bound: 31 });
+    expect(w).toContainEqual({ kind: 'under', person_id: 'patty', hours: 7.5, bound: 31 });
     expect(scheduleWarnings(blocks.filter((b) => b.person_id === 'lead'), people, kinds).some((x) => x.kind === 'under')).toBe(false);
   });
 
