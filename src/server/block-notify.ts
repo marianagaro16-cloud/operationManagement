@@ -7,7 +7,8 @@ import { sendToUsers } from './push';
  *
  * Only for the people kept in app_settings ('activities.block_notice_people' —
  * Jefferson, and Marco who covers him): when one of them blocks an activity,
- * every Admin hears it with the reason they wrote, and again when it is free.
+ * every Admin — not the owners — hears it with the reason they wrote, and
+ * again when it is free.
  * Written in Spanish, like every other server-sent notification.
  */
 
@@ -21,14 +22,14 @@ async function watched(): Promise<string[]> {
   return (Array.isArray(data?.value) ? data.value : []).filter((v): v is string => typeof v === 'string');
 }
 
-/** Every approved Admin — owners are admins too — whoever did it aside. */
+/** Every approved Admin, whoever did it aside. Not the owners: they asked not to be told. */
 async function admins(exclude: string): Promise<string[]> {
   const { data } = await createAdminClient()
     .from('profiles')
     .select('id')
     .eq('status', 'approved')
     .is('deleted_at', null)
-    .in('role', ['admin', 'owner']);
+    .eq('role', 'admin');
   return ((data ?? []) as { id: string }[]).map((p) => p.id).filter((id) => id !== exclude);
 }
 
