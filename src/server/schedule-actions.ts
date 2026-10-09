@@ -381,7 +381,12 @@ export async function saveScheduleKind(input: z.input<typeof kindSchema>, id?: s
   return done();
 }
 
-const productSchema = z.object({ name: z.string().trim().min(1).max(60), sort_order: z.number().int(), is_active: z.boolean() });
+const productSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  people_needed: z.number().positive().max(99).nullable(),
+  sort_order: z.number().int(),
+  is_active: z.boolean(),
+});
 
 export async function saveScheduleProduct(input: z.input<typeof productSchema>, id?: string): Promise<ActionResult> {
   const parsed = productSchema.safeParse(input);

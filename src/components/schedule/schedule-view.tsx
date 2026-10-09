@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, FileDown, Plus, Send, Trash2, TriangleAlert } from 'lucide-react';
@@ -11,7 +11,19 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { changedCells, formatHours, scheduleWarnings, weekDates, weekStartOf, type Block } from '@/domain/schedule/schedule';
+import {
+  changedCells,
+  formatHours,
+  isWholeSlot,
+  parseTime,
+  scheduleWarnings,
+  slotKey,
+  weekDates,
+  weekStartOf,
+  withTyped,
+  type Block,
+  type Typed,
+} from '@/domain/schedule/schedule';
 import {
   createScheduleWeek,
   deleteScheduleWeek,
@@ -73,6 +85,8 @@ export function useScheduleErrors() {
   };
 }
 
+const whole = isWholeSlot;
+
 const headerOf = (h: ScheduleWeekHeader): ScheduleWeekHeader => ({
   day_products: h.day_products ?? {},
   day_notes: h.day_notes ?? {},
@@ -123,7 +137,15 @@ export function ScheduleView({
 
   const pattern = weekStart === null;
   const week = data?.week ?? null;
-  const blocks = useMemo(() => data?.blocks ?? [], [data]);
+  const rules = useMemo(() => new Map(kinds.map((k) => [k.id, { id: k.id, counts_hours: k.counts_hours }])), [kinds]);
+  const saved = useMemo(() => data?.blocks ?? [], [data]);
+  // What was typed into the sheet since: on its way to the server, or waiting for its other half.
+  const [typed, setTyped] = useState<Record<string, Typed>>({});
+  const typedNow = useRef(typed);
+  const [bad, setBad] = useState<string[]>([]);
+  // One save at a time: each replaces a person's whole day, and two at once would cross.
+  const saving = useRef<Promise<unknown>>(Promise.resolve());
+  const blocks = useMemo(() => withTyped(saved, typed, rules), [saved, typed, rules]);
   const header = headerOf(week ?? { day_products: {}, day_notes: {}, holidays: [], cleaning_bathroom: null, cleaning_kitchen: null });
   const dates = weekStart ? weekDates(weekStart) : null;
 
@@ -141,7 +163,6 @@ export function ScheduleView({
   }, [week, published, dirty, blocks, data]);
   const comparedTo = !week || week.version === 0 ? 0 : dirty ? week.version : week.version - 1;
 
-  const rules = new Map(kinds.map((k) => [k.id, { id: k.id, counts_hours: k.counts_hours }]));
   const warnings = week ? scheduleWarnings(blocks, rows, rules, new Map(Object.entries(absentDays).map(([id, days]) => [id, new Set(days)]))) : [];
   const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? '—';
   const dayLabel = (d: number) => (dates ? `${WEEKDAYS[d]} ${dates[d].slice(8, 10)}.${dates[d].slice(5, 7)}` : WEEKDAYS[d]);
@@ -152,6 +173,49 @@ export function ScheduleView({
       const res = await action();
       if (!res.ok) return setError(errorText(res.error ?? ''));
       after?.();
+      router.refresh();
+    });
+  }
+
+  const setTypedNow = (next: Record<string, Typed>) => {
+    typedNow.current = next;
+    setTyped(next);
+  };
+  /** Forget what was typed in a person's day: the dialog has just saved it whole. */
+  const forget = (personId: string, d: number) =>
+    setTypedNow(Object.fromEntries(Object.entries(typedNow.current).filter(([key]) => !key.startsWith(`${personId}:${d}:`))));
+
+  /**
+   * A time typed into the sheet. Saved as soon as the slot has both of its
+   * times in order — or neither; until then it waits where it was typed.
+   */
+  function typeTime(personId: string, d: number, slot: 1 | 2, field: 'start' | 'end', raw: string) {
+    if (!week) return;
+    const key = slotKey(personId, d, slot);
+    const mark = `${key}:${field}`;
+    const parsed = parseTime(raw);
+    if (parsed === null) return setBad((list) => [...new Set([...list, mark])]);
+    const before = saved.find((b) => b.person_id === personId && b.day === d && b.slot === slot);
+    const base = typedNow.current[key] ?? { start: before?.start_time ?? '', end: before?.end_time ?? '' };
+    const next = { ...base, [field]: parsed };
+    setTypedNow({ ...typedNow.current, [key]: next });
+    // Both there but the end not after the start: the one just typed is the one to look at.
+    if (next.start && next.end && !whole(next)) return setBad((list) => [...new Set([...list, mark])]);
+    setBad((list) => list.filter((m) => !m.startsWith(`${key}:`)));
+    if (!whole(next) && (next.start || next.end)) return;
+    if (next.start === (before?.start_time ?? '') && next.end === (before?.end_time ?? '')) return;
+
+    const dayBlocks = withTyped(saved, typedNow.current, rules)
+      .filter((b) => b.person_id === personId && b.day === d)
+      .map((b) => ({ slot: b.slot as 1 | 2, start_time: b.start_time, end_time: b.end_time, kind_id: b.kind_id }));
+    setError(null);
+    saving.current = saving.current.then(async () => {
+      const res = await saveScheduleCell(week.id, personId, d, dayBlocks);
+      if (!res.ok) {
+        // Not saved: the sheet goes back to what the server holds, and says why.
+        forget(personId, d);
+        return setError(errorText(res.error));
+      }
       router.refresh();
     });
   }
@@ -282,6 +346,22 @@ export function ScheduleView({
                 changed={changed}
                 absentDays={absentDays}
                 showTotal={canEdit}
+                showContract={canEdit}
+                timeCell={
+                  canEdit
+                    ? ({ personId, day: d, slot, field, text }) => {
+                        const key = slotKey(personId, d, slot);
+                        return (
+                          <TimeInput
+                            text={typed[key]?.[field] ?? text}
+                            bad={bad.includes(`${key}:${field}`)}
+                            label={`${nameOf(personId)} · ${dayLabel(d)} · ${slot} · ${field === 'start' ? t('schedule.from') : t('schedule.until')}`}
+                            onCommit={(raw) => typeTime(personId, d, slot, field, raw)}
+                          />
+                        );
+                      }
+                    : undefined
+                }
                 onCell={canEdit ? (personId, d) => setCell({ personId, day: d }) : undefined}
                 onDay={canEdit ? setDay : undefined}
               />
@@ -345,7 +425,11 @@ export function ScheduleView({
           blocks={blocks.filter((b) => b.person_id === cell.personId && b.day === cell.day)}
           kinds={kinds}
           onClose={() => setCell(null)}
-          onSave={(next) => saveScheduleCell(week.id, cell.personId, cell.day, next)}
+          onSave={async (next) => {
+            const res = await saveScheduleCell(week.id, cell.personId, cell.day, next);
+            if (res.ok) forget(cell.personId, cell.day);
+            return res;
+          }}
         />
       )}
       {week && day !== null && (
@@ -371,6 +455,50 @@ export function ScheduleView({
         />
       )}
     </>
+  );
+}
+
+/**
+ * A time, typed where it stands on the sheet. "0630" is enough; Enter and Tab
+ * go on to the next one. What is not a time stays, outlined, until corrected.
+ */
+function TimeInput({ text, bad, label, onCommit }: { text: string; bad: boolean; label: string; onCommit: (raw: string) => void }) {
+  const [value, setValue] = useState(text);
+  useEffect(() => setValue(text), [text]);
+  return (
+    <input
+      data-time
+      aria-label={label}
+      aria-invalid={bad}
+      inputMode="numeric"
+      autoComplete="off"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onFocus={(e) => e.target.select()}
+      onBlur={() => (bad || value.trim() !== text) && onCommit(value)}
+      onKeyDown={(e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const all = [...(e.currentTarget.closest('table')?.querySelectorAll<HTMLInputElement>('input[data-time]') ?? [])];
+        (all[all.indexOf(e.currentTarget) + 1] ?? e.currentTarget).focus();
+        if (all.at(-1) === e.currentTarget) e.currentTarget.blur();
+      }}
+      className="focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-[#2563eb]"
+      style={{
+        position: 'relative',
+        display: 'block',
+        width: '100%',
+        minWidth: 40,
+        height: 21,
+        border: 0,
+        padding: 0,
+        background: 'transparent',
+        color: '#000',
+        font: 'inherit',
+        textAlign: 'center',
+        ...(bad ? { boxShadow: 'inset 0 0 0 2px #dc2626' } : {}),
+      }}
+    />
   );
 }
 

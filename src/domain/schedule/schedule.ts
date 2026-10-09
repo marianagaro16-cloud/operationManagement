@@ -67,6 +67,60 @@ export function workedHours(blocks: Block[], personId: string, kinds: Map<string
   return total;
 }
 
+/** A full contract, in hours worked a week (pauses taken off). */
+export const FULL_TIME_HOURS = 42;
+
+/** What a person's share of a full contract comes to: 70% is 29.4 hours worked. */
+export function contractHours(percent: number | null): number | null {
+  return percent == null ? null : Math.round(FULL_TIME_HOURS * percent) / 100;
+}
+
+/**
+ * A time as it is typed into the sheet: "0630", "630", "6:30", "6.30" and
+ * "6" all mean a time of day. Returns 'HH:MM', '' for nothing typed, or null
+ * for something that is not a time.
+ */
+export function parseTime(raw: string): string | null {
+  const text = raw.trim();
+  if (text === '') return '';
+  const m = text.match(/^(\d{1,2})(?:[:.,h ]?(\d{2}))?$/) ?? text.match(/^(\d{2})(\d{2})$/);
+  if (!m) return null;
+  const hours = Number(m[1]);
+  const mins = Number(m[2] ?? 0);
+  if (hours > 23 || mins > 59) return null;
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
+/** A slot's two times as typed into the sheet: '' for none. */
+export type Typed = { start: string; end: string };
+export const slotKey = (personId: string, day: number, slot: number) => `${personId}:${day}:${slot}`;
+/** Both times there, and in order: a block. */
+export const isWholeSlot = (v: Typed) => !!v.start && !!v.end && v.end > v.start;
+
+/**
+ * The week as it stands on the screen: what is saved, with what has been
+ * typed since laid over it — so the totals, the pauses and the warnings answer
+ * at once, not after the save comes back. A slot with only one of its two
+ * times, or with them out of order, is not a block yet and changes nothing.
+ * A slot emptied loses its block — except a day off, which stays as the mark
+ * for the whole day.
+ */
+export function withTyped(blocks: Block[], typed: Record<string, Typed>, kinds: Map<string, KindRule>): Block[] {
+  let out = blocks;
+  for (const [key, v] of Object.entries(typed)) {
+    const [personId, day, slot] = key.split(':');
+    const at = (b: Block) => b.person_id === personId && b.day === Number(day) && b.slot === Number(slot);
+    const before = blocks.find(at);
+    if (isWholeSlot(v)) {
+      out = [...out.filter((b) => !at(b)), { person_id: personId, day: Number(day), slot: Number(slot), start_time: v.start, end_time: v.end, kind_id: before?.kind_id ?? null }];
+    } else if (!v.start && !v.end) {
+      const dayOff = !!before?.kind_id && kinds.get(before.kind_id)?.counts_hours === false;
+      out = dayOff ? out.map((b) => (at(b) ? { ...b, start_time: null, end_time: null } : b)) : out.filter((b) => !at(b));
+    }
+  }
+  return out;
+}
+
 /** "44.00", "5.50" — as the sheet printed it. */
 export function formatHours(hours: number): string {
   return (Math.round(hours * 100) / 100).toFixed(2);
@@ -91,7 +145,8 @@ export type ScheduleWarning =
 /**
  * What to look at again. Never a block:
  * - a person's week under their minimum or over their maximum, in hours worked;
- * - a day people work on with no production lead among them;
+ * - a day with production and no production lead at work (a Sunday of
+ *   cooking and maintenance needs none);
  * - hours on a day the person is marked off, or has an approved absence.
  */
 export function scheduleWarnings(
@@ -115,8 +170,9 @@ export function scheduleWarnings(
   const leads = new Set(people.filter((p) => p.is_lead).map((p) => p.id));
   for (let day = 0; day < 7; day++) {
     const working = people.filter((p) => dayHours(mine, p.id, day, kinds) > 0);
+    const production = mine.some((b) => b.day === day && !b.kind_id && !!b.start_time);
     // Without anyone marked as a lead there is nothing to check against.
-    if (leads.size > 0 && working.length > 0 && !working.some((p) => leads.has(p.id))) out.push({ kind: 'no_lead', day });
+    if (leads.size > 0 && production && !working.some((p) => leads.has(p.id))) out.push({ kind: 'no_lead', day });
     for (const p of working) {
       const off = mine.some((b) => b.person_id === p.id && b.day === day && !!b.kind_id && kinds.get(b.kind_id)?.counts_hours === false);
       if (off) out.push({ kind: 'day_off', person_id: p.id, day });

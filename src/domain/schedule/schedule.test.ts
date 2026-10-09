@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
   changedCells,
+  contractHours,
   dayHours,
   formatHours,
   isChanged,
   nextSundayTurn,
+  parseTime,
   pauseMinutes,
   scheduleWarnings,
   weekDates,
   weekHours,
   weekStartOf,
+  withTyped,
   workedHours,
   type Block,
   type KindRule,
@@ -81,9 +84,14 @@ describe('warnings', () => {
     expect(scheduleWarnings(blocks.filter((b) => b.person_id === 'lead'), people, kinds).some((x) => x.kind === 'under')).toBe(false);
   });
 
-  it('warns on a working day without a lead', () => {
-    const w = scheduleWarnings([block('patty', 0, 1, '10:00', '12:00')], people, kinds);
-    expect(w).toContainEqual({ kind: 'no_lead', day: 0 });
+  it('warns on a day of production without a lead', () => {
+    const w = scheduleWarnings([block('patty', 2, 1, '10:00', '12:00')], people, kinds);
+    expect(w).toContainEqual({ kind: 'no_lead', day: 2 });
+  });
+
+  it('asks for no lead on a Sunday of cooking and maintenance', () => {
+    const w = scheduleWarnings([block('patty', 0, 1, '10:00', '12:00', 'office')], people, kinds);
+    expect(w.some((x) => x.kind === 'no_lead')).toBe(false);
   });
 
   it('warns on hours during a day off or an approved absence', () => {
@@ -91,6 +99,57 @@ describe('warnings', () => {
     const w = scheduleWarnings(blocks, people, kinds, new Map([['lead', new Set([3])]]));
     expect(w).toContainEqual({ kind: 'day_off', person_id: 'lead', day: 2 });
     expect(w).toContainEqual({ kind: 'absence', person_id: 'lead', day: 3 });
+  });
+});
+
+describe('what is typed into the sheet', () => {
+  it('reads a time however it is typed', () => {
+    expect(parseTime('0630')).toBe('06:30');
+    expect(parseTime('630')).toBe('06:30');
+    expect(parseTime('6:30')).toBe('06:30');
+    expect(parseTime('6.30')).toBe('06:30');
+    expect(parseTime('17')).toBe('17:00');
+    expect(parseTime('1730')).toBe('17:30');
+    expect(parseTime(' ')).toBe('');
+  });
+
+  it('refuses what is not a time', () => {
+    expect(parseTime('2530')).toBeNull();
+    expect(parseTime('1275')).toBeNull();
+    expect(parseTime('abc')).toBeNull();
+  });
+});
+
+describe('typing over the saved week', () => {
+  const saved = [block('a', 1, 1, '07:00', '15:00', 'office'), block('a', 2, 1, null, null, 'free'), block('a', 3, 1, '08:00', '12:00')];
+
+  it('changes a block once both times are there, and keeps its kind', () => {
+    const out = withTyped(saved, { 'a:1:1': { start: '07:30', end: '15:00' } }, kinds);
+    expect(out).toContainEqual(block('a', 1, 1, '07:30', '15:00', 'office'));
+    expect(out).toHaveLength(3);
+  });
+
+  it('adds a production block in an empty slot', () => {
+    expect(withTyped(saved, { 'a:1:2': { start: '15:00', end: '17:00' } }, kinds)).toContainEqual(block('a', 1, 2, '15:00', '17:00'));
+  });
+
+  it('waits while a slot has one time, or the two out of order', () => {
+    expect(withTyped(saved, { 'a:4:1': { start: '07:00', end: '' } }, kinds)).toEqual(saved);
+    expect(withTyped(saved, { 'a:3:1': { start: '13:00', end: '12:00' } }, kinds)).toEqual(saved);
+  });
+
+  it('removes an emptied block, but leaves a day off as the whole day', () => {
+    expect(withTyped(saved, { 'a:3:1': { start: '', end: '' } }, kinds)).toHaveLength(2);
+    expect(withTyped(saved, { 'a:2:1': { start: '', end: '' } }, kinds)).toContainEqual(block('a', 2, 1, null, null, 'free'));
+  });
+});
+
+describe('the contract', () => {
+  it('is a share of 42 hours worked', () => {
+    expect(contractHours(100)).toBe(42);
+    expect(contractHours(70)).toBe(29.4);
+    expect(contractHours(60)).toBe(25.2);
+    expect(contractHours(null)).toBeNull();
   });
 });
 

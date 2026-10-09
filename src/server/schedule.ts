@@ -32,10 +32,13 @@ export async function getScheduleKinds(includeInactive = false): Promise<Schedul
 
 export async function getScheduleProducts(includeInactive = false): Promise<ScheduleProduct[]> {
   const supabase = createClient();
-  let q = supabase.from('schedule_products').select('id, name, sort_order, is_active').order('sort_order').order('name');
+  let q = supabase.from('schedule_products').select('id, name, people_needed, sort_order, is_active').order('sort_order').order('name');
   if (!includeInactive) q = q.eq('is_active', true);
   const { data } = await q;
-  return (data ?? []) as ScheduleProduct[];
+  return ((data ?? []) as (Omit<ScheduleProduct, 'people_needed'> & { people_needed: number | string | null })[]).map((p) => ({
+    ...p,
+    people_needed: p.people_needed == null ? null : Number(p.people_needed),
+  }));
 }
 
 type RawPerson = Omit<SchedulePerson, 'name' | 'profile_id' | 'min_hours' | 'max_hours'> & {

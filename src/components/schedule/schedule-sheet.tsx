@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { dayHours, formatHours, isChanged, pauseMinutes, weekHours, type Block } from '@/domain/schedule/schedule';
+import { contractHours, dayHours, formatHours, isChanged, pauseMinutes, weekHours, workedHours, type Block } from '@/domain/schedule/schedule';
 import type { ScheduleKind, SchedulePerson, ScheduleProduct, ScheduleWeekHeader } from '@/types/schedule';
 
 /*
@@ -74,6 +74,8 @@ export function ScheduleSheet({
   changed,
   absentDays = {},
   showTotal = false,
+  showContract = false,
+  timeCell,
   onCell,
   onDay,
 }: {
@@ -96,6 +98,13 @@ export function ScheduleSheet({
    * whoever makes the schedule, on screen — never on the page that is shared.
    */
   showTotal?: boolean;
+  /** Under each total, the hours worked against the person's contract. On screen, for whoever makes it. */
+  showContract?: boolean;
+  /**
+   * Draws a time as something to type into. With it the sheet is edited in
+   * place, and a person's day opens on a double click instead of a click.
+   */
+  timeCell?: (at: { personId: string; day: number; slot: 1 | 2; field: 'start' | 'end'; text: string }) => ReactNode;
   onCell?: (personId: string, day: number) => void;
   onDay?: (day: number) => void;
 }) {
@@ -125,19 +134,24 @@ export function ScheduleSheet({
       ...fill,
       ...(yellow && kind ? { boxShadow: `inset 0 0 0 2px ${CHANGED}` } : {}),
       ...(absent ? { outline: '1.5px dashed #c0392b', outlineOffset: -2 } : {}),
-      ...(onCell ? { cursor: 'pointer' } : {}),
+      ...(onCell && !timeCell ? { cursor: 'pointer' } : {}),
+      ...(timeCell ? { padding: 0 } : {}),
       ...(slot === 1 ? { borderTop: LINE } : { borderBottom: LINE }),
     };
     const open = onCell ? () => onCell(person.id, day) : undefined;
+    // Typed into in place: a click is for the cursor, so the day opens on a double click.
+    const handlers = timeCell ? { onDoubleClick: open } : { onClick: open };
+    const time = (field: 'start' | 'end', text: string) =>
+      timeCell ? timeCell({ personId: person.id, day, slot, field, text }) : <span style={{ position: 'relative' }}>{text}</span>;
     return (
       <>
-        <td style={{ ...style, borderLeft: LINE }} onClick={open} title={absent ? 'Ausencia aprobada' : kind?.name}>
+        <td style={{ ...style, borderLeft: LINE }} {...handlers} title={absent ? 'Ausencia aprobada' : kind?.name}>
           <Hatch kind={kind} />
-          <span style={{ position: 'relative' }}>{own?.start_time ?? ''}</span>
+          {time('start', own?.start_time ?? '')}
         </td>
-        <td style={style} onClick={open} title={absent ? 'Ausencia aprobada' : kind?.name}>
+        <td style={style} {...handlers} title={absent ? 'Ausencia aprobada' : kind?.name}>
           <Hatch kind={kind} />
-          <span style={{ position: 'relative' }}>{own?.end_time ?? ''}</span>
+          {time('end', own?.end_time ?? '')}
         </td>
       </>
     );
@@ -188,7 +202,11 @@ export function ScheduleSheet({
                         <Slot key={d}>
                           {slotCells(p, d, slot as 1 | 2)}
                           {slot === 1 && (
-                            <td rowSpan={2} style={{ border: LINE, textAlign: 'center', width: 18, padding: 1 }}>
+                            <td
+                              rowSpan={2}
+                              style={{ border: LINE, textAlign: 'center', width: 18, padding: 1, ...(onCell ? { cursor: 'pointer' } : {}) }}
+                              onClick={onCell ? () => onCell(p.id, d) : undefined}
+                            >
                               {worked > 0 && <PauseIcon minutes={pauseMinutes(worked)} />}
                             </td>
                           )}
@@ -198,6 +216,7 @@ export function ScheduleSheet({
                     {slot === 1 && (
                       <td rowSpan={2} style={{ ...th, background: '#D9D9D9' }}>
                         {formatHours(hours)}
+                        {showContract && <Contract worked={workedHours(blocks, p.id, rules)} person={p} />}
                       </td>
                     )}
                   </tr>
@@ -278,6 +297,22 @@ export function ScheduleSheet({
           <div style={{ background: CHANGED, border: LINE, height: 22, width: 86 }} />
         </aside>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Hours worked against the contract — "41.50 / 42.00". Amber while the week
+ * is short of it, green once it is reached, red over the person's maximum.
+ */
+function Contract({ worked, person }: { worked: number; person: SchedulePerson }) {
+  const target = contractHours(person.percent);
+  if (target == null) return null;
+  const over = person.max_hours != null && worked > person.max_hours;
+  const color = over ? '#b91c1c' : worked + 0.001 < target ? '#b45309' : '#15803d';
+  return (
+    <div style={{ fontWeight: 400, fontSize: 9.5, color, marginTop: 1 }} title="Horas trabajadas (sin pausas) / contrato">
+      {formatHours(worked)} / {formatHours(target)}
     </div>
   );
 }

@@ -118,6 +118,7 @@ export function ScheduleConfig({
           {products.map((p) => (
             <div key={p.id} className={cn('flex items-center gap-3 px-3.5 py-2', !p.is_active && 'opacity-55')}>
               <span className="min-w-0 flex-1 text-[13.5px] font-medium">{p.name}</span>
+              {p.people_needed != null && <span className="text-[12px] text-muted">{t('schedule.peopleNeededShort', { count: p.people_needed })}</span>}
               {edit(() => setEditing({ list: 'product', row: p }))}
             </div>
           ))}
@@ -294,8 +295,9 @@ function ProductDialog({ row, nextOrder, onClose }: { row: ScheduleProduct | nul
   const { t } = useI18n();
   const { error, pending, save } = useSave(onClose);
   const [name, setName] = useState(row?.name ?? '');
+  const [needed, setNeeded] = useState(row?.people_needed?.toString() ?? '');
   const [active, setActive] = useState(row?.is_active ?? true);
-  const submit = () => save(() => saveScheduleProduct({ name, sort_order: row?.sort_order ?? nextOrder, is_active: active }, row?.id));
+  const submit = () => save(() => saveScheduleProduct({ name, people_needed: num(needed), sort_order: row?.sort_order ?? nextOrder, is_active: active }, row?.id));
 
   return (
     <Dialog open onClose={onClose} title={row ? row.name : t('schedule.productsList')} className="max-w-md" footer={<Footer onClose={onClose} onSave={submit} pending={pending} disabled={!name.trim()} />}>
@@ -303,6 +305,9 @@ function ProductDialog({ row, nextOrder, onClose }: { row: ScheduleProduct | nul
         {error && <ErrorState message={error} />}
         <Field label={t('schedule.name')} required htmlFor="spr-name">
           <Input id="spr-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <Field label={t('schedule.peopleNeeded')} hint={t('schedule.peopleNeededHint')} htmlFor="spr-needed">
+          <Input id="spr-needed" inputMode="decimal" value={needed} onChange={(e) => setNeeded(e.target.value)} className="w-24" />
         </Field>
         {row && <Checkbox label={t('schedule.active')} checked={active} onChange={(e) => setActive(e.target.checked)} />}
       </div>

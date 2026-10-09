@@ -16,6 +16,8 @@ export interface ScheduleKind {
 export interface ScheduleProduct {
   id: string;
   name: string;
+  /** How many people a day of it takes; null = not said, nothing to compare. */
+  people_needed: number | null;
   sort_order: number;
   is_active: boolean;
 }

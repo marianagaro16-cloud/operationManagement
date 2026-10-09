@@ -47,6 +47,8 @@ export default async function SchedulePage({ searchParams }: { searchParams: { w
 
   return (
     <ScheduleView
+      // What is typed into the sheet belongs to the week it was typed in.
+      key={data?.week.id ?? weekStart ?? 'pattern'}
       weekStart={weekStart}
       data={data}
       weeks={weeks}
