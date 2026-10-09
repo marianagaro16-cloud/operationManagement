@@ -260,6 +260,11 @@ export function ScheduleSheet({
                 </div>
               </div>
             ))}
+            {/* Not a kind of block, but read the same way: beside them. */}
+            <div style={{ minWidth: 86 }}>
+              <div style={{ fontWeight: 700, fontSize: 10 }}>Cambio en horario:</div>
+              <div style={{ background: CHANGED, border: LINE, height: 22, width: 86 }} />
+            </div>
           </div>
 
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
@@ -312,8 +317,6 @@ export function ScheduleSheet({
               </tr>
             </tbody>
           </table>
-          <div style={{ textAlign: 'left', fontWeight: 700, fontSize: 9, marginTop: 4 }}>Cambio en horario:</div>
-          <div style={{ background: CHANGED, border: LINE, height: 22, width: 86 }} />
         </aside>
       </div>
     </div>
