@@ -122,7 +122,7 @@ describe('what is typed into the sheet', () => {
   });
 });
 
-describe('people in production', () => {
+describe('people on a day', () => {
   // Monday 12.10.2026, a day of Chip (6.5 people), as on the sheet.
   const monday = [
     block('freddy', 1, 1, '06:30', '08:30'), block('freddy', 1, 2, '08:30', '15:30', 'office'),
@@ -132,16 +132,22 @@ describe('people in production', () => {
   ];
   const products = [{ id: 'chip', people_needed: 6.5 }, { id: 'azul', people_needed: 6 }, { id: 'bio', people_needed: null }];
 
-  it('counts each person by their production hours against a full day', () => {
-    const day = productionStaffing(monday, { '1': ['chip'] }, products)[1];
-    expect(day).toEqual({ day: 1, count: 6.3, need: 6.5, short: true });
+  it('counts each person by their working hours against a full day, whatever the work', () => {
+    // Freddy's office and Jefferson's day count like anyone's production.
+    const day = productionStaffing(monday, { '1': ['chip'] }, products, kinds)[1];
+    expect(day).toEqual({ day: 1, count: 8, need: 6.5, short: false });
+  });
+
+  it('does not count a day off', () => {
+    const off = [...monday.filter((b) => b.person_id !== 'jorge'), block('jorge', 1, 1, null, null, 'free')];
+    expect(productionStaffing(off, { '1': ['chip'] }, products, kinds)[1].count).toBe(7);
   });
 
   it('takes the product that needs most, and none when there is no figure', () => {
-    expect(productionStaffing(monday, { '1': ['azul', 'chip'] }, products)[1].need).toBe(6.5);
-    expect(productionStaffing(monday, { '1': ['azul'] }, products)[1].short).toBe(false);
-    expect(productionStaffing(monday, { '1': ['bio'] }, products)[1]).toMatchObject({ need: null, short: false });
-    expect(productionStaffing(monday, {}, products)[0]).toEqual({ day: 0, count: 0, need: null, short: false });
+    expect(productionStaffing(monday, { '1': ['azul', 'chip'] }, products, kinds)[1].need).toBe(6.5);
+    expect(productionStaffing(monday.slice(0, 6), { '1': ['azul'] }, products, kinds)[1]).toMatchObject({ need: 6, short: true });
+    expect(productionStaffing(monday, { '1': ['bio'] }, products, kinds)[1]).toMatchObject({ need: null, short: false });
+    expect(productionStaffing(monday, {}, products, kinds)[0]).toEqual({ day: 0, count: 0, need: null, short: false });
   });
 });
 

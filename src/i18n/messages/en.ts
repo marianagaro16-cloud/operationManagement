@@ -3256,7 +3256,7 @@ export const en = {
     warnUnder: '{name}: {hours} h worked (pauses taken off), under the minimum of {bound} h',
     warnOver: '{name}: {hours} h worked (pauses taken off), over the maximum of {bound} h',
     warnNoLead: '{day}: no production lead',
-    warnShort: '{day}: {count} people in production, the product takes {need}',
+    warnShort: '{day}: {count} people at work, the product takes {need}',
     warnDayOff: '{name}: has hours on {day}, marked as a day off',
     warnAbsence: '{name}: has hours on {day}, with an approved absence',
     absenceHint: 'Dashed red border: approved absence that day.',

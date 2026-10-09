@@ -101,7 +101,7 @@ export function ScheduleSheet({
   showTotal?: boolean;
   /** Under each total, the hours worked against the person's contract. On screen, for whoever makes it. */
   showContract?: boolean;
-  /** Under the rows, the people in production each day against what the product takes. On screen only. */
+  /** Under the rows, the people at work each day against what the product takes. On screen only. */
   showStaffing?: boolean;
   /**
    * Draws a time as something to type into. With it the sheet is edited in
@@ -227,13 +227,13 @@ export function ScheduleSheet({
               })}
               {showStaffing && (
                 <tr>
-                  <td style={{ ...th, fontWeight: 400, fontSize: 9.5, whiteSpace: 'normal' }}>En producción</td>
-                  {productionStaffing(blocks, header.day_products, products).map((s) => (
+                  <td style={{ ...th, fontWeight: 400, fontSize: 9.5, whiteSpace: 'normal' }}>Personas</td>
+                  {productionStaffing(blocks, header.day_products, products, rules).map((s) => (
                     <td
                       key={s.day}
                       colSpan={3}
                       style={{ ...th, fontWeight: s.short ? 700 : 400, fontSize: 10.5, color: s.need == null ? '#525252' : s.short ? '#b45309' : '#15803d' }}
-                      title="Personas en producción (según sus horas) / las que necesita el producto del día"
+                      title="Personas trabajando ese día (según sus horas) / las que necesita el producto del día"
                     >
                       {s.count > 0 || s.need != null ? `${s.count.toFixed(1)}${s.need != null ? ` / ${s.need.toFixed(1)}` : ''}` : ''}
                     </td>

@@ -3224,7 +3224,7 @@ export const de: Messages = {
     warnUnder: '{name}: {hours} Std. gearbeitet (ohne Pausen), unter dem Minimum von {bound} Std.',
     warnOver: '{name}: {hours} Std. gearbeitet (ohne Pausen), über dem Maximum von {bound} Std.',
     warnNoLead: '{day}: keine Produktionsleitung',
-    warnShort: '{day}: {count} Personen in der Produktion, das Produkt braucht {need}',
+    warnShort: '{day}: {count} Personen bei der Arbeit, das Produkt braucht {need}',
     warnDayOff: '{name}: hat am {day} Zeiten, als freier Tag markiert',
     warnAbsence: '{name}: hat am {day} Zeiten, bei genehmigter Abwesenheit',
     absenceHint: 'Gestrichelter roter Rand: genehmigte Abwesenheit an diesem Tag.',
