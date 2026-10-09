@@ -8,6 +8,7 @@ import { ROLES, TEAMS, wouldOrphanAdmins, type Role, type Team } from '@/lib/aut
 import { countApprovedAdmins } from './data';
 import { ensureScheduled } from './scheduling';
 import { notifyActivityAssigned } from './activity-notify';
+import { notifyActivityBlocked, notifyActivityUnblocked } from './block-notify';
 
 /**
  * Server actions.
@@ -91,14 +92,27 @@ export async function blockOccurrence(
     p_reason: reason.trim(),
   });
   if (error) return fail(error);
+  // The Admins hear about the blocks of the people they follow.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) await notifyActivityBlocked(occurrenceId, user.id, reason.trim());
   revalidatePath('/dashboard');
   return { ok: true, data: undefined };
 }
 
 export async function reopenOccurrence(occurrenceId: string): Promise<ActionResult> {
   const supabase = createClient();
+  // What it was before: reopening clears the block and its reason.
+  const { data: before } = await supabase
+    .from('task_occurrences')
+    .select('status, blocked_by, blocked_reason')
+    .eq('id', occurrenceId)
+    .maybeSingle();
   const { error } = await supabase.rpc('reopen_occurrence', { p_occurrence_id: occurrenceId });
   if (error) return fail(error);
+  if (before?.status === 'blocked') {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) await notifyActivityUnblocked(occurrenceId, user.id, before);
+  }
   revalidatePath('/dashboard');
   return { ok: true, data: undefined };
 }
