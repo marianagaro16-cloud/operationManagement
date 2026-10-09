@@ -73,6 +73,7 @@ export function ScheduleSheet({
   header,
   changed,
   absentDays = {},
+  showTotal = false,
   onCell,
   onDay,
 }: {
@@ -90,6 +91,11 @@ export function ScheduleSheet({
   changed: Set<string>;
   /** Days with an approved absence, per person — a hint on screen only. */
   absentDays?: Record<string, number[]>;
+  /**
+   * The sum of everyone's hours under the totals. Payroll's figure: only for
+   * whoever makes the schedule, on screen — never on the page that is shared.
+   */
+  showTotal?: boolean;
   onCell?: (personId: string, day: number) => void;
   onDay?: (day: number) => void;
 }) {
@@ -197,10 +203,12 @@ export function ScheduleSheet({
                   </tr>
                 ));
               })}
-              <tr>
-                <td colSpan={22} style={{ border: 'none' }} />
-                <td style={{ ...th }}>{formatHours(total)}</td>
-              </tr>
+              {showTotal && (
+                <tr>
+                  <td colSpan={22} style={{ border: 'none' }} />
+                  <td style={{ ...th }}>{formatHours(total)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
 

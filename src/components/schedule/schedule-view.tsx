@@ -281,6 +281,7 @@ export function ScheduleView({
                 header={header}
                 changed={changed}
                 absentDays={absentDays}
+                showTotal={canEdit}
                 onCell={canEdit ? (personId, d) => setCell({ personId, day: d }) : undefined}
                 onDay={canEdit ? setDay : undefined}
               />
