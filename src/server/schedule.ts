@@ -52,7 +52,7 @@ export async function getSchedulePeople(includeInactive = false): Promise<Schedu
   const supabase = createClient();
   let q = supabase
     .from('schedule_people')
-    .select('id, worker_id, external_name, label, sort_order, percent, min_hours, max_hours, is_lead, in_sunday_rotation, sunday_order, is_active, worker:hr_workers ( name, profile_id )')
+    .select('id, worker_id, external_name, label, sort_order, percent, min_hours, max_hours, is_lead, in_sunday_rotation, sunday_order, in_cleaning_rotation, is_active, worker:hr_workers ( name, profile_id )')
     .order('sort_order')
     .order('created_at');
   if (!includeInactive) q = q.eq('is_active', true);

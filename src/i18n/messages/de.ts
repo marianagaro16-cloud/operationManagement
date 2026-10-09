@@ -3218,6 +3218,8 @@ export const de: Messages = {
     cleaning: 'Wochenreinigung',
     bathrooms: 'Toiletten',
     kitchen: 'Küche',
+    cleaningIn: 'Reinigungsturnus',
+    suggestCleaning: 'Nach Turnus setzen',
     warnings: 'Zu prüfen',
     warnUnder: '{name}: {hours} Std. gearbeitet (ohne Pausen), unter dem Minimum von {bound} Std.',
     warnOver: '{name}: {hours} Std. gearbeitet (ohne Pausen), über dem Maximum von {bound} Std.',

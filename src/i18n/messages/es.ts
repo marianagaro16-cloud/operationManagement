@@ -3218,6 +3218,8 @@ export const es: Messages = {
     cleaning: 'Limpieza semanal',
     bathrooms: 'Baños',
     kitchen: 'Cocina',
+    cleaningIn: 'Turno de limpieza',
+    suggestCleaning: 'Poner según el turno',
     warnings: 'Para revisar',
     warnUnder: '{name}: {hours} h trabajadas (sin pausas), por debajo del mínimo de {bound} h',
     warnOver: '{name}: {hours} h trabajadas (sin pausas), por encima del máximo de {bound} h',

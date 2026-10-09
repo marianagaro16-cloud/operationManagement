@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { blockHours, changedCells, weekDates, weekStartOf, type Block, type KindRule } from '@/domain/schedule/schedule';
+import { blockHours, changedCells, cleaningTurns, weekDates, weekStartOf, weekHours, type Block, type KindRule } from '@/domain/schedule/schedule';
 import type { ActionResult } from './actions';
 import type { ScheduleSnapshot, ScheduleWeek } from '@/types/schedule';
 
@@ -86,8 +86,46 @@ export async function createScheduleWeek(input: { date: string; source: 'empty' 
       if (copyError) return fail(copyError);
     }
   }
+  // Baños and Cocina, by whose turn it is: there to be changed.
+  const turns = await cleaningFor((week as { id: string }).id, weekStart, false);
+  if (turns.cleaning_bathroom || turns.cleaning_kitchen) await supabase.from('schedule_weeks').update(turns).eq('id', (week as { id: string }).id);
   revalidate();
   return { ok: true, data: { week_start: weekStart } };
+}
+
+/**
+ * Whose turn the cleaning is for a week, from the weeks before it. Looking
+ * at the week itself, whoever has no working hours in it — away for all of
+ * it — is passed over; a week with nothing in it yet tells nothing.
+ */
+async function cleaningFor(weekId: string, weekStart: string, lookAtWeek: boolean) {
+  const supabase = createClient();
+  const [{ data: people }, { data: history }, { data: kinds }] = await Promise.all([
+    supabase.from('schedule_people').select('id, sort_order').eq('is_active', true).eq('in_cleaning_rotation', true),
+    supabase.from('schedule_weeks').select('week_start, cleaning_bathroom, cleaning_kitchen').eq('is_pattern', false).lt('week_start', weekStart),
+    supabase.from('schedule_kinds').select('id, counts_hours'),
+  ]);
+  const members = (people ?? []) as { id: string; sort_order: number }[];
+  const away = new Set<string>();
+  if (lookAtWeek) {
+    const blocks = await blocksOf(weekId);
+    const rules = new Map(((kinds ?? []) as KindRule[]).map((k) => [k.id, k]));
+    if (blocks.length > 0) for (const m of members) if (weekHours(blocks, m.id, rules) === 0) away.add(m.id);
+  }
+  return cleaningTurns(members, (history ?? []) as { week_start: string; cleaning_bathroom: string | null; cleaning_kitchen: string | null }[], away);
+}
+
+/** Set Baños and Cocina again by whose turn it is, passing over whoever is away that week. */
+export async function suggestScheduleCleaning(weekId: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { data: week } = await supabase.from('schedule_weeks').select('id, week_start').eq('id', weekId).eq('is_pattern', false).maybeSingle();
+  if (!week?.week_start) return { ok: false, error: 'not_found' };
+  const turns = await cleaningFor(weekId, week.week_start, true);
+  const { data, error } = await supabase.from('schedule_weeks').update(turns).eq('id', weekId).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidate();
+  return done();
 }
 
 /** The usual week, made the first time it is opened. */
@@ -328,6 +366,7 @@ const personSchema = z
     is_lead: z.boolean(),
     in_sunday_rotation: z.boolean(),
     sunday_order: z.number().int(),
+    in_cleaning_rotation: z.boolean(),
     is_active: z.boolean(),
   })
   .refine((p) => p.min_hours == null || p.max_hours == null || p.max_hours >= p.min_hours, { message: 'hours_order' });

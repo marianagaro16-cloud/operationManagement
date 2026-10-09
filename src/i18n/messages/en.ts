@@ -3250,6 +3250,8 @@ export const en = {
     cleaning: 'Weekly cleaning',
     bathrooms: 'Bathrooms',
     kitchen: 'Kitchen',
+    cleaningIn: 'Cleaning turn',
+    suggestCleaning: 'Set by whose turn it is',
     warnings: 'To check',
     warnUnder: '{name}: {hours} h worked (pauses taken off), under the minimum of {bound} h',
     warnOver: '{name}: {hours} h worked (pauses taken off), over the maximum of {bound} h',

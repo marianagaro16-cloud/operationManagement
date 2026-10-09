@@ -32,6 +32,7 @@ import {
   publishScheduleWeek,
   saveScheduleCell,
   saveScheduleHeader,
+  suggestScheduleCleaning,
 } from '@/server/schedule-actions';
 import type { ScheduleKind, SchedulePerson, ScheduleProduct, ScheduleWeekData, ScheduleWeekHeader } from '@/types/schedule';
 import { ScheduleSheet, weekTitle } from './schedule-sheet';
@@ -403,7 +404,12 @@ export function ScheduleView({
             {/* ---- the weekly cleaning ---- */}
             {!pattern && canEdit && (
               <Card className="p-3.5">
-                <p className="mb-2 text-[13px] font-semibold">{t('schedule.cleaning')}</p>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[13px] font-semibold">{t('schedule.cleaning')}</p>
+                  <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(() => suggestScheduleCleaning(week.id))}>
+                    {t('schedule.suggestCleaning')}
+                  </Button>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   {(['cleaning_bathroom', 'cleaning_kitchen'] as const).map((field) => (
                     <Field key={field} label={field === 'cleaning_bathroom' ? t('schedule.bathrooms') : t('schedule.kitchen')} htmlFor={field}>

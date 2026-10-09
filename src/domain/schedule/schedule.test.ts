@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   changedCells,
+  cleaningTurns,
   contractHours,
   dayHours,
   formatHours,
@@ -190,6 +191,34 @@ describe('changes after a version', () => {
 
   it('does not mind seconds on a time', () => {
     expect(changedCells([block('a', 1, 1, '07:00:00', '15:00:00')], [block('a', 1, 1, '07:00', '15:00')]).size).toBe(0);
+  });
+});
+
+describe('the weekly cleaning', () => {
+  const members = ['rafael', 'patty', 'marco', 'jefferson', 'bruce', 'gabriel', 'jorge'].map((id, i) => ({ id, sort_order: (i + 2) * 10 }));
+  // As imported: 04.10 Patty and Jorge, 11.10 Marco and Gabriel.
+  const history = [
+    { week_start: '2026-10-04', cleaning_bathroom: 'patty', cleaning_kitchen: 'jorge' },
+    { week_start: '2026-10-11', cleaning_bathroom: 'marco', cleaning_kitchen: 'gabriel' },
+  ];
+
+  it('gives each task to whoever did it longest ago, in the order of the rows', () => {
+    // Nobody but Patty and Marco has done the bathrooms: the first row that has not is Rafael.
+    // The kitchen then goes to the next who has never done it — not Rafael again.
+    expect(cleaningTurns(members, history)).toEqual({ cleaning_bathroom: 'rafael', cleaning_kitchen: 'patty' });
+  });
+
+  it('keeps the two turns apart: the bathrooms last week do not count for the kitchen', () => {
+    const all = [...history, { week_start: '2026-10-18', cleaning_bathroom: 'rafael', cleaning_kitchen: 'patty' }];
+    expect(cleaningTurns(members, all)).toEqual({ cleaning_bathroom: 'jefferson', cleaning_kitchen: 'rafael' });
+  });
+
+  it('skips whoever is away that week', () => {
+    expect(cleaningTurns(members, history, new Set(['rafael']))).toEqual({ cleaning_bathroom: 'jefferson', cleaning_kitchen: 'patty' });
+  });
+
+  it('never gives both to one person', () => {
+    expect(cleaningTurns([members[0]], [])).toEqual({ cleaning_bathroom: 'rafael', cleaning_kitchen: null });
   });
 });
 

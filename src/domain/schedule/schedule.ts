@@ -271,6 +271,40 @@ export function nextSundayTurn(members: RotationMember[], duties: { person_id: s
   return [...members].sort((a, b) => (last.get(a.id) ?? '').localeCompare(last.get(b.id) ?? '') || a.sunday_order - b.sunday_order)[0].id;
 }
 
+/* --------------------------- the weekly cleaning --------------------------- */
+
+export interface CleaningWeek {
+  week_start: string;
+  cleaning_bathroom: string | null;
+  cleaning_kitchen: string | null;
+}
+
+/**
+ * Whose turn the weekly cleaning is. Baños and Cocina each go round on their
+ * own: for each, whoever did it longest ago — never, first — and among equals
+ * the order of the rows. Nobody gets both in one week; with a single person
+ * to choose from, the kitchen stays open.
+ */
+export function cleaningTurns(
+  members: { id: string; sort_order: number }[],
+  /** The weeks before this one. */
+  history: CleaningWeek[],
+  /** Not there that week: on holiday or ill for all of it. */
+  away: ReadonlySet<string> = new Set(),
+): { cleaning_bathroom: string | null; cleaning_kitchen: string | null } {
+  const next = (task: 'cleaning_bathroom' | 'cleaning_kitchen', taken: string | null) => {
+    const last = new Map<string, string>();
+    for (const w of history) {
+      const id = w[task];
+      if (id && (last.get(id) ?? '') < w.week_start) last.set(id, w.week_start);
+    }
+    const free = members.filter((m) => !away.has(m.id) && m.id !== taken);
+    return [...free].sort((a, b) => (last.get(a.id) ?? '').localeCompare(last.get(b.id) ?? '') || a.sort_order - b.sort_order)[0]?.id ?? null;
+  };
+  const cleaning_bathroom = next('cleaning_bathroom', null);
+  return { cleaning_bathroom, cleaning_kitchen: next('cleaning_kitchen', cleaning_bathroom) };
+}
+
 /** The Sunday a date's week starts on. Dates are 'YYYY-MM-DD'. */
 export function weekStartOf(date: string): string {
   const d = new Date(`${date}T00:00:00Z`);

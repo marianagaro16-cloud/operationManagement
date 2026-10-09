@@ -81,6 +81,7 @@ export function ScheduleConfig({
                   {!p.worker_id && <Badge tone="neutral">{t('schedule.external')}</Badge>}
                   {p.is_lead && <Badge tone="accent">{t('schedule.lead')}</Badge>}
                   {p.in_sunday_rotation && <Badge tone="warn">{t('schedule.rotationIn')} {p.sunday_order}</Badge>}
+                  {p.in_cleaning_rotation && <Badge tone="neutral">{t('schedule.cleaningIn')}</Badge>}
                 </div>
                 <p className="text-[12px] text-muted">
                   {[
@@ -185,6 +186,7 @@ function PersonDialog({
   const [lead, setLead] = useState(row?.is_lead ?? false);
   const [rotation, setRotation] = useState(row?.in_sunday_rotation ?? false);
   const [sundayOrder, setSundayOrder] = useState(String(row?.sunday_order ?? 0));
+  const [cleaning, setCleaning] = useState(row?.in_cleaning_rotation ?? false);
   const [active, setActive] = useState(row?.is_active ?? true);
   const ready = external ? !!externalName.trim() : !!row || !!workerId;
 
@@ -202,6 +204,7 @@ function PersonDialog({
           is_lead: lead,
           in_sunday_rotation: rotation,
           sunday_order: Number(sundayOrder) || 0,
+          in_cleaning_rotation: cleaning,
           is_active: active,
         },
         row?.id,
@@ -251,6 +254,7 @@ function PersonDialog({
             </Field>
           )}
         </div>
+        <Checkbox label={t('schedule.cleaningIn')} checked={cleaning} onChange={(e) => setCleaning(e.target.checked)} />
         {row && <Checkbox label={t('schedule.active')} checked={active} onChange={(e) => setActive(e.target.checked)} />}
       </div>
     </Dialog>

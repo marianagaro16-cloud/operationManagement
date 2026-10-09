@@ -38,6 +38,8 @@ export interface SchedulePerson {
   is_lead: boolean;
   in_sunday_rotation: boolean;
   sunday_order: number;
+  /** Takes a turn at the weekly cleaning. */
+  in_cleaning_rotation: boolean;
   is_active: boolean;
 }
 
