@@ -212,12 +212,18 @@ async function getOrderDay(
     .gte(column, from)
     .lte(column, to)
     .eq('status', 'confirmed')
+    // The selected day in full, and from the rest of the window only what is
+    // not ready — all that carried-over work and the weekday markers read.
+    // Ready and shipped orders stay 'confirmed', so without this the window
+    // returned every order of the last 60 days with its lines and lots:
+    // 318 orders and 2.4 MB on 2026-10-09, to show five.
+    .or(`${column}.eq.${date},ready_at.is.null`)
     .order(column, { ascending: true })
     .order('reference', { ascending: true });
 
   if (error) throw new Error(error.message);
 
-  const all = withProgress(sortLines((data ?? []) as unknown as Order[]));
+  const all =withProgress(sortLines((data ?? []) as unknown as Order[]));
 
   const due = all.filter((o) => o[column] === date);
   const carriedOver = all.filter(
