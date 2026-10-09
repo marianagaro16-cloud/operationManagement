@@ -7,6 +7,7 @@ export const de: Messages = {
     loading: 'Wird geladen…',
     error: 'Etwas ist schiefgelaufen',
     retry: 'Erneut versuchen',
+    reload: 'Neu laden',
     save: 'Speichern',
     saving: 'Wird gespeichert…',
     cancel: 'Abbrechen',

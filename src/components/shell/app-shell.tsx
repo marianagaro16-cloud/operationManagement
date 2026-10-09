@@ -12,6 +12,7 @@ import { SignOutButton } from './sign-out-button';
 import { PresenceBeacon } from './presence-beacon';
 import { FormNoteSubmit } from '@/components/ui/enter-to-save';
 import { InboxLink } from './inbox-link';
+import { ReloadButton } from './reload-button';
 import { QuickNoteButton } from '@/components/notes/quick-note-button';
 import { atLeast, can, canReadMarketing, canReadSchedule, canRequestMarketing, isExternal, isMarketing, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
 import type { Profile } from '@/types/database';
@@ -358,6 +359,8 @@ export function AppShell({
           {/* The inbox, beside settings on every screen: a count nobody can
               see without opening a menu is a count nobody reads. */}
           {/* Write a note down without leaving the screen. */}
+          <ReloadButton />
+
           <QuickNoteButton />
 
           <InboxLink initialUnread={inboxUnread} active={pathname === '/inbox'} />

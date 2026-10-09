@@ -7,6 +7,7 @@ export const es: Messages = {
     loading: 'Cargando…',
     error: 'Algo salió mal',
     retry: 'Reintentar',
+    reload: 'Recargar',
     save: 'Guardar',
     saving: 'Guardando…',
     cancel: 'Cancelar',

@@ -9,6 +9,7 @@ export const en = {
     loading: 'Loading…',
     error: 'Something went wrong',
     retry: 'Try again',
+    reload: 'Reload',
     save: 'Save',
     saving: 'Saving…',
     cancel: 'Cancel',
