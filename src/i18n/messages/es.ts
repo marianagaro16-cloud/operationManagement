@@ -3224,7 +3224,7 @@ export const es: Messages = {
     warnUnder: '{name}: {hours} h trabajadas (sin pausas), por debajo del mínimo de {bound} h',
     warnOver: '{name}: {hours} h trabajadas (sin pausas), por encima del máximo de {bound} h',
     warnNoLead: '{day}: ningún encargado de producción',
-    warnShort: '{day}: {count} personas trabajando, el producto necesita {need}',
+    warnShort: '{day}: {count} personas en producción, el producto necesita {need}',
     warnDayOff: '{name}: tiene horas el {day}, marcado como día sin trabajo',
     warnAbsence: '{name}: tiene horas el {day}, con una ausencia aprobada',
     absenceHint: 'Borde rojo discontinuo: ausencia aprobada ese día.',

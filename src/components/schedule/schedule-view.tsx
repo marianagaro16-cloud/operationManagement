@@ -166,7 +166,7 @@ export function ScheduleView({
   const comparedTo = !week || week.version === 0 ? 0 : dirty ? week.version : week.version - 1;
 
   const warnings = week ? scheduleWarnings(blocks, rows, rules, new Map(Object.entries(absentDays).map(([id, days]) => [id, new Set(days)]))) : [];
-  const short = week ? productionStaffing(blocks, header.day_products, products, rules).filter((s) => s.short) : [];
+  const short = week ? productionStaffing(blocks, header.day_products, products).filter((s) => s.short) : [];
   const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? '—';
   const dayLabel = (d: number) => (dates ? `${WEEKDAYS[d]} ${dates[d].slice(8, 10)}.${dates[d].slice(5, 7)}` : WEEKDAYS[d]);
 
