@@ -3281,6 +3281,10 @@ export const de: Messages = {
     errResponsible: 'Verantwortlich muss jemand aus dem Inkasso-Team sein.',
     errInvoice: 'Mindestens eine Rechnung erfassen.',
     errAmount: 'Prüfe den Betrag.',
+    errInvoiceExists: 'Die Rechnung {number} ist bereits in einem Fall von {customer}. Sie kann nicht zweimal erfasst werden.',
+    errInvoiceTwice: 'Die Rechnung {number} ist zweimal aufgeführt.',
+    search: 'Kunde oder Rechnungsnummer suchen',
+    noneFound: 'Kein Fall passt zur Suche.',
     errBody: 'Schreib, was besprochen wurde.',
   },
   note: {

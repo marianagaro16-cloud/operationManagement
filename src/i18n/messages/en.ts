@@ -3313,6 +3313,10 @@ export const en = {
     errResponsible: 'The responsible person must be on the collections team.',
     errInvoice: 'Add at least one invoice.',
     errAmount: 'Check the amount.',
+    errInvoiceExists: 'Invoice {number} is already in a case of {customer}. It cannot be entered twice.',
+    errInvoiceTwice: 'Invoice {number} is there twice.',
+    search: 'Search customer or invoice number',
+    noneFound: 'No case matches the search.',
     errBody: 'Write what was said.',
   },
   note: {

@@ -12,11 +12,13 @@ export default async function CollectionsPage({ searchParams }: { searchParams: 
   if (!viewer) redirect('/login');
   if (!(await isCollections())) redirect('/dashboard');
   const tab = searchParams.tab === 'closed' ? 'closed' : searchParams.tab === 'prepay' ? 'prepay' : 'open';
-  const [cases, team, customers, prepay] = await Promise.all([
+  const [cases, otherCases, team, customers, prepay] = await Promise.all([
     tab === 'prepay' ? Promise.resolve([]) : getCases(tab === 'open'),
+    // The other tab's cases: the search looks in open and closed together.
+    tab === 'prepay' ? Promise.resolve([]) : getCases(tab !== 'open'),
     getCollectionTeam(),
     getCollectionCustomers(),
     tab === 'prepay' ? getPrepayCustomers() : Promise.resolve([]),
   ]);
-  return <CaseList tab={tab} prepay={prepay} cases={cases} today={businessToday()} viewerId={viewer.profile.id} team={team} customers={customers} />;
+  return <CaseList tab={tab} prepay={prepay} cases={cases} otherCases={otherCases} today={businessToday()} viewerId={viewer.profile.id} team={team} customers={customers} />;
 }

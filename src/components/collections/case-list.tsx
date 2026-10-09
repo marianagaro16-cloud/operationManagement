@@ -3,9 +3,10 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
+import { filterByQuery } from '@/lib/search';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Card, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
@@ -21,6 +22,7 @@ import { PrepayList } from './prepay-list';
 export function CaseList({
   tab,
   cases,
+  otherCases = [],
   today,
   viewerId,
   team,
@@ -31,6 +33,8 @@ export function CaseList({
   prepay?: { id: string; name: string; since: string | null }[];
   tab: 'open' | 'closed' | 'prepay';
   cases: CollectionCaseRow[];
+  /** The cases of the other tab — closed on "open", open on "closed": only the search reads them. */
+  otherCases?: CollectionCaseRow[];
   today: string;
   viewerId: string;
   team: { id: string; name: string }[];
@@ -39,7 +43,11 @@ export function CaseList({
   const { t, formatDate } = useI18n();
   const [creating, setCreating] = useState(false);
   const [onlyMine, setOnlyMine] = useState(false);
-  const shown = onlyMine ? cases.filter((c) => c.responsible_id === viewerId) : cases;
+  const [query, setQuery] = useState('');
+  const searching = query.trim() !== '';
+  // A search looks in open and closed together, this tab's first; by customer or invoice number.
+  const found = filterByQuery(searching ? [...cases, ...otherCases] : cases, query, (c) => `${c.customer_name} ${c.invoice_numbers.join(' ')}`);
+  const shown = onlyMine ? found.filter((c) => c.responsible_id === viewerId) : found;
   const openTotal = shown.reduce((s, c) => s + c.open, 0);
 
   return (
@@ -74,7 +82,14 @@ export function CaseList({
         </label>}
       </div>
 
-      {tab === 'open' && shown.length > 0 && (
+      {tab !== 'prepay' && (
+        <div className="relative mb-3">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" aria-hidden />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('collection.search')} aria-label={t('collection.search')} className="pl-9" />
+        </div>
+      )}
+
+      {tab === 'open' && !searching && shown.length > 0 && (
         <p className="mb-2 text-[13px]">
           {t('collection.openTotal')} <span className="font-semibold tabular">{chf(openTotal)}</span>
           <span className="text-muted"> · {t('collection.cases', { count: shown.length })}</span>
@@ -84,12 +99,14 @@ export function CaseList({
       {tab === 'prepay' ? (
         <PrepayList prepay={prepay} customers={customers} />
       ) : shown.length === 0 ? (
-        <EmptyState title={tab === 'open' ? t('collection.noneOpen') : t('collection.noneClosed')} />
+        <EmptyState title={searching ? t('collection.noneFound') : tab === 'open' ? t('collection.noneOpen') : t('collection.noneClosed')} />
       ) : (
         <Card className="divide-y divide-border">
           {shown.map((c) => {
             const due = c.next_follow_up;
-            const late = tab === 'open' && !!due && due < today;
+            // Per case, not per tab: a search lists open and closed ones together.
+            const open = !c.closed_at;
+            const late = open && !!due && due < today;
             return (
               <Link key={c.id} href={`/collections/${c.id}`} className="flex items-start gap-3 px-3.5 py-2.5 hover:bg-surface-2">
                 <div className="min-w-0 flex-1">
@@ -98,19 +115,20 @@ export function CaseList({
                     <StageBadge stage={c.stage} reminders={c.reminders_sent} />
                   </div>
                   <p className="text-[12px] text-muted">
+                    {c.invoice_numbers.length > 0 && `${c.invoice_numbers.join(', ')} · `}
                     {c.responsible_name ?? '—'}
                     {c.oldest_due && ` · ${t('collection.oldestDue', { date: formatDate(c.oldest_due, 'short') })}`}
                     {c.agency_name && ` · ${c.agency_name}`}
                   </p>
-                  {tab === 'open' && due && (
+                  {open && due && (
                     <p className={cn('text-[12px]', late ? 'font-semibold text-late' : due === today ? 'font-medium text-accent' : 'text-muted')}>
                       {c.stage === 'promise' ? t('collection.checkPromise', { date: formatDate(due, 'short') }) : t('collection.nextOn', { date: formatDate(due, 'short') })}
                     </p>
                   )}
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-[13.5px] font-semibold tabular">{chf(tab === 'open' ? c.open : c.total)}</p>
-                  {c.paid > 0 && tab === 'open' && <p className="text-[11.5px] tabular text-muted">{t('collection.ofTotal', { total: chf(c.total) })}</p>}
+                  <p className="text-[13.5px] font-semibold tabular">{chf(open ? c.open : c.total)}</p>
+                  {c.paid > 0 && open && <p className="text-[11.5px] tabular text-muted">{t('collection.ofTotal', { total: chf(c.total) })}</p>}
                 </div>
               </Link>
             );

@@ -21,7 +21,7 @@ const CASE_COLUMNS = `
   customer:customers ( company_name ),
   responsible:profiles!collection_cases_responsible_id_fkey ( name, email ),
   agency:collection_agencies ( name ),
-  invoices:collection_invoices ( amount, due_date ),
+  invoices:collection_invoices ( invoice_number, amount, due_date ),
   payments:collection_payments ( amount )
 `;
 
@@ -29,11 +29,11 @@ type Person = { name: string | null; email: string } | null;
 const nameOf = (p: Person) => (p ? p.name || p.email : null);
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-type Raw = Omit<CollectionCaseRow, 'customer_name' | 'responsible_name' | 'agency_name' | 'total' | 'paid' | 'open' | 'oldest_due'> & {
+type Raw = Omit<CollectionCaseRow, 'customer_name' | 'responsible_name' | 'agency_name' | 'total' | 'paid' | 'open' | 'oldest_due' | 'invoice_numbers'> & {
   customer: { company_name: string } | null;
   responsible: Person;
   agency: { name: string } | null;
-  invoices: { amount: number | string; due_date: string | null }[] | null;
+  invoices: { invoice_number: string; amount: number | string; due_date: string | null }[] | null;
   payments: { amount: number | string }[] | null;
 };
 
@@ -50,6 +50,7 @@ function toCase({ customer, responsible, agency, invoices, payments, ...c }: Raw
     paid,
     open: round2(Math.max(total - paid, 0)),
     oldest_due: dues[0] ?? null,
+    invoice_numbers: (invoices ?? []).map((i) => i.invoice_number),
   };
 }
 

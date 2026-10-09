@@ -65,6 +65,28 @@ async function openAmount(caseId: string): Promise<number> {
 
 const invoiceSchema = z.object({ invoice_number: z.string().trim().min(1).max(60), due_date: optDate, amount: money });
 
+/** "re-07570 " and "RE-07570" are the same invoice. */
+const sameNumber = (n: string) => n.replace(/s+/g, '').toUpperCase();
+
+/**
+ * An invoice belongs to one case, ever — open or closed.
+ *
+ * Returns the error to show when one of the numbers is already in a case
+ * (which customer's, so it can be found), or is given twice at once. The team
+ * reads every invoice, and there are few: compared here rather than in SQL so
+ * capitals and spaces do not let a duplicate through.
+ */
+async function invoiceTaken(numbers: string[], exceptInvoiceId?: string): Promise<string | null> {
+  const wanted = numbers.map(sameNumber);
+  const twice = numbers.find((_, k) => wanted.indexOf(wanted[k]) !== k);
+  if (twice) return `invoice_twice|${twice}`;
+  const supabase = createClient();
+  const { data } = await supabase.from('collection_invoices').select('id, invoice_number, case:collection_cases ( customer:customers ( company_name ) )');
+  const rows = (data ?? []) as unknown as { id: string; invoice_number: string; case: { customer: { company_name: string } | null } | null }[];
+  const hit = rows.find((r) => r.id !== exceptInvoiceId && wanted.includes(sameNumber(r.invoice_number)));
+  return hit ? `invoice_exists|${hit.invoice_number}|${hit.case?.customer?.company_name ?? ''}` : null;
+}
+
 const caseSchema = z.object({
   /** Where it starts: at a payment reminder (1–2, sent on a day), or at follow-up. */
   reminders_sent: z.number().int().min(0).max(LAST_REMINDER).default(0),
@@ -81,6 +103,8 @@ export async function createCase(input: z.input<typeof caseSchema>): Promise<Act
   const parsed = caseSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_case' };
   const v = parsed.data;
+  const taken = await invoiceTaken(v.invoices.map((i) => i.invoice_number));
+  if (taken) return { ok: false, error: taken };
   const supabase = createClient();
   const uid = await me();
   const { data, error } = await supabase
@@ -251,6 +275,8 @@ export async function setResponsible(caseId: string, profileId: string): Promise
 export async function addInvoice(caseId: string, input: z.input<typeof invoiceSchema>): Promise<ActionResult> {
   const parsed = invoiceSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'invalid_invoice' };
+  const taken = await invoiceTaken([parsed.data.invoice_number]);
+  if (taken) return { ok: false, error: taken };
   const supabase = createClient();
   const { error } = await supabase.from('collection_invoices').insert({ ...parsed.data, case_id: caseId });
   if (error) return fail(error);
@@ -266,6 +292,11 @@ export async function updateInvoice(caseId: string, invoiceId: string, input: z.
   const supabase = createClient();
   const { data: before } = await supabase.from('collection_invoices').select('invoice_number, due_date, amount').eq('id', invoiceId).eq('case_id', caseId).maybeSingle();
   if (!before) return { ok: false, error: 'not_authorized' };
+  // Only when the number itself changes: the amount of one of the old duplicates can still be corrected.
+  if (sameNumber(before.invoice_number) !== sameNumber(parsed.data.invoice_number)) {
+    const taken = await invoiceTaken([parsed.data.invoice_number], invoiceId);
+    if (taken) return { ok: false, error: taken };
+  }
   const { error } = await supabase.from('collection_invoices').update(parsed.data).eq('id', invoiceId).eq('case_id', caseId);
   if (error) return fail(error);
   await log(caseId, 'invoice', null, {

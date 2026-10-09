@@ -30,6 +30,8 @@ export interface CollectionCaseRow {
   open: number;
   /** The oldest invoice's due date. */
   oldest_due: string | null;
+  /** Its invoice numbers, as typed: shown in the list and searched. */
+  invoice_numbers: string[];
 }
 
 export interface CollectionInvoice {

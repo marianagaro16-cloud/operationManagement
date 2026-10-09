@@ -41,6 +41,10 @@ export function useCollectionLabels() {
         uncollectible: t('collection.stageUncollectible'),
       })[s],
     error: (code: string) => {
+      // "invoice_exists|RE-07570|El Catrín": which invoice, and whose case has it.
+      const [kind, number = '', customer = ''] = code.split('|');
+      if (kind === 'invoice_exists') return t('collection.errInvoiceExists', { number, customer });
+      if (kind === 'invoice_twice') return t('collection.errInvoiceTwice', { number });
       switch (code) {
         case 'not_authorized': return t('collection.errNotAuthorized');
         case 'responsible_not_team': return t('collection.errResponsible');

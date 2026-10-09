@@ -3281,6 +3281,10 @@ export const es: Messages = {
     errResponsible: 'El responsable tiene que ser del equipo de cobranza.',
     errInvoice: 'Añade al menos una factura.',
     errAmount: 'Revisa el importe.',
+    errInvoiceExists: 'La factura {number} ya está en un caso de {customer}. No se puede registrar dos veces.',
+    errInvoiceTwice: 'La factura {number} está dos veces.',
+    search: 'Buscar cliente o número de factura',
+    noneFound: 'Ningún caso coincide con la búsqueda.',
     errBody: 'Escribe qué se habló.',
   },
   note: {
