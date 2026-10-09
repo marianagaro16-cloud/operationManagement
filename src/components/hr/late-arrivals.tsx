@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { DateTime } from 'luxon';
@@ -13,6 +13,7 @@ import { NoteText } from '@/components/ui/note';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { localizedName } from '@/lib/localized-content';
 import { deleteLateArrival, saveLateArrival } from '@/server/hr-actions';
+import { scheduledStart } from '@/server/schedule-actions';
 import type { HrLateArrival, HrLateReason } from '@/types/hr';
 
 const hm = (time: string) => time.slice(0, 5);
@@ -242,6 +243,22 @@ function LateDialog({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // A new entry takes the agreed time from the published schedule: the first
+  // block of that day. Once it is typed over, the schedule no longer changes it.
+  const typed = useRef(false);
+  useEffect(() => {
+    if (entry || !date) return;
+    let current = true;
+    scheduledStart(workerId, date)
+      .then((time) => {
+        if (current && !typed.current) setExpected(time ?? '');
+      })
+      .catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [entry, workerId, date]);
+
   // A reason since switched off still shows on the entry that carries it.
   const options = entry?.reason && !reasons.some((r) => r.id === entry.reason!.id) ? [...reasons, { ...entry.reason, slug: '', sort_order: 999, is_active: false }] : reasons;
   // After the agreed time: late. Before it by more than the tolerance: too early.
@@ -288,7 +305,7 @@ function LateDialog({
         </Field>
         <div className="grid grid-cols-2 gap-2">
           <Field label={t('hrLate.expected')} required htmlFor="late-expected">
-            <Input id="late-expected" type="time" value={expected} onChange={(e) => setExpected(e.target.value)} />
+            <Input id="late-expected" type="time" value={expected} onChange={(e) => { typed.current = true; setExpected(e.target.value); }} />
           </Field>
           <Field label={t('hrLate.arrived')} required htmlFor="late-arrived">
             <Input id="late-arrived" type="time" value={arrived} onChange={(e) => setArrived(e.target.value)} />

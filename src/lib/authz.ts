@@ -262,6 +262,15 @@ export function canManageExpectedDeliveries(role: Role): boolean {
   return isAdminRole(role) || role === 'manager' || role === 'power_user';
 }
 
+/**
+ * The weekly work schedule: Admin and Owners write it, the Production manager
+ * reads it, and nobody else sees it — the floor gets the PDF. Mirrors
+ * schedule_can_read() in SQL; the writes are is_admin().
+ */
+export function canReadSchedule(role: Role): boolean {
+  return isAdminRole(role) || role === 'production_manager';
+}
+
 export function isRole(value: string): value is Role {
   return (ROLES as readonly string[]).includes(value);
 }

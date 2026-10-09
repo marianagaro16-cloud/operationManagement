@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, BookMarked, BookOpen, Boxes, Factory, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, Siren, Wrench, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, BookMarked, BookOpen, Boxes, Factory, CalendarClock, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, Siren, Wrench, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { PresenceBeacon } from './presence-beacon';
 import { FormNoteSubmit } from '@/components/ui/enter-to-save';
 import { InboxLink } from './inbox-link';
 import { QuickNoteButton } from '@/components/notes/quick-note-button';
-import { atLeast, can, canReadMarketing, canRequestMarketing, isExternal, isMarketing, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
+import { atLeast, can, canReadMarketing, canReadSchedule, canRequestMarketing, isExternal, isMarketing, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 import { opensManagement } from '@/components/admin/sections';
 
@@ -79,7 +79,11 @@ export function AppShell({
   const router = useRouter();
   const searchParams = useSearchParams();
   // Sales planning's week needs the whole screen: seven days side by side.
-  const frame = pathname === '/sales' && searchParams.get('tab') === 'planning' ? 'max-w-[1600px]' : 'max-w-5xl';
+  // …and so does the work schedule: seven days of two blocks, for ten people.
+  const frame =
+    (pathname === '/sales' && searchParams.get('tab') === 'planning') || (pathname === '/schedule' && searchParams.get('view') !== 'sundays')
+      ? 'max-w-[1600px]'
+      : 'max-w-5xl';
   const [menuOpen, setMenuOpen] = useState(false);
   /** The phone's More sheet. Separate from the account menu in the header. */
   const [moreOpen, setMoreOpen] = useState(false);
@@ -246,6 +250,8 @@ export function AppShell({
       ...(evaluations.total > 0 ? [{ href: '/evaluations', label: t('hrEval.mine'), icon: ClipboardCheck, badge: evaluations.pending }] : []),
       // Worker files are about people, not configuration.
       ...(can(role, held, 'hr.manage') ? [{ href: '/hr', label: t('hr.navLabel'), icon: UserRound }] : []),
+      // The weekly work schedule: Admin and Owners make it, the Production manager reads it.
+      ...(canReadSchedule(role) ? [{ href: '/schedule', label: t('schedule.navLabel'), icon: CalendarClock }] : []),
     ],
   };
   const under = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
