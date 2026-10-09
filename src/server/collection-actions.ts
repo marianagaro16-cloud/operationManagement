@@ -66,7 +66,7 @@ async function openAmount(caseId: string): Promise<number> {
 const invoiceSchema = z.object({ invoice_number: z.string().trim().min(1).max(60), due_date: optDate, amount: money });
 
 /** "re 07570", "RE07570" and "RE-07570" are the same invoice: only letters and digits count. */
-const sameNumber = (n: string) => n.replace(/[^p{L}p{N}]/gu, '').toUpperCase();
+const sameNumber = (n: string) => n.replace(/[^\p{L}\p{N}]/gu, '').toUpperCase();
 
 /**
  * An invoice belongs to one case, ever — open or closed.
