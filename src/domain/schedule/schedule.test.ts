@@ -8,6 +8,7 @@ import {
   nextSundayTurn,
   parseTime,
   pauseMinutes,
+  productionStaffing,
   scheduleWarnings,
   weekDates,
   weekHours,
@@ -117,6 +118,29 @@ describe('what is typed into the sheet', () => {
     expect(parseTime('2530')).toBeNull();
     expect(parseTime('1275')).toBeNull();
     expect(parseTime('abc')).toBeNull();
+  });
+});
+
+describe('people in production', () => {
+  // Monday 12.10.2026, a day of Chip (6.5 people), as on the sheet.
+  const monday = [
+    block('freddy', 1, 1, '06:30', '08:30'), block('freddy', 1, 2, '08:30', '15:30', 'office'),
+    block('rafael', 1, 1, '07:00', '16:30'), block('patty', 1, 1, '07:30', '15:30'), block('marco', 1, 1, '07:30', '17:00'),
+    block('jefferson', 1, 1, '07:30', '15:30', 'office'), block('bruce', 1, 1, '08:00', '17:00'), block('gabriel', 1, 1, '08:30', '15:30'),
+    block('jorge', 1, 1, '06:30', '17:00'), block('coople', 1, 1, '11:30', '14:00'),
+  ];
+  const products = [{ id: 'chip', people_needed: 6.5 }, { id: 'azul', people_needed: 6 }, { id: 'bio', people_needed: null }];
+
+  it('counts each person by their production hours against a full day', () => {
+    const day = productionStaffing(monday, { '1': ['chip'] }, products)[1];
+    expect(day).toEqual({ day: 1, count: 6.3, need: 6.5, short: true });
+  });
+
+  it('takes the product that needs most, and none when there is no figure', () => {
+    expect(productionStaffing(monday, { '1': ['azul', 'chip'] }, products)[1].need).toBe(6.5);
+    expect(productionStaffing(monday, { '1': ['azul'] }, products)[1].short).toBe(false);
+    expect(productionStaffing(monday, { '1': ['bio'] }, products)[1]).toMatchObject({ need: null, short: false });
+    expect(productionStaffing(monday, {}, products)[0]).toEqual({ day: 0, count: 0, need: null, short: false });
   });
 });
 

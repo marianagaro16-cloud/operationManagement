@@ -16,6 +16,7 @@ import {
   formatHours,
   isWholeSlot,
   parseTime,
+  productionStaffing,
   scheduleWarnings,
   slotKey,
   weekDates,
@@ -164,6 +165,7 @@ export function ScheduleView({
   const comparedTo = !week || week.version === 0 ? 0 : dirty ? week.version : week.version - 1;
 
   const warnings = week ? scheduleWarnings(blocks, rows, rules, new Map(Object.entries(absentDays).map(([id, days]) => [id, new Set(days)]))) : [];
+  const short = week ? productionStaffing(blocks, header.day_products, products).filter((s) => s.short) : [];
   const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? '—';
   const dayLabel = (d: number) => (dates ? `${WEEKDAYS[d]} ${dates[d].slice(8, 10)}.${dates[d].slice(5, 7)}` : WEEKDAYS[d]);
 
@@ -347,6 +349,7 @@ export function ScheduleView({
                 absentDays={absentDays}
                 showTotal={canEdit}
                 showContract={canEdit}
+                showStaffing
                 timeCell={
                   canEdit
                     ? ({ personId, day: d, slot, field, text }) => {
@@ -374,13 +377,16 @@ export function ScheduleView({
 
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {/* ---- what to look at again ---- */}
-            {warnings.length > 0 && (
+            {warnings.length + short.length > 0 && (
               <Card className="p-3.5">
                 <p className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold">
                   <TriangleAlert className="h-4 w-4 text-warn" aria-hidden />
                   {t('schedule.warnings')}
                 </p>
                 <ul className="space-y-1 text-[12.5px]">
+                  {short.map((s) => (
+                    <li key={`short-${s.day}`}>{t('schedule.warnShort', { day: dayLabel(s.day), count: s.count.toFixed(1), need: (s.need ?? 0).toFixed(1) })}</li>
+                  ))}
                   {warnings.map((w, i) => (
                     <li key={i}>
                       {w.kind === 'under' && t('schedule.warnUnder', { name: nameOf(w.person_id), hours: formatHours(w.hours), bound: formatHours(w.bound) })}

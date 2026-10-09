@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { contractHours, dayHours, formatHours, isChanged, pauseMinutes, weekHours, workedHours, type Block } from '@/domain/schedule/schedule';
+import { contractHours, dayHours, formatHours, isChanged, pauseMinutes, productionStaffing, weekHours, workedHours, type Block } from '@/domain/schedule/schedule';
 import type { ScheduleKind, SchedulePerson, ScheduleProduct, ScheduleWeekHeader } from '@/types/schedule';
 
 /*
@@ -75,6 +75,7 @@ export function ScheduleSheet({
   absentDays = {},
   showTotal = false,
   showContract = false,
+  showStaffing = false,
   timeCell,
   onCell,
   onDay,
@@ -100,6 +101,8 @@ export function ScheduleSheet({
   showTotal?: boolean;
   /** Under each total, the hours worked against the person's contract. On screen, for whoever makes it. */
   showContract?: boolean;
+  /** Under the rows, the people in production each day against what the product takes. On screen only. */
+  showStaffing?: boolean;
   /**
    * Draws a time as something to type into. With it the sheet is edited in
    * place, and a person's day opens on a double click instead of a click.
@@ -222,6 +225,22 @@ export function ScheduleSheet({
                   </tr>
                 ));
               })}
+              {showStaffing && (
+                <tr>
+                  <td style={{ ...th, fontWeight: 400, fontSize: 9.5, whiteSpace: 'normal' }}>En producción</td>
+                  {productionStaffing(blocks, header.day_products, products).map((s) => (
+                    <td
+                      key={s.day}
+                      colSpan={3}
+                      style={{ ...th, fontWeight: s.short ? 700 : 400, fontSize: 10.5, color: s.need == null ? '#525252' : s.short ? '#b45309' : '#15803d' }}
+                      title="Personas en producción (según sus horas) / las que necesita el producto del día"
+                    >
+                      {s.count > 0 || s.need != null ? `${s.count.toFixed(1)}${s.need != null ? ` / ${s.need.toFixed(1)}` : ''}` : ''}
+                    </td>
+                  ))}
+                  <td style={{ border: 'none' }} />
+                </tr>
+              )}
               {showTotal && (
                 <tr>
                   <td colSpan={22} style={{ border: 'none' }} />

@@ -126,6 +126,42 @@ export function formatHours(hours: number): string {
   return (Math.round(hours * 100) / 100).toFixed(2);
 }
 
+/* ------------------------- people in production ------------------------- */
+
+/** A full day in production, in hours: the measure a person is counted against. */
+export const FULL_DAY_HOURS = 8.5;
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/**
+ * How many people are in production on each day, and how many the day's
+ * product takes.
+ *
+ * A person counts by their production hours against a full day: all day is
+ * one person, two hours before going to the office about a quarter. Only
+ * production counts — office, deliveries, cleaning and maintenance are other
+ * work. With several products on a day, the one that takes most people sets
+ * the need; a product without a figure sets none.
+ */
+export function productionStaffing(
+  blocks: Block[],
+  dayProducts: Record<string, string[]>,
+  products: { id: string; people_needed: number | null }[],
+): { day: number; count: number; need: number | null; short: boolean }[] {
+  const needOf = new Map(products.map((p) => [p.id, p.people_needed]));
+  return [0, 1, 2, 3, 4, 5, 6].map((day) => {
+    const hours = new Map<string, number>();
+    for (const b of blocks) {
+      if (b.day !== day || b.kind_id || !b.start_time || !b.end_time) continue;
+      hours.set(b.person_id, (hours.get(b.person_id) ?? 0) + Math.max(0, minutes(b.end_time) - minutes(b.start_time)) / 60);
+    }
+    const count = round1([...hours.values()].reduce((s, h) => s + Math.min(1, h / FULL_DAY_HOURS), 0));
+    const needs = (dayProducts[String(day)] ?? []).map((id) => needOf.get(id)).filter((n): n is number => n != null);
+    const need = needs.length > 0 ? Math.max(...needs) : null;
+    return { day, count, need, short: need != null && count < need };
+  });
+}
+
 /* ------------------------------- warnings ------------------------------- */
 
 export interface PersonRule {
