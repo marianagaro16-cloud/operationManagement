@@ -8,6 +8,7 @@ import {
   getScheduleProducts,
   getScheduleWeek,
   getScheduleWeekList,
+  getShiftHistory,
   getSundayDuties,
 } from '@/server/schedule';
 import { ScheduleView } from '@/components/schedule/schedule-view';
@@ -43,7 +44,11 @@ export default async function SchedulePage({ searchParams }: { searchParams: { w
     getScheduleWeekList(),
     pattern ? null : getSchedulePattern(),
   ]);
-  const absentDays = weekStart && data ? await getScheduleAbsentDays(weekStart, people) : {};
+  const [absentDays, shiftsBefore] = await Promise.all([
+    weekStart && data ? getScheduleAbsentDays(weekStart, people) : {},
+    // The planning view is for whoever makes the schedule.
+    weekStart && data && canEdit ? getShiftHistory(weekStart, kinds) : null,
+  ]);
 
   return (
     <ScheduleView
@@ -56,6 +61,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { w
       kinds={kinds}
       products={products}
       absentDays={absentDays}
+      shiftsBefore={shiftsBefore}
       today={today}
       canEdit={canEdit}
       hasPattern={pattern ? !!data : !!usual}

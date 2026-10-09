@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import { weekDates, type Block } from '@/domain/schedule/schedule';
+import { openersAndClosers, shiftCounts, weekDates, type Block, type ShiftCount } from '@/domain/schedule/schedule';
 import type {
   ScheduleKind,
   SchedulePerson,
@@ -144,6 +144,29 @@ export async function getScheduleAbsentDays(weekStart: string, people: ScheduleP
     });
   }
   return out;
+}
+
+/**
+ * How often each person opened and closed the day in the four weeks before
+ * this one — for the planning view, so the rotation can be judged over more
+ * than the week being made.
+ */
+export async function getShiftHistory(weekStart: string, kinds: ScheduleKind[]): Promise<Record<string, ShiftCount>> {
+  const from = new Date(`${weekStart}T00:00:00Z`);
+  from.setUTCDate(from.getUTCDate() - 28);
+  const supabase = createClient();
+  const { data: weeks } = await supabase
+    .from('schedule_weeks')
+    .select('id')
+    .eq('is_pattern', false)
+    .gte('week_start', from.toISOString().slice(0, 10))
+    .lt('week_start', weekStart);
+  const ids = (weeks ?? []).map((w) => w.id as string);
+  if (ids.length === 0) return {};
+  const { data } = await supabase.from('schedule_blocks').select(`week_id, ${BLOCK_COLUMNS}`).in('week_id', ids);
+  const rules = new Map(kinds.map((k) => [k.id, { id: k.id, counts_hours: k.counts_hours }]));
+  const all = (data ?? []) as unknown as (Block & { week_id: string })[];
+  return shiftCounts(ids.map((id) => openersAndClosers(all.filter((b) => b.week_id === id).map(toBlock), rules)));
 }
 
 /** The Sunday and holiday register, oldest first. */

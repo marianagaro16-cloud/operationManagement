@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, FileDown, Plus, Send, Trash2, TriangleAlert } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, EyeOff, FileDown, Plus, Send, Trash2, TriangleAlert } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import type { MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -15,14 +15,17 @@ import {
   changedCells,
   formatHours,
   isWholeSlot,
+  openersAndClosers,
   parseTime,
   productionStaffing,
   scheduleWarnings,
+  shiftCounts,
   slotKey,
   weekDates,
   weekStartOf,
   withTyped,
   type Block,
+  type ShiftCount,
   type Typed,
 } from '@/domain/schedule/schedule';
 import {
@@ -35,7 +38,7 @@ import {
   suggestScheduleCleaning,
 } from '@/server/schedule-actions';
 import type { ScheduleKind, SchedulePerson, ScheduleProduct, ScheduleWeekData, ScheduleWeekHeader } from '@/types/schedule';
-import { ScheduleSheet, weekTitle } from './schedule-sheet';
+import { CLOSES, OPENS, ScheduleSheet, weekTitle } from './schedule-sheet';
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
@@ -111,6 +114,7 @@ export function ScheduleView({
   kinds,
   products,
   absentDays,
+  shiftsBefore = null,
   today,
   canEdit,
   hasPattern,
@@ -124,6 +128,8 @@ export function ScheduleView({
   kinds: ScheduleKind[];
   products: ScheduleProduct[];
   absentDays: Record<string, number[]>;
+  /** How often each person opened and closed in the four weeks before; null when not shown. */
+  shiftsBefore?: Record<string, ShiftCount> | null;
   today: string;
   canEdit: boolean;
   hasPattern: boolean;
@@ -136,6 +142,19 @@ export function ScheduleView({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // The planning view: who opens in green, who closes in red. Kept as it was left, per browser.
+  const [planningOn, setPlanningOn] = useState(false);
+  useEffect(() => {
+    try {
+      setPlanningOn(localStorage.getItem('schedule.planning') === '1');
+    } catch {}
+  }, []);
+  const togglePlanning = () => {
+    setPlanningOn(!planningOn);
+    try {
+      localStorage.setItem('schedule.planning', planningOn ? '0' : '1');
+    } catch {}
+  };
 
   const pattern = weekStart === null;
   const week = data?.week ?? null;
@@ -166,6 +185,7 @@ export function ScheduleView({
   const comparedTo = !week || week.version === 0 ? 0 : dirty ? week.version : week.version - 1;
 
   const warnings = week ? scheduleWarnings(blocks, rows, rules, new Map(Object.entries(absentDays).map(([id, days]) => [id, new Set(days)]))) : [];
+  const marks = useMemo(() => (canEdit && planningOn ? openersAndClosers(blocks, rules) : null), [canEdit, planningOn, blocks, rules]);
   const short = week ? productionStaffing(blocks, header.day_products, products).filter((s) => s.short) : [];
   const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? '—';
   const dayLabel = (d: number) => (dates ? `${WEEKDAYS[d]} ${dates[d].slice(8, 10)}.${dates[d].slice(5, 7)}` : WEEKDAYS[d]);
@@ -334,7 +354,28 @@ export function ScheduleView({
         )
       ) : (
         <>
-          {canEdit && <p className="mb-2 text-[12px] text-muted">{t('schedule.editHint')}</p>}
+          {canEdit && (
+            <div className="mb-2 flex flex-wrap items-start gap-x-3 gap-y-1.5">
+              <p className="min-w-0 flex-1 text-[12px] text-muted">{t('schedule.editHint')}</p>
+              <Button size="sm" variant={planningOn ? 'primary' : 'secondary'} aria-pressed={planningOn} onClick={togglePlanning}>
+                {planningOn ? <Eye className="h-3.5 w-3.5" aria-hidden /> : <EyeOff className="h-3.5 w-3.5" aria-hidden />}
+                {t('schedule.planningView')}
+              </Button>
+            </div>
+          )}
+          {marks && (
+            <p className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-3 w-5 rounded-sm" style={{ background: OPENS }} />
+                {t('schedule.planningOpens')}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-3 w-5 rounded-sm" style={{ background: CLOSES }} />
+                {t('schedule.planningCloses')}
+              </span>
+              <span className="text-muted">{t('schedule.planningNote')}</span>
+            </p>
+          )}
           <Card className="overflow-x-auto p-3">
             <div className="min-w-[1080px]">
               <ScheduleSheet
@@ -351,6 +392,7 @@ export function ScheduleView({
                 showTotal={canEdit}
                 showContract={canEdit}
                 showStaffing
+                planning={marks ? { ...marks, week: shiftCounts([marks]), before: pattern ? null : shiftsBefore } : undefined}
                 timeCell={
                   canEdit
                     ? ({ personId, day: d, slot, field, text }) => {

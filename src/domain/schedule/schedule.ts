@@ -271,6 +271,54 @@ export function nextSundayTurn(members: RotationMember[], duties: { person_id: s
   return [...members].sort((a, b) => (last.get(a.id) ?? '').localeCompare(last.get(b.id) ?? '') || a.sunday_order - b.sunday_order)[0].id;
 }
 
+/* ------------------------- who opens, who closes ------------------------- */
+
+/** Opening the day: starting at this time or before. */
+export const OPENING_TIME = '06:30';
+
+export interface ShiftCount {
+  opens: number;
+  closes: number;
+}
+
+/**
+ * Who opens and who closes each day — what Mariana coloured green and red by
+ * hand to see that the early and the late shifts go round fairly.
+ *
+ * Opening is starting work at 06:30 or before. Closing is finishing last that
+ * day, whatever the hour; several people finishing together all close. Any
+ * work counts, a day off does not. Each is given as the slot whose time it
+ * is — 'person:day:slot' — so the sheet can colour that one time.
+ */
+export function openersAndClosers(blocks: Block[], kinds: Map<string, KindRule>): { opens: Set<string>; closes: Set<string> } {
+  const opens = new Set<string>();
+  const closes = new Set<string>();
+  const work = blocks.filter((b) => blockHours(b, kinds) > 0);
+  for (let day = 0; day < 7; day++) {
+    const today = work.filter((b) => b.day === day);
+    if (today.length === 0) continue;
+    const latest = today.reduce((m, b) => (b.end_time! > m ? b.end_time! : m), '');
+    for (const person of new Set(today.map((b) => b.person_id))) {
+      const mine = today.filter((b) => b.person_id === person);
+      const first = mine.reduce((a, b) => (b.start_time! < a.start_time! ? b : a));
+      const last = mine.reduce((a, b) => (b.end_time! > a.end_time! ? b : a));
+      if (first.start_time! <= OPENING_TIME) opens.add(slotKey(person, day, first.slot));
+      if (last.end_time === latest) closes.add(slotKey(person, day, last.slot));
+    }
+  }
+  return { opens, closes };
+}
+
+/** How often each person opens and closes in these blocks — a week, or several. */
+export function shiftCounts(marks: { opens: Set<string>; closes: Set<string> }[]): Record<string, ShiftCount> {
+  const out: Record<string, ShiftCount> = {};
+  for (const { opens, closes } of marks) {
+    for (const key of opens) (out[key.split(':')[0]] ??= { opens: 0, closes: 0 }).opens += 1;
+    for (const key of closes) (out[key.split(':')[0]] ??= { opens: 0, closes: 0 }).closes += 1;
+  }
+  return out;
+}
+
 /* --------------------------- the weekly cleaning --------------------------- */
 
 export interface CleaningWeek {

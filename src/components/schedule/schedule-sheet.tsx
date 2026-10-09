@@ -1,5 +1,17 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { contractHours, dayHours, formatHours, isChanged, pauseMinutes, productionStaffing, weekHours, workedHours, type Block } from '@/domain/schedule/schedule';
+import {
+  contractHours,
+  dayHours,
+  formatHours,
+  isChanged,
+  pauseMinutes,
+  productionStaffing,
+  slotKey,
+  weekHours,
+  workedHours,
+  type Block,
+  type ShiftCount,
+} from '@/domain/schedule/schedule';
 import type { ScheduleKind, SchedulePerson, ScheduleProduct, ScheduleWeekHeader } from '@/types/schedule';
 
 /*
@@ -15,6 +27,9 @@ import type { ScheduleKind, SchedulePerson, ScheduleProduct, ScheduleWeekHeader 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 const NOTE_DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const CHANGED = '#FFFF00';
+/** The planning view's two marks: who opens the day, who closes it. */
+export const OPENS = '#86efac';
+export const CLOSES = '#fca5a5';
 const LINE = '1px solid #000';
 const THIN = '1px solid #9a9a9a';
 
@@ -76,6 +91,7 @@ export function ScheduleSheet({
   showTotal = false,
   showContract = false,
   showStaffing = false,
+  planning,
   timeCell,
   onCell,
   onDay,
@@ -103,6 +119,12 @@ export function ScheduleSheet({
   showContract?: boolean;
   /** Under the rows, the people in production each day against what the product takes. On screen only. */
   showStaffing?: boolean;
+  /**
+   * The planning view, for whoever makes the schedule: the start of whoever
+   * opens the day in green and the end of whoever closes it in red, with how
+   * often each person does either. A help while planning — never printed.
+   */
+  planning?: { opens: Set<string>; closes: Set<string>; week: Record<string, ShiftCount>; before: Record<string, ShiftCount> | null };
   /**
    * Draws a time as something to type into. With it the sheet is edited in
    * place, and a person's day opens on a double click instead of a click.
@@ -148,11 +170,19 @@ export function ScheduleSheet({
       timeCell ? timeCell({ personId: person.id, day, slot, field, text }) : <span style={{ position: 'relative' }}>{text}</span>;
     return (
       <>
-        <td style={{ ...style, borderLeft: LINE }} {...handlers} title={absent ? 'Ausencia aprobada' : kind?.name}>
+        <td
+          style={{ ...style, borderLeft: LINE, ...(own && planning?.opens.has(slotKey(person.id, day, slot)) ? { backgroundColor: OPENS } : {}) }}
+          {...handlers}
+          title={absent ? 'Ausencia aprobada' : kind?.name}
+        >
           <Hatch kind={kind} />
           {time('start', own?.start_time ?? '')}
         </td>
-        <td style={style} {...handlers} title={absent ? 'Ausencia aprobada' : kind?.name}>
+        <td
+          style={{ ...style, ...(own && planning?.closes.has(slotKey(person.id, day, slot)) ? { backgroundColor: CLOSES } : {}) }}
+          {...handlers}
+          title={absent ? 'Ausencia aprobada' : kind?.name}
+        >
           <Hatch kind={kind} />
           {time('end', own?.end_time ?? '')}
         </td>
@@ -197,6 +227,7 @@ export function ScheduleSheet({
                     {slot === 1 && (
                       <td rowSpan={2} style={{ ...th, background: '#F4D4E9', minWidth: 78 }}>
                         {p.name}
+                        {planning && <Shifts week={planning.week[p.id]} before={planning.before?.[p.id]} withBefore={!!planning.before} />}
                       </td>
                     )}
                     {days.map((d) => {
@@ -251,19 +282,19 @@ export function ScheduleSheet({
           </table>
 
           {/* The kinds, as the sheet's own legend. */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', margin: '8px 0 8px 82px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px', margin: '8px 0 8px 82px' }}>
             {kinds.filter((k) => k.is_active).map((k) => (
-              <div key={k.id} style={{ minWidth: 86 }}>
+              <div key={k.id} style={{ minWidth: 78 }}>
                 <div style={{ fontWeight: 700, fontSize: 10 }}>{k.name}:</div>
-                <div style={{ ...kindFill(k), border: LINE, height: 22, width: 86 }}>
+                <div style={{ ...kindFill(k), border: LINE, height: 22, width: 78 }}>
                   <Hatch kind={k} />
                 </div>
               </div>
             ))}
             {/* Not a kind of block, but read the same way: beside them. */}
-            <div style={{ minWidth: 86 }}>
+            <div style={{ minWidth: 78 }}>
               <div style={{ fontWeight: 700, fontSize: 10 }}>Cambio en horario:</div>
-              <div style={{ background: CHANGED, border: LINE, height: 22, width: 86 }} />
+              <div style={{ background: CHANGED, border: LINE, height: 22, width: 78 }} />
             </div>
           </div>
 
@@ -319,6 +350,21 @@ export function ScheduleSheet({
           </table>
         </aside>
       </div>
+    </div>
+  );
+}
+
+/** Under a name in the planning view: how often they open and close, this week and in the four before. */
+function Shifts({ week, before, withBefore }: { week?: ShiftCount; before?: ShiftCount; withBefore: boolean }) {
+  const pair = (c?: ShiftCount) => (
+    <>
+      <span style={{ background: OPENS, padding: '0 3px' }}>{c?.opens ?? 0}</span> <span style={{ background: CLOSES, padding: '0 3px' }}>{c?.closes ?? 0}</span>
+    </>
+  );
+  return (
+    <div style={{ fontWeight: 400, fontSize: 9, marginTop: 2, lineHeight: 1.5 }} title="Veces que abre (verde) y cierra (rojo): esta semana, y en las 4 semanas anteriores">
+      {pair(week)}
+      {withBefore && <span style={{ color: '#525252' }}> · 4 sem. {pair(before)}</span>}
     </div>
   );
 }

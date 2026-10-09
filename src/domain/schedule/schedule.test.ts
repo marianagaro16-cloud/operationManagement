@@ -7,10 +7,12 @@ import {
   formatHours,
   isChanged,
   nextSundayTurn,
+  openersAndClosers,
   parseTime,
   pauseMinutes,
   productionStaffing,
   scheduleWarnings,
+  shiftCounts,
   weekDates,
   weekHours,
   weekStartOf,
@@ -191,6 +193,33 @@ describe('changes after a version', () => {
 
   it('does not mind seconds on a time', () => {
     expect(changedCells([block('a', 1, 1, '07:00:00', '15:00:00')], [block('a', 1, 1, '07:00', '15:00')]).size).toBe(0);
+  });
+});
+
+describe('who opens and who closes', () => {
+  // Monday 12.10.2026: Freddy and Jorge start at 06:30; Marco, Bruce and Jorge finish at 17:00.
+  const monday = [
+    block('freddy', 1, 1, '06:30', '08:30'), block('freddy', 1, 2, '08:30', '15:30', 'office'),
+    block('rafael', 1, 1, '07:00', '16:30'), block('marco', 1, 1, '07:30', '17:00'), block('bruce', 1, 1, '08:00', '17:00'),
+    block('jorge', 1, 1, '06:30', '17:00'), block('patty', 1, 1, null, null, 'free'),
+  ];
+
+  it('marks whoever starts at 06:30 or before, and whoever finishes last', () => {
+    const { opens, closes } = openersAndClosers(monday, kinds);
+    expect([...opens].sort()).toEqual(['freddy:1:1', 'jorge:1:1']);
+    expect([...closes].sort()).toEqual(['bruce:1:1', 'jorge:1:1', 'marco:1:1']);
+  });
+
+  it('takes the last block of a person, and no opener when the day starts later', () => {
+    const day = [block('a', 2, 1, '07:00', '10:00'), block('a', 2, 2, '10:00', '16:00', 'office'), block('b', 2, 1, '08:00', '15:00')];
+    const { opens, closes } = openersAndClosers(day, kinds);
+    expect(opens.size).toBe(0);
+    expect([...closes]).toEqual(['a:2:2']);
+  });
+
+  it('counts them per person, over one week or several', () => {
+    const week = openersAndClosers(monday, kinds);
+    expect(shiftCounts([week, week])).toMatchObject({ jorge: { opens: 2, closes: 2 }, freddy: { opens: 2, closes: 0 }, marco: { opens: 0, closes: 2 } });
   });
 });
 
