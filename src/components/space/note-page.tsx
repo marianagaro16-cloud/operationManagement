@@ -159,6 +159,20 @@ function Editor({ note, viewerId }: { note: QuickNote; viewerId: string }) {
     });
   }
 
+  /** Gone for good, after being asked once; nothing typed is saved onto it. */
+  function remove() {
+    if (!window.confirm(t('note.deleteConfirm'))) return;
+    setError(null);
+    if (timer.current) window.clearTimeout(timer.current);
+    dirty.current = false;
+    startTransition(async () => {
+      const res = await deleteNote(note.id);
+      if (!res.ok) return setError(t('common.error'));
+      router.push('/space');
+      router.refresh();
+    });
+  }
+
   // A reminder from a note: its title, and the rest as the reminder's notes.
   const reminderTitle = title.trim() || body.trim().split('\n')[0] || lines[0]?.body || '';
   const reminderNotes = [title.trim() ? body.trim() : body.trim().split('\n').slice(1).join('\n').trim(), ...lines.filter((l) => !l.done && l.body.trim()).map((l) => `- ${l.body.trim()}`)]
@@ -211,6 +225,10 @@ function Editor({ note, viewerId }: { note: QuickNote; viewerId: string }) {
         <button className={action} disabled={pending} onClick={() => run(() => setNoteArchived(note.id, true), true)}>
           <Archive className="h-3.5 w-3.5" aria-hidden />
           {t('note.archive')}
+        </button>
+        <button className={cn(action, 'hover:text-late')} disabled={pending} onClick={remove}>
+          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+          {t('common.delete')}
         </button>
       </div>
 
