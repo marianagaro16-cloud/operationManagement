@@ -3944,7 +3944,7 @@ export const en = {
     askedBy_employee: 'The employee',
     askedByEmployeeBadge: 'Asked for by the employee',
     confidential: 'Confidential',
-    confidentialHint: 'A confidential note is read only by whoever writes it, Admin and the owners. Others with access to the file see that it exists, not what it says.',
+    confidentialHint: 'A confidential note is read only by authorised people. Others with access to the file see that it exists, not what it says.',
     hiddenNotes: 'Confidential notes you cannot read: {count}',
     s_employee_talk_raised: 'What they raised',
     s_employee_talk_answered: 'What was answered',

@@ -3912,7 +3912,7 @@ export const es: Messages = {
     askedBy_employee: 'El empleado',
     askedByEmployeeBadge: 'Pedida por el empleado',
     confidential: 'Confidencial',
-    confidentialHint: 'Una nota confidencial solo la leen quien la escribe, Admin y los dueños. Los demás con acceso al expediente ven que existe, no lo que dice.',
+    confidentialHint: 'Una nota confidencial solo la leen las personas autorizadas. Los demás con acceso al expediente ven que existe, no lo que dice.',
     hiddenNotes: 'Notas confidenciales que no puedes leer: {count}',
     s_employee_talk_raised: 'Qué planteó',
     s_employee_talk_answered: 'Qué se le respondió',

@@ -3912,7 +3912,7 @@ export const de: Messages = {
     askedBy_employee: 'Die Mitarbeiterin / der Mitarbeiter',
     askedByEmployeeBadge: 'Vom Mitarbeitenden gewünscht',
     confidential: 'Vertraulich',
-    confidentialHint: 'Eine vertrauliche Notiz lesen nur wer sie schreibt, Admin und die Inhaber. Andere mit Zugriff auf die Akte sehen, dass es sie gibt, nicht was darin steht.',
+    confidentialHint: 'Eine vertrauliche Notiz lesen nur berechtigte Personen. Andere mit Zugriff auf die Akte sehen, dass es sie gibt, nicht was darin steht.',
     hiddenNotes: 'Vertrauliche Notizen, die du nicht lesen kannst: {count}',
     s_employee_talk_raised: 'Was vorgebracht wurde',
     s_employee_talk_answered: 'Was geantwortet wurde',
