@@ -142,3 +142,11 @@ export function continueList(value: string, caret: number): { value: string; car
   const insert = `\n${indent}${mark} `;
   return { value: before + insert + value.slice(caret), caret: caret + insert.length };
 }
+
+/**
+ * What a quick note is listed by: its title, else its first line of text,
+ * else its first checklist line. Empty when it has none of them yet.
+ */
+export function noteHeading(note: { title: string; body: string; items: { body: string }[] }): string {
+  return (note.title.trim() || note.body.trim().split('\n')[0] || note.items[0]?.body || '').trim().slice(0, 120);
+}

@@ -70,6 +70,7 @@ async function requireAccess(): Promise<boolean> {
 function revalidateReminders(id?: string) {
   revalidatePath('/reminders');
   revalidatePath('/reminders/tasks');
+  revalidatePath('/space', 'layout');
   revalidatePath('/dashboard');
   if (id) revalidatePath(`/reminders/${id}`);
 }

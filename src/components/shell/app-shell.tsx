@@ -127,6 +127,8 @@ export function AppShell({
     // Everything with a day, from every part of the app, in one week — with
     // reminders and meetings as its tabs. A due reminder counts here.
     { href: '/agenda', label: t('agenda.title'), icon: CalendarRange, primary: false, badge: reminderAttention, group: 'day' },
+    // One's own tasks, notes and notifications, in one place.
+    { href: '/space', label: t('space.title'), icon: StickyNote, primary: false, group: 'day' },
 
     // ---- logistics: orders, shipping, delivery ----
     // Orders — to prepare, ready, shipped — is the main floor workflow, so it
@@ -231,7 +233,7 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/events', '/collections', '/marketing', '/maintenance/equipment', '/maintenance/repairs'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/events', '/collections', '/marketing', '/maintenance/equipment', '/maintenance/repairs', '/space'];
 
   /*
    * Entries that hold several screens as tabs. The tabs keep their own
@@ -243,7 +245,6 @@ export function AppShell({
       { href: '/agenda', label: t('agenda.title'), icon: CalendarRange },
       { href: '/reminders', label: t('reminder.navLabel'), icon: BellRing, badge: reminderAttention },
       { href: '/meetings', label: t('meeting.navLabel'), icon: Users },
-      { href: '/notes', label: t('note.navLabel'), icon: StickyNote },
     ],
     '/absences': [
       { href: '/absences', label: t('absence.navLabel'), icon: CalendarOff },
@@ -317,7 +318,7 @@ export function AppShell({
   const sectionLabel =
     currentTab?.label ??
     nav.find(({ href }) => active(href))?.label ??
-    (pathname === '/settings' ? t('nav.settings') : pathname === '/inbox' ? t('inbox.title') : t('common.appName'));
+    (pathname === '/settings' ? t('nav.settings') : pathname.startsWith('/space') ? t('space.title') : t('common.appName'));
 
   return (
     <div className="min-h-dvh bg-bg">
@@ -363,7 +364,7 @@ export function AppShell({
 
           <QuickNoteButton />
 
-          <InboxLink initialUnread={inboxUnread} active={pathname === '/inbox'} />
+          <InboxLink initialUnread={inboxUnread} active={pathname === '/space/inbox'} />
 
           {/* Always-visible route to notifications. A link in a menu that has
               to be opened first is a link nobody finds on a phone. */}

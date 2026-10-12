@@ -12,13 +12,11 @@ import { NoteText } from '@/components/ui/note';
 import { ReminderDialog } from '@/components/reminders/reminder-dialog';
 import { deleteNote, setNoteArchived, setNotePinned, tickNoteItem } from '@/server/note-actions';
 import type { QuickNote } from '@/types/notes';
-import { NoteDialog } from './note-dialog';
 
 /** One quick note: its text, its checklist, and — for its owner — what can be done with it. */
 export function NoteCard({ note, viewerId, compact = false }: { note: QuickNote; viewerId: string; compact?: boolean }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
-  const [editing, setEditing] = useState(false);
   const [reminding, setReminding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -48,6 +46,11 @@ export function NoteCard({ note, viewerId, compact = false }: { note: QuickNote;
     <Card className={cn('p-3', note.mine && note.pinned && !archived && 'border-accent/40')}>
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1 text-[13.5px]">
+          {note.title && (
+            <Link href={`/space/notes/${note.id}`} className="mb-1 block break-words text-[14px] font-semibold hover:underline">
+              {note.title}
+            </Link>
+          )}
           {note.body && <NoteText text={compact && note.body.length > 280 ? `${note.body.slice(0, 280)}…` : note.body} />}
           {note.items.length > 0 && (
             <ul className={cn('space-y-1', note.body && 'mt-2')}>
@@ -95,10 +98,14 @@ export function NoteCard({ note, viewerId, compact = false }: { note: QuickNote;
         <div className="mt-2 flex flex-wrap gap-1">
           {!archived ? (
             <>
-              <Button size="sm" variant="ghost" onClick={() => setEditing(true)} disabled={pending}>
+              {/* Written in place, on its own page. */}
+              <Link
+                href={`/space/notes/${note.id}`}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12.5px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+              >
                 <Pencil className="h-3.5 w-3.5" aria-hidden />
                 {t('note.editShort')}
-              </Button>
+              </Link>
               <Button size="sm" variant="ghost" onClick={() => run(() => setNotePinned(note.id, !note.pinned))} disabled={pending}>
                 {note.pinned ? <PinOff className="h-3.5 w-3.5" aria-hidden /> : <Pin className="h-3.5 w-3.5" aria-hidden />}
                 {note.pinned ? t('note.unpin') : t('note.pin')}
@@ -135,7 +142,6 @@ export function NoteCard({ note, viewerId, compact = false }: { note: QuickNote;
       )}
       {error && <p className="mt-1 text-[12px] text-late">{error}</p>}
 
-      {editing && <NoteDialog note={note} onClose={() => setEditing(false)} />}
       {reminding && (
         <ReminderDialog
           open

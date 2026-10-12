@@ -48,7 +48,7 @@ export function InboxLink({ initialUnread, active }: { initialUnread: number; ac
 
   return (
     <Link
-      href="/inbox"
+      href="/space/inbox"
       aria-label={unread > 0 ? `${t('inbox.title')} · ${t('inbox.unread', { count: unread })}` : t('inbox.title')}
       className={cn(
         'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',

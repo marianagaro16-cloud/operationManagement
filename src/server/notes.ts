@@ -8,7 +8,7 @@ import type { QuickNote } from '@/types/notes';
  */
 
 const COLUMNS = `
-  id, owner_id, body, pinned, archived_at, updated_at,
+  id, owner_id, title, body, pinned, archived_at, updated_at,
   owner:profiles!quick_notes_owner_id_fkey ( name, email ),
   customer:customers ( id, company_name ),
   items:quick_note_items ( id, body, done, sort_order ),
@@ -19,6 +19,7 @@ type Person = { name: string | null; email: string } | null;
 type Raw = {
   id: string;
   owner_id: string;
+  title: string;
   body: string;
   pinned: boolean;
   archived_at: string | null;
@@ -37,6 +38,7 @@ function shape(rows: Raw[], viewerId: string): QuickNote[] {
       id: n.id,
       mine: n.owner_id === viewerId,
       owner_name: nameOf(n.owner),
+      title: n.title,
       body: n.body,
       pinned: n.pinned,
       customer: n.customer ? { id: n.customer.id, name: n.customer.company_name } : null,
@@ -66,4 +68,14 @@ export async function getNotes({ archived = false, customerId, limit }: { archiv
   if (error) throw new Error(error.message);
   const notes = shape((data ?? []) as unknown as Raw[], me);
   return limit ? notes.slice(0, limit) : notes;
+}
+
+/** One note as a page — the viewer's own, or one shared with them. */
+export async function getNote(id: string): Promise<QuickNote | null> {
+  const me = await viewerId();
+  if (!me || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const supabase = createClient();
+  const { data, error } = await supabase.from('quick_notes').select(COLUMNS).eq('id', id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? shape([data as unknown as Raw], me)[0] : null;
 }

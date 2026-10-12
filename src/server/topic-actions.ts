@@ -24,6 +24,7 @@ function fail(error: { message: string; code?: string }): { ok: false; error: st
 
 function revalidate() {
   revalidatePath('/reminders/tasks');
+  revalidatePath('/space', 'layout');
   revalidatePath('/reminders/tasks/topics');
 }
 

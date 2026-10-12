@@ -31,7 +31,8 @@ function fail(error: { message: string }): { ok: false; error: string } {
 }
 
 function revalidate(customerId?: string | null) {
-  revalidatePath('/notes');
+  // The notes are listed in the workspace's side list.
+  revalidatePath('/space', 'layout');
   revalidatePath('/dashboard');
   if (customerId) revalidatePath(`/sales/customers/${customerId}`);
 }
@@ -70,7 +71,18 @@ export async function saveNote(input: SaveNoteInput): Promise<ActionResult<{ id:
     if (error) return fail(error);
   }
 
-  const wanted = [...new Set(share_ids.filter((p) => p !== me))];
+  const shared = await setShares(noteId!, me, before, share_ids, body || items[0]?.body || '');
+  if (shared) return shared;
+
+  revalidate(customer_id);
+  if (oldCustomer && oldCustomer !== customer_id) revalidate(oldCustomer);
+  return { ok: true, data: { id: noteId! } };
+}
+
+/** Make a note shared with exactly these people; whoever is new is told. Returns the failure, if any. */
+async function setShares(noteId: string, me: string, before: string[], shareIds: string[], heading: string): Promise<{ ok: false; error: string } | null> {
+  const supabase = createClient();
+  const wanted = [...new Set(shareIds.filter((p) => p !== me))];
   const added = wanted.filter((p) => !before.includes(p));
   const removed = before.filter((p) => !wanted.includes(p));
   if (removed.length) {
@@ -78,25 +90,92 @@ export async function saveNote(input: SaveNoteInput): Promise<ActionResult<{ id:
     if (error) return fail(error);
   }
   if (added.length) {
-    const { error } = await supabase.from('quick_note_shares').insert(added.map((profile_id) => ({ note_id: noteId!, profile_id })));
+    const { error } = await supabase.from('quick_note_shares').insert(added.map((profile_id) => ({ note_id: noteId, profile_id })));
     if (error) return fail(error);
     const { data: who } = await supabase.from('profiles').select('name, email').eq('id', me).maybeSingle();
     try {
       // In Spanish, like every other server-sent notification.
       await sendToUsers(added, {
         title: `${who?.name || who?.email || 'Alguien'} compartió una nota contigo`,
-        body: (body || items[0]?.body || '').split('\n')[0].slice(0, 120),
-        url: '/notes',
+        body: heading.split('\n')[0].slice(0, 120),
+        url: `/space/notes/${noteId}`,
         tag: `note-${noteId}`,
       });
     } catch (err) {
       console.error('note share notice failed', err);
     }
   }
+  return null;
+}
 
+/* ------------------------- a note as a page ------------------------- */
+
+/** A new, empty page — written in place once it is open. */
+export async function createNotePage(): Promise<ActionResult<{ id: string }>> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('quick_notes').insert({ title: '', body: '' }).select('id').single();
+  if (error) return fail(error);
+  revalidate();
+  return { ok: true, data: { id: data.id } };
+}
+
+const contentSchema = z.object({
+  id: uuid,
+  title: z.string().max(200).transform((v) => v.trim()),
+  body: z.string().max(4000),
+  items: z.array(z.object({ body: z.string().trim().min(1).max(300), done: z.boolean() })).max(100),
+});
+
+/**
+ * What the page holds — title, text and checklist — saved as it is written.
+ * Who it is shared with and its customer are not touched.
+ */
+export async function saveNoteContent(input: z.input<typeof contentSchema>): Promise<ActionResult> {
+  const parsed = contentSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'invalid' };
+  const { id, title, body, items } = parsed.data;
+  const supabase = createClient();
+  const { data, error } = await supabase.from('quick_notes').update({ title, body: body.trim() }).eq('id', id).select('customer_id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  const { error: delError } = await supabase.from('quick_note_items').delete().eq('note_id', id);
+  if (delError) return fail(delError);
+  if (items.length > 0) {
+    const { error: addError } = await supabase
+      .from('quick_note_items')
+      .insert(items.map((it, i) => ({ note_id: id, body: it.body, done: it.done, sort_order: i })));
+    if (addError) return fail(addError);
+  }
+  revalidate(data[0].customer_id);
+  return { ok: true, data: undefined };
+}
+
+const settingsSchema = z.object({ id: uuid, customer_id: uuid.nullable(), share_ids: z.array(uuid).max(50) });
+
+/** Whose customer file the note is in, and who else sees it. */
+export async function saveNoteSettings(input: z.input<typeof settingsSchema>): Promise<ActionResult> {
+  const parsed = settingsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'invalid' };
+  const { id, customer_id, share_ids } = parsed.data;
+  const supabase = createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const me = auth.user?.id;
+  if (!me) return { ok: false, error: 'not_authorized' };
+  const { data: old } = await supabase
+    .from('quick_notes')
+    .select('owner_id, title, body, customer_id, shares:quick_note_shares ( profile_id )')
+    .eq('id', id)
+    .maybeSingle();
+  if (!old || old.owner_id !== me) return { ok: false, error: 'not_authorized' };
+  if (old.customer_id !== customer_id) {
+    const { error } = await supabase.from('quick_notes').update({ customer_id }).eq('id', id);
+    if (error) return fail(error);
+  }
+  const shared = await setShares(id, me, (old.shares ?? []).map((s: { profile_id: string }) => s.profile_id), share_ids, old.title || old.body);
+  if (shared) return shared;
   revalidate(customer_id);
-  if (oldCustomer && oldCustomer !== customer_id) revalidate(oldCustomer);
-  return { ok: true, data: { id: noteId! } };
+  if (old.customer_id && old.customer_id !== customer_id) revalidate(old.customer_id);
+  return { ok: true, data: undefined };
 }
 
 /** Tick or untick a checklist line — the owner, or whoever it is shared with. */

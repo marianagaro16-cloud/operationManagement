@@ -40,7 +40,7 @@ export function TopicManager({ topics }: { topics: PersonalTopic[] }) {
 
   return (
     <>
-      <Link href="/reminders/tasks" className="mb-2 inline-flex items-center gap-1 text-[13px] font-medium text-muted hover:text-fg">
+      <Link href="/space/tasks" className="mb-2 inline-flex items-center gap-1 text-[13px] font-medium text-muted hover:text-fg">
         <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
         {t('ptask.title')}
       </Link>

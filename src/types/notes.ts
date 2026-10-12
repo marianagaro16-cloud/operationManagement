@@ -11,6 +11,8 @@ export interface QuickNote {
   /** Written by the viewer — only then can it be changed, pinned, shared or archived. */
   mine: boolean;
   owner_name: string | null;
+  /** The page's title; empty for a note jotted down without one. */
+  title: string;
   body: string;
   pinned: boolean;
   customer: { id: string; name: string } | null;

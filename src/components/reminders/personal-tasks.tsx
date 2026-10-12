@@ -1,361 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, useTransition, type ReactNode } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bell, CalendarDays, Check, CheckCircle2, ChevronDown, Pencil, Plus, RotateCcw, SlidersHorizontal, Sparkles, Tags, Target, XCircle } from 'lucide-react';
+import { Bell, CalendarDays, Check, ChevronDown, Pencil, Plus, SlidersHorizontal, XCircle } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Card, EmptyState, ErrorState, Field, Input, Progress } from '@/components/ui/primitives';
+import { ErrorState, Field, Input } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
-import { PageHeader } from '@/components/shell/app-shell';
-import { daysFromToday, isOnDay, isOpenPersonalTask, personalTaskPhase, type PersonalTaskStatus } from '@/domain/reminders/schedule';
+import { daysFromToday, isOpenPersonalTask, type PersonalTaskStatus } from '@/domain/reminders/schedule';
 import { LINK_COLUMN, LINK_TYPES, type LinkType } from '@/domain/reminders/links';
 import { savePersonalTask, setPersonalTaskStatus } from '@/server/reminder-actions';
 import type { PersonalTask, PersonalTopic } from '@/types/reminders';
-import { TopicChip, TopicDot, TopicPicker, usePersonalTopics } from './topic-bits';
-import { NoteText } from '@/components/ui/note';
+import { TopicChip, TopicPicker, usePersonalTopics } from './topic-bits';
 import { noteToPlainLine } from '@/domain/notes';
 import { LinkChip, reminderErrorKey } from './reminder-bits';
 
 export type Group = 'overdue' | 'today' | 'upcoming' | 'undated';
-
-const GROUPS: { key: Group; label: MessageKey; dot: string }[] = [
-  { key: 'overdue', label: 'ptask.groupOverdue', dot: 'bg-late' },
-  { key: 'today', label: 'ptask.groupToday', dot: 'bg-accent' },
-  { key: 'upcoming', label: 'ptask.groupUpcoming', dot: 'bg-subtle' },
-  { key: 'undated', label: 'ptask.groupUndated', dot: 'bg-border' },
-];
-
-/**
- * Personal Tasks.
- *
- * A to-do list that is nobody's business but the owner's. It lives beside
- * Reminders, not beside Tasks, so it can never be mistaken for operational
- * work — and it is read from its own table, so no operational screen,
- * statistic or report could include it even by accident.
- *
- * Built like a checklist rather than a list of records: a round box to tick,
- * the task, and when it is due. Everything else — date, notes, cancelling —
- * is one tap away in the task itself, so the screen is not three buttons
- * repeated down every row. Adding is a line at the top that takes Enter.
- */
-export function PersonalTaskList({
-  open,
-  closed,
-  nowIso,
-  topics = [],
-}: {
-  open: PersonalTask[];
-  closed: PersonalTask[];
-  nowIso: string;
-  /** The viewer's own topics and categories. */
-  topics?: PersonalTopic[];
-}) {
-  const { t } = useI18n();
-  const [editing, setEditing] = useState<PersonalTask | null>(null);
-  const [creating, setCreating] = useState<string | null>(null);
-  const [creatingIn, setCreatingIn] = useState<{ topicId: string | null; categoryId: string | null } | undefined>(undefined);
-  const [showClosed, setShowClosed] = useState(false);
-  // By date (as always) or by topic; remembered per browser.
-  const [view, setView] = useState<'date' | 'topic'>('date');
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(VIEW_KEY) === 'topic') setView('topic');
-    } catch {}
-  }, []);
-  const chooseView = (next: 'date' | 'topic') => {
-    setView(next);
-    try {
-      localStorage.setItem(VIEW_KEY, next);
-    } catch {}
-  };
-
-  const today = DateTime.fromISO(nowIso).setZone(BUSINESS_TZ).toISODate()!;
-
-  const groups: Record<Group, PersonalTask[]> = { overdue: [], today: [], upcoming: [], undated: [] };
-  for (const task of open) {
-    const phase = personalTaskPhase(task.status, task.due_date, task.due_time, nowIso);
-    if (phase in groups) groups[phase as Group].push(task);
-  }
-
-  // Today's progress: what is still due now against what was ticked off today.
-  const dueNow = groups.overdue.length + groups.today.length;
-  const doneToday = closed.filter((c) => c.status === 'completed' && isOnDay(c.completed_at, today)).length;
-
-  return (
-    <>
-      <Link href="/reminders" className="mb-2 inline-flex items-center gap-1 text-[13px] font-medium text-muted hover:text-fg">
-        <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-        {t('reminder.title')}
-      </Link>
-
-      <PageHeader title={t('ptask.title')} subtitle={t('ptask.subtitle')} />
-
-      {dueNow + doneToday > 0 && (
-        <Card className="mb-3 flex items-center gap-3.5 overflow-hidden p-4">
-          <span
-            className={cn(
-              'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
-              dueNow === 0 ? 'bg-done/10 text-done' : 'bg-accent/10 text-accent',
-            )}
-          >
-            {dueNow === 0 ? <Sparkles className="h-5 w-5" aria-hidden /> : <Target className="h-5 w-5" aria-hidden />}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-semibold leading-tight">
-              {dueNow === 0 ? t('ptask.heroAllDone') : t('ptask.heroLeft', { count: dueNow })}
-            </p>
-            <p className="mb-2 mt-0.5 text-[12.5px] text-muted">{t('ptask.heroDone', { count: doneToday })}</p>
-            <Progress value={doneToday} total={doneToday + dueNow} />
-          </div>
-        </Card>
-      )}
-
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="inline-flex rounded-lg bg-surface-2 p-0.5" role="tablist">
-          {(['date', 'topic'] as const).map((v) => (
-            <button
-              key={v}
-              role="tab"
-              aria-selected={view === v}
-              onClick={() => chooseView(v)}
-              className={cn(
-                'rounded-md px-3 py-1 text-[12.5px] font-medium transition-colors',
-                view === v ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg',
-              )}
-            >
-              {v === 'date' ? t('ptopic.byDate') : t('ptopic.byTopic')}
-            </button>
-          ))}
-        </div>
-        <Link href="/reminders/tasks/topics" className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted hover:text-fg">
-          <Tags className="h-3.5 w-3.5" aria-hidden />
-          {t('ptopic.manage')}
-        </Link>
-      </div>
-
-      <QuickAdd today={today} onDetails={(title) => { setCreatingIn(undefined); setCreating(title); }} />
-
-      {open.length === 0 ? (
-        <div className="mt-5">
-          <EmptyState
-            icon={<CheckCircle2 className="h-6 w-6 text-done" aria-hidden />}
-            title={t('ptask.empty')}
-            body={t('ptask.emptyBody')}
-          />
-        </div>
-      ) : view === 'topic' ? (
-        <TopicSections
-          open={open}
-          topics={topics}
-          nowIso={nowIso}
-          today={today}
-          onEdit={setEditing}
-          onAdd={(filing) => { setCreatingIn(filing); setCreating(''); }}
-        />
-      ) : (
-        <div className="mt-5 space-y-5">
-          {GROUPS.map(({ key, label, dot }) =>
-            groups[key].length === 0 ? null : (
-              <section key={key}>
-                <h2 className="mb-2 flex items-center gap-2 px-0.5 text-[13px] font-semibold">
-                  <span className={cn('h-2 w-2 rounded-full', dot)} aria-hidden />
-                  {t(label)}
-                  <span
-                    className={cn(
-                      'rounded-full px-1.5 text-[11px] font-semibold tabular',
-                      key === 'overdue' ? 'bg-late/10 text-late' : 'bg-surface-2 text-muted',
-                    )}
-                  >
-                    {groups[key].length}
-                  </span>
-                </h2>
-                <Card className="overflow-hidden">
-                  <ul className="divide-y divide-border">
-                    {groups[key].map((task) => (
-                      <TaskRow key={task.id} task={task} group={key} today={today} onEdit={() => setEditing(task)} topics={topics} />
-                    ))}
-                  </ul>
-                </Card>
-              </section>
-            ),
-          )}
-        </div>
-      )}
-
-      {closed.length > 0 && (
-        <section className="mt-7">
-          <button
-            onClick={() => setShowClosed((v) => !v)}
-            aria-expanded={showClosed}
-            className="flex w-full items-center gap-2 rounded-lg px-0.5 py-1 text-left text-[13px] font-semibold text-muted transition-colors hover:text-fg"
-          >
-            <ChevronDown className={cn('h-4 w-4 transition-transform', !showClosed && '-rotate-90')} aria-hidden />
-            {t('ptask.groupClosed')}
-            <span className="rounded-full bg-surface-2 px-1.5 text-[11px] tabular">{closed.length}</span>
-          </button>
-          {showClosed && (
-            <Card className="mt-2 animate-fade-in overflow-hidden">
-              <ul className="divide-y divide-border">
-                {closed.map((task) => (
-                  <ClosedRow key={task.id} task={task} />
-                ))}
-              </ul>
-            </Card>
-          )}
-        </section>
-      )}
-
-      {(creating !== null || editing) && (
-        <PersonalTaskDialog
-          task={editing}
-          initialTitle={creating ?? ''}
-          initialFiling={editing ? undefined : creatingIn}
-          topics={topics}
-          onClose={() => { setCreating(null); setEditing(null); }}
-        />
-      )}
-    </>
-  );
-}
-
-const VIEW_KEY = 'ptask.view';
-const FOLDED_KEY = 'ptask.foldedTopics';
-
-/**
- * The open tasks by topic: each topic a section, its categories inside, then
- * the topic's tasks without a category; the tasks without a topic last. Every
- * section can be folded (remembered) and has its own + to add a task there.
- */
-function TopicSections({
-  open,
-  topics,
-  nowIso,
-  today,
-  onEdit,
-  onAdd,
-}: {
-  open: PersonalTask[];
-  topics: PersonalTopic[];
-  nowIso: string;
-  today: string;
-  onEdit: (task: PersonalTask) => void;
-  onAdd: (filing: { topicId: string | null; categoryId: string | null }) => void;
-}) {
-  const { t } = useI18n();
-  const [folded, setFolded] = useState<string[]>([]);
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(FOLDED_KEY) ?? '[]');
-      if (Array.isArray(saved)) setFolded(saved);
-    } catch {}
-  }, []);
-  const toggle = (key: string) => {
-    const next = folded.includes(key) ? folded.filter((k) => k !== key) : [...folded, key];
-    setFolded(next);
-    try {
-      localStorage.setItem(FOLDED_KEY, JSON.stringify(next));
-    } catch {}
-  };
-
-  const phase = (task: PersonalTask) => personalTaskPhase(task.status, task.due_date, task.due_time, nowIso) as Group;
-  const known = new Set(topics.map((tp) => tp.id));
-  // Active topics in their order; an archived one only while it still holds tasks.
-  const shown = topics.filter((tp) => !tp.archived_at || open.some((task) => task.topic_id === tp.id));
-  const loose = open.filter((task) => !task.topic_id || !known.has(task.topic_id));
-
-  const rows = (list: PersonalTask[]) => (
-    <Card className="overflow-hidden">
-      <ul className="divide-y divide-border">
-        {list.map((task) => (
-          <TaskRow key={task.id} task={task} group={phase(task)} today={today} onEdit={() => onEdit(task)} />
-        ))}
-      </ul>
-    </Card>
-  );
-
-  const header = (key: string, label: ReactNode, count: number, filing: { topicId: string | null; categoryId: string | null }) => (
-    <div className="mb-2 flex items-center gap-2 px-0.5">
-      <button
-        onClick={() => toggle(key)}
-        aria-expanded={!folded.includes(key)}
-        className="flex min-w-0 flex-1 items-center gap-2 text-left text-[13px] font-semibold"
-      >
-        <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted transition-transform', folded.includes(key) && '-rotate-90')} aria-hidden />
-        {label}
-        <span className="rounded-full bg-surface-2 px-1.5 text-[11px] font-semibold tabular text-muted">{count}</span>
-      </button>
-      <button
-        onClick={() => onAdd(filing)}
-        aria-label={t('ptopic.addHere')}
-        title={t('ptopic.addHere')}
-        className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
-      >
-        <Plus className="h-3.5 w-3.5" aria-hidden />
-      </button>
-    </div>
-  );
-
-  return (
-    <div className="mt-5 space-y-6">
-      {shown.map((topic) => {
-        const mine = open.filter((task) => task.topic_id === topic.id);
-        const categories = topic.categories.filter((c) => !c.archived_at || mine.some((task) => task.category_id === c.id));
-        const uncategorised = mine.filter((task) => !task.category_id || !categories.some((c) => c.id === task.category_id));
-        return (
-          <section key={topic.id}>
-            {header(
-              topic.id,
-              <span className="flex min-w-0 items-center gap-2 uppercase tracking-wide">
-                <TopicDot color={topic.color} />
-                <span className="truncate">{topic.name}</span>
-              </span>,
-              mine.length,
-              { topicId: topic.id, categoryId: null },
-            )}
-            {!folded.includes(topic.id) && (
-              <div className="space-y-3 pl-6">
-                {categories.map((c) => {
-                  const key = `${topic.id}:${c.id}`;
-                  const list = mine.filter((task) => task.category_id === c.id);
-                  return (
-                    <div key={c.id}>
-                      {header(key, <span className="truncate font-medium text-muted">{c.name}</span>, list.length, { topicId: topic.id, categoryId: c.id })}
-                      {!folded.includes(key) && list.length > 0 && rows(list)}
-                    </div>
-                  );
-                })}
-                {uncategorised.length > 0 &&
-                  (categories.length > 0 ? (
-                    <div>
-                      <p className="mb-2 px-0.5 text-[13px] font-medium text-subtle">{t('ptopic.noCategory')}</p>
-                      {rows(uncategorised)}
-                    </div>
-                  ) : (
-                    rows(uncategorised)
-                  ))}
-                {mine.length === 0 && categories.length === 0 && (
-                  <p className="px-0.5 text-[12.5px] text-subtle">{t('ptopic.emptyTopic')}</p>
-                )}
-              </div>
-            )}
-          </section>
-        );
-      })}
-      {loose.length > 0 && (
-        <section>
-          {header('none', <span className="uppercase tracking-wide text-muted">{t('ptopic.none')}</span>, loose.length, { topicId: null, categoryId: null })}
-          {!folded.includes('none') && <div className="pl-6">{rows(loose)}</div>}
-        </section>
-      )}
-    </div>
-  );
-}
 
 /**
  * One line: type, Enter, done. It lands on today, like the dialog's default.
@@ -581,7 +246,7 @@ export function TaskRow({
           {error && <div className="mt-2"><ErrorState message={error} /></div>}
         </div>
 
-        <StatusChip status={done ? 'completed' : status} onChange={changeStatus} disabled={done} />
+        <TaskStatusChip status={done ? 'completed' : status} onChange={changeStatus} disabled={done} />
 
         <button
           onClick={onEdit}
@@ -607,7 +272,7 @@ const STATUS_OPTIONS: { value: PersonalTaskStatus; label: MessageKey }[] = [
  * A native select under a styled label: on a phone that opens the system's
  * own picker, which is bigger and more familiar than any menu drawn here.
  */
-function StatusChip({
+export function TaskStatusChip({
   status,
   onChange,
   disabled,
@@ -637,44 +302,6 @@ function StatusChip({
       </select>
       <ChevronDown className="pointer-events-none absolute right-1.5 h-3 w-3 opacity-70" aria-hidden />
     </span>
-  );
-}
-
-function ClosedRow({ task }: { task: PersonalTask }) {
-  const { t, formatDate } = useI18n();
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-  const completed = task.status === 'completed';
-  const when = completed ? task.completed_at : task.cancelled_at;
-
-  function reopen() {
-    setError(null);
-    startTransition(async () => {
-      const res = await setPersonalTaskStatus(task.id, 'open');
-      if (!res.ok) { setError(t(reminderErrorKey(res.error))); return; }
-      router.refresh();
-    });
-  }
-
-  return (
-    <li className="flex items-center gap-3 px-3.5 py-2.5">
-      {completed
-        ? <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-done" aria-hidden />
-        : <XCircle className="h-[18px] w-[18px] shrink-0 text-skipped" aria-hidden />}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[13.5px] text-muted line-through">{task.title}</p>
-        <p className="text-[11.5px] text-subtle">
-          {completed ? t('ptask.completed') : t('ptask.cancelled')}
-          {when ? ` · ${formatDate(DateTime.fromISO(when).setZone(BUSINESS_TZ).toISODate()!, 'medium')}` : ''}
-        </p>
-        {error && <div className="mt-2"><ErrorState message={error} /></div>}
-      </div>
-      <Button size="sm" variant="ghost" onClick={reopen} loading={pending}>
-        <RotateCcw className="h-3.5 w-3.5" aria-hidden />
-        {t('ptask.reopen')}
-      </Button>
-    </li>
   );
 }
 
@@ -711,6 +338,7 @@ export function PersonalTaskDialog({
   const [notes, setNotes] = useState(task?.notes ?? '');
   const [date, setDate] = useState(task ? task.due_date ?? '' : initialDate ?? DateTime.now().setZone(BUSINESS_TZ).toISODate()!);
   const [time, setTime] = useState(task?.due_time?.slice(0, 5) ?? '');
+  const [status, setStatus] = useState<PersonalTaskStatus | null>(task && isOpenPersonalTask(task.status) ? task.status : null);
   const [topics, setTopics] = usePersonalTopics(knownTopics);
   const [filing, setFiling] = useState(
     task ? { topicId: task.topic_id, categoryId: task.category_id } : initialFiling ?? { topicId: null, categoryId: null },
@@ -734,6 +362,10 @@ export function PersonalTaskDialog({
         filing: topics ? { topic_id: filing.topicId, category_id: filing.categoryId } : undefined,
       });
       if (!res.ok) { setError(t(reminderErrorKey(res.error))); return; }
+      if (task && status && status !== task.status) {
+        const moved = await setPersonalTaskStatus(task.id, status);
+        if (!moved.ok) { setError(t(reminderErrorKey(moved.error))); return; }
+      }
       onClose();
       router.refresh();
     });
@@ -775,6 +407,12 @@ export function PersonalTaskDialog({
             <Input id="pt-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={!date} />
           </Field>
         </div>
+        {status && (
+          <div className="flex items-center gap-2 text-[13px] font-medium">
+            {t('ptask.statusLabel')}
+            <TaskStatusChip status={status} onChange={setStatus} />
+          </div>
+        )}
         {topics && (
           <TopicPicker
             topics={topics}

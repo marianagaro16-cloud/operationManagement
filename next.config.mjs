@@ -14,6 +14,18 @@ const nextConfig = {
      */
     serverComponentsExternalPackages: ['exceljs'],
   },
+  /**
+   * Notes, the inbox and personal tasks moved into "Mi espacio". Their old
+   * addresses are in bookmarks and in notifications already sent, so they
+   * still arrive. Done here rather than in a page, so the answer is a plain
+   * redirect before anything is rendered.
+   */
+  redirects: async () => [
+    { source: '/notes', has: [{ type: 'query', key: 'archived', value: '1' }], destination: '/space/notes/archived', permanent: false },
+    { source: '/notes', destination: '/space', permanent: false },
+    { source: '/inbox', destination: '/space/inbox', permanent: false },
+    { source: '/reminders/tasks', destination: '/space/tasks', permanent: false },
+  ],
   headers: async () => [
     {
       source: '/sw.js',
