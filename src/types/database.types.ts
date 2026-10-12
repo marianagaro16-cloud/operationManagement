@@ -317,6 +317,32 @@ export type Database = {
           },
         ]
       }
+      activity_block_reminders: {
+        Row: {
+          created_at: string
+          reminder_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          reminder_date: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          reminder_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_block_reminders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           key: string
@@ -9498,6 +9524,362 @@ export type Database = {
           },
         ]
       }
+      schedule_blocks: {
+        Row: {
+          created_at: string
+          day: number
+          end_time: string | null
+          id: string
+          kind_id: string | null
+          person_id: string
+          slot: number
+          start_time: string | null
+          week_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: number
+          end_time?: string | null
+          id?: string
+          kind_id?: string | null
+          person_id: string
+          slot: number
+          start_time?: string | null
+          week_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: number
+          end_time?: string | null
+          id?: string
+          kind_id?: string | null
+          person_id?: string
+          slot?: number
+          start_time?: string | null
+          week_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_blocks_kind_id_fkey"
+            columns: ["kind_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_kinds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_blocks_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_blocks_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_kinds: {
+        Row: {
+          color: string
+          counts_hours: boolean
+          created_at: string
+          hatched: boolean
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          system_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          color: string
+          counts_hours?: boolean
+          created_at?: string
+          hatched?: boolean
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          system_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          counts_hours?: boolean
+          created_at?: string
+          hatched?: boolean
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          system_key?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      schedule_people: {
+        Row: {
+          created_at: string
+          external_name: string | null
+          id: string
+          in_cleaning_rotation: boolean
+          in_sunday_rotation: boolean
+          is_active: boolean
+          is_lead: boolean
+          label: string | null
+          max_hours: number | null
+          min_hours: number | null
+          percent: number | null
+          sort_order: number
+          sunday_order: number
+          updated_at: string
+          worker_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          external_name?: string | null
+          id?: string
+          in_cleaning_rotation?: boolean
+          in_sunday_rotation?: boolean
+          is_active?: boolean
+          is_lead?: boolean
+          label?: string | null
+          max_hours?: number | null
+          min_hours?: number | null
+          percent?: number | null
+          sort_order?: number
+          sunday_order?: number
+          updated_at?: string
+          worker_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          external_name?: string | null
+          id?: string
+          in_cleaning_rotation?: boolean
+          in_sunday_rotation?: boolean
+          is_active?: boolean
+          is_lead?: boolean
+          label?: string | null
+          max_hours?: number | null
+          min_hours?: number | null
+          percent?: number | null
+          sort_order?: number
+          sunday_order?: number
+          updated_at?: string
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_people_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: true
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_products: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          people_needed: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          people_needed?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          people_needed?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      schedule_sunday_duty: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duty_date: string
+          id: string
+          note: string | null
+          origin: string
+          person_id: string | null
+          person_name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duty_date: string
+          id?: string
+          note?: string | null
+          origin?: string
+          person_id?: string | null
+          person_name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duty_date?: string
+          id?: string
+          note?: string | null
+          origin?: string
+          person_id?: string | null
+          person_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_sunday_duty_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_sunday_duty_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_week_versions: {
+        Row: {
+          published_at: string
+          published_by: string | null
+          snapshot: Json
+          version: number
+          week_id: string
+        }
+        Insert: {
+          published_at?: string
+          published_by?: string | null
+          snapshot: Json
+          version: number
+          week_id: string
+        }
+        Update: {
+          published_at?: string
+          published_by?: string | null
+          snapshot?: Json
+          version?: number
+          week_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_week_versions_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_week_versions_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_weeks: {
+        Row: {
+          cleaning_bathroom: string | null
+          cleaning_kitchen: string | null
+          created_at: string
+          created_by: string | null
+          day_notes: Json
+          day_products: Json
+          holidays: number[]
+          id: string
+          is_pattern: boolean
+          published_at: string | null
+          published_by: string | null
+          updated_at: string
+          version: number
+          week_start: string | null
+        }
+        Insert: {
+          cleaning_bathroom?: string | null
+          cleaning_kitchen?: string | null
+          created_at?: string
+          created_by?: string | null
+          day_notes?: Json
+          day_products?: Json
+          holidays?: number[]
+          id?: string
+          is_pattern?: boolean
+          published_at?: string | null
+          published_by?: string | null
+          updated_at?: string
+          version?: number
+          week_start?: string | null
+        }
+        Update: {
+          cleaning_bathroom?: string | null
+          cleaning_kitchen?: string | null
+          created_at?: string
+          created_by?: string | null
+          day_notes?: Json
+          day_products?: Json
+          holidays?: number[]
+          id?: string
+          is_pattern?: boolean
+          published_at?: string | null
+          published_by?: string | null
+          updated_at?: string
+          version?: number
+          week_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_weeks_cleaning_bathroom_fkey"
+            columns: ["cleaning_bathroom"]
+            isOneToOne: false
+            referencedRelation: "schedule_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_weeks_cleaning_kitchen_fkey"
+            columns: ["cleaning_kitchen"]
+            isOneToOne: false
+            referencedRelation: "schedule_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_weeks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_weeks_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_audit_log: {
         Row: {
           action: string
@@ -9825,6 +10207,10 @@ export type Database = {
           effective_due_date: string | null
           id: string
           period_key: string
+          rescheduled_at: string | null
+          rescheduled_by: string | null
+          rescheduled_from: string | null
+          rescheduled_reason: string | null
           skip_reason: string | null
           skipped_at: string | null
           skipped_by: string | null
@@ -9849,6 +10235,10 @@ export type Database = {
           effective_due_date?: string | null
           id?: string
           period_key: string
+          rescheduled_at?: string | null
+          rescheduled_by?: string | null
+          rescheduled_from?: string | null
+          rescheduled_reason?: string | null
           skip_reason?: string | null
           skipped_at?: string | null
           skipped_by?: string | null
@@ -9873,6 +10263,10 @@ export type Database = {
           effective_due_date?: string | null
           id?: string
           period_key?: string
+          rescheduled_at?: string | null
+          rescheduled_by?: string | null
+          rescheduled_from?: string | null
+          rescheduled_reason?: string | null
           skip_reason?: string | null
           skipped_at?: string | null
           skipped_by?: string | null
@@ -9909,6 +10303,13 @@ export type Database = {
             columns: ["covered_assignment_id"]
             isOneToOne: false
             referencedRelation: "coverage_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_occurrences_rescheduled_by_fkey"
+            columns: ["rescheduled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -10356,6 +10757,10 @@ export type Database = {
           effective_due_date: string | null
           id: string
           period_key: string
+          rescheduled_at: string | null
+          rescheduled_by: string | null
+          rescheduled_from: string | null
+          rescheduled_reason: string | null
           skip_reason: string | null
           skipped_at: string | null
           skipped_by: string | null
@@ -10457,6 +10862,10 @@ export type Database = {
           effective_due_date: string | null
           id: string
           period_key: string
+          rescheduled_at: string | null
+          rescheduled_by: string | null
+          rescheduled_from: string | null
+          rescheduled_reason: string | null
           skip_reason: string | null
           skipped_at: string | null
           skipped_by: string | null
@@ -11108,6 +11517,10 @@ export type Database = {
           effective_due_date: string | null
           id: string
           period_key: string
+          rescheduled_at: string | null
+          rescheduled_by: string | null
+          rescheduled_from: string | null
+          rescheduled_reason: string | null
           skip_reason: string | null
           skipped_at: string | null
           skipped_by: string | null
@@ -11127,6 +11540,43 @@ export type Database = {
       request_password_reset: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      reschedule_blocked_occurrence: {
+        Args: { p_date: string; p_occurrence_id: string; p_period_key: string }
+        Returns: {
+          assignee_id: string | null
+          assignee_manual: boolean
+          blocked_at: string | null
+          blocked_by: string | null
+          blocked_reason: string | null
+          completed_at: string | null
+          completed_by: string | null
+          covered_assignment_id: string | null
+          created_at: string
+          due_date: string
+          due_date_override: string | null
+          effective_due_date: string | null
+          id: string
+          period_key: string
+          rescheduled_at: string | null
+          rescheduled_by: string | null
+          rescheduled_from: string | null
+          rescheduled_reason: string | null
+          skip_reason: string | null
+          skipped_at: string | null
+          skipped_by: string | null
+          source: Database["public"]["Enums"]["schedule_source"]
+          status: Database["public"]["Enums"]["occurrence_status"]
+          target_quantity: number | null
+          task_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "task_occurrences"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       role_rank: {
         Args: { r: Database["public"]["Enums"]["user_role"] }
@@ -11201,6 +11651,11 @@ export type Database = {
         }[]
       }
       sales_report: { Args: { p_month: string }; Returns: Json }
+      schedule_can_read: { Args: never; Returns: boolean }
+      schedule_start_time: {
+        Args: { p_date: string; p_worker_id: string }
+        Returns: string
+      }
       set_customer_prepay: {
         Args: { p_customer_id: string; p_on: boolean }
         Returns: undefined
@@ -11270,6 +11725,10 @@ export type Database = {
           effective_due_date: string | null
           id: string
           period_key: string
+          rescheduled_at: string | null
+          rescheduled_by: string | null
+          rescheduled_from: string | null
+          rescheduled_reason: string | null
           skip_reason: string | null
           skipped_at: string | null
           skipped_by: string | null

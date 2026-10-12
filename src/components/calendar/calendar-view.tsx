@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { DateTime } from 'luxon';
-import { ChevronLeft, ChevronRight, Plus, Trash2, X } from 'lucide-react';
+import { CalendarClock, ChevronLeft, ChevronRight, Plus, RotateCcw, Trash2, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { localizedName, localizedTitle } from '@/lib/localized-content';
 import { cn } from '@/lib/utils';
@@ -11,10 +11,13 @@ import { Badge, Card, EmptyState, Select } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/status-chip';
 import { monthRange, weekRange } from '@/domain/recurrence/planning';
+import { NoteText } from '@/components/ui/note';
+import { reopenOccurrence } from '@/server/actions';
 import { setOccurrenceDayPeople, unplanInventory, unplanTask } from '@/server/planning-actions';
 import { BUSINESS_TZ, type BusinessDate } from '@/lib/datetime';
 import { PlanDialog, type PlannableTask, type PlannableTemplate } from './plan-dialog';
 import { OneOffDialog, type OneOffPerson } from './one-off-dialog';
+import { RescheduleDialog } from './reschedule-dialog';
 import type { Team } from '@/lib/authz';
 import type { OccurrenceWithTask } from '@/types/database';
 import type { InventoryStatus } from '@/types/inventory';
@@ -77,6 +80,8 @@ export function CalendarView({
   const [selected, setSelected] = useState<string | null>(today);
   const [planning, setPlanning] = useState<{ from: string; to: string; title: string } | null>(null);
   const [oneOffFor, setOneOffFor] = useState<string | null>(null);
+  // The blocked copy being moved to another day.
+  const [moving, setMoving] = useState<{ id: string; title: string; day: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -152,6 +157,17 @@ export function CalendarView({
       if (!res.ok) setError(res.error === 'not_authorized' ? t('plan.errNotAssignable') : res.error);
     });
   }
+
+  /** Free a blocked copy on the day it is on. */
+  function unblock(occurrenceId: string) {
+    setError(null);
+    startTransition(async () => {
+      const res = await reopenOccurrence(occurrenceId);
+      if (!res.ok) setError(res.error === 'not_authorized' ? t('plan.errNotAuthorized') : res.error);
+    });
+  }
+
+  const personName = (id: string) => people.find((p) => p.id === id)?.name ?? '—';
 
   return (
     <div className="space-y-4">
@@ -341,7 +357,7 @@ export function CalendarView({
                       {copies
                         .filter((c) => c.assignee_id !== null)
                         .map((c) => {
-                          const name = people.find((p) => p.id === c.assignee_id)?.name ?? '—';
+                          const name = personName(c.assignee_id as string);
                           return (
                             <span
                               key={c.id}
@@ -381,6 +397,49 @@ export function CalendarView({
                         </Select>
                       )}
                     </div>
+
+                    {/* Blocked work is still owed: free it on its day, or move it to another one. */}
+                    {copies
+                      .filter((c) => c.status === 'blocked')
+                      .map((c) => {
+                        const name = c.assignee_id ? personName(c.assignee_id) : t('plan.oneOffEveryone');
+                        return (
+                          <div key={c.id} className="mt-1.5 rounded-md border border-warn/25 bg-warn/[0.06] px-2 py-1.5 text-[12px]">
+                            <p>
+                              <span className="font-medium">{name}</span>
+                              {c.blocked_reason && (
+                                <> · {t('task.blockReason')} <NoteText text={c.blocked_reason} /></>
+                              )}
+                            </p>
+                            <div className="mt-1.5 flex flex-wrap gap-1.5">
+                              <Button size="sm" variant="secondary" disabled={pending} onClick={() => unblock(c.id)}>
+                                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+                                {t('task.unblock')}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                disabled={pending}
+                                onClick={() => setMoving({ id: c.id, title: `${localizedTitle(task, locale)} — ${name}`, day: c.effective_due_date })}
+                              >
+                                <CalendarClock className="h-3.5 w-3.5" aria-hidden />
+                                {t('plan.reschedule')}
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                    {/* Moved here from a day it was blocked on. */}
+                    {copies
+                      .filter((c) => c.rescheduled_from && c.status !== 'blocked')
+                      .map((c) => (
+                        <p key={c.id} className="mt-1.5 text-[12px] text-muted">
+                          {c.assignee_id && <span className="font-medium">{personName(c.assignee_id)} · </span>}
+                          {t('task.rescheduledFrom', { date: formatDate(c.rescheduled_from as string, 'short') })}
+                          {c.rescheduled_reason && <> — {t('task.rescheduledWas', { reason: c.rescheduled_reason })}</>}
+                        </p>
+                      ))}
                   </li>
                 );
               })}
@@ -424,6 +483,17 @@ export function CalendarView({
           defaultTeam={viewerTeam}
           teams={oneOffTeams}
           products={products}
+        />
+      )}
+
+      {moving && (
+        <RescheduleDialog
+          key={moving.id}
+          onClose={() => setMoving(null)}
+          occurrenceId={moving.id}
+          title={moving.title}
+          day={moving.day}
+          today={today}
         />
       )}
 

@@ -179,6 +179,14 @@ export function TaskCard({ occurrence, today, showDueDate, showAssignee, canSkip
           </div>
         )}
 
+        {/* Moved here from a day it was blocked on. */}
+        {!isBlocked && occurrence.rescheduled_from && (
+          <p className="mt-1.5 text-[12px] text-muted">
+            {t('task.rescheduledFrom', { date: formatDate(occurrence.rescheduled_from, 'short') })}
+            {occurrence.rescheduled_reason && <> — {t('task.rescheduledWas', { reason: occurrence.rescheduled_reason })}</>}
+          </p>
+        )}
+
         {production && !production.record && (
           <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-accent/10 px-2 py-0.5 text-[12px] font-medium text-accent">
             <Factory className="h-3.5 w-3.5" aria-hidden />

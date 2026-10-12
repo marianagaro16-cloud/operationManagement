@@ -16,6 +16,7 @@ import { sendToUsers } from './push';
 
 interface Blocked {
   id: string;
+  assignee_id: string | null;
   task: { title: string; team: string | null } | null;
 }
 
@@ -43,7 +44,7 @@ async function firstName(userId: string): Promise<string> {
 async function load(occurrenceId: string): Promise<Blocked | null> {
   const { data } = await createAdminClient()
     .from('task_occurrences')
-    .select('id, task:tasks ( title, team )')
+    .select('id, assignee_id, task:tasks ( title, team )')
     .eq('id', occurrenceId)
     .maybeSingle();
   return (data as unknown as Blocked) ?? null;
@@ -70,19 +71,42 @@ export async function notifyActivityBlocked(occurrenceId: string, actorId: strin
   }
 }
 
-/** Free again: told for the blocks that were told, whoever cleared it. */
+/**
+ * Free again — unblocked on its day, or moved to another one (`movedTo`).
+ *
+ * Whose work it is hears it when somebody else did it (decided 2026-10-12):
+ * the person it is assigned to, else whoever blocked it. The Admins are told
+ * for the blocks that were told, whoever cleared it.
+ */
 export async function notifyActivityUnblocked(
   occurrenceId: string,
   actorId: string,
   was: { blocked_by: string | null; blocked_reason: string | null },
+  movedTo?: string,
 ): Promise<void> {
   try {
-    if (!was.blocked_by || !(await watched()).includes(was.blocked_by)) return;
-    const [o, name, to] = await Promise.all([load(occurrenceId), firstName(actorId), admins(actorId)]);
+    const [o, name] = await Promise.all([load(occurrenceId), firstName(actorId)]);
     if (!o) return;
+    const title = o.task?.title ?? 'una actividad';
+    const why = was.blocked_reason ? `Estaba bloqueada por: ${was.blocked_reason}` : null;
+    const day = movedTo ? DateTime.fromISO(movedTo, { zone: BUSINESS_TZ }).setLocale('es').toFormat('cccc d.M.') : null;
+
+    const owner = o.assignee_id ?? was.blocked_by;
+    if (owner && owner !== actorId) {
+      await sendToUsers([owner], {
+        title: day ? `${name} reprogramó: ${title}` : `${name} desbloqueó: ${title}`,
+        body: [day ? `Pasa al ${day}.` : 'Vuelve a estar pendiente.', why].filter(Boolean).join(' '),
+        url: '/dashboard',
+        tag: `activity-freed-${o.id}-${Date.now()}`,
+      });
+    }
+
+    if (!was.blocked_by || !(await watched()).includes(was.blocked_by)) return;
+    // An Admin whose own work it is has just been told.
+    const to = (await admins(actorId)).filter((id) => id !== owner);
     await sendToUsers(to, {
-      title: `Desbloqueada: ${o.task?.title ?? 'una actividad'}`,
-      body: [`${name} la desbloqueó.`, was.blocked_reason ? `Estaba bloqueada por: ${was.blocked_reason}` : null].filter(Boolean).join(' '),
+      title: day ? `Reprogramada: ${title}` : `Desbloqueada: ${title}`,
+      body: [day ? `${name} la pasó al ${day}.` : `${name} la desbloqueó.`, why].filter(Boolean).join(' '),
       url: url(o),
       tag: `activity-unblocked-${o.id}-${Date.now()}`,
     });

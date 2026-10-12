@@ -36,6 +36,7 @@
     "verify:roles": "node scripts/verify-roles.mjs",
     "verify:teams": "node scripts/verify-teams.mjs",
     "verify:tasks": "node scripts/verify-tasks.mjs",
+    "verify:reschedule": "node scripts/verify-reschedule.mjs",
     "verify:import": "node scripts/verify-import.mjs",
     "verify:incidents": "node scripts/verify-incidents.mjs",
     "verify:reception": "node scripts/verify-goods-reception.mjs",

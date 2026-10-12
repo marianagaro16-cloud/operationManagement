@@ -10,6 +10,7 @@ import { resolveScheduleConfig } from '@/domain/recurrence/engine';
 import type { Frequency } from '@/domain/recurrence/types';
 import type { ActionResult } from './actions';
 import { notifyActivityDayAssigned } from './activity-notify';
+import { notifyActivityUnblocked } from './block-notify';
 
 /**
  * Placing scheduled work by hand.
@@ -223,6 +224,60 @@ export async function setOccurrenceDayPeople(
       }
     }
   }
+
+  revalidatePath('/calendar');
+  revalidatePath('/dashboard');
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Move a blocked day of an activity to another date (decided 2026-10-12).
+ *
+ * Only a blocked one: on the new day it is pending again and carries where it
+ * came from and what was blocking it. Whose work it is hears about it. The
+ * rules — who may, not into the past, one copy per person and day — are the
+ * database's, in reschedule_blocked_occurrence().
+ */
+export async function rescheduleBlockedOccurrence(
+  occurrenceId: string,
+  date: string,
+): Promise<ActionResult> {
+  const parsed = z.object({ occurrenceId: z.string().uuid(), date: BUSINESS_DATE }).safeParse({ occurrenceId, date });
+  if (!parsed.success) return { ok: false, error: 'invalid_date' };
+
+  const supabase = createClient();
+  const { data: before } = await supabase
+    .from('task_occurrences')
+    .select('blocked_by, blocked_reason, task:tasks ( frequency, schedule_config )')
+    .eq('id', occurrenceId)
+    .maybeSingle();
+  const row = before as unknown as {
+    blocked_by: string | null;
+    blocked_reason: string | null;
+    task: { frequency: Frequency | typeof ONE_OFF; schedule_config: unknown } | null;
+  } | null;
+  if (!row?.task) return { ok: false, error: 'occurrence_not_found' };
+
+  // The label of the period the new day falls in; a one-off's day is its period.
+  let periodKey: string = date;
+  if (row.task.frequency !== ONE_OFF) {
+    const resolved = resolveScheduleConfig(row.task.frequency, row.task.schedule_config);
+    periodKey = periodKeyForDate(row.task.frequency, date, resolved.ok ? resolved.config : null) ?? date;
+  }
+
+  const { error } = await supabase.rpc('reschedule_blocked_occurrence', {
+    p_occurrence_id: occurrenceId,
+    p_date: date,
+    p_period_key: periodKey,
+  });
+  if (error) {
+    const code = ['not_authorized', 'occurrence_not_found', 'not_blocked', 'same_day', 'date_in_past', 'already_planned']
+      .find((c) => error.message.includes(c));
+    return { ok: false, error: code ?? error.message };
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) await notifyActivityUnblocked(occurrenceId, user.id, row, date);
 
   revalidatePath('/calendar');
   revalidatePath('/dashboard');

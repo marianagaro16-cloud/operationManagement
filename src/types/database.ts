@@ -110,6 +110,9 @@ export interface TaskOccurrence {
   blocked_reason: string | null;
   blocked_by: string | null;
   blocked_at: string | null;
+  /** The day a planner moved this from while it was blocked, and what was blocking it then. */
+  rescheduled_from: string | null;
+  rescheduled_reason: string | null;
   created_at: string;
   updated_at: string;
 }

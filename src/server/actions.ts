@@ -114,6 +114,8 @@ export async function reopenOccurrence(occurrenceId: string): Promise<ActionResu
     if (user) await notifyActivityUnblocked(occurrenceId, user.id, before);
   }
   revalidatePath('/dashboard');
+  // Unblocked from the work plan too.
+  revalidatePath('/calendar');
   return { ok: true, data: undefined };
 }
 
