@@ -12,8 +12,8 @@ import { isSales } from '@/lib/authz';
 export const dynamic = 'force-dynamic';
 
 /**
- * The agenda: a person's week from every part of the app. One's own; Admin,
- * Owners and Managers anyone's; the Production manager their team's.
+ * The agenda: a person's week from every part of the app. One's own; Admin
+ * and Owners anyone's; Managers and the Production manager their team's.
  */
 export default async function AgendaPage({ searchParams }: { searchParams: { date?: string; person?: string } }) {
   const viewer = await getViewer();

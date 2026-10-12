@@ -16,14 +16,14 @@ import { personSeesExpected } from './expected-deliveries';
  * activities and counts, their sales plan, meetings, coverage and absences,
  * the deliveries expected from suppliers (for whoever receives or announces
  * them), and (in their own agenda only) their reminders and personal tasks. Each
- * part is read with the viewer's own access, so a manager looking at someone
+ * part is read with the viewer's own access, so whoever looks at someone
  * sees what they may see and nothing more.
  */
 
-/** Whose agenda the viewer may open: Admin and Owners and Managers anyone; the Production manager their team; everyone else their own. */
+/** Whose agenda the viewer may open: Admin and Owners anyone; Managers and the Production manager their own team; everyone else their own. */
 export async function agendaPeople(viewer: { id: string; role: Role; team: Team }): Promise<{ id: string; name: string }[]> {
-  const everyone = isAdminRole(viewer.role) || viewer.role === 'manager';
-  if (!everyone && viewer.role !== 'production_manager') return [];
+  const everyone = isAdminRole(viewer.role);
+  if (!everyone && viewer.role !== 'manager' && viewer.role !== 'production_manager') return [];
   const users = (await getUsers()).filter((u) => u.status === 'approved');
   return users
     .filter((u) => everyone || u.team === viewer.team || u.id === viewer.id)
