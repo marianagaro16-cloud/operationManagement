@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getViewer } from '@/server/data';
-import { getNotes } from '@/server/notes';
+import { getNotes, getSpaceAccent } from '@/server/notes';
 import { getPersonalTasks } from '@/server/reminders';
 import { getUnreadInboxCount } from '@/server/inbox';
 import { SpaceShell } from '@/components/space/space-shell';
@@ -15,9 +15,9 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
   const viewer = await getViewer();
   if (!viewer) redirect('/login');
 
-  const [notes, tasks, unread] = await Promise.all([getNotes(), getPersonalTasks(), getUnreadInboxCount()]);
+  const [notes, tasks, unread, accent] = await Promise.all([getNotes(), getPersonalTasks(), getUnreadInboxCount(), getSpaceAccent()]);
   return (
-    <SpaceShell notes={notes} tasks={tasks.open.map((task) => ({ id: task.id, title: task.title }))} unread={unread}>
+    <SpaceShell notes={notes} tasks={tasks.open.map((task) => ({ id: task.id, title: task.title }))} unread={unread} accent={accent}>
       {children}
     </SpaceShell>
   );

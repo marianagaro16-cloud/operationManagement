@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { sendToUsers } from './push';
 import type { ActionResult } from './actions';
+import { TOPIC_COLORS } from '@/types/reminders';
 
 /*
  * Quick note mutations. RLS holds the rules: only the owner changes a note,
@@ -189,7 +190,7 @@ export async function tickNoteItem(itemId: string, done: boolean): Promise<Actio
   return { ok: true, data: undefined };
 }
 
-async function ownUpdate(id: string, patch: { pinned?: boolean; archived_at?: string | null }): Promise<ActionResult> {
+async function ownUpdate(id: string, patch: { pinned?: boolean; archived_at?: string | null; icon?: string | null; cover?: string | null }): Promise<ActionResult> {
   if (!uuid.safeParse(id).success) return { ok: false, error: 'not_authorized' };
   const supabase = createClient();
   const { data, error } = await supabase.from('quick_notes').update(patch).eq('id', id).select('customer_id');
@@ -201,6 +202,31 @@ async function ownUpdate(id: string, patch: { pinned?: boolean; archived_at?: st
 
 export async function setNotePinned(id: string, pinned: boolean): Promise<ActionResult> {
   return ownUpdate(id, { pinned });
+}
+
+const lookSchema = z.object({
+  icon: z.string().trim().min(1).max(16).nullable().optional(),
+  cover: z.enum(TOPIC_COLORS).nullable().optional(),
+});
+
+/** The page's emoji and cover colour; what is left out stays as it is. */
+export async function setNoteLook(id: string, look: z.input<typeof lookSchema>): Promise<ActionResult> {
+  const parsed = lookSchema.safeParse(look);
+  if (!parsed.success) return { ok: false, error: 'invalid' };
+  return ownUpdate(id, parsed.data);
+}
+
+/** The colour of one's own "Mi espacio". */
+export async function setSpaceAccent(accent: string | null): Promise<ActionResult> {
+  const parsed = z.enum(TOPIC_COLORS).nullable().safeParse(accent);
+  if (!parsed.success) return { ok: false, error: 'invalid' };
+  const supabase = createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { ok: false, error: 'not_authorized' };
+  const { error } = await supabase.from('space_settings').upsert({ profile_id: auth.user.id, accent: parsed.data });
+  if (error) return fail(error);
+  revalidatePath('/space', 'layout');
+  return { ok: true, data: undefined };
 }
 
 /** Done with it: out of the list, still findable and restorable. */

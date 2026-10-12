@@ -50,6 +50,27 @@
   --note: 183 148 244;
 }
 
+/*
+ * "Mi espacio" is the one place a person colours for themselves: the colour
+ * they picked stands in for the accent there, and only there.
+ */
+[data-space-accent='slate'] { --accent: 71 85 105; }
+[data-space-accent='orange'] { --accent: 234 88 12; }
+[data-space-accent='amber'] { --accent: 202 108 4; }
+[data-space-accent='green'] { --accent: 22 163 74; }
+[data-space-accent='teal'] { --accent: 13 148 136; }
+[data-space-accent='blue'] { --accent: 37 99 235; }
+[data-space-accent='violet'] { --accent: 124 58 237; }
+[data-space-accent='pink'] { --accent: 219 39 119; }
+[data-theme='dark'] [data-space-accent='slate'] { --accent: 148 163 184; }
+[data-theme='dark'] [data-space-accent='orange'] { --accent: 251 146 60; }
+[data-theme='dark'] [data-space-accent='amber'] { --accent: 251 191 36; }
+[data-theme='dark'] [data-space-accent='green'] { --accent: 74 222 128; }
+[data-theme='dark'] [data-space-accent='teal'] { --accent: 45 212 191; }
+[data-theme='dark'] [data-space-accent='blue'] { --accent: 96 165 250; }
+[data-theme='dark'] [data-space-accent='violet'] { --accent: 167 139 250; }
+[data-theme='dark'] [data-space-accent='pink'] { --accent: 244 114 182; }
+
 @layer base {
   * {
     @apply border-border;

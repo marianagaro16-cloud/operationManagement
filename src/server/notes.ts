@@ -8,7 +8,7 @@ import type { QuickNote } from '@/types/notes';
  */
 
 const COLUMNS = `
-  id, owner_id, title, body, pinned, archived_at, updated_at,
+  id, owner_id, title, body, icon, cover, pinned, archived_at, updated_at,
   owner:profiles!quick_notes_owner_id_fkey ( name, email ),
   customer:customers ( id, company_name ),
   items:quick_note_items ( id, body, done, sort_order ),
@@ -21,6 +21,8 @@ type Raw = {
   owner_id: string;
   title: string;
   body: string;
+  icon: string | null;
+  cover: QuickNote['cover'];
   pinned: boolean;
   archived_at: string | null;
   updated_at: string;
@@ -40,6 +42,8 @@ function shape(rows: Raw[], viewerId: string): QuickNote[] {
       owner_name: nameOf(n.owner),
       title: n.title,
       body: n.body,
+      icon: n.icon,
+      cover: n.cover,
       pinned: n.pinned,
       customer: n.customer ? { id: n.customer.id, name: n.customer.company_name } : null,
       archived_at: n.archived_at,
@@ -78,4 +82,11 @@ export async function getNote(id: string): Promise<QuickNote | null> {
   const { data, error } = await supabase.from('quick_notes').select(COLUMNS).eq('id', id).maybeSingle();
   if (error) throw new Error(error.message);
   return data ? shape([data as unknown as Raw], me)[0] : null;
+}
+
+/** The colour the viewer chose for their own "Mi espacio", if any. */
+export async function getSpaceAccent(): Promise<QuickNote['cover']> {
+  const supabase = createClient();
+  const { data } = await supabase.from('space_settings').select('accent').maybeSingle();
+  return (data?.accent as QuickNote['cover']) ?? null;
 }

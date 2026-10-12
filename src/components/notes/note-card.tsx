@@ -48,6 +48,7 @@ export function NoteCard({ note, viewerId, compact = false }: { note: QuickNote;
         <div className="min-w-0 flex-1 text-[13.5px]">
           {note.title && (
             <Link href={`/space/notes/${note.id}`} className="mb-1 block break-words text-[14px] font-semibold hover:underline">
+              {note.icon && <span className="mr-1.5" aria-hidden>{note.icon}</span>}
               {note.title}
             </Link>
           )}

@@ -68,11 +68,11 @@ export function InboxView({ entries }: { entries: InboxEntry[] }) {
     .filter((d) => d.list.length > 0);
 
   const tab = (on: boolean) =>
-    cn('-mb-px border-b-2 px-0.5 pb-1.5 font-medium transition-colors', on ? 'border-fg text-fg' : 'border-transparent text-muted hover:text-fg');
+    cn('-mb-px border-b-2 px-0.5 pb-1.5 font-medium transition-colors', on ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg');
 
   return (
     <>
-      <SpaceTitle title={t('space.inbox')}>
+      <SpaceTitle title={t('space.inbox')} icon={<Inbox className="h-6 w-6 shrink-0 text-sky-500" aria-hidden />}>
         <p className="mt-1 text-[13px] text-muted">{t('space.inboxKept')}</p>
       </SpaceTitle>
 

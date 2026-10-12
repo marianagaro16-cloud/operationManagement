@@ -1,5 +1,7 @@
 /** Quick notes: a personal notepad, private unless shared. */
 
+import type { TopicColor as SpaceColor } from './reminders';
+
 export interface QuickNoteItem {
   id: string;
   body: string;
@@ -14,6 +16,9 @@ export interface QuickNote {
   /** The page's title; empty for a note jotted down without one. */
   title: string;
   body: string;
+  /** An emoji beside the title, and the colour of the band over it; both optional. */
+  icon: string | null;
+  cover: SpaceColor | null;
   pinned: boolean;
   customer: { id: string; name: string } | null;
   archived_at: string | null;

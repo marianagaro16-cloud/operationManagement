@@ -3466,6 +3466,13 @@ export const es: Messages = {
     today: 'Hoy',
     yesterday: 'Ayer',
     earlier: 'Antes',
+    icon: 'Icono',
+    cover: 'Color',
+    noIcon: 'Quitar icono',
+    noCover: 'Sin color',
+    myColor: 'Mi color',
+    defaultColor: 'El de la aplicación',
+    allDone: '¡Todo lo de hoy está hecho!',
   },
   ptopic: {
     topic: 'Tema',

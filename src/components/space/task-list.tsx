@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, CalendarDays, Check, CheckCircle2, MoreHorizontal, Plus, RotateCcw, Tags, XCircle } from 'lucide-react';
+import { Bell, CalendarDays, Check, CheckCircle2, CheckSquare, MoreHorizontal, Plus, RotateCcw, Tags, XCircle } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -106,11 +106,26 @@ export function SpaceTasks({
 
   return (
     <>
-      <SpaceTitle title={t('space.tasks')}>
-        <p className="mt-1 text-[13px] text-muted">
-          {dueNow === 0 ? t('ptask.heroAllDone') : t('ptask.heroLeft', { count: dueNow })}
-          {doneToday > 0 && <> · {t('ptask.heroDone', { count: doneToday })}</>}
-        </p>
+      <SpaceTitle title={t('space.tasks')} icon={<CheckSquare className="h-6 w-6 shrink-0 text-emerald-500" aria-hidden />}>
+        {dueNow === 0 && doneToday > 0 ? (
+          <p className="mt-1 animate-slide-up text-[13.5px] font-medium text-done">
+            🎉 {t('space.allDone')} <span className="font-normal text-muted">· {t('ptask.heroDone', { count: doneToday })}</span>
+          </p>
+        ) : (
+          <p className="mt-1 text-[13px] text-muted">
+            {dueNow === 0 ? t('ptask.heroAllDone') : t('ptask.heroLeft', { count: dueNow })}
+            {doneToday > 0 && <> · {t('ptask.heroDone', { count: doneToday })}</>}
+          </p>
+        )}
+        {/* How far today is: what is ticked of what was due. */}
+        {dueNow + doneToday > 0 && (
+          <div className="mt-2 h-1.5 max-w-xs overflow-hidden rounded-full bg-surface-2" aria-hidden>
+            <div
+              className={cn('h-full rounded-full transition-all duration-500', dueNow === 0 ? 'bg-done' : 'bg-accent')}
+              style={{ width: `${Math.round((doneToday / (dueNow + doneToday)) * 100)}%` }}
+            />
+          </div>
+        )}
       </SpaceTitle>
 
       <div className="mb-3 flex items-center gap-4 border-b border-border text-[13px]">
@@ -120,7 +135,7 @@ export function SpaceTasks({
             role="tab"
             aria-selected={view === v}
             onClick={() => chooseView(v)}
-            className={cn('-mb-px border-b-2 px-0.5 pb-1.5 font-medium transition-colors', view === v ? 'border-fg text-fg' : 'border-transparent text-muted hover:text-fg')}
+            className={cn('-mb-px border-b-2 px-0.5 pb-1.5 font-medium transition-colors', view === v ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg')}
           >
             {v === 'date' ? t('ptopic.byDate') : t('ptopic.byTopic')}
           </button>
@@ -136,7 +151,7 @@ export function SpaceTasks({
           {GROUPS.map(({ key, label }) =>
             // Today is always there: it is where a new task is written.
             groups[key].length === 0 && key !== 'today' ? null : (
-              <Fold key={key} open={isOpen(key)} onToggle={() => toggle(key)} label={t(label)} count={groups[key].length} tone={key === 'overdue' ? 'late' : undefined}>
+              <Fold key={key} open={isOpen(key)} onToggle={() => toggle(key)} label={t(label)} count={groups[key].length} tone={key === 'overdue' ? 'late' : key === 'today' ? 'accent' : undefined}>
                 <ul>{rows(groups[key], true)}</ul>
                 {key === 'today' && <NewTask date={today} />}
                 {key === 'undated' && <NewTask date={null} />}

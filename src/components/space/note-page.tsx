@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Archive, BellRing, Building2, ListChecks, Pin, PinOff, RotateCcw, Trash2, Users, X } from 'lucide-react';
+import { Archive, BellRing, Building2, ListChecks, Palette, Pin, PinOff, RotateCcw, Smile, Trash2, Users, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,10 @@ import { Combobox } from '@/components/ui/combobox';
 import { NoteText } from '@/components/ui/note';
 import { ReminderDialog } from '@/components/reminders/reminder-dialog';
 import { noteHeading } from '@/domain/notes';
-import { deleteNote, loadNoteChoices, saveNoteContent, saveNoteSettings, setNoteArchived, setNotePinned, tickNoteItem } from '@/server/note-actions';
+import { deleteNote, loadNoteChoices, saveNoteContent, saveNoteSettings, setNoteArchived, setNoteLook, setNotePinned, tickNoteItem } from '@/server/note-actions';
 import type { QuickNote } from '@/types/notes';
-import { AutoTextarea, SpaceBack } from './bits';
+import { AutoTextarea, Popover, SpaceBack } from './bits';
+import { COVER_BAND, NOTE_ICONS, SPACE_COLORS, SWATCH, type SpaceColor } from './colors';
 
 type Line = { key: number; body: string; done: boolean };
 type Saving = 'idle' | 'saving' | 'saved' | 'error';
@@ -62,6 +63,25 @@ function Meta({ note }: { note: QuickNote }) {
   );
 }
 
+/** The band of colour over a page, and its emoji standing on the band's edge. */
+function Cover({ cover, icon, onIcon }: { cover: SpaceColor | null; icon: string | null; onIcon?: () => void }) {
+  const { t } = useI18n();
+  if (!cover && !icon) return null;
+  const emoji = <span className="block text-[44px] leading-none">{icon}</span>;
+  return (
+    <div className="mb-2">
+      {cover && <div className={cn('h-20 rounded-xl bg-gradient-to-br md:h-28', COVER_BAND[cover])} aria-hidden />}
+      {icon && (
+        <div className={cn(cover && '-mt-7 pl-3')}>
+          {onIcon
+            ? <button onClick={onIcon} aria-label={t('space.icon')} className="rounded-lg p-0.5 transition-colors hover:bg-surface-2/70">{emoji}</button>
+            : <div className="p-0.5" aria-hidden>{emoji}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const action = 'inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[12.5px] text-muted transition-colors hover:bg-surface-2 hover:text-fg disabled:opacity-50';
 
 /* ------------------------------ one's own ------------------------------ */
@@ -76,6 +96,10 @@ function Editor({ note, viewerId }: { note: QuickNote; viewerId: string }) {
   const [saving, setSaving] = useState<Saving>('idle');
   const [sharing, setSharing] = useState(false);
   const [reminding, setReminding] = useState(false);
+  // How the page looks; shown at once, saved behind it.
+  const [icon, setIcon] = useState(note.icon);
+  const [cover, setCover] = useState(note.cover);
+  const [picking, setPicking] = useState<'icon' | 'cover' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -159,6 +183,22 @@ function Editor({ note, viewerId }: { note: QuickNote; viewerId: string }) {
     });
   }
 
+  function look(next: { icon?: string | null; cover?: SpaceColor | null }) {
+    setPicking(null);
+    if (next.icon !== undefined) setIcon(next.icon);
+    if (next.cover !== undefined) setCover(next.cover);
+    setError(null);
+    startTransition(async () => {
+      const res = await setNoteLook(note.id, next);
+      if (!res.ok) {
+        setIcon(note.icon);
+        setCover(note.cover);
+        return setError(t('common.error'));
+      }
+      router.refresh();
+    });
+  }
+
   /** Gone for good, after being asked once; nothing typed is saved onto it. */
   function remove() {
     if (!window.confirm(t('note.deleteConfirm'))) return;
@@ -188,6 +228,8 @@ function Editor({ note, viewerId }: { note: QuickNote; viewerId: string }) {
         </span>
       </div>
 
+      <Cover cover={cover} icon={icon} onIcon={() => setPicking('icon')} />
+
       <AutoTextarea
         singleLine
         value={title}
@@ -209,7 +251,58 @@ function Editor({ note, viewerId }: { note: QuickNote; viewerId: string }) {
         <Meta note={note} />
       </div>
 
-      <div className="-ml-1.5 mt-2 flex flex-wrap gap-x-1 border-b border-border pb-2">
+      <div className="relative -ml-1.5 mt-2 flex flex-wrap gap-x-1 border-b border-border pb-2">
+        <button className={action} onClick={() => setPicking(picking === 'icon' ? null : 'icon')} aria-expanded={picking === 'icon'}>
+          <Smile className="h-3.5 w-3.5 text-amber-500" aria-hidden />
+          {t('space.icon')}
+        </button>
+        <button className={action} onClick={() => setPicking(picking === 'cover' ? null : 'cover')} aria-expanded={picking === 'cover'}>
+          <Palette className="h-3.5 w-3.5 text-pink-500" aria-hidden />
+          {t('space.cover')}
+        </button>
+        {picking === 'icon' && (
+          <Popover onClose={() => setPicking(null)} className="w-[17.5rem] max-w-[calc(100vw-2rem)]">
+            <div className="grid grid-cols-8 gap-0.5">
+              {NOTE_ICONS.map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => look({ icon: emoji })}
+                  aria-pressed={icon === emoji}
+                  className={cn('flex h-8 w-8 items-center justify-center rounded-md text-[19px] leading-none hover:bg-surface-2', icon === emoji && 'bg-accent/15')}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            {icon && (
+              <button className={cn(action, 'mt-1')} onClick={() => look({ icon: null })}>
+                <X className="h-3.5 w-3.5" aria-hidden />
+                {t('space.noIcon')}
+              </button>
+            )}
+          </Popover>
+        )}
+        {picking === 'cover' && (
+          <Popover onClose={() => setPicking(null)}>
+            <div className="flex gap-1.5">
+              {SPACE_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => look({ cover: c })}
+                  aria-pressed={cover === c}
+                  aria-label={c}
+                  className={cn('h-6 w-6 rounded-full transition-transform hover:scale-110', SWATCH[c], cover === c && 'ring-2 ring-fg ring-offset-2 ring-offset-surface')}
+                />
+              ))}
+            </div>
+            {cover && (
+              <button className={cn(action, 'mt-1.5')} onClick={() => look({ cover: null })}>
+                <X className="h-3.5 w-3.5" aria-hidden />
+                {t('space.noCover')}
+              </button>
+            )}
+          </Popover>
+        )}
         <button className={action} disabled={pending} onClick={() => run(() => setNotePinned(note.id, !note.pinned))}>
           {note.pinned ? <PinOff className="h-3.5 w-3.5" aria-hidden /> : <Pin className="h-3.5 w-3.5" aria-hidden />}
           {note.pinned ? t('note.unpin') : t('note.pin')}
@@ -418,6 +511,7 @@ function Reader({ note }: { note: QuickNote }) {
   return (
     <article>
       <SpaceBack />
+      <Cover cover={note.cover} icon={note.icon} />
       <h1 className={cn('break-words text-[28px] font-bold leading-tight tracking-tight', !note.title.trim() && 'text-subtle')}>
         {note.title.trim() || t('space.untitled')}
       </h1>

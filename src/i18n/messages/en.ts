@@ -3498,6 +3498,13 @@ export const en = {
     today: 'Today',
     yesterday: 'Yesterday',
     earlier: 'Earlier',
+    icon: 'Icon',
+    cover: 'Colour',
+    noIcon: 'Remove icon',
+    noCover: 'No colour',
+    myColor: 'My colour',
+    defaultColor: 'The app\'s own',
+    allDone: 'Everything for today is done!',
   },
   ptopic: {
     topic: 'Topic',

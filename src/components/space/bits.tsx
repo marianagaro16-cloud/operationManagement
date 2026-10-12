@@ -9,12 +9,15 @@ import { cn } from '@/lib/utils';
 /* What the screens of "Mi espacio" share: the page title, a fold, text written in place. */
 
 /** The page's title — large and plain, with the way back on a phone. */
-export function SpaceTitle({ title, action, children }: { title: string; action?: ReactNode; children?: ReactNode }) {
+export function SpaceTitle({ title, icon, action, children }: { title: string; icon?: ReactNode; action?: ReactNode; children?: ReactNode }) {
   return (
     <div className="mb-4">
       <SpaceBack />
       <div className="flex items-start justify-between gap-3">
-        <h1 className="min-w-0 break-words text-[26px] font-bold leading-tight tracking-tight">{title}</h1>
+        <h1 className="flex min-w-0 items-center gap-2.5 break-words text-[26px] font-bold leading-tight tracking-tight">
+          {icon}
+          {title}
+        </h1>
         {action}
       </div>
       {children}
@@ -47,7 +50,7 @@ export function Fold({
   onToggle: () => void;
   label: ReactNode;
   count?: number;
-  tone?: 'late';
+  tone?: 'late' | 'accent';
   action?: ReactNode;
   children: ReactNode;
 }) {
@@ -60,15 +63,37 @@ export function Fold({
           className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 py-1 text-left text-[13px] font-semibold text-muted transition-colors hover:bg-surface-2/60 hover:text-fg"
         >
           <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 transition-transform', !open && '-rotate-90')} aria-hidden />
-          <span className="min-w-0 truncate">{label}</span>
+          <span className={cn('min-w-0 truncate', tone === 'late' ? 'text-late' : tone === 'accent' && 'text-accent')}>{label}</span>
           {count !== undefined && (
-            <span className={cn('text-[12px] font-medium tabular', tone === 'late' ? 'text-late' : 'text-subtle')}>{count}</span>
+            <span className={cn('text-[12px] font-medium tabular', tone === 'late' ? 'text-late' : tone === 'accent' ? 'text-accent' : 'text-subtle')}>{count}</span>
           )}
         </button>
         {action}
       </div>
       {open && <div className="mt-0.5">{children}</div>}
     </section>
+  );
+}
+
+/** A small pop-up under whatever opened it; a click outside or Escape closes it. */
+export function Popover({ onClose, className, children }: { onClose: () => void; className?: string; children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const outside = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) onClose(); };
+    const escape = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    // After this click, so the one that opened it does not close it.
+    const id = window.setTimeout(() => document.addEventListener('click', outside), 0);
+    document.addEventListener('keydown', escape);
+    return () => {
+      window.clearTimeout(id);
+      document.removeEventListener('click', outside);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [onClose]);
+  return (
+    <div ref={box} className={cn('absolute left-0 top-full z-20 mt-1 rounded-xl border border-border bg-surface p-2 shadow-pop animate-fade-in', className)}>
+      {children}
+    </div>
   );
 }
 
