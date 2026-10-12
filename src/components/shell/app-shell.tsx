@@ -264,7 +264,7 @@ export function AppShell({
     href.startsWith('/calendar?') ? pathname === '/calendar' && href.endsWith(`team=${searchParams.get('team')}`) :
     TABS[href] ? TABS[href].some((tab) => under(tab.href)) : SECTIONS.includes(href) ? pathname.startsWith(href) : pathname === href;
   // The tab row shows on a tab's own screen (and reminders' task list), not on a detail page.
-  const tabs = Object.values(TABS).find((row) => row.length > 1 && row.some((tab) => pathname === tab.href || (tab.href === '/reminders' && pathname === '/reminders/tasks')));
+  const tabs = Object.values(TABS).find((row) => row.length > 1 && row.some((tab) => pathname === tab.href));
   const currentTab = Object.values(TABS).flat().find((tab) => under(tab.href));
 
   /** Groups folded in the sidebar, remembered per browser. */

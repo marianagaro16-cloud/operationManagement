@@ -96,7 +96,7 @@ export function SpaceTasks({
 
   const rows = (list: PersonalTask[], showTopic: boolean) =>
     list.map((task) => (
-      <Row key={task.id} task={task} group={phase(task)} today={today} topics={showTopic ? topics : undefined} onDetails={() => setEditing(task)} />
+      <TaskLine key={task.id} task={task} group={phase(task)} today={today} topics={showTopic ? topics : undefined} onDetails={() => setEditing(task)} />
     ));
 
   const known = new Set(topics.map((tp) => tp.id));
@@ -228,12 +228,13 @@ function useDueLabel() {
 /** What only shows on a wide screen when the row is pointed at; always there on a phone. */
 const quiet = 'sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 sm:focus-visible:opacity-100';
 
-function Row({
+export function TaskLine({
   task,
   group,
   today,
   topics,
   onDetails,
+  compact = false,
 }: {
   task: PersonalTask;
   group: Group;
@@ -241,6 +242,8 @@ function Row({
   /** Shows the task's topic on the line (the date view). */
   topics?: PersonalTopic[];
   onDetails: () => void;
+  /** In a card on Inicio: the status only when it is in progress; the rest is in the details. */
+  compact?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -364,7 +367,7 @@ function Row({
           {error && <div className="mt-1"><ErrorState message={error} /></div>}
         </div>
 
-        <div className={cn(status !== 'in_progress' && 'hidden sm:block', status !== 'in_progress' && quiet)}>
+        <div className={cn(status !== 'in_progress' && (compact ? 'hidden' : 'hidden sm:block'), status !== 'in_progress' && quiet)}>
           <TaskStatusChip status={done ? 'completed' : status} onChange={changeStatus} disabled={done} />
         </div>
 
@@ -404,7 +407,7 @@ function Row({
 }
 
 /** The line a new task is written on: type, Enter, and the next one can follow. */
-function NewTask({ date, filing }: { date: string | null; filing?: Filing }) {
+export function NewTask({ date, filing }: { date: string | null; filing?: Filing }) {
   const { t } = useI18n();
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);

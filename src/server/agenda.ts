@@ -207,7 +207,7 @@ export async function getAgenda(personId: string, from: string, to: string, own:
     const done = p.status === 'completed';
     items.push({
       key: `personal-${p.id}`, kind: 'personal', id: p.id, date: p.due_date, start: p.due_time?.slice(0, 5) ?? null, end: null,
-      title: p.title, detail: null, href: '/reminders/tasks', done, late: !done && p.due_date < today, action: done ? null : 'complete_personal',
+      title: p.title, detail: null, href: '/space/tasks', done, late: !done && p.due_date < today, action: done ? null : 'complete_personal',
     });
   }
 

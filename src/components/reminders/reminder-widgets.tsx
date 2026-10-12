@@ -2,17 +2,18 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Bell, ChevronRight, ListTodo, Sparkles } from 'lucide-react';
+import { Bell, ListTodo } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { BUSINESS_TZ } from '@/lib/datetime';
-import { Card, Progress } from '@/components/ui/primitives';
+import { Card } from '@/components/ui/primitives';
 import { isOnDay, personalTaskPhase } from '@/domain/reminders/schedule';
 import type { PersonalTask, Reminder } from '@/types/reminders';
 import { QuickReminderButton } from './reminder-actions';
 import { useFormatMoment } from './reminder-bits';
-import { PersonalTaskDialog, QuickAdd, TaskRow } from './personal-tasks';
+import { PersonalTaskDialog } from './personal-tasks';
+import { NewTask, TaskLine } from '@/components/space/task-list';
 
 /** Rows the dashboard card shows before it hands over to the full page. */
 const CARD_ROWS = 5;
@@ -96,9 +97,10 @@ export function ReminderWidgets({
 }
 
 /**
- * The full page's checklist, in a card: tick what is due now, add a line for
- * today, and see today's progress. Only what is overdue or due today is
- * listed — anything later waits on the full page, which the header opens.
+ * Today's personal tasks on Inicio, as the same plain lines as in Mi espacio:
+ * tick what is due, change it on the line, write a new one at the end. Only
+ * what is late or due today is listed — the rest is in Mi espacio, which the
+ * title opens.
  */
 function PersonalTasksCard({
   open,
@@ -111,7 +113,6 @@ function PersonalTasksCard({
 }) {
   const { t } = useI18n();
   const [editing, setEditing] = useState<PersonalTask | null>(null);
-  const [creating, setCreating] = useState<string | null>(null);
 
   const today = DateTime.fromISO(nowIso).setZone(BUSINESS_TZ).toISODate()!;
 
@@ -124,72 +125,29 @@ function PersonalTasksCard({
   const hidden = due.length - CARD_ROWS;
 
   return (
-    <Card className="flex flex-col overflow-hidden">
-      <div className="px-3.5 pt-3">
-        <div className="flex items-center justify-between gap-2">
-          <Link href="/reminders/tasks" className="flex min-w-0 items-center gap-1.5 text-[13.5px] font-semibold hover:underline">
-            <ListTodo className="h-4 w-4 shrink-0 text-muted" aria-hidden />
-            <span className="truncate">{t('ptask.widgetTitle')}</span>
-            {due.length > 0 && (
-              <span className="shrink-0 rounded-full bg-accent/15 px-1.5 text-[11px] font-medium tabular text-accent">
-                {t('ptask.widgetDue', { count: due.length })}
-              </span>
-            )}
-          </Link>
-          <Link
-            href="/reminders/tasks"
-            aria-label={t('ptask.viewAll')}
-            className="-mr-1.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-subtle transition-colors hover:bg-surface-2 hover:text-fg"
-          >
-            <ChevronRight className="h-4 w-4" aria-hidden />
-          </Link>
-        </div>
+    <Card className="px-2.5 py-3">
+      <Link href="/space/tasks" className="mb-1 flex items-center gap-1.5 px-1 text-[13.5px] font-semibold hover:underline">
+        <ListTodo className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+        <span className="min-w-0 truncate">{t('ptask.widgetTitle')}</span>
+        <span className="ml-auto shrink-0 text-[12px] font-normal tabular text-subtle">
+          {due.length > 0 ? t('ptask.widgetDue', { count: due.length }) : doneToday > 0 ? t('ptask.heroDone', { count: doneToday }) : ''}
+        </span>
+      </Link>
 
-        {due.length + doneToday > 0 && (
-          <div className="mt-2 flex items-center gap-2.5">
-            <div className="flex-1">
-              <Progress value={doneToday} total={doneToday + due.length} />
-            </div>
-            <span className="shrink-0 text-[11.5px] tabular text-muted">
-              {t('ptask.heroDone', { count: doneToday })}
-            </span>
-          </div>
-        )}
-
-        <div className="my-2.5">
-          <QuickAdd compact today={today} onDetails={(title) => setCreating(title)} />
-        </div>
-      </div>
-
-      {due.length === 0 ? (
-        <p className="flex items-center gap-2 border-t border-border px-3.5 py-3 text-[12.5px] text-muted">
-          {doneToday > 0 && <Sparkles className="h-4 w-4 text-done" aria-hidden />}
-          {doneToday > 0 ? t('ptask.heroAllDone') : t('ptask.widgetNothing')}
-        </p>
-      ) : (
-        <ul className="divide-y divide-border border-t border-border">
-          {due.slice(0, CARD_ROWS).map(({ task, phase }) => (
-            <TaskRow key={task.id} compact task={task} group={phase} today={today} onEdit={() => setEditing(task)} />
-          ))}
-        </ul>
-      )}
+      <ul>
+        {due.slice(0, CARD_ROWS).map(({ task, phase }) => (
+          <TaskLine key={task.id} compact task={task} group={phase} today={today} onDetails={() => setEditing(task)} />
+        ))}
+      </ul>
+      <NewTask date={today} />
 
       {hidden > 0 && (
-        <Link
-          href="/reminders/tasks"
-          className="border-t border-border px-3.5 py-2 text-[12.5px] font-medium text-muted transition-colors hover:bg-surface-2/60 hover:text-accent"
-        >
+        <Link href="/space/tasks" className="mt-1 block px-1 text-[12.5px] text-muted hover:text-fg hover:underline">
           {t('ptask.widgetMore', { count: hidden })}
         </Link>
       )}
 
-      {(creating !== null || editing) && (
-        <PersonalTaskDialog
-          task={editing}
-          initialTitle={creating ?? ''}
-          onClose={() => { setCreating(null); setEditing(null); }}
-        />
-      )}
+      {editing && <PersonalTaskDialog task={editing} initialTitle="" onClose={() => setEditing(null)} />}
     </Card>
   );
 }

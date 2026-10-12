@@ -150,7 +150,7 @@ export function ReminderDetail({
 
         {reminder.status === 'converted' && reminder.personal_task_id && (
           <Link
-            href="/reminders/tasks"
+            href="/space/tasks"
             className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:underline"
           >
             <ListTodo className="h-4 w-4" aria-hidden />

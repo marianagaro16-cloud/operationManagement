@@ -121,7 +121,7 @@ export function buildNowItems(input: NowInput): NowItem[] {
     { kind: 'overdueActivities', level: 'late', count: input.overdueActivities, href: '#overdue' },
     { kind: 'overdueCounts', level: 'late', count: input.overdueCounts, href: '/inventory' },
     { kind: 'overdueReminders', level: 'late', count: input.overdueReminders, href: '/reminders' },
-    { kind: 'overduePersonalTasks', level: 'late', count: input.overduePersonalTasks, href: '/reminders/tasks' },
+    { kind: 'overduePersonalTasks', level: 'late', count: input.overduePersonalTasks, href: '/space/tasks' },
     { kind: 'planLate', level: 'late', count: input.planLate, href: '/sales?tab=planning' },
     { kind: 'evaluationsDue', level: 'today', count: input.evaluationsDue, href: '/evaluations' },
     { kind: 'hrFollowUps', level: input.hrFollowUps.late ? 'late' : 'today', count: input.hrFollowUps.count, href: '/hr?followups=1' },

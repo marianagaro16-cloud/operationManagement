@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { ListTodo, Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Search } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { EmptyState, Input, Select } from '@/components/ui/primitives';
@@ -67,7 +67,6 @@ export function ReminderList({
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const pathname = usePathname();
   const [q, setQ] = useState(filters.q ?? '');
   const first = useRef(true);
 
@@ -127,18 +126,6 @@ export function ReminderList({
               </li>
             );
           })}
-          <li>
-            <Link
-              href="/reminders/tasks"
-              className={cn(
-                'inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium transition-colors',
-                pathname === '/reminders/tasks' ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
-              )}
-            >
-              <ListTodo className="h-3.5 w-3.5" aria-hidden />
-              {t('reminder.personalTasksTab')}
-            </Link>
-          </li>
         </ul>
       </nav>
 
