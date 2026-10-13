@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { blockHours, changedCells, cleaningTurns, weekDates, weekStartOf, weekHours, type Block, type KindRule } from '@/domain/schedule/schedule';
+import { blockHours, changedCells, cleaningTurns, dayHours, fryingTurn, weekDates, weekStartOf, weekHours, type Block, type KindRule } from '@/domain/schedule/schedule';
 import type { ActionResult } from './actions';
 import type { ScheduleSnapshot, ScheduleWeek } from '@/types/schedule';
 
@@ -15,7 +15,7 @@ import type { ScheduleSnapshot, ScheduleWeek } from '@/types/schedule';
 const DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const TIME = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const uuid = z.string().uuid();
-const WEEK_COLUMNS = 'id, week_start, is_pattern, version, published_at, day_products, day_notes, holidays, cleaning_bathroom, cleaning_kitchen';
+const WEEK_COLUMNS = 'id, week_start, is_pattern, version, published_at, day_products, day_notes, holidays, cleaning_bathroom, cleaning_kitchen, frying_person, frying_day';
 const BLOCK_COLUMNS = 'person_id, day, slot, start_time, end_time, kind_id';
 
 function fail(error: { message: string }): { ok: false; error: string } {
@@ -88,7 +88,11 @@ export async function createScheduleWeek(input: { date: string; source: 'empty' 
   }
   // Baños and Cocina, by whose turn it is: there to be changed.
   const turns = await cleaningFor((week as { id: string }).id, weekStart, false);
-  if (turns.cleaning_bathroom || turns.cleaning_kitchen) await supabase.from('schedule_weeks').update(turns).eq('id', (week as { id: string }).id);
+  // And Monday's Fritura, the same way.
+  const frying_person = await fryingFor((week as { id: string }).id, weekStart, 1);
+  if (turns.cleaning_bathroom || turns.cleaning_kitchen || frying_person) {
+    await supabase.from('schedule_weeks').update({ ...turns, frying_person }).eq('id', (week as { id: string }).id);
+  }
   revalidate();
   return { ok: true, data: { week_start: weekStart } };
 }
@@ -122,6 +126,38 @@ export async function suggestScheduleCleaning(weekId: string): Promise<ActionRes
   if (!week?.week_start) return { ok: false, error: 'not_found' };
   const turns = await cleaningFor(weekId, week.week_start, true);
   const { data, error } = await supabase.from('schedule_weeks').update(turns).eq('id', weekId).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidate();
+  return done();
+}
+
+/**
+ * Whose turn the Fritura is for a week, from the weeks before it. Whoever has
+ * no working hours on its day is passed over; a week with nothing in it yet
+ * tells nothing.
+ */
+async function fryingFor(weekId: string, weekStart: string, day: number): Promise<string | null> {
+  const supabase = createClient();
+  const [{ data: people }, { data: history }, { data: kinds }, blocks] = await Promise.all([
+    supabase.from('schedule_people').select('id, sort_order').eq('is_active', true).eq('in_frying_rotation', true),
+    supabase.from('schedule_weeks').select('week_start, frying_person').eq('is_pattern', false).lt('week_start', weekStart),
+    supabase.from('schedule_kinds').select('id, counts_hours'),
+    blocksOf(weekId),
+  ]);
+  const members = (people ?? []) as { id: string; sort_order: number }[];
+  const rules = new Map(((kinds ?? []) as KindRule[]).map((k) => [k.id, k]));
+  const away = new Set(blocks.length > 0 ? members.filter((m) => dayHours(blocks, m.id, day, rules) === 0).map((m) => m.id) : []);
+  return fryingTurn(members, (history ?? []) as { week_start: string; frying_person: string | null }[], away);
+}
+
+/** Set who makes the Fritura again by whose turn it is, passing over whoever does not work that day. */
+export async function suggestScheduleFrying(weekId: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { data: week } = await supabase.from('schedule_weeks').select('id, week_start, frying_day').eq('id', weekId).eq('is_pattern', false).maybeSingle();
+  if (!week?.week_start) return { ok: false, error: 'not_found' };
+  const frying_person = await fryingFor(weekId, week.week_start, week.frying_day);
+  const { data, error } = await supabase.from('schedule_weeks').update({ frying_person }).eq('id', weekId).select('id');
   if (error) return fail(error);
   if (!data?.length) return { ok: false, error: 'not_authorized' };
   revalidate();
@@ -196,9 +232,11 @@ const headerSchema = z.object({
   holidays: z.array(z.number().int().min(0).max(6)).max(7).optional(),
   cleaning_bathroom: uuid.nullable().optional(),
   cleaning_kitchen: uuid.nullable().optional(),
+  frying_person: uuid.nullable().optional(),
+  frying_day: z.number().int().min(0).max(6).optional(),
 });
 
-/** What is produced, the notes and holidays of the days, and the weekly cleaning. */
+/** What is produced, the notes and holidays of the days, the weekly cleaning and the Fritura. */
 export async function saveScheduleHeader(weekId: string, input: z.input<typeof headerSchema>): Promise<ActionResult> {
   const parsed = headerSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'invalid_week' };
@@ -214,13 +252,16 @@ export async function saveScheduleHeader(weekId: string, input: z.input<typeof h
   return done();
 }
 
-const headerText = (s: Pick<ScheduleSnapshot, 'day_products' | 'day_notes' | 'holidays' | 'cleaning_bathroom' | 'cleaning_kitchen'>) =>
+const headerText = (s: Omit<ScheduleSnapshot, 'blocks'>) =>
   JSON.stringify([
     Object.entries(s.day_products ?? {}).sort(),
     Object.entries(s.day_notes ?? {}).sort(),
     [...(s.holidays ?? [])].sort(),
     s.cleaning_bathroom,
     s.cleaning_kitchen,
+    // A version from before the Fritura had a field holds neither.
+    s.frying_person ?? null,
+    s.frying_person ? s.frying_day ?? 1 : null,
   ]);
 
 /**
@@ -245,6 +286,8 @@ export async function publishScheduleWeek(weekId: string): Promise<ActionResult<
     holidays: week.holidays ?? [],
     cleaning_bathroom: week.cleaning_bathroom,
     cleaning_kitchen: week.cleaning_kitchen,
+    frying_person: week.frying_person,
+    frying_day: week.frying_day,
   };
   if (week.version === 0 && blocks.length === 0) return { ok: false, error: 'week_empty' };
   if (week.version > 0) {
@@ -367,6 +410,7 @@ const personSchema = z
     in_sunday_rotation: z.boolean(),
     sunday_order: z.number().int(),
     in_cleaning_rotation: z.boolean(),
+    in_frying_rotation: z.boolean(),
     is_active: z.boolean(),
   })
   .refine((p) => p.min_hours == null || p.max_hours == null || p.max_hours >= p.min_hours, { message: 'hours_order' });

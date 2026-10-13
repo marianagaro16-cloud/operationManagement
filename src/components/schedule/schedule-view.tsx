@@ -36,6 +36,7 @@ import {
   saveScheduleCell,
   saveScheduleHeader,
   suggestScheduleCleaning,
+  suggestScheduleFrying,
 } from '@/server/schedule-actions';
 import type { ScheduleKind, SchedulePerson, ScheduleProduct, ScheduleWeekData, ScheduleWeekHeader } from '@/types/schedule';
 import { CLOSES, OPENS, ScheduleSheet, weekTitle } from './schedule-sheet';
@@ -98,9 +99,22 @@ const headerOf = (h: ScheduleWeekHeader): ScheduleWeekHeader => ({
   holidays: h.holidays ?? [],
   cleaning_bathroom: h.cleaning_bathroom ?? null,
   cleaning_kitchen: h.cleaning_kitchen ?? null,
+  // A version from before the Fritura had a field holds neither.
+  frying_person: h.frying_person ?? null,
+  frying_day: h.frying_day ?? 1,
 });
+const EMPTY_HEADER: ScheduleWeekHeader = { day_products: {}, day_notes: {}, holidays: [], cleaning_bathroom: null, cleaning_kitchen: null, frying_person: null, frying_day: 1 };
 const headerText = (h: ScheduleWeekHeader) =>
-  JSON.stringify([Object.entries(h.day_products).sort(), Object.entries(h.day_notes).sort(), [...h.holidays].sort(), h.cleaning_bathroom, h.cleaning_kitchen]);
+  JSON.stringify([
+    Object.entries(h.day_products).sort(),
+    Object.entries(h.day_notes).sort(),
+    [...h.holidays].sort(),
+    h.cleaning_bathroom,
+    h.cleaning_kitchen,
+    h.frying_person,
+    // The day only says something with somebody on it.
+    h.frying_person ? h.frying_day : null,
+  ]);
 
 /**
  * One week of the schedule — or the usual week — as the sheet, with what
@@ -167,7 +181,7 @@ export function ScheduleView({
   // One save at a time: each replaces a person's whole day, and two at once would cross.
   const saving = useRef<Promise<unknown>>(Promise.resolve());
   const blocks = useMemo(() => withTyped(saved, typed, rules), [saved, typed, rules]);
-  const header = headerOf(week ?? { day_products: {}, day_notes: {}, holidays: [], cleaning_bathroom: null, cleaning_kitchen: null });
+  const header = headerOf(week ?? EMPTY_HEADER);
   const dates = weekStart ? weekDates(weekStart) : null;
 
   // Rows: whoever is active, and whoever has hours in this week anyway.
@@ -466,6 +480,41 @@ export function ScheduleView({
                     </Field>
                   ))}
                 </div>
+              </Card>
+            )}
+
+            {/* ---- the Fritura: who, and which day ---- */}
+            {!pattern && canEdit && (
+              <Card className="p-3.5">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[13px] font-semibold">{t('schedule.frying')}</p>
+                  <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(() => suggestScheduleFrying(week.id))}>
+                    {t('schedule.suggestCleaning')}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={t('schedule.fryingWho')} htmlFor="frying_person">
+                    <Select id="frying_person" value={header.frying_person ?? ''} disabled={pending} onChange={(e) => run(() => saveScheduleHeader(week.id, { frying_person: e.target.value || null }))}>
+                      <option value="">—</option>
+                      {rows.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label={t('schedule.fryingDay')} htmlFor="frying_day">
+                    <Select id="frying_day" value={String(header.frying_day)} disabled={pending} onChange={(e) => run(() => saveScheduleHeader(week.id, { frying_day: Number(e.target.value) }))}>
+                      {/* Monday first: it is the usual day. */}
+                      {[1, 2, 3, 4, 5, 6, 0].map((d) => (
+                        <option key={d} value={d}>
+                          {dayLabel(d)}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                </div>
+                <p className="mt-2 text-[12px] text-muted">{t('schedule.fryingHint')}</p>
               </Card>
             )}
           </div>

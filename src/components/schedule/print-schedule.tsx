@@ -67,6 +67,8 @@ export function PrintSchedule({
             holidays: header.holidays ?? [],
             cleaning_bathroom: header.cleaning_bathroom ?? null,
             cleaning_kitchen: header.cleaning_kitchen ?? null,
+            frying_person: header.frying_person ?? null,
+            frying_day: header.frying_day ?? 1,
           }}
           changed={new Set(changed)}
         />

@@ -40,6 +40,8 @@ export interface SchedulePerson {
   sunday_order: number;
   /** Takes a turn at the weekly cleaning. */
   in_cleaning_rotation: boolean;
+  /** Takes a turn at the Fritura. */
+  in_frying_rotation: boolean;
   is_active: boolean;
 }
 
@@ -52,6 +54,9 @@ export interface ScheduleWeekHeader {
   holidays: number[];
   cleaning_bathroom: string | null;
   cleaning_kitchen: string | null;
+  /** Who makes the Fritura, and on which day (0–6; Monday unless moved). Nobody = none that week. */
+  frying_person: string | null;
+  frying_day: number;
 }
 
 export interface ScheduleWeek extends ScheduleWeekHeader {

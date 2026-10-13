@@ -16,7 +16,7 @@ import type {
  * Admin, Owners and the Production manager, and to nobody else.
  */
 
-const WEEK_COLUMNS = 'id, week_start, is_pattern, version, published_at, day_products, day_notes, holidays, cleaning_bathroom, cleaning_kitchen';
+const WEEK_COLUMNS = 'id, week_start, is_pattern, version, published_at, day_products, day_notes, holidays, cleaning_bathroom, cleaning_kitchen, frying_person, frying_day';
 const BLOCK_COLUMNS = 'person_id, day, slot, start_time, end_time, kind_id';
 
 const hm = (time: string | null) => (time ? time.slice(0, 5) : null);
@@ -52,7 +52,7 @@ export async function getSchedulePeople(includeInactive = false): Promise<Schedu
   const supabase = createClient();
   let q = supabase
     .from('schedule_people')
-    .select('id, worker_id, external_name, label, sort_order, percent, min_hours, max_hours, is_lead, in_sunday_rotation, sunday_order, in_cleaning_rotation, is_active, worker:hr_workers ( name, profile_id )')
+    .select('id, worker_id, external_name, label, sort_order, percent, min_hours, max_hours, is_lead, in_sunday_rotation, sunday_order, in_cleaning_rotation, in_frying_rotation, is_active, worker:hr_workers ( name, profile_id )')
     .order('sort_order')
     .order('created_at');
   if (!includeInactive) q = q.eq('is_active', true);

@@ -139,6 +139,11 @@ export function ScheduleSheet({
   const personName = new Map(people.map((p) => [p.id, p.name]));
   const days = [0, 1, 2, 3, 4, 5, 6];
   const total = people.reduce((s, p) => s + weekHours(blocks, p.id, rules), 0);
+  /** A day's line of "Datos importantes": who makes the Fritura that day, then what was written. */
+  const noteOf = (day: number): string => {
+    const frying = header.frying_person && header.frying_day === day ? `Fritura: ${personName.get(header.frying_person) ?? ''}` : '';
+    return [frying, header.day_notes[String(day)]].filter(Boolean).join(' · ');
+  };
 
   const th: CSSProperties = { border: LINE, padding: '2px 3px', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' };
   const cell: CSSProperties = { borderTop: THIN, borderBottom: THIN, borderLeft: THIN, borderRight: THIN, padding: '2px 3px', textAlign: 'center', height: 19, minWidth: 40 };
@@ -307,11 +312,11 @@ export function ScheduleSheet({
                       Datos importantes de la semana
                     </td>
                   )}
-                  <NoteCell label={NOTE_DAYS[d]} text={header.day_notes[String(d)]} />
-                  <NoteCell label={NOTE_DAYS[d + 3]} text={header.day_notes[String(d + 3)]} />
+                  <NoteCell label={NOTE_DAYS[d]} text={noteOf(d)} />
+                  <NoteCell label={NOTE_DAYS[d + 3]} text={noteOf(d + 3)} />
                   {i === 0 && (
                     <td rowSpan={3} style={{ border: LINE, padding: '2px 4px', width: '18%', verticalAlign: 'top' }}>
-                      <span style={{ fontSize: 9.5 }}>{NOTE_DAYS[0]}:</span> {header.day_notes['0'] ?? ''}
+                      <span style={{ fontSize: 9.5 }}>{NOTE_DAYS[0]}:</span> {noteOf(0)}
                     </td>
                   )}
                 </tr>

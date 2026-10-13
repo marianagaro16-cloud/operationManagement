@@ -5,6 +5,7 @@ import {
   contractHours,
   dayHours,
   formatHours,
+  fryingTurn,
   isChanged,
   nextSundayTurn,
   openersAndClosers,
@@ -248,6 +249,36 @@ describe('the weekly cleaning', () => {
 
   it('never gives both to one person', () => {
     expect(cleaningTurns([members[0]], [])).toEqual({ cleaning_bathroom: 'rafael', cleaning_kitchen: null });
+  });
+});
+
+describe('the Fritura', () => {
+  const members = ['rafael', 'marco', 'bruce', 'gabriel', 'jorge'].map((id, i) => ({ id, sort_order: (i + 2) * 10 }));
+  // As it was written by hand: 04.10 Gabriel, 11.10 Jorge, 18.10 Bruce.
+  const history = [
+    { week_start: '2026-10-04', frying_person: 'gabriel' },
+    { week_start: '2026-10-11', frying_person: 'jorge' },
+    { week_start: '2026-10-18', frying_person: 'bruce' },
+  ];
+
+  it('goes to whoever did it longest ago: first those who never have, in the order of the rows', () => {
+    expect(fryingTurn(members, history)).toBe('rafael');
+    expect(fryingTurn(members, [...history, { week_start: '2026-10-25', frying_person: 'rafael' }])).toBe('marco');
+  });
+
+  it('comes round again to the first one once everybody has', () => {
+    const all = [...history, { week_start: '2026-10-25', frying_person: 'rafael' }, { week_start: '2026-11-01', frying_person: 'marco' }];
+    expect(fryingTurn(members, all)).toBe('gabriel');
+  });
+
+  it('passes over whoever does not work that day, who stays first in line', () => {
+    expect(fryingTurn(members, history, new Set(['rafael']))).toBe('marco');
+    // Marco did it in Rafael's place: the week after it is Rafael's.
+    expect(fryingTurn(members, [...history, { week_start: '2026-10-25', frying_person: 'marco' }])).toBe('rafael');
+  });
+
+  it('does not count a week without Fritura', () => {
+    expect(fryingTurn(members, [...history, { week_start: '2026-10-25', frying_person: null }])).toBe('rafael');
   });
 });
 

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -8025,8 +8025,10 @@ export type Database = {
         Row: {
           archived_at: string | null
           body: string
+          cover: string | null
           created_at: string
           customer_id: string | null
+          icon: string | null
           id: string
           owner_id: string
           pinned: boolean
@@ -8036,8 +8038,10 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           body?: string
+          cover?: string | null
           created_at?: string
           customer_id?: string | null
+          icon?: string | null
           id?: string
           owner_id?: string
           pinned?: boolean
@@ -8047,8 +8051,10 @@ export type Database = {
         Update: {
           archived_at?: string | null
           body?: string
+          cover?: string | null
           created_at?: string
           customer_id?: string | null
+          icon?: string | null
           id?: string
           owner_id?: string
           pinned?: boolean
@@ -9630,6 +9636,7 @@ export type Database = {
           external_name: string | null
           id: string
           in_cleaning_rotation: boolean
+          in_frying_rotation: boolean
           in_sunday_rotation: boolean
           is_active: boolean
           is_lead: boolean
@@ -9647,6 +9654,7 @@ export type Database = {
           external_name?: string | null
           id?: string
           in_cleaning_rotation?: boolean
+          in_frying_rotation?: boolean
           in_sunday_rotation?: boolean
           is_active?: boolean
           is_lead?: boolean
@@ -9664,6 +9672,7 @@ export type Database = {
           external_name?: string | null
           id?: string
           in_cleaning_rotation?: boolean
+          in_frying_rotation?: boolean
           in_sunday_rotation?: boolean
           is_active?: boolean
           is_lead?: boolean
@@ -9811,6 +9820,8 @@ export type Database = {
           created_by: string | null
           day_notes: Json
           day_products: Json
+          frying_day: number
+          frying_person: string | null
           holidays: number[]
           id: string
           is_pattern: boolean
@@ -9827,6 +9838,8 @@ export type Database = {
           created_by?: string | null
           day_notes?: Json
           day_products?: Json
+          frying_day?: number
+          frying_person?: string | null
           holidays?: number[]
           id?: string
           is_pattern?: boolean
@@ -9843,6 +9856,8 @@ export type Database = {
           created_by?: string | null
           day_notes?: Json
           day_products?: Json
+          frying_day?: number
+          frying_person?: string | null
           holidays?: number[]
           id?: string
           is_pattern?: boolean
@@ -9872,6 +9887,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_weeks_frying_person_fkey"
+            columns: ["frying_person"]
+            isOneToOne: false
+            referencedRelation: "schedule_people"
             referencedColumns: ["id"]
           },
           {
@@ -9923,6 +9945,32 @@ export type Database = {
             foreignKeyName: "security_audit_log_target_user_id_fkey"
             columns: ["target_user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      space_settings: {
+        Row: {
+          accent: string | null
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          accent?: string | null
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          accent?: string | null
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_settings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },

@@ -353,6 +353,32 @@ export function cleaningTurns(
   return { cleaning_bathroom, cleaning_kitchen: next('cleaning_kitchen', cleaning_bathroom) };
 }
 
+/* ------------------------------- the Fritura ------------------------------- */
+
+/**
+ * Whose turn the Fritura is: whoever did it longest ago — never, first — and
+ * among equals the order of the rows. Whoever does not work that day is
+ * passed over, and so stays first in line for the next one.
+ */
+export function fryingTurn(
+  members: { id: string; sort_order: number }[],
+  /** The weeks before this one. */
+  history: { week_start: string; frying_person: string | null }[],
+  /** Not working the day of the Fritura. */
+  away: ReadonlySet<string> = new Set(),
+): string | null {
+  const last = new Map<string, string>();
+  for (const w of history) {
+    const id = w.frying_person;
+    if (id && (last.get(id) ?? '') < w.week_start) last.set(id, w.week_start);
+  }
+  return (
+    members
+      .filter((m) => !away.has(m.id))
+      .sort((a, b) => (last.get(a.id) ?? '').localeCompare(last.get(b.id) ?? '') || a.sort_order - b.sort_order)[0]?.id ?? null
+  );
+}
+
 /** The Sunday a date's week starts on. Dates are 'YYYY-MM-DD'. */
 export function weekStartOf(date: string): string {
   const d = new Date(`${date}T00:00:00Z`);
