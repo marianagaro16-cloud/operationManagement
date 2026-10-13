@@ -216,32 +216,6 @@ export async function sendToAdmins(payload: PushPayload): Promise<number> {
 }
 
 /**
- * Send to every approved user's devices.
- *
- * Order preparation is shared team work — there is no per-order assignee — so
- * an approaching deadline goes to everyone who can act on it.
- */
-export async function sendToApprovedUsers(payload: PushPayload): Promise<number> {
-  const admin = createAdminClient();
-
-  const { data: approved } = await admin
-    .from('profiles')
-    .select('id')
-    .eq('status', 'approved');
-
-  const ids = (approved ?? []).map((p) => p.id);
-  if (ids.length === 0) return 0;
-  await recordInbox(ids, payload);
-
-  const { data } = await admin
-    .from('push_subscriptions')
-    .select('id, endpoint, p256dh, auth, failure_count')
-    .in('user_id', ids);
-
-  return deliver((data ?? []) as SubscriptionRow[], payload);
-}
-
-/**
  * Send to whoever keeps a worker's file: everyone holding hr.manage, except a
  * Production manager for another team's worker (they see their own team's
  * files only) — and never the worker themself.

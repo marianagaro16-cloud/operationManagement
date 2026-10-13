@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { selectNotifications, type NotifiableOrder } from '@/domain/orders/notifications';
-import { isPushConfigured, sendToApprovedUsers } from '@/server/push';
+import { isPushConfigured, sendToUsers } from '@/server/push';
+import { urgentOrderRecipients } from '@/server/order-notify';
 import { runInventoryNotifications } from '@/server/inventory-notify';
 import { runBlockedReminders } from '@/server/block-notify';
 import { businessToday, addDays } from '@/lib/datetime';
@@ -14,7 +15,8 @@ export const dynamic = 'force-dynamic';
  * Scheduled push notifier.
  *
  * Finds unfinished orders whose delivery deadline is close (or passed) and
- * pushes one notification per escalation to every approved user's devices.
+ * pushes one notification per escalation to whoever prepares the orders
+ * (and whoever covers them that day) — see order-notify.
  *
  * Idempotent: each (order, level) is recorded in order_notifications with a
  * UNIQUE constraint, so running this every 15 minutes — or twice at once —
@@ -109,6 +111,7 @@ export async function GET(request: Request) {
 
     let sent = 0;
     const results: { order: number; level: string; recipients: number }[] = [];
+    const people = pending.length ? await urgentOrderRecipients(today) : [];
 
     for (const n of pending) {
       // Claim the (order, level) BEFORE sending. The unique constraint means
@@ -118,7 +121,7 @@ export async function GET(request: Request) {
         .insert({ order_id: n.orderId, level: n.level, recipients: 0 });
       if (claimError) continue; // already claimed by another run
 
-      const recipients = await sendToApprovedUsers({
+      const recipients = await sendToUsers(people, {
         title: n.title,
         body: n.body,
         // One tag per order, so an escalation replaces the earlier card
@@ -128,10 +131,11 @@ export async function GET(request: Request) {
         level: n.level,
       });
 
-      if (recipients === 0) {
-        // Nobody has notifications enabled yet. Release the claim so this
-        // alert can still fire once someone subscribes, rather than being
-        // silently consumed by a run that reached no one.
+      if (people.length === 0) {
+        // Nobody to tell. Release the claim so this alert can still fire
+        // once somebody is on the list, rather than being silently consumed.
+        // With somebody on it the claim stays even if no device was reached:
+        // the notice is in their inbox, and a retry every run would pile up there.
         await admin
           .from('order_notifications')
           .delete()
