@@ -36,7 +36,12 @@ export function ProductionSummary({ record }: { record: ProductionRecord }) {
         <span className="text-muted">
           {' · '}
           {t(SHORTFALL_LABEL[record.shortfall_reason])}
-          {record.shortfall_note && `: ${record.shortfall_note}`}
+        </span>
+      )}
+      {record.shortfall_note && (
+        <span className="text-muted">
+          {record.shortfall_reason ? ': ' : ' · '}
+          {record.shortfall_note}
         </span>
       )}
     </div>
@@ -201,20 +206,19 @@ export function ProductionDialog({
             </Field>
           )}
           {short && (
-            <>
-              <Field label={t('production.whyFewer')} required htmlFor="prod-reason">
-                <Select id="prod-reason" value={reason ?? ''} onChange={(e) => setReason(e.target.value as typeof reason)}>
-                  <option value="">—</option>
-                  {(Object.keys(SHORTFALL_LABEL) as (keyof typeof SHORTFALL_LABEL)[]).map((k) => (
-                    <option key={k} value={k}>{t(SHORTFALL_LABEL[k])}</option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label={t('production.note')} htmlFor="prod-note">
-                <NoteTextarea id="prod-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} />
-              </Field>
-            </>
+            <Field label={t('production.whyFewer')} required htmlFor="prod-reason">
+              <Select id="prod-reason" value={reason ?? ''} onChange={(e) => setReason(e.target.value as typeof reason)}>
+                <option value="">—</option>
+                {(Object.keys(SHORTFALL_LABEL) as (keyof typeof SHORTFALL_LABEL)[]).map((k) => (
+                  <option key={k} value={k}>{t(SHORTFALL_LABEL[k])}</option>
+                ))}
+              </Select>
+            </Field>
           )}
+          {/* Always there: a note is worth writing when more was made, too. */}
+          <Field label={t('production.note')} htmlFor="prod-note">
+            <NoteTextarea id="prod-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} />
+          </Field>
         </div>
       )}
     </Dialog>

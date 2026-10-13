@@ -75,15 +75,17 @@ export function ProductionOverview({ open, made, today }: { open: OpenProduction
               <tbody className="divide-y divide-border">
                 {made.map((m) => {
                   const short = Number(m.produced_quantity) < Number(m.target_quantity);
+                  const reason = short ? m.shortfall_reason : null;
                   return (
                     <tr key={m.occurrence_id} className="align-top">
                       <td className="whitespace-nowrap px-3 py-2 tabular text-muted">{formatDate(m.due, 'short')}</td>
                       <td className="px-3 py-2">
                         {m.product_name}
-                        {short && m.shortfall_reason && (
-                          <p className="text-[11.5px] text-warn">
-                            {t(SHORTFALL_LABEL[m.shortfall_reason])}
-                            {m.shortfall_note && `: ${m.shortfall_note}`}
+                        {(reason || m.shortfall_note) && (
+                          <p className={cn('text-[11.5px]', reason ? 'text-warn' : 'text-muted')}>
+                            {reason && t(SHORTFALL_LABEL[reason])}
+                            {reason && m.shortfall_note && ': '}
+                            {m.shortfall_note}
                           </p>
                         )}
                       </td>

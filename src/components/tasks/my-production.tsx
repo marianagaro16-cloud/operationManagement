@@ -49,17 +49,23 @@ export function MyProduction({ made, today }: { made: MadeProduction[]; today: s
                   .filter((m) => m.due === day)
                   .map((m) => {
                     const short = Number(m.produced_quantity) < Number(m.target_quantity);
+                    const reason = short ? m.shortfall_reason : null;
                     return (
                       <div key={m.occurrence_id} className="flex items-start gap-3 px-3.5 py-2.5">
                         <div className="min-w-0 flex-1">
                           <p className="text-[13.5px] font-medium">{m.product_name}</p>
                           <p className="text-[12px] text-muted">
                             {m.best_before && t('production.bestBeforeShort', { date: formatDate(m.best_before, 'short') })}
-                            {short && m.shortfall_reason && (
+                            {reason && (
                               <span className="text-warn">
                                 {m.best_before && ' · '}
-                                {t(SHORTFALL_LABEL[m.shortfall_reason])}
-                                {m.shortfall_note && `: ${m.shortfall_note}`}
+                                {t(SHORTFALL_LABEL[reason])}
+                              </span>
+                            )}
+                            {m.shortfall_note && (
+                              <span className={cn(reason && 'text-warn')}>
+                                {reason ? ': ' : m.best_before && ' · '}
+                                {m.shortfall_note}
                               </span>
                             )}
                           </p>
