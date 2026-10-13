@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import type { ActionResult } from './actions';
+import { notifyProductionRecorded, productionRecordedBefore } from './production-notify';
 import type { ProductionRecord } from '@/types/database';
 
 /*
@@ -31,6 +32,7 @@ export async function recordProduction(input: z.input<typeof schema>): Promise<A
   if (!parsed.success) return { ok: false, error: 'invalid_quantity' };
   const v = parsed.data;
   const supabase = createClient();
+  const before = await productionRecordedBefore(v.occurrence_id);
   const { error } = await supabase.rpc('record_production', {
     p_occurrence_id: v.occurrence_id,
     p_produced: v.produced,
@@ -40,6 +42,9 @@ export async function recordProduction(input: z.input<typeof schema>): Promise<A
     p_note: v.note ?? '',
   });
   if (error) return { ok: false, error: KNOWN.find((k) => error.message.includes(k)) ?? error.message };
+  // Whoever enters it in bexio hears it now, and again if it is corrected.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) await notifyProductionRecorded(v.occurrence_id, user.id, before);
   revalidatePath('/dashboard');
   revalidatePath('/agenda');
   revalidatePath('/production');
