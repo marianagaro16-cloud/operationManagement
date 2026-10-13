@@ -49,7 +49,7 @@ export interface CollectionPayment {
   note: string | null;
 }
 
-export type CollectionEventKind = 'call' | 'email' | 'note' | 'promise' | 'payment' | 'stage' | 'agency' | 'invoice' | 'responsible' | 'reminder';
+export type CollectionEventKind = 'call' | 'email' | 'whatsapp' | 'note' | 'promise' | 'payment' | 'stage' | 'agency' | 'invoice' | 'responsible' | 'reminder';
 
 export interface CollectionEvent {
   id: number;

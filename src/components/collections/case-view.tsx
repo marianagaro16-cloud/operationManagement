@@ -3,7 +3,7 @@
 import { useState, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Banknote, BellRing, Building2, CalendarCheck, Mail, MessageSquare, Pencil, Phone, Plus, RotateCcw, Trash2, XCircle } from 'lucide-react';
+import { ArrowLeft, Banknote, BellRing, Building2, CalendarCheck, Mail, MessageCircle, MessageSquare, Pencil, Phone, Plus, RotateCcw, Trash2, XCircle } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -267,7 +267,7 @@ function Section({ title, action, children }: { title: string; action?: ReactNod
   );
 }
 
-const EVENT_ICON = { reminder: BellRing, call: Phone, email: Mail, note: MessageSquare, promise: CalendarCheck, payment: Banknote, stage: RotateCcw, agency: Building2, invoice: Plus, responsible: RotateCcw } as const;
+const EVENT_ICON = { reminder: BellRing, call: Phone, email: Mail, whatsapp: MessageCircle, note: MessageSquare, promise: CalendarCheck, payment: Banknote, stage: RotateCcw, agency: Building2, invoice: Plus, responsible: RotateCcw } as const;
 
 type InvoiceShape = { invoice_number: string; due_date: string | null; amount: number };
 
@@ -367,7 +367,7 @@ function Frame({ title, description, onClose, onSave, pending, ready, error, chi
 function ContactDialog({ caseId, today, onClose }: { caseId: string; today: string; onClose: () => void }) {
   const { t } = useI18n();
   const { error, pending, submit } = useSubmit(onClose);
-  const [kind, setKind] = useState<'call' | 'email' | 'note'>('call');
+  const [kind, setKind] = useState<'call' | 'email' | 'whatsapp' | 'note'>('call');
   const [date, setDate] = useState(today);
   const [body, setBody] = useState('');
   const [next, setNext] = useState('');
@@ -386,6 +386,7 @@ function ContactDialog({ caseId, today, onClose }: { caseId: string; today: stri
           <Select id="contact-kind" value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
             <option value="call">{t('collection.ev_call')}</option>
             <option value="email">{t('collection.ev_email')}</option>
+            <option value="whatsapp">{t('collection.ev_whatsapp')}</option>
             <option value="note">{t('collection.ev_note')}</option>
           </Select>
         </Field>

@@ -149,13 +149,13 @@ async function tellResponsible(profileId: string, caseId: string, title: string)
 }
 
 const contactSchema = z.object({
-  kind: z.enum(['call', 'email', 'note']),
+  kind: z.enum(['call', 'email', 'whatsapp', 'note']),
   happened_on: DATE,
   body: z.string().trim().min(1, { message: 'body_required' }).max(5000),
   next_follow_up: optDate,
 });
 
-/** A call, an email or a note — and when to follow up next. */
+/** A call, an email, a WhatsApp or a note — and when to follow up next. */
 export async function logContact(caseId: string, input: z.input<typeof contactSchema>): Promise<ActionResult> {
   const parsed = contactSchema.safeParse(input);
   if (!parsed.success || !uuid.safeParse(caseId).success) return { ok: false, error: parsed.error?.issues[0]?.message ?? 'invalid_contact' };
