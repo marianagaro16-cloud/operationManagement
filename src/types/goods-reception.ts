@@ -110,7 +110,24 @@ export interface ReceptionListItem extends GoodsReception {
   incident_count: number;
 }
 
+/** What arrived: one product (or description) with quantity and best-before. Mirrors 20270116090000_reception_lines.sql. */
+export interface ReceptionLine {
+  id: string;
+  reception_id: string;
+  product_id: string | null;
+  description: string | null;
+  /** numeric(12,3): arrives from Postgres as a string. */
+  quantity: number | string | null;
+  unit: LineUnit;
+  best_before: string | null;
+  lot_number: string | null;
+  note: string | null;
+  sort_order: number;
+  product?: Pick<Product, 'id' | 'code' | 'name' | 'family' | 'presentation'> | null;
+}
+
 export interface ReceptionDetail extends GoodsReception {
+  lines: ReceptionLine[];
   exceptions: ReceptionException[];
   evidence: ReceptionEvidence[];
   incidents: LinkedIncident[];
@@ -211,4 +228,34 @@ export interface ExpectedDelivery {
   creator?: { name: string | null; email: string } | null;
   reception?: { id: string; reception_number: string; received_at: string } | null;
   lines: ExpectedLine[];
+}
+
+/** One line of what arrived, with its reception — the "Productos recibidos" list and its export. */
+export interface ReceivedProductRow {
+  id: string;
+  product_name: string;
+  product_code: string | null;
+  is_product: boolean;
+  quantity: number | null;
+  unit: LineUnit;
+  best_before: string | null;
+  lot_number: string | null;
+  note: string | null;
+  reception: {
+    id: string;
+    reception_number: string;
+    received_at: string;
+    delivery_note: string | null;
+    supplier_name: string | null;
+  };
+}
+
+export interface ReceivedProductFilters {
+  /** "YYYY-MM": receptions of that month. */
+  month?: string;
+  supplierId?: string;
+  /** Product name, code or description. */
+  search?: string;
+  /** Order by best-before, soonest first, instead of by arrival. */
+  byBestBefore?: boolean;
 }

@@ -92,6 +92,9 @@ const AUDIT_ACTIONS = new Set([
   'exception_added',
   'exception_changed',
   'exception_removed',
+  'line_added',
+  'line_changed',
+  'line_removed',
 ]);
 
 export function useAuditLabel() {

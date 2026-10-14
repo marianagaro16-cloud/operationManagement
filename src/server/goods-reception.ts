@@ -10,11 +10,15 @@ import type {
   ReceptionListItem,
   ReceptionPage,
   ReceptionReportSnapshot,
+  ReceivedProductFilters,
+  ReceivedProductRow,
+  LineUnit,
   Supplier,
   Transporter,
 } from '@/types/goods-reception';
-import type { Product } from '@/types/orders';
-import { businessToday } from '@/lib/datetime';
+import { productLabel, type Product } from '@/types/orders';
+import { DateTime } from 'luxon';
+import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 import { getExpectedForMonth } from './expected-deliveries';
 
 /**
@@ -219,6 +223,10 @@ const DETAIL_SELECT = `
   transporter:transporters ( id, name, is_active, created_at, updated_at ),
   receiver:profiles!goods_receptions_received_by_fkey ( id, name, email ),
   completer:profiles!goods_receptions_completed_by_fkey ( name, email ),
+  lines:goods_reception_lines (
+    id, reception_id, product_id, description, quantity, unit, best_before, lot_number, note, sort_order,
+    product:products ( id, code, name, family, presentation )
+  ),
   exceptions:goods_reception_exceptions (
     id, reception_id, product_id, lot_number, best_before, affected_quantity,
     description, created_by, created_at,
@@ -257,6 +265,7 @@ export async function getReception(id: string): Promise<ReceptionDetail | null> 
 
   return {
     ...detail,
+    lines: [...(detail.lines ?? [])].sort((a, b) => a.sort_order - b.sort_order),
     evidence,
     // A photo attached to an exception is shown under that exception as well
     // as in the gallery, so the reader sees the damage beside its description.
@@ -420,4 +429,63 @@ export async function getReceptionReportSnapshot(
 
   if (error) throw new Error(error.message);
   return (data as unknown as ReceptionReportSnapshot) ?? null;
+}
+
+/* --------------------------- what arrived, listed --------------------------- */
+
+/**
+ * Every product line of every reception, newest arrival first (or soonest
+ * best-before first), for the "Productos recibidos" tab and its export.
+ */
+export async function getReceivedProducts(filters: ReceivedProductFilters, limit = 1000): Promise<ReceivedProductRow[]> {
+  const supabase = createClient();
+  let q = supabase
+    .from('goods_reception_lines')
+    .select(`
+      id, description, quantity, unit, best_before, lot_number, note,
+      product:products ( code, name, family, presentation ),
+      reception:goods_receptions!inner ( id, reception_number, received_at, delivery_note, supplier_id, supplier:suppliers ( name ) )
+    `)
+    .limit(limit);
+  if (filters.month && /^\d{4}-\d{2}$/.test(filters.month)) {
+    const start = DateTime.fromISO(`${filters.month}-01`, { zone: BUSINESS_TZ });
+    q = q.gte('reception.received_at', start.toISO()!).lt('reception.received_at', start.plus({ months: 1 }).toISO()!);
+  }
+  if (filters.supplierId) q = q.eq('reception.supplier_id', filters.supplierId);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+
+  type Raw = {
+    id: string; description: string | null; quantity: number | string | null; unit: LineUnit; best_before: string | null;
+    lot_number: string | null; note: string | null;
+    product: { code: string | null; name: string | null; family: string; presentation: string } | null;
+    reception: { id: string; reception_number: string; received_at: string; delivery_note: string | null; supplier: { name: string } | null };
+  };
+  let rows: ReceivedProductRow[] = ((data ?? []) as unknown as Raw[]).map((r) => ({
+    id: r.id,
+    product_name: r.product ? productLabel(r.product as Parameters<typeof productLabel>[0]) : (r.description ?? ''),
+    product_code: r.product?.code ?? null,
+    is_product: !!r.product,
+    quantity: r.quantity === null ? null : Number(r.quantity),
+    unit: r.unit,
+    best_before: r.best_before,
+    lot_number: r.lot_number,
+    note: r.note,
+    reception: {
+      id: r.reception.id,
+      reception_number: r.reception.reception_number,
+      received_at: r.reception.received_at,
+      delivery_note: r.reception.delivery_note,
+      supplier_name: r.reception.supplier?.name ?? null,
+    },
+  }));
+  if (filters.search?.trim()) {
+    const needle = filters.search.trim().toLowerCase();
+    rows = rows.filter((r) => `${r.product_name} ${r.product_code ?? ''}`.toLowerCase().includes(needle));
+  }
+  return rows.sort((a, b) =>
+    filters.byBestBefore
+      ? (a.best_before ?? '9999').localeCompare(b.best_before ?? '9999') || b.reception.received_at.localeCompare(a.reception.received_at)
+      : b.reception.received_at.localeCompare(a.reception.received_at),
+  );
 }

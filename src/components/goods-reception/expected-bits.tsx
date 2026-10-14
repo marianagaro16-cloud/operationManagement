@@ -138,11 +138,22 @@ export function toReceived(lines: ExpectedLine[], typed: Record<string, string>)
 }
 
 /** The two halves of Recepción, for whoever sees what is expected. */
-export function ReceptionTabs({ tab, expectedCount }: { tab: 'expected' | 'received'; expectedCount: number }) {
+export function ReceptionTabs({
+  tab,
+  expectedCount,
+  showExpected = true,
+}: {
+  tab: 'expected' | 'received' | 'products';
+  expectedCount: number;
+  /** Esperadas is for the office and the reception list only. */
+  showExpected?: boolean;
+}) {
   const { t } = useI18n();
   const tabs = [
-    { key: 'expected' as const, href: '/goods-reception?tab=expected', label: t('grx.tabExpected'), count: expectedCount },
+    ...(showExpected ? [{ key: 'expected' as const, href: '/goods-reception?tab=expected', label: t('grx.tabExpected'), count: expectedCount }] : []),
     { key: 'received' as const, href: '/goods-reception?tab=received', label: t('grx.tabReceived'), count: 0 },
+    // What arrived, product by product, with its best-before.
+    { key: 'products' as const, href: '/goods-reception?tab=products', label: t('grLines.tab'), count: 0 },
   ];
   return (
     <div className="mb-4 flex gap-1 rounded-lg bg-surface-2 p-1">

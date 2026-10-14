@@ -13,6 +13,7 @@ import { getExpectedAccess, getExpectedForReception, getOpenExpectedForSupplier 
 import { canEditReception } from '@/domain/goods-reception/workflow';
 import { ReceptionDetailView } from '@/components/goods-reception/reception-detail';
 import { canUseReminders } from '@/lib/authz';
+import { businessToday } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,13 +56,16 @@ export default async function ReceptionDetailPage({
       ? await getOpenExpectedForSupplier(reception.supplier_id)
       : [];
 
+  // What arrived: the receivers while it is open, the office at any time.
+  const canEditLines = canEdit || expectedAccess.manage;
+
   const [suppliers, transporters, products, incidentTypes, history] = await Promise.all([
     getSuppliers(),
     getTransporters(),
     // Only offered when the viewer can actually add an exception — loading
     // the whole product master for a read-only reader is wasted bytes on a
     // phone.
-    canEdit ? getReceptionProducts() : Promise.resolve([]),
+    canEdit || canEditLines ? getReceptionProducts() : Promise.resolve([]),
     canEdit || viewer.can('incidents.manage') ? getIncidentTypes() : Promise.resolve([]),
     // RLS returns nothing without audit.view_operational, so this is empty
     // for most viewers and the section simply does not render.
@@ -92,6 +96,8 @@ export default async function ReceptionDetailPage({
       expected={expected}
       expectedCandidates={expectedCandidates}
       canManageExpected={expectedAccess.manage}
+      canEditLines={canEditLines}
+      today={businessToday()}
       reportDifference={searchParams.report === 'difference'}
       reminderViewerId={canUseReminders(viewer) ? viewer.profile.id : null}
     />

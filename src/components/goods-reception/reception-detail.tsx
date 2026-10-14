@@ -42,6 +42,7 @@ import { NoteText } from '@/components/ui/note';
 import { noteToPlainLine } from '@/domain/notes';
 import { ReceptionForm } from './reception-form';
 import { ExceptionEditor } from './exception-editor';
+import { ReceptionLines } from './reception-lines';
 import { ReportIncidentDialog } from './report-incident-dialog';
 import { ExpectedPanel } from './expected-panel';
 import {
@@ -79,7 +80,12 @@ export function ReceptionDetailView({
   canManageExpected,
   reportDifference,
   reminderViewerId,
+  canEditLines = false,
+  today,
 }: {
+  /** May record what arrived: the receivers while open, the office at any time. */
+  canEditLines?: boolean;
+  today: string;
   /** The expected delivery this reception closed; null when none, or when the viewer does not see them. */
   expected: ExpectedDelivery | null;
   /** Still expected from this supplier, while this reception closed none. */
@@ -238,6 +244,16 @@ export function ReceptionDetailView({
             )}
           </CardBody>
         </Card>
+
+        {/* --------------------------- what arrived -------------------------- */}
+        <ReceptionLines
+          receptionId={reception.id}
+          lines={reception.lines ?? []}
+          products={products}
+          canEdit={canEditLines}
+          expectedLineCount={expected?.lines?.length ?? 0}
+          today={today}
+        />
 
         {/* ---------------------------- exceptions -------------------------- */}
         <ExceptionEditor

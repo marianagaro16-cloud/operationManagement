@@ -153,3 +153,35 @@ export function receptionReportToCsv(payload: ReceptionReportPayload): string {
 
   return lines.join('\n');
 }
+
+/* --------------------------- products received --------------------------- */
+
+/**
+ * What arrived, product by product — the file that replaces copying the
+ * deliveries into the order-control workbook (2026-10-14). Headed in Spanish,
+ * the language of the workbook it replaces; dates as YYYY-MM-DD so Excel
+ * sorts them.
+ */
+export interface ExportableReceivedProduct {
+  received_on: string;
+  supplier: string | null;
+  delivery_note: string | null;
+  reception_number: string;
+  product_code: string | null;
+  product: string;
+  quantity: number | null;
+  unit: string;
+  best_before: string | null;
+  lot_number: string | null;
+  note: string | null;
+}
+
+export function receivedProductsToCsv(rows: ExportableReceivedProduct[]): string {
+  return toCsv(
+    ['Llegó', 'Proveedor', 'Nota de entrega', 'Recepción', 'Código', 'Producto', 'Cantidad', 'Unidad', 'Caduca', 'Lote', 'Nota'],
+    rows.map((r) => [
+      r.received_on, r.supplier, r.delivery_note, r.reception_number, r.product_code, r.product,
+      r.quantity, r.unit, r.best_before, r.lot_number, r.note,
+    ]),
+  );
+}

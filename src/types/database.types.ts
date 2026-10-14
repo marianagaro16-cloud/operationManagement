@@ -2308,6 +2308,93 @@ export type Database = {
           },
         ]
       }
+      goods_reception_lines: {
+        Row: {
+          best_before: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          lot_number: string | null
+          note: string | null
+          product_id: string | null
+          quantity: number | null
+          reception_id: string
+          sort_order: number
+          unit: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          best_before?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          lot_number?: string | null
+          note?: string | null
+          product_id?: string | null
+          quantity?: number | null
+          reception_id: string
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          best_before?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          lot_number?: string | null
+          note?: string | null
+          product_id?: string | null
+          quantity?: number | null
+          reception_id?: string
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_reception_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_reception_lines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "goods_reception_lines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_reception_lines_reception_id_fkey"
+            columns: ["reception_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_reception_lines_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goods_reception_report_snapshots: {
         Row: {
           generated_at: string
@@ -11262,6 +11349,10 @@ export type Database = {
         Returns: boolean
       }
       can_write_handover: { Args: { p_absence_id: string }; Returns: boolean }
+      can_write_reception_lines: {
+        Args: { p_reception_id: string }
+        Returns: boolean
+      }
       claim_push_subscription: {
         Args: {
           p_auth: string

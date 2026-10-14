@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getUsers, getViewer } from '@/server/data';
 import {
+  getReceivedProducts,
   getReceptionProducts,
   getReceptions,
   getSuppliers,
@@ -10,6 +11,7 @@ import {
 import { getExpectedAccess, getExpectedHistory, getOpenExpected } from '@/server/expected-deliveries';
 import { ReceptionList } from '@/components/goods-reception/reception-list';
 import { ExpectedList } from '@/components/goods-reception/expected-list';
+import { ReceivedProducts } from '@/components/goods-reception/received-products';
 import { businessToday } from '@/lib/datetime';
 import {
   isQuantityCheck,
@@ -52,7 +54,45 @@ export default async function GoodsReceptionPage({
   const canManageAll = viewer.can('goods_reception.manage_all');
   // A link carrying filters and no tab is a link into what arrived.
   const filtering = Object.keys(searchParams).some((key) => key !== 'tab' && key !== 'show');
-  const tab = access.see && (one('tab') === 'expected' || (!one('tab') && !filtering)) ? 'expected' : 'received';
+  const tab =
+    one('tab') === 'products'
+      ? 'products'
+      : access.see && (one('tab') === 'expected' || (!one('tab') && !filtering)) ? 'expected' : 'received';
+
+  if (tab === 'products') {
+    // Defaults to this month; "all" lifts it.
+    const today = businessToday();
+    const month = one('month') ?? today.slice(0, 7);
+    const sort = one('sort') === 'best_before' ? 'best_before' : 'arrival';
+    const [rows, suppliers, expected] = await Promise.all([
+      getReceivedProducts({
+        month: month === 'all' ? undefined : month,
+        supplierId: one('supplier'),
+        search: one('q'),
+        byBestBefore: sort === 'best_before',
+      }),
+      getSuppliers(true),
+      access.see ? getOpenExpected() : null,
+    ]);
+    // The last 18 months to choose from.
+    const months = Array.from({ length: 18 }, (_, i) => {
+      const d = new Date(`${today.slice(0, 7)}-15T12:00:00`);
+      d.setMonth(d.getMonth() - i);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    });
+    return (
+      <ReceivedProducts
+        rows={rows}
+        suppliers={suppliers}
+        filters={{ month, supplier: one('supplier') ?? '', q: one('q') ?? '', sort }}
+        months={months}
+        today={today}
+        showExpected={access.see}
+        expectedCount={expected?.length ?? 0}
+        canExport={viewer.can('reports.export')}
+      />
+    );
+  }
 
   if (tab === 'expected') {
     const [open, history, suppliers, transporters, products, assignee] = await Promise.all([

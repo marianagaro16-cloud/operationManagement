@@ -102,7 +102,7 @@ export function ReceptionList({
         }
       />
 
-      {expected && <ReceptionTabs tab="received" expectedCount={expected.length} />}
+      <ReceptionTabs tab="received" expectedCount={expected?.length ?? 0} showExpected={!!expected} />
 
       {/* §11 makes everyone a reader. Saying WHY the New button is missing is
           what stops that reading as a broken screen. */}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { receptionReportToCsv, receptionsToCsv, type ExportableReception } from './export';
+import { receivedProductsToCsv, receptionReportToCsv, receptionsToCsv, type ExportableReception } from './export';
 import { buildReceptionReport, type ReportReception } from './report';
 
 const row = (over: Partial<ExportableReception> = {}): ExportableReception => ({
@@ -112,5 +112,20 @@ describe('monthly report export', () => {
     const csv = receptionReportToCsv(payload);
     expect(csv).toContain('supplier;receptions;');
     expect(csv).toContain('transporter;receptions;');
+  });
+});
+
+describe('receivedProductsToCsv', () => {
+  it('writes one row per product, Spanish headers, quoting what needs it', () => {
+    const csv = receivedProductsToCsv([
+      {
+        received_on: '2026-10-14', supplier: 'Käserei Stofel', delivery_note: 'LS-77', reception_number: 'GR-0042',
+        product_code: null, product: 'Queso fresco; 1 kg', quantity: 15, unit: 'kg', best_before: '2026-11-02',
+        lot_number: null, note: null,
+      },
+    ]);
+    const [header, row] = csv.split('\n');
+    expect(header).toBe('Llegó;Proveedor;Nota de entrega;Recepción;Código;Producto;Cantidad;Unidad;Caduca;Lote;Nota');
+    expect(row).toBe('2026-10-14;Käserei Stofel;LS-77;GR-0042;;"Queso fresco; 1 kg";15;kg;2026-11-02;;');
   });
 });
