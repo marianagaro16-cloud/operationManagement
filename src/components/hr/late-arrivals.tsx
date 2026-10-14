@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Clock, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Clock, FileText, Pencil, Plus, Trash2 } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -102,6 +102,7 @@ export function LateTab({
   const split = useSplit();
   const router = useRouter();
   const [editing, setEditing] = useState<HrLateArrival | 'new' | null>(null);
+  const [printPeriod, setPrintPeriod] = useState<'month' | '3months' | 'year' | 'all'>('month');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -150,7 +151,28 @@ export function LateTab({
         ))}
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {/* Only the arrivals, for one period, to print and have signed. */}
+        <Select
+          value={printPeriod}
+          onChange={(e) => setPrintPeriod(e.target.value as typeof printPeriod)}
+          aria-label={t('hrPrint.period')}
+          className="h-9 w-auto"
+        >
+          <option value="month">{t('hrLate.thisMonth')}</option>
+          <option value="3months">{t('hrLate.last3Months')}</option>
+          <option value="year">{t('hrLate.thisYear')}</option>
+          <option value="all">{t('hrPrint.allTime')}</option>
+        </Select>
+        <a
+          href={`/print/hr/${workerId}/arrivals?period=${printPeriod}`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex h-9 items-center gap-1 rounded-lg border border-border px-2.5 text-[12.5px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+        >
+          <FileText className="h-4 w-4" aria-hidden />
+          {t('hrPrint.arrivalsPdf')}
+        </a>
         <Button variant="primary" size="sm" onClick={() => setEditing('new')}>
           <Plus className="h-3.5 w-3.5" aria-hidden />
           {t('hrLate.record')}
