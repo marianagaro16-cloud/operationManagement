@@ -18,6 +18,8 @@ import type { ActivityKind, Amount } from '@/types/sales';
 import type { ActaRow, ActaTopic } from '@/types/sales-acta';
 import { TargetActas } from './acta-list';
 import type { CustomerFileView } from '@/server/sales';
+import type { MerchHistoryEntry, MerchItemRow } from '@/types/merch';
+import { CustomerMerch } from '@/components/merch/customer-merch';
 
 const number = (n: number, digits = 0) =>
   new Intl.NumberFormat('de-CH', { maximumFractionDigits: digits }).format(Number(n));
@@ -36,7 +38,10 @@ export function CustomerFile({
   quickNotes = [],
   actas,
   actaTopics,
+  merch,
 }: {
+  /** What merch they received or are due, and the items to hand over in person. */
+  merch?: { history: MerchHistoryEntry[]; items: MerchItemRow[] };
   quickNotes?: QuickNote[];
   /** The Actas of the visits and appointments with them, and those still owed. */
   actas: ActaRow[];
@@ -189,6 +194,8 @@ export function CustomerFile({
           </ul>
         )}
       </Card>
+
+      {merch && <CustomerMerch customerId={customer.id} history={merch.history} items={merch.items} today={today} />}
 
       {/* The viewer's own quick notes about this customer (and those shared with them). */}
       <CustomerNotes notes={quickNotes} customer={{ id: customer.id, name: customer.company_name }} viewerId={viewerId} />

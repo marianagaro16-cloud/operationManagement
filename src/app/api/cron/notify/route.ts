@@ -5,6 +5,7 @@ import { isPushConfigured, sendToUsers } from '@/server/push';
 import { urgentOrderRecipients } from '@/server/order-notify';
 import { runInventoryNotifications } from '@/server/inventory-notify';
 import { runBlockedReminders } from '@/server/block-notify';
+import { runMerchJobs } from '@/server/merch-notify';
 import { businessToday, addDays } from '@/lib/datetime';
 
 // web-push needs Node crypto; it cannot run on the Edge runtime.
@@ -65,6 +66,14 @@ export async function GET(request: Request) {
     blocked = { error: e instanceof Error ? e.message : String(e) };
   }
 
+  // Merch: windows that closed, stock that runs short, Monday's heads-up.
+  let merch: Awaited<ReturnType<typeof runMerchJobs>> | { error: string };
+  try {
+    merch = await runMerchJobs();
+  } catch (e) {
+    merch = { error: e instanceof Error ? e.message : String(e) };
+  }
+
   try {
     // Only orders that could plausibly be urgent: today and the next day, so
     // an evening deadline still notifies. Cancelled orders are excluded.
@@ -87,7 +96,7 @@ export async function GET(request: Request) {
 
     const candidateIds = (orders ?? []).map((o) => (o as { id: string }).id);
     if (candidateIds.length === 0) {
-      return NextResponse.json({ ok: true, today, considered: 0, sent: 0, inventory, blocked });
+      return NextResponse.json({ ok: true, today, considered: 0, sent: 0, inventory, blocked, merch });
     }
 
     // What has already gone out, so escalations notify once each.
@@ -162,6 +171,7 @@ export async function GET(request: Request) {
       sent,
       inventory,
       blocked,
+      merch,
       results,
     });
   } catch (e) {

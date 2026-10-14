@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Bell, BellRing, BookMarked, BookOpen, Boxes, Factory, CalendarClock, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, Siren, Wrench, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, BookMarked, BookOpen, Boxes, Factory, Gift, CalendarClock, CalendarDays, CalendarOff, CalendarRange, ChevronDown, ClipboardCheck, ClipboardList, Handshake, Inbox, LayoutDashboard, Megaphone, Siren, Wrench, MoreHorizontal, Package, PartyPopper, Receipt, ScanSearch, Settings, Shield, StickyNote, Truck, UserRound, Users, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn, displayName, initials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { FormNoteSubmit } from '@/components/ui/enter-to-save';
 import { InboxLink } from './inbox-link';
 import { ReloadButton } from './reload-button';
 import { QuickNoteButton } from '@/components/notes/quick-note-button';
-import { atLeast, can, canReadMarketing, canReadSchedule, canRequestMarketing, isExternal, isMarketing, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
+import { atLeast, can, canManageMerch, canReadMarketing, canReadSchedule, canRequestMarketing, isExternal, isMarketing, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 import { opensManagement } from '@/components/admin/sections';
 
@@ -26,7 +26,7 @@ type NavGroup = 'day' | 'logistics' | 'operation' | 'production' | 'maintenance'
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; primary: boolean; badge?: number; group: NavGroup };
 const FOLDED_KEY = 'nav.folded';
 /** Closed to the external (Marketing) account. */
-const EXTERNAL_HIDDEN = ['/maintenance', '/production', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/inventory', '/calendar', '/absences', '/hr', '/evaluations', '/collections', '/sales'];
+const EXTERNAL_HIDDEN = ['/maintenance', '/production', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/inventory', '/calendar', '/absences', '/hr', '/evaluations', '/collections', '/sales', '/merch'];
 const NAV_GROUPS: NavGroup[] = ['day', 'logistics', 'operation', 'production', 'maintenance', 'customers', 'marketing', 'team', 'manage'];
 const GROUP_LABEL: Record<Exclude<NavGroup, 'manage'>, MessageKey> = {
   day: 'nav.groupDay',
@@ -195,6 +195,11 @@ export function AppShell({
       ? [{ href: '/collections', label: t('collection.navLabel'), icon: Receipt, primary: false, group: 'customers' as const }]
       : []),
 
+    // Merch: campaigns that go with customers' orders, items and stock.
+    ...(canManageMerch(role, profile.team as Team)
+      ? [{ href: '/merch', label: t('merch.navLabel'), icon: Gift, primary: false, group: 'customers' as const }]
+      : []),
+
     // ---- marketing ----
     // The content plan: Marketing, Admin and Owners write; Sales and Managers read.
     ...(canReadMarketing(role, profile.team as Team)
@@ -233,7 +238,7 @@ export function AppShell({
   // Section-aware: a detail page must keep its section's tab lit, exactly as
   // an admin subpage keeps the management tab lit. `/orders` joined the list
   // when orders gained a detail route of their own.
-  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/events', '/collections', '/marketing', '/maintenance/equipment', '/maintenance/repairs', '/space'];
+  const SECTIONS = ['/admin', '/inventory', '/orders', '/lot-tracker', '/incidents', '/goods-reception', '/events', '/collections', '/merch', '/marketing', '/maintenance/equipment', '/maintenance/repairs', '/space'];
 
   /*
    * Entries that hold several screens as tabs. The tabs keep their own

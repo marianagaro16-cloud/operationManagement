@@ -51,6 +51,11 @@ const ORDER_SELECT = `
   boxes:order_boxes (
     id, order_id, box_type_id, quantity,
     box_type:box_types ( id, name, empty_weight_kg, length_cm, width_cm, height_cm, sort_order, is_active )
+  ),
+  merch:merch_campaign_customers (
+    id, quantity, packing, not_sent_reason, not_sent_note, packed_at,
+    campaign:merch_campaigns ( id, week_start, item:merch_items ( id, name ) ),
+    packer:profiles!merch_campaign_customers_packed_by_fkey ( name, email )
   )
 `;
 

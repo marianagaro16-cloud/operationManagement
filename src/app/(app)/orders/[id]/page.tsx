@@ -7,7 +7,7 @@ import { IncidentLinks } from '@/components/incidents/incident-links';
 import { ReportIncidentButton } from '@/components/incidents/report-incident-button';
 import { orderContextFrom } from '@/components/incidents/order-context';
 import { OrderPageReminderButton } from '@/components/orders/order-reminder';
-import { canUseReminders, ordersReadOnly } from '@/lib/authz';
+import { canManageMerch, canUseReminders, ordersReadOnly } from '@/lib/authz';
 import { OrdersReadOnlyProvider } from '@/components/orders/orders-read-only';
 
 export const dynamic = 'force-dynamic';
@@ -68,6 +68,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
         deliveryMethods={deliveryMethods}
         canManage={canManage}
         boxesRequired={boxTypes.length > 0}
+        canEditMerch={viewer ? canManageMerch(viewer.role, viewer.profile.team) : false}
         // Beside Edit, because reporting an incident is a thing you do TO
         // this order and that is where a person looks for it.
         headerAction={

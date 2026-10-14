@@ -6452,6 +6452,364 @@ export type Database = {
           },
         ]
       }
+      merch_campaign_customers: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          customer_id: string
+          expired_at: string | null
+          id: string
+          not_sent_note: string | null
+          not_sent_reason: string | null
+          order_id: string | null
+          packed_at: string | null
+          packed_by: string | null
+          packing: Database["public"]["Enums"]["merch_packing"]
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          customer_id: string
+          expired_at?: string | null
+          id?: string
+          not_sent_note?: string | null
+          not_sent_reason?: string | null
+          order_id?: string | null
+          packed_at?: string | null
+          packed_by?: string | null
+          packing?: Database["public"]["Enums"]["merch_packing"]
+          quantity: number
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          customer_id?: string
+          expired_at?: string | null
+          id?: string
+          not_sent_note?: string | null
+          not_sent_reason?: string | null
+          order_id?: string | null
+          packed_at?: string | null
+          packed_by?: string | null
+          packing?: Database["public"]["Enums"]["merch_packing"]
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merch_campaign_customers_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "merch_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merch_campaign_customers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merch_campaign_customers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "merch_campaign_customers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "merch_campaign_customers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merch_campaign_customers_packed_by_fkey"
+            columns: ["packed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merch_campaigns: {
+        Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          carry_weeks: number
+          created_at: string
+          created_by: string | null
+          customer_type_ids: string[]
+          deadline: string | null
+          id: string
+          item_id: string
+          note: string | null
+          quantity: number
+          updated_at: string
+          updated_by: string | null
+          week_start: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          carry_weeks?: number
+          created_at?: string
+          created_by?: string | null
+          customer_type_ids?: string[]
+          deadline?: string | null
+          id?: string
+          item_id: string
+          note?: string | null
+          quantity: number
+          updated_at?: string
+          updated_by?: string | null
+          week_start: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          carry_weeks?: number
+          created_at?: string
+          created_by?: string | null
+          customer_type_ids?: string[]
+          deadline?: string | null
+          id?: string
+          item_id?: string
+          note?: string | null
+          quantity?: number
+          updated_at?: string
+          updated_by?: string | null
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merch_campaigns_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merch_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merch_campaigns_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "merch_item_stock"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "merch_campaigns_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "merch_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merch_campaigns_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merch_handouts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          given_on: string
+          id: string
+          item_id: string
+          note: string | null
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          given_on: string
+          id?: string
+          item_id: string
+          note?: string | null
+          quantity: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          given_on?: string
+          id?: string
+          item_id?: string
+          note?: string | null
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merch_handouts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merch_handouts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merch_handouts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "merch_handouts_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "merch_item_stock"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "merch_handouts_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "merch_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merch_items: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merch_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merch_notices: {
+        Row: {
+          created_at: string
+          kind: string
+          notice_date: string
+          ref_id: string
+        }
+        Insert: {
+          created_at?: string
+          kind: string
+          notice_date: string
+          ref_id: string
+        }
+        Update: {
+          created_at?: string
+          kind?: string
+          notice_date?: string
+          ref_id?: string
+        }
+        Relationships: []
+      }
+      merch_stock_entries: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          entry_date: string
+          id: string
+          item_id: string
+          note: string | null
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          id?: string
+          item_id: string
+          note?: string | null
+          quantity: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          id?: string
+          item_id?: string
+          note?: string | null
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merch_stock_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merch_stock_entries_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "merch_item_stock"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "merch_stock_entries_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "merch_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_inbox: {
         Row: {
           body: string
@@ -10686,6 +11044,30 @@ export type Database = {
           },
         ]
       }
+      merch_item_stock: {
+        Row: {
+          handed: number | null
+          item_id: string | null
+          promised: number | null
+          received: number | null
+          sent: number | null
+        }
+        Insert: {
+          handed?: never
+          item_id?: string | null
+          promised?: never
+          received?: never
+          sent?: never
+        }
+        Update: {
+          handed?: never
+          item_id?: string | null
+          promised?: never
+          received?: never
+          sent?: never
+        }
+        Relationships: []
+      }
       sales_acta_follow_up_state: {
         Row: {
           activity_id: string | null
@@ -10842,6 +11224,7 @@ export type Database = {
       can_manage_expected_deliveries: { Args: never; Returns: boolean }
       can_manage_incident: { Args: { p_incident_id: string }; Returns: boolean }
       can_manage_maintenance: { Args: never; Returns: boolean }
+      can_manage_merch: { Args: never; Returns: boolean }
       can_organize_meetings: { Args: never; Returns: boolean }
       can_plan_coverage: { Args: { p_absence_id: string }; Returns: boolean }
       can_read_marketing: { Args: never; Returns: boolean }
@@ -11448,6 +11831,38 @@ export type Database = {
         Args: { p_meeting_id: string; p_on: boolean }
         Returns: undefined
       }
+      merch_assign: { Args: { p_customer_id: string }; Returns: undefined }
+      merch_cancel_campaign: { Args: { p_id: string }; Returns: undefined }
+      merch_order_type_ok: {
+        Args: { p_type: Database["public"]["Enums"]["order_type"] }
+        Returns: boolean
+      }
+      merch_save_campaign: {
+        Args: {
+          p_carry_weeks: number
+          p_customer_ids: string[]
+          p_customer_type_ids: string[]
+          p_id: string
+          p_item_id: string
+          p_note: string
+          p_quantity: number
+          p_week_start: string
+        }
+        Returns: string
+      }
+      merch_set_packing: {
+        Args: {
+          p_line_id: string
+          p_note: string
+          p_packing: Database["public"]["Enums"]["merch_packing"]
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      merch_set_quantity: {
+        Args: { p_line_id: string; p_quantity: number }
+        Returns: undefined
+      }
       my_team: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       my_teams: { Args: never; Returns: Database["public"]["Enums"]["team"][] }
       next_goods_reception_report_version: {
@@ -11865,6 +12280,7 @@ export type Database = {
       inventory_grant_scope: "instance" | "all"
       inventory_kind: "expiry" | "lot" | "location"
       inventory_status: "in_progress" | "completed" | "to_review" | "resolved"
+      merch_packing: "open" | "packed" | "not_sent"
       occurrence_status: "pending" | "completed" | "skipped" | "blocked"
       order_status: "draft" | "confirmed" | "cancelled"
       order_type:
@@ -12076,6 +12492,7 @@ export const Constants = {
       inventory_grant_scope: ["instance", "all"],
       inventory_kind: ["expiry", "lot", "location"],
       inventory_status: ["in_progress", "completed", "to_review", "resolved"],
+      merch_packing: ["open", "packed", "not_sent"],
       occurrence_status: ["pending", "completed", "skipped", "blocked"],
       order_status: ["draft", "confirmed", "cancelled"],
       order_type: [

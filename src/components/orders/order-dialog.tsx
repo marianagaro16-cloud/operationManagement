@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useTransition, useEffect } from 'react';
-import { BellPlus, FileSpreadsheet, Keyboard, Mail, UserRound } from 'lucide-react';
+import { BellPlus, FileSpreadsheet, Gift, Keyboard, Mail, UserRound } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { businessToday } from '@/lib/datetime';
 import { productLabel, type Customer, type DeliveryMethod, type Order, type OrderType, type Product } from '@/types/orders';
 import { saveOrder } from '@/server/order-actions';
 import { customerPaymentFlag, customerPrepay } from '@/server/collection-actions';
+import { pendingMerchFor } from '@/server/merch-actions';
 import { ReminderDialog } from '@/components/reminders/reminder-dialog';
 import { useOrderReminderDates } from './order-reminder';
 import { ImportPanel, type ImportMethod } from './import-panel';
@@ -104,6 +105,16 @@ export function OrderDialog({
     }
     customerPaymentFlag(customerId).then((level) => live && setPendingPayments(level));
     customerPrepay(customerId).then((on) => live && setPrepay(on));
+    return () => {
+      live = false;
+    };
+  }, [customerId]);
+  // Merch waiting for this customer: said, so nobody is surprised on the card.
+  const [merch, setMerch] = useState<Awaited<ReturnType<typeof pendingMerchFor>>>([]);
+  useEffect(() => {
+    let live = true;
+    if (!customerId) { setMerch([]); return; }
+    pendingMerchFor(customerId).then((rows) => live && setMerch(rows)).catch(() => live && setMerch([]));
     return () => {
       live = false;
     };
@@ -375,6 +386,20 @@ export function OrderDialog({
             ⚠ {t('collection.prepayOrderWarning')}
           </p>
         )}
+
+        {(() => {
+          // What this order would carry: in the window, and earlier than any order already carrying it.
+          const carries = ['sale', 'event', 'sponsorship', 'consignment'].includes(orderType) && deliveryDate >= today
+            ? merch.filter((m) => deliveryDate >= m.week_start && deliveryDate <= m.deadline
+                && (!m.on_order_id || m.on_order_id === order?.id || (m.on_order_date ?? '') > deliveryDate))
+            : [];
+          return carries.length > 0 ? (
+            <p className="-mt-1.5 flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/[0.06] px-3 py-2 text-[12.5px] font-medium text-accent">
+              <Gift className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              {t('merch.dialogNotice', { list: carries.map((m) => `${m.item_name} ×${m.quantity}`).join(', ') })}
+            </p>
+          ) : null;
+        })()}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Field label={t('orders.deliveryDate')} required htmlFor="o-delivery">

@@ -14,6 +14,7 @@ import { boxCount } from '@/domain/orders/weight';
 import { setOrderReady, setOrdersShipped } from '@/server/order-actions';
 import type { OrderWithProgress } from '@/types/orders';
 import { useOrdersReadOnly } from './orders-read-only';
+import { merchOpen } from '@/components/merch/order-merch';
 
 /** The one chip that says where an order is: to prepare → … → shipped. */
 export function OrderStageChip({ order, hideToPrepare = true }: { order: OrderWithProgress; hideToPrepare?: boolean }) {
@@ -34,6 +35,7 @@ const ERROR_KEY: Record<string, MessageKey> = {
   not_authorized: 'orders.errFulfilmentNotAuthorized',
   order_needs_boxes: 'orders.errNeedsBoxes',
   box_type_inactive: 'orders.errBoxTypeInactive',
+  order_merch_open: 'orders.errMerchOpen',
 };
 
 export function useOrderError() {
@@ -97,7 +99,9 @@ export function OrderFulfilment({
     ? t('orders.readyNeedsPrepared')
     : needsBoxes
       ? t(boxesOnThisScreen ? 'orders.readyNeedsBoxes' : 'orders.readyNeedsBoxesElsewhere')
-      : null;
+      : merchOpen(order)
+        ? t('orders.readyNeedsMerch')
+        : null;
 
   return (
     <div className={cn('space-y-1.5', className)}>

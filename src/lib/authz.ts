@@ -263,6 +263,14 @@ export function canManageExpectedDeliveries(role: Role): boolean {
 }
 
 /**
+ * Plans merch — campaigns, items, stock, hand-overs: Ventas, Admin, Owners,
+ * Managers and Power Users. Mirrors can_manage_merch() in SQL.
+ */
+export function canManageMerch(role: Role, team: Team): boolean {
+  return isSales(role, team) || role === 'manager' || role === 'power_user';
+}
+
+/**
  * The weekly work schedule: Admin and Owners write it, the Production manager
  * reads it, and nobody else sees it — the floor gets the PDF. Mirrors
  * schedule_can_read() in SQL; the writes are is_admin().

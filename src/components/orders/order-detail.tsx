@@ -27,6 +27,7 @@ import { UrgencyBadge } from './urgency-badge';
 import { NoteBlock, NoteChip, NoteText } from '@/components/ui/note';
 import { noteToPlainLine } from '@/domain/notes';
 import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
+import { OrderMerch } from '@/components/merch/order-merch';
 import { ShortfallSummary } from './shortfall';
 import { OrderWeight } from './order-weight';
 import { useOrdersReadOnly } from './orders-read-only';
@@ -56,7 +57,10 @@ export function OrderDetail({
   canManage,
   headerAction,
   boxesRequired = false,
+  canEditMerch = false,
 }: {
+  /** Plans merch or manages orders: may change the merch quantity until Ready. */
+  canEditMerch?: boolean;
   order: OrderWithProgress;
   customers: Customer[];
   products: Product[];
@@ -222,6 +226,12 @@ export function OrderDetail({
           ))}
         </ul>
       </Card>
+
+      {(order.merch ?? []).length > 0 && (
+        <Card className="mt-4 overflow-hidden">
+          <OrderMerch order={order} canPack={!readOnlyRole} canEditQuantity={canEditMerch || canManage} className="-mt-px" />
+        </Card>
+      )}
 
       {editing && (
         <OrderDialog

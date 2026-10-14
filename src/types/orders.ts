@@ -309,6 +309,8 @@ export interface Order {
   lines: OrderLine[];
   /** Boxes recorded while preparing. Absent where a query did not load them. */
   boxes?: OrderBox[];
+  /** Merch a campaign put on this order. Absent where a query did not load it. */
+  merch?: import('./merch').OrderMerchLine[];
 }
 
 /**

@@ -29,6 +29,7 @@ import { ShortfallEditor, ShortfallSummary } from './shortfall';
 import { OrderFulfilment, OrderStageChip } from './order-fulfilment';
 import { OrderWeight } from './order-weight';
 import { OrderBoxesEditor, useBoxTypes } from './order-boxes';
+import { OrderMerch } from '@/components/merch/order-merch';
 import { orderStage, stageWeight } from '@/domain/orders/stage';
 import { noteToPlainLine } from '@/domain/notes';
 import { useOrdersReadOnly } from './orders-read-only';
@@ -254,6 +255,9 @@ export function OrderPreparationCard({
           </ul>
         </div>
       ))}
+
+      {/* Merch a campaign put on it: ticked packed or not sent while packing. */}
+      {expanded && <OrderMerch order={order} canPack={!readOnly} />}
 
       {/* The boxes it is packed in: recorded here, until it ships. */}
       {expanded && !order.shipped_at && !readOnly && <OrderBoxesEditor order={order} />}
