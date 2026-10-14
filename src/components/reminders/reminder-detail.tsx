@@ -132,12 +132,6 @@ export function ReminderDetail({
               <dd>{t(RECURRENCE_KEY[reminder.recurrence])}</dd>
             </div>
           )}
-          {reminder.notify_before_minutes && (
-            <div className="flex gap-2">
-              <dt className="text-muted">{t('reminder.notify')}</dt>
-              <dd>{t(`reminder.notifyBefore${reminder.notify_before_minutes}` as MessageKey)}</dd>
-            </div>
-          )}
           <div>
             <LinkChip row={reminder} />
           </div>

@@ -6,6 +6,7 @@ import { urgentOrderRecipients } from '@/server/order-notify';
 import { runInventoryNotifications } from '@/server/inventory-notify';
 import { runBlockedReminders } from '@/server/block-notify';
 import { runMerchJobs } from '@/server/merch-notify';
+import { runOwnerDigest } from '@/server/digest-notify';
 import { businessToday, addDays } from '@/lib/datetime';
 
 // web-push needs Node crypto; it cannot run on the Edge runtime.
@@ -74,6 +75,14 @@ export async function GET(request: Request) {
     merch = { error: e instanceof Error ? e.message : String(e) };
   }
 
+  // The owners' daily summary of what was filed for them, from 17:00.
+  let digest: { sent: number } | { error: string };
+  try {
+    digest = await runOwnerDigest();
+  } catch (e) {
+    digest = { error: e instanceof Error ? e.message : String(e) };
+  }
+
   try {
     // Only orders that could plausibly be urgent: today and the next day, so
     // an evening deadline still notifies. Cancelled orders are excluded.
@@ -96,7 +105,7 @@ export async function GET(request: Request) {
 
     const candidateIds = (orders ?? []).map((o) => (o as { id: string }).id);
     if (candidateIds.length === 0) {
-      return NextResponse.json({ ok: true, today, considered: 0, sent: 0, inventory, blocked, merch });
+      return NextResponse.json({ ok: true, today, considered: 0, sent: 0, inventory, blocked, merch, digest });
     }
 
     // What has already gone out, so escalations notify once each.
@@ -172,6 +181,7 @@ export async function GET(request: Request) {
       inventory,
       blocked,
       merch,
+      digest,
       results,
     });
   } catch (e) {

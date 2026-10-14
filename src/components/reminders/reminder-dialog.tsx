@@ -10,7 +10,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Checkbox, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { BUSINESS_TZ } from '@/lib/datetime';
-import { NOTIFY_BEFORE, RECURRENCES, utcToLocal, type Recurrence } from '@/domain/reminders/schedule';
+import { RECURRENCES, utcToLocal, type Recurrence } from '@/domain/reminders/schedule';
 import type { LinkType } from '@/domain/reminders/links';
 import { loadParticipantCandidates, saveReminder } from '@/server/reminder-actions';
 import type { Reminder, ReminderPerson } from '@/types/reminders';
@@ -91,13 +91,12 @@ export function ReminderDialog({
   const [time, setTime] = useState(initial().time);
   const [notes, setNotes] = useState(reminder?.notes ?? initialNotes ?? '');
   const [recurrence, setRecurrence] = useState<Recurrence>(reminder?.recurrence ?? 'none');
-  const [notifyBefore, setNotifyBefore] = useState<number | null>(reminder?.notify_before_minutes ?? null);
   const [keepLink, setKeepLink] = useState(true);
   const [participants, setParticipants] = useState<string[]>(
     reminder ? reminder.participants.map((p) => p.user_id).filter((id) => id !== viewerId) : [],
   );
   const [more, setMore] = useState(Boolean(initialNotes) || Boolean(
-    reminder && (reminder.notes || reminder.recurrence !== 'none' || reminder.notify_before_minutes || reminder.is_shared),
+    reminder && (reminder.notes || reminder.recurrence !== 'none' || reminder.is_shared),
   ));
   const [candidates, setCandidates] = useState<ReminderPerson[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -155,7 +154,7 @@ export function ReminderDialog({
         time,
         timezone: zone,
         recurrence,
-        notifyBefore,
+        notifyBefore: null,
         link: effectiveLink,
         participantIds: participants,
       });
@@ -163,12 +162,11 @@ export function ReminderDialog({
       onSaved?.(res.data.id);
       onClose();
       if (!reminder) {
-        setTitle(''); setNotes(''); setRecurrence('none'); setNotifyBefore(null); setParticipants([]);
+        setTitle(''); setNotes(''); setRecurrence('none'); setParticipants([]);
       }
     });
   }
 
-  const notifyKey = (m: number) => `reminder.notifyBefore${m}` as MessageKey;
 
   return (
     <Dialog
@@ -270,23 +268,12 @@ export function ReminderDialog({
               <NoteTextarea id="rem-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} />
             </Field>
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <Field label={t('reminder.fieldRepeat')} htmlFor="rem-repeat" hint={t('reminder.repeatHint')}>
-                <Select id="rem-repeat" value={recurrence} onChange={(e) => setRecurrence(e.target.value as Recurrence)}>
-                  {RECURRENCES.map((r) => <option key={r} value={r}>{t(RECURRENCE_KEY[r])}</option>)}
-                </Select>
-              </Field>
-              <Field label={t('reminder.fieldNotify')} htmlFor="rem-notify">
-                <Select
-                  id="rem-notify"
-                  value={notifyBefore ?? ''}
-                  onChange={(e) => setNotifyBefore(e.target.value ? Number(e.target.value) : null)}
-                >
-                  <option value="">{t('reminder.notifyAtTime')}</option>
-                  {NOTIFY_BEFORE.map((m) => <option key={m} value={m}>{t(notifyKey(m))}</option>)}
-                </Select>
-              </Field>
-            </div>
+            {/* Notified at the time and once an hour later; no heads-up before (2026-10-14). */}
+            <Field label={t('reminder.fieldRepeat')} htmlFor="rem-repeat" hint={t('reminder.repeatHint')}>
+              <Select id="rem-repeat" value={recurrence} onChange={(e) => setRecurrence(e.target.value as Recurrence)}>
+                {RECURRENCES.map((r) => <option key={r} value={r}>{t(RECURRENCE_KEY[r])}</option>)}
+              </Select>
+            </Field>
 
             <fieldset>
               <legend className="mb-1 text-[12.5px] font-medium">{t('reminder.fieldShare')}</legend>

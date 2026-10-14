@@ -31,12 +31,9 @@ describe('before the moment', () => {
     expect(selectReminderAlerts([reminder()], [], at('2026-09-16T09:50'))).toEqual([]);
   });
 
-  it('sends the early warning once, inside its window', () => {
+  it('ignores an early warning kept on an older reminder', () => {
     const r = reminder({ notify_before_minutes: 15 });
-    expect(selectReminderAlerts([r], [], at('2026-09-16T09:40'))).toEqual([]);
-    const [alert] = selectReminderAlerts([r], [], at('2026-09-16T09:46'));
-    expect(alert.kind).toBe('before');
-    expect(selectReminderAlerts([r], [sent('before', 0, r.next_at)], at('2026-09-16T09:50'))).toEqual([]);
+    expect(selectReminderAlerts([r], [], at('2026-09-16T09:46'))).toEqual([]);
   });
 });
 
@@ -74,32 +71,26 @@ describe('overdue', () => {
     expect(selectReminderAlerts([r], done, at('2026-09-16T10:50'))).toEqual([]);
   });
 
-  it('repeats at 1 hour, 4 hours and 24 hours — and then stops', () => {
+  it('repeats once, 1 hour after — and then stops', () => {
     expect(selectReminderAlerts([r], done, at('2026-09-16T11:01'))[0]).toMatchObject({ kind: 'overdue', step: 1 });
 
     const after1 = [...done, sent('overdue', 1, slot)];
-    expect(selectReminderAlerts([r], after1, at('2026-09-16T13:00'))).toEqual([]);
-    expect(selectReminderAlerts([r], after1, at('2026-09-16T14:00'))[0]).toMatchObject({ step: 2 });
-
-    const after2 = [...after1, sent('overdue', 2, slot)];
-    expect(selectReminderAlerts([r], after2, at('2026-09-17T10:00'))[0]).toMatchObject({ step: 3 });
-
-    const after3 = [...after2, sent('overdue', 3, slot)];
-    expect(selectReminderAlerts([r], after3, at('2026-09-19T10:00'))).toEqual([]);
+    expect(selectReminderAlerts([r], after1, at('2026-09-16T14:00'))).toEqual([]);
+    expect(selectReminderAlerts([r], after1, at('2026-09-19T10:00'))).toEqual([]);
   });
 
   it('sends one alert, not a backlog, after the scheduler was down', () => {
     const alerts = selectReminderAlerts([r], [], at('2026-09-17T10:30'));
     expect(alerts).toHaveLength(1);
-    expect(alerts[0]).toMatchObject({ kind: 'overdue', step: 3 });
+    expect(alerts[0]).toMatchObject({ kind: 'overdue', step: 1 });
   });
 
   it('is held during quiet hours and sent when they end', () => {
-    const evening = reminder({ next_at: at('2026-09-16T18:00') });
-    const due = [sent('due', 0, evening.next_at), sent('overdue', 1, evening.next_at)];
-    // 4 hours later is 22:00 — quiet.
-    expect(selectReminderAlerts([evening], due, at('2026-09-16T22:05'))).toEqual([]);
-    expect(selectReminderAlerts([evening], due, at('2026-09-17T07:00'))[0]).toMatchObject({ step: 2 });
+    const evening = reminder({ next_at: at('2026-09-16T21:30') });
+    const due = [sent('due', 0, evening.next_at)];
+    // 1 hour later is 22:30 — quiet.
+    expect(selectReminderAlerts([evening], due, at('2026-09-16T22:35'))).toEqual([]);
+    expect(selectReminderAlerts([evening], due, at('2026-09-17T07:00'))[0]).toMatchObject({ step: 1 });
   });
 });
 
@@ -114,7 +105,7 @@ describe('snooze and recurrence', () => {
   it('gives the next occurrence of a recurring reminder its own alerts', () => {
     const lastWeek = at('2026-09-09T10:00');
     const thisWeek = reminder({ next_at: at('2026-09-16T10:00') });
-    const ledger = [sent('due', 0, lastWeek), sent('overdue', 3, lastWeek)];
+    const ledger = [sent('due', 0, lastWeek), sent('overdue', 1, lastWeek)];
     expect(selectReminderAlerts([thisWeek], ledger, at('2026-09-16T10:01'))[0]).toMatchObject({ kind: 'due' });
   });
 

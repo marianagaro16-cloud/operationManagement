@@ -95,6 +95,8 @@ async function tellOwners(activityId: string, registeredBy: string | null) {
         body: `${a.customer?.company_name ?? a.prospect?.company_name ?? ''} — ${day} (${a.salesperson_name})`,
         url: `/sales/actas/${activityId}`,
         tag: `acta-registered-${activityId}`,
+        // In their daily summary, not one by one.
+        digest: true,
       });
     }
   } catch (err) {

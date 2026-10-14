@@ -6902,7 +6902,9 @@ export type Database = {
           body: string
           created_at: string
           dedupe_key: string | null
+          digested_at: string | null
           id: string
+          in_digest: boolean
           level: string | null
           read_at: string | null
           tag: string
@@ -6914,7 +6916,9 @@ export type Database = {
           body?: string
           created_at?: string
           dedupe_key?: string | null
+          digested_at?: string | null
           id?: string
+          in_digest?: boolean
           level?: string | null
           read_at?: string | null
           tag: string
@@ -6926,7 +6930,9 @@ export type Database = {
           body?: string
           created_at?: string
           dedupe_key?: string | null
+          digested_at?: string | null
           id?: string
+          in_digest?: boolean
           level?: string | null
           read_at?: string | null
           tag?: string
@@ -11998,6 +12004,17 @@ export type Database = {
       record_expected_received: {
         Args: { p_delivery: string; p_lines: Json }
         Returns: boolean
+      }
+      record_inbox_digest: {
+        Args: {
+          p_body: string
+          p_level: string
+          p_tag: string
+          p_title: string
+          p_url: string
+          p_user_ids: string[]
+        }
+        Returns: undefined
       }
       record_inbox_notification: {
         Args: {

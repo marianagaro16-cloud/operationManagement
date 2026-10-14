@@ -34,6 +34,13 @@ export interface PushPayload {
    * the service worker about what the platforms actually honour.
    */
   requireOk?: boolean;
+  /**
+   * Sent because of the recipient's role, not to them personally — HR, short
+   * expiry, a customer Acta, anything sent to a capability. An owner does not
+   * get it at once: it is filed in their inbox already read and listed in
+   * their daily summary (decided 2026-10-14). Everyone else gets it as usual.
+   */
+  digest?: boolean;
 }
 
 let configured = false;
@@ -135,15 +142,37 @@ async function recordInbox(userIds: string[], payload: PushPayload): Promise<voi
   if (error) console.error('inbox: record failed', error.message);
 }
 
+/**
+ * A digest notice's owners, filed for their daily summary; the rest, who are
+ * sent it now. Without `digest`, everybody is sent it now. A failed lookup
+ * sends to everyone rather than losing the notice.
+ */
+async function holdForDigest(userIds: string[], payload: PushPayload): Promise<{ now: string[]; filed: number }> {
+  const all = { now: userIds, filed: 0 };
+  if (!payload.digest || userIds.length === 0) return all;
+  const admin = createAdminClient();
+  const { data, error } = await admin.from('profiles').select('id').eq('role', 'owner').in('id', userIds);
+  if (error) return all;
+  const owners = new Set(((data ?? []) as { id: string }[]).map((p) => p.id));
+  if (owners.size === 0) return all;
+  const { error: fileError } = await admin.rpc('record_inbox_digest', {
+    p_user_ids: [...owners],
+    p_tag: payload.tag ?? `untagged-${crypto.randomUUID()}`,
+    p_title: payload.title,
+    p_body: payload.body,
+    p_url: payload.url ?? null,
+    p_level: payload.level ?? null,
+  });
+  if (fileError) {
+    console.error('inbox: digest filing failed', fileError.message);
+    return all;
+  }
+  return { now: userIds.filter((id) => !owners.has(id)), filed: owners.size };
+}
+
 /** Send to one user's devices. */
 export async function sendToUser(userId: string, payload: PushPayload): Promise<number> {
-  await recordInbox([userId], payload);
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from('push_subscriptions')
-    .select('id, endpoint, p256dh, auth, failure_count')
-    .eq('user_id', userId);
-  return deliver((data ?? []) as SubscriptionRow[], payload);
+  return sendToUsers([userId], payload);
 }
 
 /**
@@ -153,21 +182,26 @@ export async function sendToUser(userId: string, payload: PushPayload): Promise<
  * inventory can have several assignees, and looping would issue a round trip
  * for each of them.
  */
-export async function sendToUsers(userIds: string[], payload: PushPayload): Promise<number> {
-  if (userIds.length === 0) return 0;
+export async function sendToUsers(recipients: string[], payload: PushPayload): Promise<number> {
+  // An owner filed for the summary counts as reached: a scheduler must not
+  // release its claim and file it again on every run.
+  const { now: userIds, filed } = await holdForDigest(recipients, payload);
+  if (userIds.length === 0) return filed;
   await recordInbox(userIds, payload);
   const admin = createAdminClient();
   const { data } = await admin
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth, failure_count')
     .in('user_id', userIds);
-  return deliver((data ?? []) as SubscriptionRow[], payload);
+  return filed + (await deliver((data ?? []) as SubscriptionRow[], payload));
 }
 
 /**
  * Send to everyone who holds a capability: approved admins, and approved
  * users whose role is granted it in role_permissions — the same answer
  * has_permission() gives in SQL, asked for many people at once.
+ *
+ * Sent to people for their role, so an owner gets it in the daily summary.
  *
  * `exclude` leaves out one person, typically whoever caused the alert: the
  * one who just completed a count does not need telling that it is complete.
@@ -193,7 +227,7 @@ export async function sendToPermissionHolders(
   if (peopleError) throw new Error(peopleError.message);
 
   const ids = (people ?? []).map((p) => (p as { id: string }).id).filter((id) => id !== exclude);
-  return sendToUsers(ids, payload);
+  return sendToUsers(ids, { ...payload, digest: true });
 }
 
 /**
@@ -212,7 +246,7 @@ export async function sendToAdmins(payload: PushPayload): Promise<number> {
     // Owners are admins too.
     .in('role', ['admin', 'owner']);
 
-  return sendToUsers((admins ?? []).map((p) => (p as { id: string }).id), payload);
+  return sendToUsers((admins ?? []).map((p) => (p as { id: string }).id), { ...payload, digest: true });
 }
 
 /**
@@ -235,7 +269,7 @@ export async function sendToHrForWorker(
     .filter((p) => p.role !== 'production_manager' || p.team === workerTeam)
     .filter((p) => p.id !== workerProfileId)
     .map((p) => p.id);
-  return sendToUsers(ids, payload);
+  return sendToUsers(ids, { ...payload, digest: true });
 }
 
 /** Send to the Marketing team (approved), leaving out whoever caused it. */

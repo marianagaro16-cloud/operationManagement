@@ -5,9 +5,24 @@ import {
   selectInventoryNotifications,
   type NotifiableInventory,
 } from '@/domain/inventory/notifications';
-import { sendToMarketing, sendToPermissionHolders, sendToUsers } from './push';
+import { sendToMarketing, sendToUsers } from './push';
 import { addDays, businessToday } from '@/lib/datetime';
 import { shortShelfLife, shortShelfLifeAlert, shortShelfLifeReport } from '@/domain/inventory/shelf-life';
+
+/**
+ * Who hears that a count is finished, has differences or short expiry
+ * (decided 2026-10-14): the people kept in app_settings
+ * ('inventory.notice_people' — Mariana, who loads the Digital and reviews
+ * the differences). Not everyone who manages inventories.
+ */
+async function noticePeople(): Promise<string[]> {
+  const admin = createAdminClient();
+  const { data: setting } = await admin.from('app_settings').select('value').eq('key', 'inventory.notice_people').maybeSingle();
+  const ids = (Array.isArray(setting?.value) ? setting.value : []).filter((v): v is string => typeof v === 'string');
+  if (ids.length === 0) return [];
+  const { data } = await admin.from('profiles').select('id').eq('status', 'approved').is('deleted_at', null).in('id', ids);
+  return ((data ?? []) as { id: string }[]).map((p) => p.id);
+}
 
 /**
  * Inventory push alerts.
@@ -101,7 +116,7 @@ export async function runInventoryNotifications(now: Date = new Date()): Promise
 
     const recipients =
       n.audience === 'reconcilers'
-        ? await sendToPermissionHolders('inventory.manage_instances', payload)
+        ? await sendToUsers(await noticePeople(), payload)
         : await sendToUsers(n.userIds, payload);
 
     if (recipients === 0) {
@@ -148,7 +163,7 @@ export async function runInventoryNotifications(now: Date = new Date()): Promise
  * already closed and authorised by the database; this only delivers the
  * news. It claims the ledger kinds it stands for before sending, exactly as
  * the scheduler does, so the scheduler will not repeat it — and if nobody
- * with the capability has a device registered, it releases them again so
+ * it is meant for has a device registered, it releases them again so
  * the scheduler can still deliver once somebody subscribes.
  *
  * Never throws: a failed push must not make a completed count look failed.
@@ -188,12 +203,12 @@ export async function notifyPhysicalCountDone(instanceId: string, completedBy: s
       );
     }
 
-    const recipients = await sendToPermissionHolders('inventory.manage_instances', {
+    const recipients = await sendToUsers((await noticePeople()).filter((id) => id !== completedBy), {
       title: alert.title,
       body: alert.body,
       tag: `inventory-${instanceId}`,
       url: `/inventory/${instanceId}`,
-    }, completedBy);
+    });
 
     if (recipients === 0) {
       await admin.from('inventory_notifications').delete().eq('instance_id', instanceId).in('kind', alert.claims);
@@ -209,7 +224,7 @@ export async function notifyPhysicalCountDone(instanceId: string, completedBy: s
 }
 
 /**
- * Tell whoever manages inventories about stock close to its expiry date, when
+ * Tell the inventory notice people about stock close to its expiry date, when
  * a count of a template that asks for it is completed.
  *
  * Only templates with short_shelf_life_months set — today Complementarios,
@@ -217,9 +232,9 @@ export async function notifyPhysicalCountDone(instanceId: string, completedBy: s
  * says "nothing to report". The same list is shown on the inventory page, so
  * nobody depends on having push switched on to see it.
  *
- * Sent to everyone with inventory.manage_instances, the person who completed
- * the count included: unlike "the count is finished", this is news to them
- * too. Claimed once in the ledger, released if nobody could be reached.
+ * Sent to the inventory notice people (noticePeople), the person who
+ * completed the count included: unlike "the count is finished", this is news
+ * to them too. Claimed once in the ledger, released if nobody could be reached.
  * Never throws.
  */
 export async function notifyShortShelfLife(instanceId: string): Promise<number> {
@@ -253,7 +268,7 @@ export async function notifyShortShelfLife(instanceId: string): Promise<number> 
     if (claimError) return 0;
 
     const { title, body } = shortShelfLifeAlert(inv.name_snapshot, inv.iso_week, months, lines);
-    const recipients = await sendToPermissionHolders('inventory.manage_instances', {
+    const recipients = await sendToUsers(await noticePeople(), {
       title,
       body,
       // Its own tag: it must not replace the "count finished" card sent a
@@ -349,7 +364,8 @@ export async function shareShortShelfLife(instanceId: string): Promise<number> {
     const opensRequest = new Set([requester, ...askingToo, ...ownerIds]);
     const informed = [...new Set([...ownerIds, ...salesIds, requester, ...askingToo])];
 
-    const notice = { title, body: text, level: 'warning' as const };
+    // The owners get it in their daily summary.
+    const notice = { title, body: text, level: 'warning' as const, digest: true };
     const recipients =
       (await sendToMarketing({ ...notice, url: `/marketing/requests/${request.id}`, tag: `mkt-request-${request.id}` })) +
       (await sendToUsers(informed.filter((id) => opensRequest.has(id)), { ...notice, url: `/marketing/requests/${request.id}`, tag: `short-expiry-${instanceId}` })) +

@@ -11,11 +11,14 @@ import { BUSINESS_TZ } from '@/lib/datetime';
  *
  * THE POLICY
  *
- *   before   once, `notify_before_minutes` ahead of the moment, if asked for
  *   due      once, at the moment
- *   overdue  at most three more: 1 hour, 4 hours and 24 hours after it
+ *   overdue  once more, 1 hour after it
  *
- * After the third overdue alert the reminder goes quiet but stays in the
+ * Two notices per reminder at most (decided 2026-10-14): the heads-up before
+ * the moment and the 4- and 24-hour repeats were dropped as noise. A
+ * `notify_before_minutes` kept on an older reminder is ignored.
+ *
+ * After the overdue alert the reminder goes quiet but stays in the
  * Overdue list, highlighted, until somebody completes, snoozes or cancels it.
  * It is never removed for being ignored.
  *
@@ -27,7 +30,7 @@ import { BUSINESS_TZ } from '@/lib/datetime';
  * keyed on the moment, so the new one gets the full sequence again.
  */
 
-export const OVERDUE_STEPS_MINUTES = [60, 240, 1440] as const;
+export const OVERDUE_STEPS_MINUTES = [60] as const;
 
 /** A due alert more than this late is not sent as "due" — it is overdue by then. */
 export const DUE_GRACE_MINUTES = 60;
@@ -112,13 +115,8 @@ export function selectReminderAlerts(
 
     const minutesPast = now.diff(slot, 'minutes').minutes;
 
-    if (minutesPast < 0) {
-      // Before the moment: only the early warning, if one was asked for.
-      if (r.notify_before_minutes && -minutesPast <= r.notify_before_minutes && !has('before')) {
-        out.push({ ...base, kind: 'before', step: 0 });
-      }
-      continue;
-    }
+    // Nothing before the moment.
+    if (minutesPast < 0) continue;
 
     if (minutesPast < DUE_GRACE_MINUTES) {
       if (!has('due')) out.push({ ...base, kind: 'due', step: 0 });

@@ -93,6 +93,8 @@ export async function runCelebrationNotices(now = new Date()): Promise<{ sent: n
           body,
           url: `/hr/${c.workerId}`,
           tag: `celebration-${c.workerId}-${c.kind}-${c.date}-${stage}`,
+          // An owner reads it in the daily summary.
+          digest: true,
         });
         sent++;
       } catch (err) {
