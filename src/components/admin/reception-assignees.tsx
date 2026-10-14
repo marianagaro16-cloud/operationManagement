@@ -16,7 +16,7 @@ import type { Profile } from '@/types/database';
  *
  * §10 and §48. This list is the grant — there is no permission-matrix row for
  * "may perform a reception", because `role_permissions` carries a CHECK
- * constraint allowing only 'manager' and 'power_user', and the person
+ * constraint allowing only 'power_user' and 'production_manager', and the person
  * receiving goods on the floor is a plain user. Assignment is how this
  * codebase has always given a plain user authority (inventory does the same),
  * and it is the only mechanism that can.

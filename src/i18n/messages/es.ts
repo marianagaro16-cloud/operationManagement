@@ -1551,7 +1551,7 @@ export const es: Messages = {
     lastAdmin: 'Es el último administrador. Promueve a otra persona primero.',
     ownerProtected: 'Solo un dueño puede cambiar esta cuenta',
     matrixTitle: 'Roles y permisos',
-    matrixSubtitle: 'Qué pueden hacer un Responsable, un Usuario avanzado y un Gerente de producción',
+    matrixSubtitle: 'Qué pueden hacer un Usuario avanzado y un Gerente de producción',
     capability: 'Capacidad',
     adminOnly: 'Solo administrador',
     matrixNote:
@@ -2024,7 +2024,7 @@ export const es: Messages = {
     noUsersBody: 'Todavía no hay nadie más con una cuenta aprobada.',
     groupFloor: 'Usuarios',
     groupFloorHint: 'Se queda en su pantalla hasta que pulsen OK',
-    groupOffice: 'Administradores, responsables y usuarios avanzados',
+    groupOffice: 'Administradores y usuarios avanzados',
     groupOfficeHint: 'Llega como una notificación normal, sin OK',
     error: {
       invalid_message: 'El mensaje está vacío o es demasiado largo.',

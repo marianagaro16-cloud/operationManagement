@@ -1551,7 +1551,7 @@ export const de: Messages = {
     lastAdmin: 'Das ist der letzte Administrator. Bitte zuerst jemanden anderen befördern.',
     ownerProtected: 'Nur ein Inhaber kann dieses Konto ändern',
     matrixTitle: 'Rollen und Berechtigungen',
-    matrixSubtitle: 'Was ein Verantwortlicher, ein Power-User und ein Produktionsleiter tun dürfen',
+    matrixSubtitle: 'Was ein Power-User und ein Produktionsleiter tun dürfen',
     capability: 'Berechtigung',
     adminOnly: 'Nur Administrator',
     matrixNote:
@@ -2024,7 +2024,7 @@ export const de: Messages = {
     noUsersBody: 'Es gibt noch niemand anderen mit einem freigegebenen Konto.',
     groupFloor: 'Benutzer',
     groupFloorHint: 'Bleibt auf dem Bildschirm, bis OK gedrückt wird',
-    groupOffice: 'Administratoren, Leitung und erweiterte Benutzer',
+    groupOffice: 'Administratoren und erweiterte Benutzer',
     groupOfficeHint: 'Kommt als normale Benachrichtigung an, ohne OK',
     error: {
       invalid_message: 'Die Nachricht ist leer oder zu lang.',

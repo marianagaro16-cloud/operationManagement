@@ -11,7 +11,6 @@ import { CONFIGURABLE_ROLES, permissionKey, type ConfigurableRole, type Permissi
 import type { MessageKey } from '@/i18n';
 
 const ROLE_LABEL: Record<ConfigurableRole, MessageKey> = {
-  manager: 'roles.manager',
   power_user: 'roles.powerUser',
   production_manager: 'roles.productionManager',
 };

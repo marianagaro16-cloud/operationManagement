@@ -24,7 +24,6 @@ import { NoteTextarea } from '@/components/ui/note-textarea';
 const ROLE_LABEL: Record<Role, MessageKey> = {
   owner: 'roles.owner',
   admin: 'roles.admin',
-  manager: 'roles.manager',
   power_user: 'roles.powerUser',
   production_manager: 'roles.productionManager',
   user: 'roles.user',

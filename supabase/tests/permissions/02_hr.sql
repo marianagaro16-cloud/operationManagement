@@ -1,6 +1,6 @@
 -- ============================================================
 -- Human resources.
--- hr.manage: Admin/Owners, Manager, Production manager (own team only).
+-- hr.manage: Admin/Owners, Production manager (own team only).
 -- Nobody sees their own file; nobody sees an Owner's file, other Owners
 -- included. A confidential note: only its writer, Admin and Owners.
 -- Notes are permanent.
@@ -9,7 +9,6 @@
 select pg_temp.person('admin', 'admin');
 select pg_temp.person('owner1', 'owner');
 select pg_temp.person('owner2', 'owner');
-select pg_temp.person('manager', 'manager');
 select pg_temp.person('pm', 'production_manager', 'production');
 select pg_temp.person('pu', 'power_user', 'sales');
 select pg_temp.person('user', 'user', 'logistics');
@@ -35,7 +34,6 @@ select pg_temp.hidden('admin: not their own file', 'admin', pg_temp.w('admin_own
 select pg_temp.hidden('admin: not an owner''s file', 'admin', pg_temp.w('owner_own'));
 select pg_temp.hidden('owner: not another owner''s file', 'owner2', pg_temp.w('owner_own'));
 select pg_temp.hidden('owner: not their own file', 'owner1', pg_temp.w('owner_own'));
-select pg_temp.sees('manager: sees an Operations file', 'manager', pg_temp.w('ops'));
 select pg_temp.sees('production manager: sees a Production file', 'pm', pg_temp.w('prod'));
 select pg_temp.hidden('production manager: not an Operations file', 'pm', pg_temp.w('ops'));
 select pg_temp.hidden('production manager: not their own file', 'pm', pg_temp.w('pm_own'));
@@ -52,7 +50,6 @@ select gen_random_uuid(), (select id from _w where k = 'prod'), (select id from 
 
 select pg_temp.sees('production manager: reads an ordinary note', 'pm', $$select 1 from public.hr_notes where body = 'ZZ open'$$);
 select pg_temp.hidden('production manager: not a confidential note', 'pm', $$select 1 from public.hr_notes where body = 'ZZ confidential'$$);
-select pg_temp.hidden('manager: not a confidential note', 'manager', $$select 1 from public.hr_notes where body = 'ZZ confidential'$$);
 select pg_temp.sees('admin (writer): reads the confidential note', 'admin', $$select 1 from public.hr_notes where body = 'ZZ confidential'$$);
 select pg_temp.sees('owner: reads the confidential note', 'owner2', $$select 1 from public.hr_notes where body = 'ZZ confidential'$$);
 select pg_temp.hidden('user: no notes', 'user', $$select 1 from public.hr_notes where body like 'ZZ %'$$);

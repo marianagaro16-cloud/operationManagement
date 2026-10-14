@@ -14,7 +14,9 @@
  * action that would be rejected. If the two ever disagree, the database wins.
  */
 
-export const ROLES = ['owner', 'admin', 'manager', 'power_user', 'production_manager', 'user'] as const;
+// 'manager' still exists in the database enum (Postgres cannot drop a label) but
+// nobody may hold it: profiles_no_manager refuses it. 2026-10-14.
+export const ROLES = ['owner', 'admin', 'power_user', 'production_manager', 'user'] as const;
 export type Role = (typeof ROLES)[number];
 
 /**
@@ -54,7 +56,7 @@ export function canEditMarketing(role: Role, team: Team): boolean {
  * Mirrors can_request_marketing().
  */
 export function canRequestMarketing(role: Role, team: Team): boolean {
-  return team === 'marketing' || team === 'sales' || ['admin', 'owner', 'manager', 'power_user'].includes(role);
+  return team === 'marketing' || team === 'sales' || ['admin', 'owner', 'power_user'].includes(role);
 }
 
 /**
@@ -68,7 +70,7 @@ export function canManageMaintenance(role: Role, held: ReadonlySet<Permission>, 
 
 /** Reads it: those, Sales and Managers. Mirrors can_read_marketing(). */
 export function canReadMarketing(role: Role, team: Team): boolean {
-  return canEditMarketing(role, team) || isSales(role, team) || role === 'manager';
+  return canEditMarketing(role, team) || isSales(role, team);
 }
 
 /**
@@ -90,7 +92,6 @@ export const ROLE_RANK: Record<Role, number> = {
   // The company's owners: everything an admin is, and only they change an owner.
   owner: 5,
   admin: 4,
-  manager: 3,
   power_user: 2,
   // Beside the Power User, as in role_rank() in SQL: the rank only opens the
   // Gestión area, and what is inside is decided by permissions.
@@ -145,8 +146,8 @@ export const PERMISSIONS = [
 
   // Goods Reception. NOTE what is absent: there is no key for "may register a
   // delivery". That authority comes from goods_reception_assignees, because
-  // role_permissions carries a CHECK constraint allowing only 'manager' and
-  // 'power_user' rows — the 'user' role structurally cannot be granted
+  // role_permissions carries a CHECK constraint allowing only 'power_user' and
+  // 'production_manager' rows — the 'user' role structurally cannot be granted
   // anything here, and the receiver on the floor is a plain user.
   'goods_reception.manage_config',
   'goods_reception.manage_all',
@@ -181,7 +182,7 @@ export function isConfigurable(permission: Permission): boolean {
 }
 
 /** Roles whose capabilities are configurable. Admin holds all; user holds none. */
-export const CONFIGURABLE_ROLES = ['manager', 'power_user', 'production_manager'] as const;
+export const CONFIGURABLE_ROLES = ['power_user', 'production_manager'] as const;
 export type ConfigurableRole = (typeof CONFIGURABLE_ROLES)[number];
 
 /**
@@ -259,7 +260,7 @@ export function ordersReadOnly(role: Role): boolean {
  * can_manage_expected_deliveries() in SQL; the reception list reads them too.
  */
 export function canManageExpectedDeliveries(role: Role): boolean {
-  return isAdminRole(role) || role === 'manager' || role === 'power_user';
+  return isAdminRole(role) || role === 'power_user';
 }
 
 /**
@@ -267,7 +268,7 @@ export function canManageExpectedDeliveries(role: Role): boolean {
  * Managers and Power Users. Mirrors can_manage_merch() in SQL.
  */
 export function canManageMerch(role: Role, team: Team): boolean {
-  return isSales(role, team) || role === 'manager' || role === 'power_user';
+  return isSales(role, team) || role === 'power_user';
 }
 
 /**
@@ -283,7 +284,7 @@ export function isRole(value: string): value is Role {
   return (ROLES as readonly string[]).includes(value);
 }
 
-/** Hierarchy comparison. `atLeast('manager', 'power_user')` is true. */
+/** Hierarchy comparison. `atLeast('admin', 'power_user')` is true. */
 export function atLeast(role: Role, min: Role): boolean {
   return ROLE_RANK[role] >= ROLE_RANK[min];
 }

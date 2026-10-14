@@ -21,16 +21,15 @@ import {
 } from './authz';
 
 describe('role hierarchy', () => {
-  it('ranks owner above admin above manager above power user above user', () => {
+  it('ranks owner above admin above power user above user', () => {
     expect(ROLE_RANK.owner).toBeGreaterThan(ROLE_RANK.admin);
-    expect(ROLE_RANK.admin).toBeGreaterThan(ROLE_RANK.manager);
-    expect(ROLE_RANK.manager).toBeGreaterThan(ROLE_RANK.power_user);
+    expect(ROLE_RANK.admin).toBeGreaterThan(ROLE_RANK.power_user);
     expect(ROLE_RANK.power_user).toBeGreaterThan(ROLE_RANK.user);
   });
 
   it('compares with atLeast', () => {
-    expect(atLeast('manager', 'power_user')).toBe(true);
-    expect(atLeast('power_user', 'manager')).toBe(false);
+    expect(atLeast('admin', 'power_user')).toBe(true);
+    expect(atLeast('power_user', 'admin')).toBe(false);
     expect(atLeast('user', 'user')).toBe(true);
     expect(atLeast('admin', 'admin')).toBe(true);
   });
@@ -39,11 +38,12 @@ describe('role hierarchy', () => {
   it('does not derive rank from the declaration order', () => {
     const byDeclaration = [...ROLES].map((r) => ROLE_RANK[r]);
     // The production manager sits beside the power user: same rank, listed after it.
-    expect(byDeclaration).toEqual([5, 4, 3, 2, 2, 1]);
+    expect(byDeclaration).toEqual([5, 4, 2, 2, 1]);
   });
 
   it('recognises only real roles', () => {
-    expect(isRole('manager')).toBe(true);
+    expect(isRole('power_user')).toBe(true);
+    expect(isRole('manager')).toBe(false);
     expect(isRole('superuser')).toBe(false);
     expect(isRole('')).toBe(false);
   });
@@ -59,8 +59,8 @@ describe('can', () => {
   });
 
   it('grants a non-admin only what the matrix holds', () => {
-    expect(can('manager', some, 'orders.manage')).toBe(true);
-    expect(can('manager', some, 'inventory.manage_templates')).toBe(false);
+    expect(can('power_user', some, 'orders.manage')).toBe(true);
+    expect(can('power_user', some, 'inventory.manage_templates')).toBe(false);
     expect(can('user', none, 'orders.manage')).toBe(false);
   });
 });
@@ -82,7 +82,7 @@ describe('admin-only capabilities', () => {
   });
 
   it('offers manager, power_user and production_manager as configurable roles', () => {
-    expect([...CONFIGURABLE_ROLES]).toEqual(['manager', 'power_user', 'production_manager']);
+    expect([...CONFIGURABLE_ROLES]).toEqual(['power_user', 'production_manager']);
   });
 });
 
@@ -94,34 +94,33 @@ describe('team scope', () => {
 
   it('limits inventories to their own for a plain user only', () => {
     expect(inventoryOwnOnly('user')).toBe(true);
-    for (const role of ['admin', 'manager', 'power_user', 'production_manager'] as const) {
+    for (const role of ['admin', 'power_user', 'production_manager'] as const) {
       expect(inventoryOwnOnly(role)).toBe(false);
     }
   });
 
   it('confines the incidents a production manager manages to their team', () => {
     expect(incidentScope('production_manager', 'production')).toBe('production');
-    for (const role of ['admin', 'manager', 'power_user', 'user'] as const) {
+    for (const role of ['admin', 'power_user', 'user'] as const) {
       expect(incidentScope(role, 'production')).toBeNull();
     }
   });
 
-  it('leaves admin, manager and power user unscoped whatever their team', () => {
+  it('leaves admin and power user unscoped whatever their team', () => {
     expect(teamScope('admin', 'production')).toBeNull();
-    expect(teamScope('manager', 'operations')).toBeNull();
     expect(teamScope('power_user', 'production')).toBeNull();
   });
 
   it('makes orders read-only for the production manager alone', () => {
     expect(ordersReadOnly('production_manager')).toBe(true);
-    for (const role of ['admin', 'manager', 'power_user', 'user'] as const) {
+    for (const role of ['admin', 'power_user', 'user'] as const) {
       expect(ordersReadOnly(role)).toBe(false);
     }
   });
 
   it('opens the management area to the production manager', () => {
     expect(atLeast('production_manager', 'power_user')).toBe(true);
-    expect(atLeast('production_manager', 'manager')).toBe(false);
+    expect(atLeast('production_manager', 'admin')).toBe(false);
   });
 });
 
@@ -144,16 +143,16 @@ describe('permissionKey', () => {
 
 describe('wouldOrphanAdmins', () => {
   // The old guard asked "is the new role 'user'", which four roles broke:
-  // demoting the last admin to manager walked straight past it.
+  // demoting the last admin to power user walked straight past it.
   it('blocks demoting the last admin to ANY other role', () => {
-    for (const nextRole of ['manager', 'power_user', 'user'] as const) {
+    for (const nextRole of ['power_user', 'user'] as const) {
       expect(wouldOrphanAdmins({ currentRole: 'admin', nextRole, approvedAdminCount: 1 })).toBe(true);
     }
   });
 
   it('allows demoting an admin while another remains', () => {
     expect(
-      wouldOrphanAdmins({ currentRole: 'admin', nextRole: 'manager', approvedAdminCount: 2 }),
+      wouldOrphanAdmins({ currentRole: 'admin', nextRole: 'power_user', approvedAdminCount: 2 }),
     ).toBe(false);
   });
 
@@ -165,7 +164,7 @@ describe('wouldOrphanAdmins', () => {
 
   it('ignores changes that do not touch an admin', () => {
     expect(
-      wouldOrphanAdmins({ currentRole: 'manager', nextRole: 'user', approvedAdminCount: 1 }),
+      wouldOrphanAdmins({ currentRole: 'power_user', nextRole: 'user', approvedAdminCount: 1 }),
     ).toBe(false);
   });
 
@@ -182,14 +181,14 @@ describe('owners', () => {
   it('are everything an admin is', () => {
     expect(isAdminRole('owner')).toBe(true);
     expect(isAdminRole('admin')).toBe(true);
-    expect(isAdminRole('manager')).toBe(false);
+    expect(isAdminRole('power_user')).toBe(false);
     expect(can('owner', none, 'permissions.configure')).toBe(true);
   });
 
   it('are changed only by an owner', () => {
     expect(mayChangeAccount('admin', 'owner')).toBe(false);
-    expect(mayChangeAccount('admin', 'manager', 'owner')).toBe(false);
-    expect(mayChangeAccount('admin', 'manager', 'admin')).toBe(true);
+    expect(mayChangeAccount('admin', 'power_user', 'owner')).toBe(false);
+    expect(mayChangeAccount('admin', 'power_user', 'admin')).toBe(true);
     expect(mayChangeAccount('owner', 'owner', 'admin')).toBe(true);
     expect(mayChangeAccount('owner', 'user', 'owner')).toBe(true);
   });

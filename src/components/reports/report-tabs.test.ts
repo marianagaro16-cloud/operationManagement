@@ -25,7 +25,7 @@ describe('which report tabs a viewer gets', () => {
   });
 
   it('opens only incidents for someone who holds the incident log alone', () => {
-    expect(allowedReportTabs(viewer('manager', ['incidents.view_all']))).toEqual(['incidents']);
+    expect(allowedReportTabs(viewer('power_user', ['incidents.view_all']))).toEqual(['incidents']);
   });
 
   it('gives a plain user nothing', () => {

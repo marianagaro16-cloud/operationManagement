@@ -106,13 +106,13 @@ describe('what a viewer is shown', () => {
   it('a card leads to the first screen the viewer may actually open', () => {
     // Not to the section's first screen in the abstract — to theirs.
     const onlyStatistics = new Set<Permission>(['reports.view']);
-    const [review] = visibleSections('manager', onlyStatistics);
+    const [review] = visibleSections('power_user', onlyStatistics);
     expect(sectionEntry(review.screens)).toBe('/admin/reports');
   });
 
   it('opens Informes for whoever holds the incident log without the reports', () => {
     const incidentsOnly = new Set<Permission>(['incidents.view_all']);
-    const [review] = visibleSections('manager', incidentsOnly);
+    const [review] = visibleSections('power_user', incidentsOnly);
     expect(review.screens.map((s) => s.href)).toEqual(['/admin/reports']);
   });
 

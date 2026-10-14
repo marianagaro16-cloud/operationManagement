@@ -1583,7 +1583,7 @@ export const en = {
     lastAdmin: 'This is the last admin. Promote someone else first.',
     ownerProtected: 'Only an owner can change this account',
     matrixTitle: 'Roles and permissions',
-    matrixSubtitle: 'What a Manager, a Power User and a Production manager can do',
+    matrixSubtitle: 'What a Power User and a Production manager can do',
     capability: 'Capability',
     adminOnly: 'Admin only',
     matrixNote:
@@ -2056,7 +2056,7 @@ export const en = {
     noUsersBody: 'There is nobody else with an approved account yet.',
     groupFloor: 'Users',
     groupFloorHint: 'Stays on their screen until they press OK',
-    groupOffice: 'Admins, managers and power users',
+    groupOffice: 'Admins and power users',
     groupOfficeHint: 'Arrives as a normal notification, without OK',
     error: {
       invalid_message: 'The message is empty or too long.',

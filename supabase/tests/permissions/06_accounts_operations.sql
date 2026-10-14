@@ -31,6 +31,8 @@ select pg_temp.can('account: an owner can change another owner', 'owner2',
   format('update public.profiles set role = %L where id = %L', 'admin', pg_temp.id('owner1')));
 select pg_temp.can('account: admin changes a user''s role', 'admin',
   format('update public.profiles set role = %L where id = %L', 'power_user', pg_temp.id('userB')));
+select pg_temp.cannot('account: nobody is made a Manager (retired role)', 'owner2',
+  format('update public.profiles set role = %L where id = %L', 'manager', pg_temp.id('userC')));
 select pg_temp.cannot('permissions: a power user cannot grant capabilities', 'pu',
   $$insert into public.role_permissions (role, permission) values ('user', 'orders.manage')$$);
 

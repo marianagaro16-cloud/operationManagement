@@ -3,13 +3,12 @@
 -- Customer notes, prospects and the sales plan: Ventas, Admin, Owners.
 -- Collection cases: the collection team only.
 -- Requests to Marketing: not plain Users, not the Production manager.
--- Merch: Admin/Owners, Ventas, Managers and Power Users plan it.
+-- Merch: Admin/Owners, Ventas and Power Users plan it.
 -- ============================================================
 
 select pg_temp.person('seller', 'user', 'sales');
 select pg_temp.person('admin', 'admin');
 select pg_temp.person('owner', 'owner');
-select pg_temp.person('manager', 'manager');
 select pg_temp.person('pu_ops', 'power_user', 'operations');
 select pg_temp.person('pm', 'production_manager', 'production');
 select pg_temp.person('user', 'user', 'logistics');
@@ -34,7 +33,6 @@ insert into _q values
 select pg_temp.sees('sales ' || k || ': Ventas sees it', 'seller', q) from _q;
 select pg_temp.sees('sales ' || k || ': admin sees it', 'admin', q) from _q;
 select pg_temp.sees('sales ' || k || ': owner sees it', 'owner', q) from _q;
-select pg_temp.hidden('sales ' || k || ': not a manager', 'manager', q) from _q;
 select pg_temp.hidden('sales ' || k || ': not a power user outside Ventas', 'pu_ops', q) from _q;
 select pg_temp.hidden('sales ' || k || ': not the production manager', 'pm', q) from _q;
 select pg_temp.hidden('sales ' || k || ': not a plain user', 'user', q) from _q;

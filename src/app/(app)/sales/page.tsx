@@ -85,7 +85,7 @@ export default async function SalesPage({
           quiet={quiet}
           kinds={kinds}
           viewerId={viewer.profile.id}
-          manages={['admin', 'owner', 'manager', 'power_user'].includes(viewer.role)}
+          manages={['admin', 'owner', 'power_user'].includes(viewer.role)}
         />
       )}
       {tab === 'report' && report && (

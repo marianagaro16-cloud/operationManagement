@@ -175,7 +175,7 @@ export function AppShell({
       : []),
     // ---- maintenance ----
     ...activitiesFor('maintenance'),
-    ...(myTeams.includes('maintenance') || ['admin', 'owner', 'manager'].includes(role)
+    ...(myTeams.includes('maintenance') || ['admin', 'owner'].includes(role)
       ? [{ href: '/maintenance/equipment', label: t('equipment.title'), icon: Wrench, primary: false, group: 'maintenance' as const }]
       : []),
     // Something broken: anyone in the company reports it (not the external account).

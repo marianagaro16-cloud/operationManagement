@@ -29,7 +29,7 @@ export default async function SalesActaPage({ params, searchParams }: { params: 
       people={people}
       kinds={kinds}
       today={businessToday()}
-      canChange={meeting.salesperson_id === viewer.profile.id || ['admin', 'owner', 'manager', 'power_user'].includes(viewer.role)}
+      canChange={meeting.salesperson_id === viewer.profile.id || ['admin', 'owner', 'power_user'].includes(viewer.role)}
       startWriting={searchParams.write === '1'}
     />
   );

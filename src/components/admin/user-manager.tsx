@@ -25,7 +25,6 @@ const STATUS_TONE = {
 const ROLE_TONE = {
   owner: 'accent',
   admin: 'accent',
-  manager: 'done',
   power_user: 'warn',
   production_manager: 'warn',
   user: 'neutral',
@@ -131,7 +130,6 @@ export function UserManager({
     switch (role) {
       case 'owner': return t('roles.owner');
       case 'admin': return t('roles.admin');
-      case 'manager': return t('roles.manager');
       case 'power_user': return t('roles.powerUser');
       case 'production_manager': return t('roles.productionManager');
       case 'user': return t('roles.user');

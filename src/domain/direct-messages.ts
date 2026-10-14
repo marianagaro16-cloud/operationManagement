@@ -2,7 +2,7 @@
  * Direct messages — who may receive one, and how it arrives.
  *
  * Anybody who can send may write to any approved account except themselves:
- * down to the floor, and sideways or up to an admin, a manager or a power
+ * down to the floor, and sideways or up to an owner, an admin or a power
  * user. Nobody in the User role sends — that is the `notifications.send`
  * capability, which the role structurally cannot hold.
  *
@@ -23,7 +23,7 @@ export type DirectSendPlan =
       ok: true;
       /** Users: the message stays on screen until OK. */
       floor: string[];
-      /** Admins, managers, power users: an ordinary notification. */
+      /** Owners, admins, power users: an ordinary notification. */
       office: string[];
     }
   | { ok: false; error: 'invalid_recipient' };
