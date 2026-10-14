@@ -1,0 +1,12 @@
+#!/bin/sh
+# Before anything reaches main (and Vercel deploys it): the types, the unit
+# tests and the permission tests against the database. Any failure stops
+# the push. Installed by `npm install` (the "prepare" script sets
+# core.hooksPath to scripts/hooks).
+set -e
+echo "pre-push: typecheck"
+npm run --silent typecheck
+echo "pre-push: unit tests"
+npx vitest run --reporter=dot
+echo "pre-push: permission tests"
+npm run --silent test:db

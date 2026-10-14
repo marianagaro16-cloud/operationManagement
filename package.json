@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:db": "node scripts/test-db.mjs",
+    "prepare": "git config core.hooksPath scripts/hooks",
     "icons": "node scripts/generate-icons.mjs",
     "import:extract": "tsx scripts/import-excel.ts extract",
     "import:seed": "tsx scripts/import-excel.ts seed",
