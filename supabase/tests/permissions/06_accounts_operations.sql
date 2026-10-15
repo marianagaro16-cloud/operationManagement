@@ -62,3 +62,9 @@ select pg_temp.cannot('reception: a receiver cannot add products to a completed 
   $$insert into public.goods_reception_lines (reception_id, description, quantity) select id, 'ZZ line', 1 from _gr$$);
 select pg_temp.can('reception: the office corrects a completed reception', 'admin',
   $$insert into public.goods_reception_lines (reception_id, description, quantity) select id, 'ZZ line', 1 from _gr$$);
+
+-- Expected deliveries: the office and the Production manager announce them
+select pg_temp.sees('expected: the production manager announces them', 'pm',
+  'select 1 where public.can_manage_expected_deliveries()');
+select pg_temp.sees('expected: a power user announces them', 'pu',
+  'select 1 where public.can_manage_expected_deliveries()');

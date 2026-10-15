@@ -254,13 +254,12 @@ export function ordersReadOnly(role: Role): boolean {
 }
 
 /**
- * Enters, changes and cancels expected deliveries: Admin, Owners, Manager and
- * Power User. By role, because goods_reception.manage_all is also held by the
- * Production manager, who receives but does not announce. Mirrors
- * can_manage_expected_deliveries() in SQL; the reception list reads them too.
+ * Enters, changes and cancels expected deliveries: Admin, Owners, Power User
+ * and the Production manager. Mirrors can_manage_expected_deliveries() in
+ * SQL; the reception list reads them too.
  */
 export function canManageExpectedDeliveries(role: Role): boolean {
-  return isAdminRole(role) || role === 'power_user';
+  return isAdminRole(role) || role === 'power_user' || role === 'production_manager';
 }
 
 /**
