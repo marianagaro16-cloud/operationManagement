@@ -10,6 +10,8 @@ import type {
   EventMaterial,
   EventNote,
   EventListEntry,
+  PastMaterial,
+  PastMaterialEvent,
   EventOrder,
   EventProduct,
   EventReturn,
@@ -280,6 +282,41 @@ async function getEventMaterials(eventId: string): Promise<EventMaterial[]> {
     .order('created_at');
   if (error) throw new Error(error.message);
   return (data ?? []).map((m) => ({ ...m, quantity: m.quantity === null ? null : Number(m.quantity) }));
+}
+
+/**
+ * Material from the other events: each thing once, as last used (latest event
+ * first), and the events that have any — to bring it back for a new event.
+ */
+export async function getPastMaterials(eventId: string): Promise<{ things: PastMaterial[]; events: PastMaterialEvent[] }> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('event_materials')
+    .select('name, quantity, event:events!inner ( id, name, start_date )')
+    .neq('event_id', eventId);
+  if (error) throw new Error(error.message);
+  type Raw = { name: string; quantity: number | string | null; event: { id: string; name: string; start_date: string } };
+  const rows = ((data ?? []) as unknown as Raw[]).sort((a, b) => b.event.start_date.localeCompare(a.event.start_date));
+  const things = new Map<string, PastMaterial>();
+  const events = new Map<string, PastMaterialEvent>();
+  for (const r of rows) {
+    const key = r.name.trim().toLowerCase();
+    if (!things.has(key)) {
+      things.set(key, {
+        name: r.name.trim(),
+        quantity: r.quantity === null ? null : Number(r.quantity),
+        event_name: r.event.name,
+        event_date: r.event.start_date,
+      });
+    }
+    const e = events.get(r.event.id);
+    if (e) e.count += 1;
+    else events.set(r.event.id, { id: r.event.id, name: r.event.name, start_date: r.event.start_date, count: 1 });
+  }
+  return {
+    things: [...things.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    events: [...events.values()],
+  };
 }
 
 async function getEventContacts(eventId: string): Promise<EventContact[]> {

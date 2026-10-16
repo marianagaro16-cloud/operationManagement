@@ -139,6 +139,22 @@ export interface EventMaterial {
   sort_order: number;
 }
 
+/** A thing used at another event, as last used there. */
+export interface PastMaterial {
+  name: string;
+  quantity: number | null;
+  event_name: string;
+  event_date: string;
+}
+
+/** Another event with material, to copy its list from. */
+export interface PastMaterialEvent {
+  id: string;
+  name: string;
+  start_date: string;
+  count: number;
+}
+
 export interface EventCost {
   id: string;
   type_id: string;

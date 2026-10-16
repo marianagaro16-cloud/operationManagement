@@ -35,6 +35,8 @@ import type {
   EventListEntry,
   EventMaterial,
   EventNote,
+  PastMaterial,
+  PastMaterialEvent,
   EventOrder,
   EventProduct,
   EventReturn,
@@ -59,6 +61,8 @@ export function EventView({
   costs,
   materials,
   standardMaterials,
+  pastMaterials,
+  canEditStandard,
   order,
   products,
   returns,
@@ -79,6 +83,10 @@ export function EventView({
   materials: EventMaterial[];
   /** The names on the event kind's standard material list. */
   standardMaterials: string[];
+  /** Material from the other events, to bring back. */
+  pastMaterials: { things: PastMaterial[]; events: PastMaterialEvent[] };
+  /** Admin and owners may put a thing on the kind's standard list from here. */
+  canEditStandard: boolean;
   order: EventOrder | null;
   products: EventProduct[];
   returns: EventReturn[];
@@ -219,7 +227,7 @@ export function EventView({
         </div>
         <div className="space-y-4">
           <EventProducts event={event} order={order} products={products} returns={returns} catalog={catalog} methods={methods} />
-          <EventMaterials event={event} materials={materials} shifts={shifts} staff={staff} standard={standardMaterials} />
+          <EventMaterials event={event} materials={materials} shifts={shifts} staff={staff} standard={standardMaterials} past={pastMaterials} canEditStandard={canEditStandard} />
           {!limited && <Budget event={event} costs={costs} costTypes={costTypes} />}
           <FilesCard event={event} files={files} />
         </div>

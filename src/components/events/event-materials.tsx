@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Copy, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Copy, History, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Card, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
-import { copyStandardMaterial, removeMaterial, saveMaterial, tickMaterial } from '@/server/event-actions';
-import type { EventMaterial, EventRow, EventShift, StaffCandidate } from '@/types/events';
+import { Card, Checkbox, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
+import { copyEventMaterial, copyStandardMaterial, removeMaterial, saveMaterial, tickMaterial } from '@/server/event-actions';
+import type { EventMaterial, EventRow, EventShift, PastMaterial, PastMaterialEvent, StaffCandidate } from '@/types/events';
 import { useEventLabels, useEventsLimited } from './event-parts';
 
 const qty = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, ''));
@@ -27,6 +27,8 @@ export function EventMaterials({
   shifts,
   staff,
   standard,
+  past,
+  canEditStandard,
 }: {
   event: EventRow;
   materials: EventMaterial[];
@@ -34,12 +36,18 @@ export function EventMaterials({
   staff: StaffCandidate[];
   /** The names on the kind's standard list. */
   standard: string[];
+  /** Material from the other events, to bring back. */
+  past: { things: PastMaterial[]; events: PastMaterialEvent[] };
+  /** Admin and owners may put a thing on the kind's standard list from here. */
+  canEditStandard: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
   const router = useRouter();
   const labels = useEventLabels();
   const limited = useEventsLimited();
   const [editing, setEditing] = useState<EventMaterial | 'new' | null>(null);
+  const [copying, setCopying] = useState(false);
+  const [showPast, setShowPast] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const canEdit = !limited && event.stage !== 'cancelled';
@@ -47,6 +55,8 @@ export function EventMaterials({
   const back = materials.filter((m) => m.came_back).length;
   const norm = (s: string) => s.trim().toLowerCase();
   const missing = standard.filter((s) => !materials.some((m) => norm(m.name) === norm(s))).length;
+  // Used at other events and not on this list yet.
+  const usedBefore = past.things.filter((p) => !materials.some((m) => norm(m.name) === norm(p.name)));
 
   // Who can bring something: the event's staff, each once.
   const people = [...new Map(shifts.map((s) => {
@@ -159,16 +169,116 @@ export function EventMaterials({
           {t('event.copyStandardMaterial', { count: missing })}
         </Button>
       )}
+      {canEdit && past.events.length > 0 && (
+        <Button size="sm" variant="ghost" className="mt-1.5" disabled={pending} onClick={() => setCopying(true)}>
+          <History className="h-3.5 w-3.5" aria-hidden />
+          {t('event.copyEventMaterial')}
+        </Button>
+      )}
+
+      {usedBefore.length > 0 && (
+        <div className="mt-2 border-t border-border pt-2">
+          <button
+            type="button"
+            className="flex items-center gap-1 text-[12px] font-medium text-muted hover:text-fg"
+            aria-expanded={showPast}
+            onClick={() => setShowPast((v) => !v)}
+          >
+            {showPast ? <ChevronDown className="h-3.5 w-3.5" aria-hidden /> : <ChevronRight className="h-3.5 w-3.5" aria-hidden />}
+            {t('event.materialsUsedBefore', { count: usedBefore.length })}
+          </button>
+          {showPast && (
+            <ul className="mt-1 divide-y divide-border text-[13px]">
+              {usedBefore.map((p) => (
+                <li key={p.name} className="flex items-start justify-between gap-2 py-1.5">
+                  <span className="min-w-0">
+                    <span className="break-words">
+                      {p.quantity !== null && <span className="tabular font-medium">{qty(p.quantity)} × </span>}
+                      {p.name}
+                    </span>
+                    <span className="block text-[12px] text-muted">
+                      {t('event.materialLastUsed', { event: p.event_name, date: formatDate(p.event_date, 'medium') })}
+                    </span>
+                  </span>
+                  {canEdit && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={pending}
+                      onClick={() => act(() => saveMaterial({ event_id: event.id, name: p.name, quantity: p.quantity }))}
+                    >
+                      <Plus className="h-3.5 w-3.5" aria-hidden />
+                      {t('event.materialAdd')}
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {editing && (
         <MaterialDialog
           event={event}
           material={editing === 'new' ? null : editing}
           people={people}
+          past={past.things}
+          standard={canEditStandard ? standard : null}
           onClose={() => setEditing(null)}
         />
       )}
+      {copying && <CopyDialog event={event} events={past.events} onClose={() => setCopying(false)} />}
     </Card>
+  );
+}
+
+/** Another event's list onto this one; what is already here stays as it is. */
+function CopyDialog({ event, events, onClose }: { event: EventRow; events: PastMaterialEvent[]; onClose: () => void }) {
+  const { t, formatDate } = useI18n();
+  const router = useRouter();
+  const labels = useEventLabels();
+  const [from, setFrom] = useState(events[0]?.id ?? '');
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function submit() {
+    if (!from) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await copyEventMaterial(event.id, from);
+      if (!res.ok) return setError(labels.error(res.error));
+      onClose();
+      router.refresh();
+    });
+  }
+
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={t('event.copyEventMaterial')}
+      description={t('event.copyEventMaterialHint')}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
+          <Button variant="primary" onClick={submit} loading={pending} disabled={!from}>{t('event.copyEventMaterialGo')}</Button>
+        </>
+      }
+    >
+      <div className="space-y-3.5">
+        {error && <ErrorState message={error} />}
+        <Field label={t('event.copyEventMaterialFrom')} htmlFor="event-material-from">
+          <Select id="event-material-from" value={from} onChange={(e) => setFrom(e.target.value)}>
+            {events.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name} · {formatDate(e.start_date, 'medium')} · {t('event.materialsCount', { count: e.count })}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
+    </Dialog>
   );
 }
 
@@ -176,11 +286,17 @@ function MaterialDialog({
   event,
   material,
   people,
+  past,
+  standard,
   onClose,
 }: {
   event: EventRow;
   material: EventMaterial | null;
   people: { key: string; name: string }[];
+  /** Things used at other events, offered while typing. */
+  past: PastMaterial[];
+  /** The kind's standard list, when the viewer may add to it; null otherwise. */
+  standard: string[] | null;
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -189,6 +305,16 @@ function MaterialDialog({
   const [name, setName] = useState(material?.name ?? '');
   const [amount, setAmount] = useState(material?.quantity?.toString() ?? '');
   const [bringer, setBringer] = useState(material ? keyOf(material) : '');
+  const [keep, setKeep] = useState(false);
+  const norm = (s: string) => s.trim().toLowerCase();
+  const offerStandard = standard !== null && !!name.trim() && !standard.some((s) => norm(s) === norm(name));
+
+  // Picking a thing used before brings its last quantity, unless one is typed already.
+  function pickName(value: string) {
+    setName(value);
+    const hit = past.find((p) => norm(p.name) === norm(value));
+    if (hit && hit.quantity !== null && amount.trim() === '') setAmount(String(hit.quantity));
+  }
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const number = amount.trim() === '' ? null : Number(amount.replace(',', '.'));
@@ -202,7 +328,7 @@ function MaterialDialog({
     startTransition(async () => {
       const [kind, id] = bringer.split(':') as ['profile' | 'worker', string];
       const res = await saveMaterial(
-        { event_id: event.id, name, quantity: number, bringer: bringer ? { kind, id } : null },
+        { event_id: event.id, name, quantity: number, bringer: bringer ? { kind, id } : null, standard: offerStandard && keep },
         material?.id,
       );
       if (!res.ok) return setError(labels.error(res.error));
@@ -227,7 +353,18 @@ function MaterialDialog({
       <div className="space-y-3.5">
         {error && <ErrorState message={error} />}
         <Field label={t('event.materialName')} required htmlFor="event-material-name">
-          <Input id="event-material-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('event.materialPlaceholder')} autoFocus />
+          <Input
+            id="event-material-name"
+            list="event-material-past"
+            value={name}
+            onChange={(e) => pickName(e.target.value)}
+            placeholder={t('event.materialPlaceholder')}
+            autoComplete="off"
+            autoFocus
+          />
+          <datalist id="event-material-past">
+            {past.map((p) => <option key={p.name} value={p.name} />)}
+          </datalist>
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('event.materialQuantity')} htmlFor="event-material-qty">
@@ -240,6 +377,14 @@ function MaterialDialog({
             </Select>
           </Field>
         </div>
+        {offerStandard && (
+          <Checkbox
+            label={t('event.materialKeepStandard')}
+            hint={t('event.materialKeepStandardHint')}
+            checked={keep}
+            onChange={(e) => setKeep(e.target.checked)}
+          />
+        )}
       </div>
     </Dialog>
   );

@@ -292,13 +292,15 @@ const materialSchema = z.object({
   name: z.string().trim().min(1, { message: 'name_required' }).max(200),
   quantity,
   bringer: z.object({ kind: z.enum(['profile', 'worker']), id: uuid }).nullable().optional().transform((v) => v ?? null),
+  /** Also onto the kind's standard list (RLS: is_admin), unless it is there already. */
+  standard: z.boolean().optional().default(false),
 });
 
 /** A thing the stand needs: how many, and who brings it. */
 export async function saveMaterial(input: z.input<typeof materialSchema>, id?: string): Promise<ActionResult> {
   const parsed = materialSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_material' };
-  const { bringer, ...v } = parsed.data;
+  const { bringer, standard, ...v } = parsed.data;
   const row = {
     ...v,
     bringer_profile: bringer?.kind === 'profile' ? bringer.id : null,
@@ -310,6 +312,20 @@ export async function saveMaterial(input: z.input<typeof materialSchema>, id?: s
     : await supabase.from('event_materials').insert(row).select('id');
   if (error) return fail(error);
   if (!data?.length) return { ok: false, error: 'not_authorized' };
+  if (standard) {
+    const { data: event } = await supabase.from('events').select('kind_id').eq('id', v.event_id).maybeSingle();
+    if (event?.kind_id) {
+      const { data: list, error: listError } = await supabase.from('event_kind_materials').select('name').eq('kind_id', event.kind_id);
+      if (listError) return fail(listError);
+      if (!(list ?? []).some((m) => m.name.trim().toLowerCase() === v.name.toLowerCase())) {
+        const { error: kindError } = await supabase
+          .from('event_kind_materials')
+          .insert({ kind_id: event.kind_id, name: v.name, quantity: v.quantity });
+        if (kindError) return fail(kindError);
+        revalidatePath('/admin/events');
+      }
+    }
+  }
   revalidateEvent(v.event_id);
   return { ok: true, data: undefined };
 }
@@ -340,6 +356,30 @@ export async function copyStandardMaterial(eventId: string): Promise<ActionResul
   if (error) return fail(error);
   revalidateEvent(eventId);
   return { ok: true, data: { added: (data as number) ?? 0 } };
+}
+
+/** Another event's material onto this one: what and how many; who brings it and the ticks start over. */
+export async function copyEventMaterial(eventId: string, fromEventId: string): Promise<ActionResult<{ added: number }>> {
+  if (!uuid.safeParse(eventId).success || !uuid.safeParse(fromEventId).success || eventId === fromEventId) {
+    return { ok: false, error: 'invalid_material' };
+  }
+  const supabase = createClient();
+  const [{ data: from, error: fromError }, { data: has, error: hasError }] = await Promise.all([
+    supabase.from('event_materials').select('name, quantity, sort_order').eq('event_id', fromEventId).order('sort_order').order('created_at'),
+    supabase.from('event_materials').select('name').eq('event_id', eventId),
+  ]);
+  if (fromError) return fail(fromError);
+  if (hasError) return fail(hasError);
+  const taken = new Set((has ?? []).map((m) => m.name.trim().toLowerCase()));
+  const rows = (from ?? [])
+    .filter((m) => !taken.has(m.name.trim().toLowerCase()))
+    .map((m) => ({ event_id: eventId, name: m.name, quantity: m.quantity, sort_order: m.sort_order }));
+  if (rows.length) {
+    const { error } = await supabase.from('event_materials').insert(rows);
+    if (error) return fail(error);
+  }
+  revalidateEvent(eventId);
+  return { ok: true, data: { added: rows.length } };
 }
 
 /* --------------------------------- budget -------------------------------- */
