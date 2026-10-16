@@ -78,7 +78,7 @@ export function ProductionOverview({ open, made, today }: { open: OpenProduction
                   const reason = short ? m.shortfall_reason : null;
                   return (
                     <tr key={m.occurrence_id} className="align-top">
-                      <td className="whitespace-nowrap px-3 py-2 tabular text-muted">{formatDate(m.due, 'short')}</td>
+                      <td className="whitespace-nowrap px-3 py-2 tabular text-muted">{formatDate(m.due, 'medium')}</td>
                       <td className="px-3 py-2">
                         {m.product_name}
                         {(reason || m.shortfall_note) && (
@@ -92,7 +92,7 @@ export function ProductionOverview({ open, made, today }: { open: OpenProduction
                       <td className={cn('whitespace-nowrap px-3 py-2 text-right font-semibold tabular', short ? 'text-warn' : 'text-done')}>
                         {qty(Number(m.produced_quantity))} / {qty(Number(m.target_quantity))}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 tabular">{m.best_before ? formatDate(m.best_before, 'short') : '—'}</td>
+                      <td className="whitespace-nowrap px-3 py-2 tabular">{m.best_before ? formatDate(m.best_before, 'medium') : '—'}</td>
                       <td className="px-3 py-2 text-muted">{m.recorded_by_name ?? '—'}</td>
                     </tr>
                   );
