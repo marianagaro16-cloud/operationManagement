@@ -284,6 +284,64 @@ export async function removeShift(id: string, eventId: string): Promise<ActionRe
   return { ok: true, data: undefined };
 }
 
+/* -------------------------------- material ------------------------------- */
+
+const quantity = z.number().positive({ message: 'invalid_quantity' }).max(1_000_000).nullable().optional().transform((v) => v ?? null);
+const materialSchema = z.object({
+  event_id: uuid,
+  name: z.string().trim().min(1, { message: 'name_required' }).max(200),
+  quantity,
+  bringer: z.object({ kind: z.enum(['profile', 'worker']), id: uuid }).nullable().optional().transform((v) => v ?? null),
+});
+
+/** A thing the stand needs: how many, and who brings it. */
+export async function saveMaterial(input: z.input<typeof materialSchema>, id?: string): Promise<ActionResult> {
+  const parsed = materialSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_material' };
+  const { bringer, ...v } = parsed.data;
+  const row = {
+    ...v,
+    bringer_profile: bringer?.kind === 'profile' ? bringer.id : null,
+    bringer_worker: bringer?.kind === 'worker' ? bringer.id : null,
+  };
+  const supabase = createClient();
+  const { data, error } = id
+    ? await supabase.from('event_materials').update(row).eq('id', id).eq('event_id', v.event_id).select('id')
+    : await supabase.from('event_materials').insert(row).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidateEvent(v.event_id);
+  return { ok: true, data: undefined };
+}
+
+/** Ticked as packed before the event, or as back after it. */
+export async function tickMaterial(id: string, eventId: string, field: 'packed' | 'came_back', value: boolean): Promise<ActionResult> {
+  if (!uuid.safeParse(id).success || (field !== 'packed' && field !== 'came_back')) return { ok: false, error: 'invalid_material' };
+  const supabase = createClient();
+  const { data, error } = await supabase.from('event_materials').update({ [field]: value }).eq('id', id).eq('event_id', eventId).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidateEvent(eventId);
+  return { ok: true, data: undefined };
+}
+
+export async function removeMaterial(id: string, eventId: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { error } = await supabase.from('event_materials').delete().eq('id', id).eq('event_id', eventId);
+  if (error) return fail(error);
+  revalidateEvent(eventId);
+  return { ok: true, data: undefined };
+}
+
+/** The kind's standard material onto the event, leaving out what it already has. */
+export async function copyStandardMaterial(eventId: string): Promise<ActionResult<{ added: number }>> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('event_copy_kind_materials', { p_event_id: eventId });
+  if (error) return fail(error);
+  revalidateEvent(eventId);
+  return { ok: true, data: { added: (data as number) ?? 0 } };
+}
+
 /* --------------------------------- budget -------------------------------- */
 
 const money = z.number().min(0).max(10_000_000).nullable().optional().transform((v) => v ?? null);
@@ -494,6 +552,34 @@ export async function saveKindTask(input: z.input<typeof kindTaskSchema>, id?: s
 export async function removeKindTask(id: string): Promise<ActionResult> {
   const supabase = createClient();
   const { error } = await supabase.from('event_kind_tasks').delete().eq('id', id);
+  if (error) return fail(error);
+  revalidatePath('/admin/events');
+  return { ok: true, data: undefined };
+}
+
+const kindMaterialSchema = z.object({
+  kind_id: uuid,
+  name: z.string().trim().min(1, { message: 'name_required' }).max(200),
+  quantity,
+  sort_order: z.number().int().default(100),
+});
+
+/** A kind's standard material (RLS: is_admin). */
+export async function saveKindMaterial(input: z.input<typeof kindMaterialSchema>, id?: string): Promise<ActionResult> {
+  const parsed = kindMaterialSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_material' };
+  const supabase = createClient();
+  const { error } = id
+    ? await supabase.from('event_kind_materials').update(parsed.data).eq('id', id)
+    : await supabase.from('event_kind_materials').insert(parsed.data);
+  if (error) return fail(error);
+  revalidatePath('/admin/events');
+  return { ok: true, data: undefined };
+}
+
+export async function removeKindMaterial(id: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { error } = await supabase.from('event_kind_materials').delete().eq('id', id);
   if (error) return fail(error);
   revalidatePath('/admin/events');
   return { ok: true, data: undefined };

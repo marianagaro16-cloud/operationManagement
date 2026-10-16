@@ -10,8 +10,8 @@ import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { localizedName } from '@/lib/localized-content';
-import { removeKindTask, saveEventEntry, saveKindTask } from '@/server/event-actions';
-import type { EventKindTask, EventListEntry } from '@/types/events';
+import { removeKindMaterial, removeKindTask, saveEventEntry, saveKindMaterial, saveKindTask } from '@/server/event-actions';
+import type { EventKindMaterial, EventKindTask, EventListEntry } from '@/types/events';
 
 type List = 'kinds' | 'cost_types';
 
@@ -22,15 +22,18 @@ type List = 'kinds' | 'cost_types';
 export function EventsConfig({
   kinds,
   kindTasks,
+  kindMaterials,
   costTypes,
 }: {
   kinds: EventListEntry[];
   kindTasks: EventKindTask[];
+  kindMaterials: EventKindMaterial[];
   costTypes: EventListEntry[];
 }) {
   const { t, locale } = useI18n();
   const [editing, setEditing] = useState<{ list: List; row: EventListEntry | null } | null>(null);
   const [task, setTask] = useState<{ kindId: string; row: EventKindTask | null } | null>(null);
+  const [material, setMaterial] = useState<{ kindId: string; row: EventKindMaterial | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -113,6 +116,44 @@ export function EventsConfig({
                     </Button>
                   </li>
                 </ul>
+                <p className="border-t border-border px-3.5 pb-0.5 pt-2 text-[11.5px] font-semibold uppercase tracking-wide text-muted">
+                  {t('event.standardMaterial')}
+                </p>
+                <ul className="divide-y divide-border">
+                  {kindMaterials.filter((m) => m.kind_id === k.id).map((m) => (
+                    <li key={m.id} className="flex items-center gap-3 py-1.5 pl-6 pr-3.5">
+                      <p className="min-w-0 flex-1 break-words text-[13px]">
+                        {m.quantity !== null && <span className="tabular font-medium">{m.quantity} × </span>}
+                        {m.name}
+                      </p>
+                      <Button size="icon" variant="ghost" aria-label={t('common.edit')} onClick={() => setMaterial({ kindId: k.id, row: m })}>
+                        <Pencil className="h-3.5 w-3.5" aria-hidden />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label={t('common.delete')}
+                        disabled={pending}
+                        onClick={() => {
+                          setError(null);
+                          startTransition(async () => {
+                            const res = await removeKindMaterial(m.id);
+                            if (!res.ok) return setError(res.error === 'not_authorized' ? t('hr.errNotAuthorized') : res.error);
+                            router.refresh();
+                          });
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                      </Button>
+                    </li>
+                  ))}
+                  <li className="py-1 pl-4 pr-3.5">
+                    <Button size="sm" variant="ghost" onClick={() => setMaterial({ kindId: k.id, row: null })}>
+                      <Plus className="h-3.5 w-3.5" aria-hidden />
+                      {t('event.addStandardMaterial')}
+                    </Button>
+                  </li>
+                </ul>
               </Card>
             );
           })}
@@ -138,7 +179,61 @@ export function EventsConfig({
 
       {editing && <EntryDialog list={editing.list} row={editing.row} onClose={() => setEditing(null)} />}
       {task && <KindTaskDialog kindId={task.kindId} row={task.row} onClose={() => setTask(null)} />}
+      {material && <KindMaterialDialog kindId={material.kindId} row={material.row} onClose={() => setMaterial(null)} />}
     </>
+  );
+}
+
+function KindMaterialDialog({ kindId, row, onClose }: { kindId: string; row: EventKindMaterial | null; onClose: () => void }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [name, setName] = useState(row?.name ?? '');
+  const [amount, setAmount] = useState(row?.quantity?.toString() ?? '');
+  const [sortOrder, setSortOrder] = useState(String(row?.sort_order ?? 100));
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const number = amount.trim() === '' ? null : Number(amount.replace(',', '.'));
+  const ready = !!name.trim() && (number === null || (Number.isFinite(number) && number > 0));
+
+  function submit() {
+    if (!ready) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await saveKindMaterial({ kind_id: kindId, name, quantity: number, sort_order: Number(sortOrder) || 100 }, row?.id);
+      if (!res.ok) return setError(res.error === 'not_authorized' ? t('hr.errNotAuthorized') : res.error);
+      onClose();
+      router.refresh();
+    });
+  }
+
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={row ? t('common.edit') : t('event.addStandardMaterial')}
+      description={t('event.standardMaterialHint')}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
+          <Button variant="primary" onClick={submit} loading={pending} disabled={!ready}>{t('common.save')}</Button>
+        </>
+      }
+    >
+      <div className="space-y-3.5">
+        {error && <ErrorState message={error} />}
+        <Field label={t('event.materialName')} required htmlFor="kind-material-name">
+          <Input id="kind-material-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('event.materialPlaceholder')} autoFocus />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t('event.materialQuantity')} htmlFor="kind-material-qty">
+            <Input id="kind-material-qty" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          </Field>
+          <Field label={t('hr.sortOrder')} htmlFor="kind-material-order">
+            <Input id="kind-material-order" type="number" inputMode="numeric" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
+          </Field>
+        </div>
+      </div>
+    </Dialog>
   );
 }
 

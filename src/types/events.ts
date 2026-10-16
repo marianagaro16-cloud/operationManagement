@@ -118,6 +118,27 @@ export interface EventShift {
   note: string | null;
 }
 
+/** A kind's standard material, copied into each new event of that kind. */
+export interface EventKindMaterial {
+  id: string;
+  kind_id: string;
+  name: string;
+  quantity: number | null;
+  sort_order: number;
+}
+
+/** What the stand needs that is not for sale: chairs, terminal, flyers… */
+export interface EventMaterial {
+  id: string;
+  name: string;
+  quantity: number | null;
+  bringer_profile: string | null;
+  bringer_worker: string | null;
+  packed: boolean;
+  came_back: boolean;
+  sort_order: number;
+}
+
 export interface EventCost {
   id: string;
   type_id: string;

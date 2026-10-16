@@ -5,7 +5,9 @@ import type {
   EventContact,
   EventCost,
   EventFile,
+  EventKindMaterial,
   EventKindTask,
+  EventMaterial,
   EventNote,
   EventListEntry,
   EventOrder,
@@ -54,6 +56,7 @@ export interface EventView {
   tasks: SalesActivity[];
   shifts: EventShift[];
   costs: EventCost[];
+  materials: EventMaterial[];
   order: EventOrder | null;
   products: EventProduct[];
   returns: EventReturn[];
@@ -88,12 +91,13 @@ export async function getEvent(id: string): Promise<EventView | null> {
   const workerName = new Map(workers.filter((w) => w.kind === 'worker').map((w) => [w.id, w.name]));
 
   const event = toEvent(data);
-  const [{ order, products }, returns, notes, files, contacts] = await Promise.all([
+  const [{ order, products }, returns, notes, files, contacts, materials] = await Promise.all([
     getEventProducts(event),
     getEventReturns(id),
     getEventNotes(id),
     getEventFiles(id),
     getEventContacts(id),
+    getEventMaterials(id),
   ]);
 
   type RawShift = Omit<EventShift, 'person_name'> & { profile: { name: string | null; email: string } | null };
@@ -105,6 +109,7 @@ export async function getEvent(id: string): Promise<EventView | null> {
     notes,
     files,
     contacts,
+    materials,
     tasks,
     shifts: ((shifts ?? []) as unknown as RawShift[]).map(({ profile, ...s }) => ({
       ...s,
@@ -131,10 +136,11 @@ export async function getStaffCandidates(): Promise<StaffCandidate[]> {
   ];
 }
 
-/** Admin's lists: event kinds with their standard tasks, and cost types. */
+/** Admin's lists: event kinds with their standard tasks and material, and cost types. */
 export async function getEventLists(includeInactive = false): Promise<{
   kinds: EventListEntry[];
   kindTasks: EventKindTask[];
+  kindMaterials: EventKindMaterial[];
   costTypes: EventListEntry[];
 }> {
   const supabase = createClient();
@@ -143,7 +149,12 @@ export async function getEventLists(includeInactive = false): Promise<{
     if (!includeInactive) q = q.eq('is_active', true);
     return q;
   };
-  const [{ data: kinds, error }, { data: costTypes, error: costError }, { data: kindTasks, error: taskError }] = await Promise.all([
+  const [
+    { data: kinds, error },
+    { data: costTypes, error: costError },
+    { data: kindTasks, error: taskError },
+    { data: kindMaterials, error: materialError },
+  ] = await Promise.all([
     read('event_kinds'),
     read('event_cost_types'),
     supabase
@@ -151,13 +162,16 @@ export async function getEventLists(includeInactive = false): Promise<{
       .select('id, kind_id, title, translations, anchor, days, sort_order')
       .order('sort_order')
       .order('days'),
+    supabase.from('event_kind_materials').select('id, kind_id, name, quantity, sort_order').order('sort_order').order('name'),
   ]);
   if (error) throw new Error(error.message);
   if (costError) throw new Error(costError.message);
   if (taskError) throw new Error(taskError.message);
+  if (materialError) throw new Error(materialError.message);
   return {
     kinds: (kinds ?? []) as EventListEntry[],
     kindTasks: (kindTasks ?? []) as EventKindTask[],
+    kindMaterials: (kindMaterials ?? []).map((m) => ({ ...m, quantity: m.quantity === null ? null : Number(m.quantity) })),
     costTypes: (costTypes ?? []) as EventListEntry[],
   };
 }
@@ -254,6 +268,18 @@ async function getEventFiles(eventId: string): Promise<EventFile[]> {
     for (const s of signed ?? []) if (s.path && s.signedUrl) urls.set(s.path, s.signedUrl);
   }
   return rows.map(({ storage_path, ...f }) => ({ ...f, url: urls.get(storage_path) ?? null }));
+}
+
+async function getEventMaterials(eventId: string): Promise<EventMaterial[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('event_materials')
+    .select('id, name, quantity, bringer_profile, bringer_worker, packed, came_back, sort_order')
+    .eq('event_id', eventId)
+    .order('sort_order')
+    .order('created_at');
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((m) => ({ ...m, quantity: m.quantity === null ? null : Number(m.quantity) }));
 }
 
 async function getEventContacts(eventId: string): Promise<EventContact[]> {

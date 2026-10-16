@@ -33,6 +33,7 @@ import type {
   EventCost,
   EventFile,
   EventListEntry,
+  EventMaterial,
   EventNote,
   EventOrder,
   EventProduct,
@@ -46,6 +47,7 @@ import { StageBadge, chf, useEventLabels, useEventsLimited, useEventsReadOnly } 
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { EventDialog, type EventChoices } from './event-dialog';
 import { EventProducts, deliveryDateOf } from './event-products';
+import { EventMaterials } from './event-materials';
 
 type Busy = (fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) => void;
 
@@ -55,6 +57,8 @@ export function EventView({
   tasks,
   shifts,
   costs,
+  materials,
+  standardMaterials,
   order,
   products,
   returns,
@@ -72,6 +76,9 @@ export function EventView({
   tasks: SalesActivity[];
   shifts: EventShift[];
   costs: EventCost[];
+  materials: EventMaterial[];
+  /** The names on the event kind's standard material list. */
+  standardMaterials: string[];
   order: EventOrder | null;
   products: EventProduct[];
   returns: EventReturn[];
@@ -212,6 +219,7 @@ export function EventView({
         </div>
         <div className="space-y-4">
           <EventProducts event={event} order={order} products={products} returns={returns} catalog={catalog} methods={methods} />
+          <EventMaterials event={event} materials={materials} shifts={shifts} staff={staff} standard={standardMaterials} />
           {!limited && <Budget event={event} costs={costs} costTypes={costTypes} />}
           <FilesCard event={event} files={files} />
         </div>

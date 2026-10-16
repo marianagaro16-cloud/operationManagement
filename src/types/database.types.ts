@@ -1482,6 +1482,38 @@ export type Database = {
           },
         ]
       }
+      event_kind_materials: {
+        Row: {
+          id: string
+          kind_id: string
+          name: string
+          quantity: number | null
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          kind_id: string
+          name: string
+          quantity?: number | null
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          kind_id?: string
+          name?: string
+          quantity?: number | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_kind_materials_kind_id_fkey"
+            columns: ["kind_id"]
+            isOneToOne: false
+            referencedRelation: "event_kinds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_kind_tasks: {
         Row: {
           anchor: string
@@ -1549,6 +1581,90 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      event_material_notices: {
+        Row: {
+          event_id: string
+          sent_at: string
+        }
+        Insert: {
+          event_id: string
+          sent_at?: string
+        }
+        Update: {
+          event_id?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_material_notices_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_materials: {
+        Row: {
+          bringer_profile: string | null
+          bringer_worker: string | null
+          came_back: boolean
+          created_at: string
+          event_id: string
+          id: string
+          name: string
+          packed: boolean
+          quantity: number | null
+          sort_order: number
+        }
+        Insert: {
+          bringer_profile?: string | null
+          bringer_worker?: string | null
+          came_back?: boolean
+          created_at?: string
+          event_id: string
+          id?: string
+          name: string
+          packed?: boolean
+          quantity?: number | null
+          sort_order?: number
+        }
+        Update: {
+          bringer_profile?: string | null
+          bringer_worker?: string | null
+          came_back?: boolean
+          created_at?: string
+          event_id?: string
+          id?: string
+          name?: string
+          packed?: boolean
+          quantity?: number | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_materials_bringer_profile_fkey"
+            columns: ["bringer_profile"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_materials_bringer_worker_fkey"
+            columns: ["bringer_worker"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_materials_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       event_notes: {
         Row: {
@@ -11419,6 +11535,10 @@ export type Database = {
         Returns: string
       }
       event_confirm: { Args: { p_event_id: string }; Returns: number }
+      event_copy_kind_materials: {
+        Args: { p_event_id: string }
+        Returns: number
+      }
       event_customer_id: { Args: never; Returns: string }
       event_make_order: { Args: { p_event_id: string }; Returns: string }
       event_set_delivery: {

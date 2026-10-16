@@ -53,6 +53,25 @@ select pg_temp.cannot('marketing request: a plain user may not', 'user',
 select pg_temp.cannot('marketing request: the production manager may not', 'pm',
   $$insert into public.marketing_requests (title, requested_by) values ('ZZ request', auth.uid())$$);
 
+-- Event material: the kind's standard list is copied into a new event; Sales keeps the list.
+insert into public.event_kind_materials (kind_id, name, quantity)
+values ((select id from public.event_kinds order by sort_order limit 1), 'ZZ standard chair', 4);
+insert into public.events (kind_id, name, start_date, end_date, owner_id, created_by)
+values ((select id from public.event_kinds order by sort_order limit 1), 'ZZ event', current_date + 7, current_date + 7, pg_temp.id('seller'), pg_temp.id('seller'));
+select pg_temp.check('event material: a new event gets the standard list',
+  exists (select 1 from public.event_materials m join public.events e on e.id = m.event_id where e.name = 'ZZ event' and m.name = 'ZZ standard chair'));
+select pg_temp.can('event material: Ventas adds a thing', 'seller',
+  $$insert into public.event_materials (event_id, name) select id, 'ZZ terminal' from public.events where name = 'ZZ event'$$);
+select pg_temp.can('event material: Ventas ticks it packed', 'seller',
+  $$update public.event_materials set packed = true where name = 'ZZ terminal'$$);
+select pg_temp.hidden('event material: not a plain user', 'user', $$select 1 from public.event_materials where name = 'ZZ terminal'$$);
+select pg_temp.cannot('event material: the production manager may not tick it', 'pm',
+  $$update public.event_materials set came_back = true where name = 'ZZ terminal'$$);
+select pg_temp.cannot('event material: Ventas does not change the standard list', 'seller',
+  $$insert into public.event_kind_materials (kind_id, name) select id, 'ZZ sneaky' from public.event_kinds limit 1$$);
+select pg_temp.can('event material: admin changes the standard list', 'admin',
+  $$update public.event_kind_materials set quantity = 6 where name = 'ZZ standard chair'$$);
+
 -- Merch
 select pg_temp.can('merch: Ventas adds an item', 'seller', $$insert into public.merch_items (name) values ('ZZ pen')$$);
 select pg_temp.can('merch: a power user adds an item', 'pu_ops', $$insert into public.merch_items (name) values ('ZZ pen 2')$$);
