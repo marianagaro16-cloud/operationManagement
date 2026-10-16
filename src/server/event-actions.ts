@@ -8,7 +8,6 @@ import { BUSINESS_TZ } from '@/lib/datetime';
 import { geocodeAddress } from './geocode';
 import { sendToUser } from './push';
 import type { ActionResult } from './actions';
-import { saveProspect } from './sales-actions';
 import { EVENT_ALLOWED_MIME, EVENT_BUCKET, EVENT_MAX_BYTES } from '@/lib/events';
 
 /*
@@ -505,37 +504,34 @@ const contactSchema = z.object({
   email: text(200),
   interest: text(2000),
   follow_up: DATE,
+  /** Who in sales follows it up. */
+  follower: uuid,
 });
 
 /**
- * Someone met at the event becomes a prospect of the event's responsible
- * person — source Feria, linked to the event — with a follow-up call planned.
+ * Someone met at the event becomes a prospect of someone in sales — source
+ * Feria, linked to the event — with a follow-up call planned (RPC: Sales and
+ * Marketing).
  */
 export async function addEventContact(eventId: string, input: z.input<typeof contactSchema>): Promise<ActionResult<{ id: string }>> {
   const parsed = contactSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_contact' };
+  const v = parsed.data;
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const [{ data: event }, { data: source }, { data: call }] = await Promise.all([
-    supabase.from('events').select('owner_id').eq('id', eventId).maybeSingle(),
-    supabase.from('prospect_sources').select('id').eq('slug', 'fair').maybeSingle(),
-    supabase.from('sales_activity_kinds').select('id').eq('slug', 'call').maybeSingle(),
-  ]);
-  if (!event || !call) return { ok: false, error: 'not_authorized' };
-  const owner = event.owner_id ?? user?.id;
-  if (!owner) return { ok: false, error: 'owner_required' };
-
-  const { follow_up, ...contact } = parsed.data;
-  const res = await saveProspect(
-    { ...contact, source_id: source?.id ?? null, stage: 'new', owner_id: owner },
-    undefined,
-    { kind_id: call.id, activity_date: follow_up },
-  );
-  if (!res.ok) return res;
-  const { error } = await supabase.from('prospects').update({ event_id: eventId }).eq('id', res.data.id);
+  const { data, error } = await supabase.rpc('event_add_contact', {
+    p_event_id: eventId,
+    p_company_name: v.company_name,
+    p_contact_name: v.contact_name ?? '',
+    p_phone: v.phone ?? '',
+    p_email: v.email ?? '',
+    p_interest: v.interest ?? '',
+    p_follow_up: v.follow_up,
+    p_follower: v.follower,
+  });
   if (error) return fail(error);
   revalidateEvent(eventId);
-  return { ok: true, data: res.data };
+  revalidatePath('/sales', 'layout');
+  return { ok: true, data: { id: data as string } };
 }
 
 /* ----------------------------- Admin's lists ----------------------------- */

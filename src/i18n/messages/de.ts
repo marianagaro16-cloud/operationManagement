@@ -2589,6 +2589,8 @@ export const de: Messages = {
     contactsIdea: 'Kontakte werden erfasst, sobald der Anlass bestätigt ist.',
     addContact: 'Kontakt',
     contactHint: 'Wird ein Interessent von {name}, Quelle Messe, mit geplantem Nachfass-Anruf.',
+    contactHintPick: 'Wird ein Interessent der Person, die nachfasst, Quelle Messe, mit einem geplanten Nachfassanruf für sie.',
+    contactFollower: 'Wer nachfasst',
     contactCompany: 'Firma oder Name',
     followUp: 'Nachfass-Anruf',
     followUpHint: 'In der Planung der verantwortlichen Person',

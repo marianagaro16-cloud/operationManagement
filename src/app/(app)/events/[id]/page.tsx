@@ -14,32 +14,32 @@ export const dynamic = 'force-dynamic';
 
 export default async function EventPage({ params }: { params: { id: string } }) {
   const viewer = await getViewer();
-  // Sales, Admin and Owners; Marketing too, without contacts, budget and products, ticking only its own tasks.
+  // Sales, Admin and Owners; Marketing too, alike.
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   if (!viewer || !(sales || isMarketing(viewer.profile.team))) redirect('/dashboard');
 
-  const [found, { kinds, costTypes, kindMaterials }, people, customers, staff, catalog, methods, pastMaterials, taskPeople] = await Promise.all([
+  const [found, { kinds, costTypes, kindMaterials }, people, customers, staff, catalog, methods, pastMaterials, salesPeople] = await Promise.all([
     getEvent(params.id),
     getEventLists(true),
-    getSalesPeople(),
+    getEventTaskPeople(),
     getEventCustomers(),
     getStaffCandidates(),
     getProducts(true),
     getDeliveryMethods(true),
     getPastMaterials(params.id),
-    getEventTaskPeople(),
+    getSalesPeople(),
   ]);
   // The content plan's posts about this event; RLS returns none to whoever cannot read the plan.
   const posts = found ? await getEventPosts(params.id) : [];
   if (!found) notFound();
 
   return (
-    <EventsReadOnlyProvider readOnly={false} limited={!sales}>
+    <EventsReadOnlyProvider readOnly={false} sales={sales}>
       <EventView
         {...found}
         standardMaterials={kindMaterials.filter((m) => m.kind_id === found.event.kind_id).map((m) => m.name)}
         pastMaterials={pastMaterials}
-        taskPeople={taskPeople}
+        salesPeople={salesPeople}
         canEditStandard={isAdminRole(viewer.role)}
         choices={{ kinds, people, customers, viewerId: viewer.profile.id }}
         staff={staff}

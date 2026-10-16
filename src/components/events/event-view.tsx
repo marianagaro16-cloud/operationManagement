@@ -45,7 +45,7 @@ import type {
   StaffCandidate,
 } from '@/types/events';
 import { ContactsCard, FilesCard, NotesCard, ResultsCard, ResultsDialog, hasResults } from './event-after';
-import { StageBadge, chf, useEventLabels, useEventsLimited, useEventsReadOnly } from './event-parts';
+import { StageBadge, chf, useEventLabels, useEventsLimited, useEventsReadOnly, useEventsSales } from './event-parts';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { EventDialog, type EventChoices } from './event-dialog';
 import { EventProducts, deliveryDateOf } from './event-products';
@@ -63,7 +63,7 @@ export function EventView({
   standardMaterials,
   pastMaterials,
   canEditStandard,
-  taskPeople,
+  salesPeople,
   order,
   products,
   returns,
@@ -88,8 +88,8 @@ export function EventView({
   pastMaterials: { things: PastMaterial[]; events: PastMaterialEvent[] };
   /** Admin and owners may put a thing on the kind's standard list from here. */
   canEditStandard: boolean;
-  /** Who a task may go to: sales people and Marketing. */
-  taskPeople: { id: string; name: string }[];
+  /** Who may follow up a contact: people in sales. */
+  salesPeople: { id: string; name: string }[];
   order: EventOrder | null;
   products: EventProduct[];
   returns: EventReturn[];
@@ -116,6 +116,7 @@ export function EventView({
   const [pending, startTransition] = useTransition();
   const readOnly = useEventsReadOnly();
   const limited = useEventsLimited();
+  const salesLinks = useEventsSales();
   const live = !readOnly && (event.stage === 'idea' || event.stage === 'confirmed');
 
   const run: Busy = (fn, after) => {
@@ -172,7 +173,9 @@ export function EventView({
           )}
           {event.customer_id && (
             <Detail label={t('event.customer')}>
-              <Link href={`/sales/customers/${event.customer_id}`} className="hover:text-accent">{event.customer_name}</Link>
+              {salesLinks
+                ? <Link href={`/sales/customers/${event.customer_id}`} className="hover:text-accent">{event.customer_name}</Link>
+                : event.customer_name}
             </Detail>
           )}
           <Detail label={t('event.owner')}>
@@ -223,8 +226,8 @@ export function EventView({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
-          <Tasks event={event} tasks={tasks} people={taskPeople} viewerId={choices.viewerId} today={today} live={live} />
-          {!limited && <ContactsCard event={event} contacts={contacts} today={today} />}
+          <Tasks event={event} tasks={tasks} people={choices.people} viewerId={choices.viewerId} today={today} live={live} />
+          {!limited && <ContactsCard event={event} contacts={contacts} today={today} followers={salesPeople} />}
           <Staff event={event} shifts={shifts} staff={staff} live={live} />
           <NotesCard event={event} notes={notes} />
         </div>

@@ -23,7 +23,6 @@ select pg_temp.hidden('external: no absences', 'ext', 'select 1 from public.abse
 select pg_temp.hidden('external: no HR files', 'ext', 'select 1 from public.hr_workers');
 select pg_temp.hidden('external: no collection cases', 'ext', 'select 1 from public.collection_cases');
 select pg_temp.hidden('external: no customer notes', 'ext', 'select 1 from public.customer_notes');
-select pg_temp.hidden('external: no event costs', 'ext', 'select 1 from public.event_costs');
 select pg_temp.hidden('external: no merch items', 'ext', 'select 1 from public.merch_items');
 select pg_temp.hidden('external: no work schedule', 'ext', 'select 1 from public.schedule_blocks');
 

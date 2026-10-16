@@ -65,15 +65,27 @@ export function chf(amount: number | null): string {
 }
 
 /**
- * Who works on events, and how far. Sales does everything. Marketing edits
- * the event — details, stage, staff, results, notes and photos — but the
- * tasks and contacts (sales planning and prospects), the budget and the
- * products (an order) stay with Sales: "limited". Read-only shows no editing
- * at all. The database holds the same lines.
+ * Who works on events, and how far. Sales and Marketing do everything on an
+ * event (2026-10-16); "limited" is left for a viewer who may not change the
+ * tasks, contacts, budget and products. Only Sales opens the sales and order
+ * pages an event links to ("sales"). Read-only shows no editing at all. The
+ * database holds the same lines.
  */
-const Access = createContext({ readOnly: false, limited: false });
-export function EventsReadOnlyProvider({ readOnly, limited = false, children }: { readOnly: boolean; limited?: boolean; children: ReactNode }) {
-  return <Access.Provider value={{ readOnly, limited: limited || readOnly }}>{children}</Access.Provider>;
+const Access = createContext({ readOnly: false, limited: false, sales: true });
+export function EventsReadOnlyProvider({
+  readOnly,
+  limited = false,
+  sales = true,
+  children,
+}: {
+  readOnly: boolean;
+  limited?: boolean;
+  sales?: boolean;
+  children: ReactNode;
+}) {
+  return <Access.Provider value={{ readOnly, limited: limited || readOnly, sales }}>{children}</Access.Provider>;
 }
 export const useEventsReadOnly = () => useContext(Access).readOnly;
 export const useEventsLimited = () => useContext(Access).limited;
+/** Whether the viewer may open the sales and order pages an event links to. */
+export const useEventsSales = () => useContext(Access).sales;

@@ -11530,6 +11530,19 @@ export type Database = {
         }
       }
       covering_for: { Args: { p_profile_id: string }; Returns: boolean }
+      event_add_contact: {
+        Args: {
+          p_company_name: string
+          p_contact_name: string
+          p_email: string
+          p_event_id: string
+          p_follow_up: string
+          p_follower: string
+          p_interest: string
+          p_phone: string
+        }
+        Returns: string
+      }
       event_cancel: {
         Args: { p_event_id: string; p_reason: string }
         Returns: string
@@ -11541,6 +11554,7 @@ export type Database = {
       }
       event_customer_id: { Args: never; Returns: string }
       event_make_order: { Args: { p_event_id: string }; Returns: string }
+      event_order: { Args: { p_event_id: string }; Returns: Json }
       event_set_delivery: {
         Args: { p_date: string; p_event_id: string; p_method_id: string }
         Returns: undefined
@@ -11970,6 +11984,7 @@ export type Database = {
         Returns: boolean
       }
       is_collections: { Args: never; Returns: boolean }
+      is_events: { Args: never; Returns: boolean }
       is_external: { Args: never; Returns: boolean }
       is_goods_reception_assignee: { Args: never; Returns: boolean }
       is_maintenance: { Args: never; Returns: boolean }

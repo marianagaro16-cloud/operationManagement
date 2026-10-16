@@ -2621,6 +2621,8 @@ export const en = {
     contactsIdea: 'Contacts are added once the event is confirmed.',
     addContact: 'Contact',
     contactHint: 'It becomes a prospect of {name}, source Fair, with a follow-up call planned.',
+    contactHintPick: 'It becomes a prospect of the person who follows it up, source Fair, with a follow-up call planned for them.',
+    contactFollower: 'Who follows it up',
     contactCompany: 'Company or name',
     followUp: 'Follow-up call',
     followUpHint: 'In the planning of the event’s responsible person',

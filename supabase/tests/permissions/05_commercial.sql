@@ -79,30 +79,71 @@ select pg_temp.can('event material: Marketing ticks it came back', 'mkt',
 select pg_temp.cannot('event material: Marketing does not change the standard list', 'mkt',
   $$update public.event_kind_materials set quantity = 9 where name = 'ZZ standard chair'$$);
 
--- Event tasks: one may go to Marketing; they see the event's tasks and tick only their own.
+-- Marketing does everything on events: tasks, budget, contacts, products, responsible.
 select pg_temp.can('event task: Ventas gives one to Marketing', 'seller',
   $$insert into public.sales_activities (salesperson_id, kind_id, activity_date, title, event_id, created_by)
     select pg_temp.id('mkt'), (select id from public.sales_activity_kinds order by created_at limit 1), current_date + 3, 'ZZ photos', id, auth.uid()
       from public.events where name = 'ZZ event'$$);
-select pg_temp.can('event task: Ventas plans one for themselves', 'seller',
+select pg_temp.can('event task: Marketing plans one for Ventas', 'mkt',
   $$insert into public.sales_activities (salesperson_id, kind_id, activity_date, title, event_id, created_by)
-    select auth.uid(), (select id from public.sales_activity_kinds order by created_at limit 1), current_date + 3, 'ZZ stand', id, auth.uid()
+    select pg_temp.id('seller'), (select id from public.sales_activity_kinds order by created_at limit 1), current_date + 3, 'ZZ stand', id, auth.uid()
       from public.events where name = 'ZZ event'$$);
-select pg_temp.sees('event task: Marketing sees the other tasks of the event', 'mkt', $$select 1 from public.sales_activities where title = 'ZZ stand'$$);
-select pg_temp.hidden('event task: Marketing does not see sales planning', 'mkt', $$select 1 from public.sales_activities where title = 'ZZ sales activity'$$);
-select pg_temp.cannot('event task: Marketing does not tick someone else''s', 'mkt',
-  $$update public.sales_activities set status = 'done', done_at = now() where title = 'ZZ stand'$$);
-select pg_temp.cannot('event task: Marketing does not rename their own', 'mkt',
-  $$update public.sales_activities set title = 'ZZ renamed' where title = 'ZZ photos'$$);
-select pg_temp.can('event task: Marketing ticks their own done', 'mkt',
+select pg_temp.can('event task: Marketing changes one', 'mkt',
+  $$update public.sales_activities set title = 'ZZ stand big' where title = 'ZZ stand'$$);
+select pg_temp.can('event task: Marketing ticks one done', 'mkt',
   $$update public.sales_activities set status = 'done', done_at = now() where title = 'ZZ photos'$$);
-select pg_temp.cannot('event task: Marketing may not add one', 'mkt',
-  $$insert into public.sales_activities (salesperson_id, kind_id, activity_date, title, event_id, created_by)
-    select auth.uid(), (select id from public.sales_activity_kinds order by created_at limit 1), current_date + 3, 'ZZ own', id, auth.uid()
-      from public.events where name = 'ZZ event'$$);
+select pg_temp.hidden('event task: Marketing does not see sales planning', 'mkt', $$select 1 from public.sales_activities where title = 'ZZ sales activity'$$);
+select pg_temp.cannot('event task: Marketing does not change sales planning', 'mkt',
+  $$update public.sales_activities set title = 'ZZ x' where title = 'ZZ sales activity'$$);
+select pg_temp.cannot('event task: Marketing does not plan outside an event', 'mkt',
+  $$insert into public.sales_activities (salesperson_id, kind_id, activity_date, title, created_by)
+    values (auth.uid(), (select id from public.sales_activity_kinds order by created_at limit 1), current_date + 3, 'ZZ loose', auth.uid())$$);
+select pg_temp.cannot('event task: Marketing does not tie one to a customer', 'mkt',
+  $$update public.sales_activities set customer_id = (select id from _c) where title = 'ZZ stand big'$$);
 select pg_temp.cannot('event task: a task outside an event is not for Marketing', 'seller',
   $$insert into public.sales_activities (salesperson_id, kind_id, activity_date, title, created_by)
     values (pg_temp.id('mkt'), (select id from public.sales_activity_kinds order by created_at limit 1), current_date + 3, 'ZZ loose', auth.uid())$$);
+select pg_temp.can('event task: Marketing removes a planned one', 'mkt',
+  $$delete from public.sales_activities where title = 'ZZ stand big'$$);
+
+select pg_temp.can('event: Marketing may be the responsible person', 'seller',
+  $$update public.events set owner_id = pg_temp.id('mkt') where name = 'ZZ event'$$);
+select pg_temp.cannot('event: a plain user may not be the responsible person', 'seller',
+  $$update public.events set owner_id = pg_temp.id('user') where name = 'ZZ event'$$);
+
+select pg_temp.can('event budget: Marketing adds a cost', 'mkt',
+  $$insert into public.event_costs (event_id, type_id, description, planned_amount)
+    select e.id, (select id from public.event_cost_types limit 1), 'ZZ stand fee', 100 from public.events e where e.name = 'ZZ event'$$);
+select pg_temp.sees('event budget: Marketing sees it', 'mkt', $$select 1 from public.event_costs where description = 'ZZ stand fee'$$);
+select pg_temp.hidden('event budget: not a plain user', 'user', $$select 1 from public.event_costs where description = 'ZZ stand fee'$$);
+
+select pg_temp.can('event contact: Marketing adds one, followed up by Ventas', 'mkt',
+  $$select public.event_add_contact((select id from public.events where name = 'ZZ event'), 'ZZ fair contact', null, null, null, null, current_date + 5, pg_temp.id('seller'))$$);
+select pg_temp.sees('event contact: Marketing sees the event''s contacts', 'mkt', $$select 1 from public.prospects where company_name = 'ZZ fair contact'$$);
+select pg_temp.sees('event contact: the follow-up call is in Ventas'' planning', 'seller',
+  $$select 1 from public.sales_activities a join public.prospects p on p.id = a.prospect_id where p.company_name = 'ZZ fair contact'$$);
+select pg_temp.hidden('event contact: Marketing does not see the rest of the pipeline', 'mkt', $$select 1 from public.prospects where company_name = 'ZZ prospect'$$);
+select pg_temp.cannot('event contact: Marketing may not follow it up itself', 'mkt',
+  $$select public.event_add_contact((select id from public.events where name = 'ZZ event'), 'ZZ fair contact 2', null, null, null, null, current_date + 5, auth.uid())$$);
+select pg_temp.cannot('event contact: a plain user may not add one', 'user',
+  $$select public.event_add_contact((select id from public.events where name = 'ZZ event'), 'ZZ fair contact 3', null, null, null, null, current_date + 5, pg_temp.id('seller'))$$);
+
+select pg_temp.can('event products: Marketing sets them', 'mkt',
+  $$select public.event_set_products((select id from public.events where name = 'ZZ event'),
+      jsonb_build_array(jsonb_build_object('product_id', (select id from public.products limit 1), 'quantity', 5)))$$);
+select pg_temp.cannot('event products: a plain user may not', 'user',
+  $$select public.event_set_products((select id from public.events where name = 'ZZ event'), '[]'::jsonb)$$);
+select pg_temp.hidden('event products: Orders stay closed to the external account', 'mkt', 'select 1 from public.orders');
+select pg_temp.sees('event products: Marketing reads the event''s order through the event', 'mkt',
+  $$select 1 from public.events e where e.order_id is not null and jsonb_array_length(public.event_order(e.id) -> 'lines') > 0$$);
+select pg_temp.sees('event products: Ventas reads it the same way', 'seller',
+  $$select 1 from public.events e where e.order_id is not null and public.event_order(e.id) is not null$$);
+create temp table _eo as select id from public.events where order_id is not null limit 1;
+grant select on _eo to authenticated;
+select pg_temp.act_as('user');
+create temp table _eo_seen as select public.event_order(id) r from _eo;
+select pg_temp.as_system();
+select pg_temp.check('event products: not a plain user', (select count(*) = 1 and bool_and(r is null) from _eo_seen));
 
 -- Merch
 select pg_temp.can('merch: Ventas adds an item', 'seller', $$insert into public.merch_items (name) values ('ZZ pen')$$);

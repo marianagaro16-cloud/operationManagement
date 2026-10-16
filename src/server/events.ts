@@ -207,17 +207,12 @@ export async function getEventCustomers(): Promise<{ id: string; name: string }[
 async function getEventProducts(event: EventRow): Promise<{ order: EventOrder | null; products: EventProduct[] }> {
   const supabase = createClient();
   if (event.order_id) {
-    const { data: order, error } = await supabase
-      .from('orders')
-      .select(
-        'id, reference, status, ready_at, shipped_at, delivery_date, delivery_method_id, lines:order_lines ( product_id, ordered_quantity, note, position, allocations:lot_allocations ( quantity ) )',
-      )
-      .eq('id', event.order_id)
-      .maybeSingle();
+    // Through the event: Orders itself is closed to Marketing's external account.
+    const { data: order, error } = await supabase.rpc('event_order', { p_event_id: event.id });
     if (error) throw new Error(error.message);
     if (order) {
       const { lines, ...header } = order as unknown as EventOrder & {
-        lines: { product_id: string; ordered_quantity: number | string; note: string | null; position: number; allocations: { quantity: number | string }[] }[];
+        lines: { product_id: string; ordered_quantity: number | string; note: string | null; position: number; prepared: number | string }[];
       };
       const done = !!header.ready_at;
       return {
@@ -228,7 +223,7 @@ async function getEventProducts(event: EventRow): Promise<{ order: EventOrder | 
             product_id: l.product_id,
             quantity: Number(l.ordered_quantity),
             note: l.note,
-            prepared: done ? l.allocations.reduce((n, a) => n + Number(a.quantity), 0) : null,
+            prepared: done ? Number(l.prepared) : null,
           })),
       };
     }

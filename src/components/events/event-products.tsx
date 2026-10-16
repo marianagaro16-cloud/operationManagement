@@ -15,7 +15,7 @@ import { DateTime } from 'luxon';
 import { productLabel, type DeliveryMethod, type Product } from '@/types/orders';
 import { saveReturns, setEventDelivery, setEventProducts } from '@/server/event-actions';
 import type { EventOrder, EventProduct, EventReturn, EventRow } from '@/types/events';
-import { useEventLabels, useEventsLimited } from './event-parts';
+import { useEventLabels, useEventsLimited, useEventsSales } from './event-parts';
 
 /** The day it goes when nobody chose one: the day before the start. */
 export function deliveryDateOf(event: EventRow, order: EventOrder | null): string {
@@ -56,6 +56,7 @@ export function EventProducts({
   const liveOrder = order?.status === 'confirmed' ? order : null;
   // Products become an order: Sales'.
   const readOnly = useEventsLimited();
+  const salesLinks = useEventsSales();
   const canEdit = !readOnly && live && !liveOrder?.ready_at;
   const canDeliver = !readOnly && live && !liveOrder?.shipped_at;
   // After the event, or once its goods have left: what came back.
@@ -108,9 +109,13 @@ export function EventProducts({
         </span>
         {order && orderState && (
           <span className="inline-flex items-center gap-1.5">
-            <Link href={`/orders/${order.id}`} className="font-medium text-accent hover:underline">
-              {t('event.orderRef', { reference: order.reference })}
-            </Link>
+            {salesLinks ? (
+              <Link href={`/orders/${order.id}`} className="font-medium text-accent hover:underline">
+                {t('event.orderRef', { reference: order.reference })}
+              </Link>
+            ) : (
+              <span className="font-medium">{t('event.orderRef', { reference: order.reference })}</span>
+            )}
             <Badge tone={orderState.tone}>{orderState.label}</Badge>
           </span>
         )}

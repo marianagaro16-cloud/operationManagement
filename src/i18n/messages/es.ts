@@ -2589,6 +2589,8 @@ export const es: Messages = {
     contactsIdea: 'Los contactos se añaden cuando el evento está confirmado.',
     addContact: 'Contacto',
     contactHint: 'Queda como prospecto de {name}, fuente Feria, con una llamada de seguimiento planeada.',
+    contactHintPick: 'Se convierte en prospecto de quien hace el seguimiento, origen Feria, con una llamada de seguimiento planificada para esa persona.',
+    contactFollower: 'Quién hace el seguimiento',
     contactCompany: 'Empresa o nombre',
     followUp: 'Llamada de seguimiento',
     followUpHint: 'En la planeación de quien es responsable del evento',

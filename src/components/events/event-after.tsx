@@ -18,7 +18,7 @@ import { NoteText } from '@/components/ui/note';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { addEventContact, addEventNote, recordEventFile, removeEventFile, saveResults } from '@/server/event-actions';
 import type { EventContact, EventFile, EventNote, EventRow } from '@/types/events';
-import { useEventLabels, useEventsLimited } from './event-parts';
+import { useEventLabels, useEventsLimited, useEventsSales } from './event-parts';
 
 /* After (and around) the event: how it went, notes, who we met, photos and files. */
 
@@ -56,7 +56,7 @@ export function Stars({ value }: { value: number }) {
 export function ResultsCard({ event }: { event: EventRow }) {
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
-  // The results are Sales' (Carlos, Admin, Owners).
+  // Sales' and Marketing's; not a read-only viewer.
   const readOnly = useEventsLimited();
   const repeat = { yes: t('event.repeatYes'), no: t('event.repeatNo'), maybe: t('event.repeatMaybe') };
   const figures: [string, number | null][] = [
@@ -278,8 +278,20 @@ export function NotesCard({ event, notes }: { event: EventRow; notes: EventNote[
 
 /* -------------------------------- contacts ------------------------------- */
 
-export function ContactsCard({ event, contacts, today }: { event: EventRow; contacts: EventContact[]; today: string }) {
+export function ContactsCard({
+  event,
+  contacts,
+  today,
+  followers,
+}: {
+  event: EventRow;
+  contacts: EventContact[];
+  today: string;
+  /** Who may follow a contact up: people in sales. */
+  followers: { id: string; name: string }[];
+}) {
   const { t } = useI18n();
+  const salesLinks = useEventsSales();
   const [adding, setAdding] = useState(false);
   const open = event.stage === 'confirmed' || event.stage === 'done';
   const stage = (s: string) =>
@@ -310,21 +322,38 @@ export function ContactsCard({ event, contacts, today }: { event: EventRow; cont
         <ul className="divide-y divide-border">
           {contacts.map((c) => (
             <li key={c.id} className="flex items-center gap-2 py-1.5 text-[13px]">
-              <Link href={c.customer_id ? `/sales/customers/${c.customer_id}` : `/sales/prospects/${c.id}`} className="min-w-0 flex-1 truncate hover:text-accent">
-                <span className="font-medium">{c.company_name}</span>
-                {c.contact_name && <span className="text-muted"> · {c.contact_name}</span>}
-              </Link>
+              {salesLinks ? (
+                <Link href={c.customer_id ? `/sales/customers/${c.customer_id}` : `/sales/prospects/${c.id}`} className="min-w-0 flex-1 truncate hover:text-accent">
+                  <span className="font-medium">{c.company_name}</span>
+                  {c.contact_name && <span className="text-muted"> · {c.contact_name}</span>}
+                </Link>
+              ) : (
+                <span className="min-w-0 flex-1 truncate">
+                  <span className="font-medium">{c.company_name}</span>
+                  {c.contact_name && <span className="text-muted"> · {c.contact_name}</span>}
+                </span>
+              )}
               <Badge tone={c.stage === 'won' ? 'done' : c.stage === 'lost' ? 'neutral' : 'accent'}>{stage(c.stage)}</Badge>
             </li>
           ))}
         </ul>
       )}
-      {adding && <ContactDialog event={event} today={today} onClose={() => setAdding(false)} />}
+      {adding && <ContactDialog event={event} today={today} followers={followers} onClose={() => setAdding(false)} />}
     </Section>
   );
 }
 
-function ContactDialog({ event, today, onClose }: { event: EventRow; today: string; onClose: () => void }) {
+function ContactDialog({
+  event,
+  today,
+  followers,
+  onClose,
+}: {
+  event: EventRow;
+  today: string;
+  followers: { id: string; name: string }[];
+  onClose: () => void;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const labels = useEventLabels();
@@ -337,18 +366,22 @@ function ContactDialog({ event, today, onClose }: { event: EventRow; today: stri
   const [email, setEmail] = useState('');
   const [interest, setInterest] = useState('');
   const [followUp, setFollowUp] = useState(suggested > today ? suggested : tomorrow);
+  // The event's responsible follows up when they are in sales; otherwise someone is picked.
+  const [follower, setFollower] = useState(followers.some((p) => p.id === event.owner_id) ? event.owner_id! : '');
   const [another, setAnother] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const first = useRef<HTMLInputElement>(null);
-  const ready = !!company.trim() && !!followUp;
+  const ready = !!company.trim() && !!followUp && !!follower;
 
   function submit() {
     if (!ready) return;
     setError(null);
     startTransition(async () => {
-      const res = await addEventContact(event.id, { company_name: company, contact_name: contact, phone, email, interest, follow_up: followUp });
+      const res = await addEventContact(event.id, {
+        company_name: company, contact_name: contact, phone, email, interest, follow_up: followUp, follower,
+      });
       if (!res.ok) return setError(labels.error(res.error));
       router.refresh();
       if (!another) return onClose();
@@ -368,7 +401,7 @@ function ContactDialog({ event, today, onClose }: { event: EventRow; today: stri
       open
       onClose={onClose}
       title={t('event.addContact')}
-      description={t('event.contactHint', { name: event.owner_name ?? '—' })}
+      description={t('event.contactHintPick')}
       className="max-w-lg"
       footer={
         <>
@@ -397,9 +430,17 @@ function ContactDialog({ event, today, onClose }: { event: EventRow; today: stri
         <Field label={t('sales.interest')} htmlFor="event-contact-interest">
           <NoteTextarea id="event-contact-interest" rows={2} value={interest} onChange={(e) => setInterest(e.target.value)} />
         </Field>
-        <Field label={t('event.followUp')} hint={t('event.followUpHint')} htmlFor="event-contact-follow">
-          <Input id="event-contact-follow" type="date" min={today} value={followUp} onChange={(e) => setFollowUp(e.target.value)} className="w-auto" />
-        </Field>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label={t('event.followUp')} hint={t('event.followUpHint')} htmlFor="event-contact-follow">
+            <Input id="event-contact-follow" type="date" min={today} value={followUp} onChange={(e) => setFollowUp(e.target.value)} className="w-auto" />
+          </Field>
+          <Field label={t('event.contactFollower')} required htmlFor="event-contact-follower">
+            <Select id="event-contact-follower" value={follower} onChange={(e) => setFollower(e.target.value)}>
+              <option value="">—</option>
+              {followers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select>
+          </Field>
+        </div>
         <label className="flex items-center gap-2 text-[13px]">
           <input type="checkbox" className="h-4 w-4 accent-accent" checked={another} onChange={(e) => setAnother(e.target.checked)} />
           {t('event.contactAnother')}
@@ -418,7 +459,7 @@ export function FilesCard({ event, files }: { event: EventRow; files: EventFile[
   const input = useRef<HTMLInputElement>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [removing, setRemoving] = useState<EventFile | null>(null);
-  // Marketing adds photos; removing them stays with Sales.
+  // Sales and Marketing add and remove them.
   const readOnly = useEventsLimited();
   const [pending, startTransition] = useTransition();
   const photos = files.filter((f) => f.mime_type.startsWith('image/') && f.url);
