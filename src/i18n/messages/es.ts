@@ -3760,7 +3760,7 @@ export const es: Messages = {
     subtitle: 'Lo que cada persona hace día a día, para quien la cubre. Con los artículos y cómo pedir a cada proveedor.',
     tabDays: 'Día a día',
     tabArticles: 'Artículos',
-    tabSuppliers: 'Proveedores',
+    tabSuppliers: 'Condiciones de proveedores',
     tabCustomers: 'Clientes',
     whose: 'De quién',
     of: 'Guía de {name}',

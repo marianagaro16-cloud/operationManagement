@@ -3792,7 +3792,7 @@ export const en = {
     subtitle: 'What each person does day by day, for whoever covers them. With the articles and how to order from each supplier.',
     tabDays: 'Day by day',
     tabArticles: 'Articles',
-    tabSuppliers: 'Suppliers',
+    tabSuppliers: 'Supplier conditions',
     tabCustomers: 'Customers',
     whose: 'Whose',
     of: '{name}’s guide',

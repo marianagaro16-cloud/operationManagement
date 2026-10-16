@@ -3760,7 +3760,7 @@ export const de: Messages = {
     subtitle: 'Was jede Person Tag für Tag tut, für die Vertretung. Mit den Artikeln und wie man bei jedem Lieferanten bestellt.',
     tabDays: 'Tag für Tag',
     tabArticles: 'Artikel',
-    tabSuppliers: 'Lieferanten',
+    tabSuppliers: 'Lieferantenkonditionen',
     tabCustomers: 'Kunden',
     whose: 'Von wem',
     of: 'Leitfaden von {name}',
