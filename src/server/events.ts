@@ -138,6 +138,20 @@ export async function getStaffCandidates(): Promise<StaffCandidate[]> {
   ];
 }
 
+/** Who an event's task may go to: people in sales (Ventas, Admin, Owners) and in Marketing. */
+export async function getEventTaskPeople(): Promise<{ id: string; name: string }[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, name, email')
+    .eq('status', 'approved')
+    .is('deleted_at', null)
+    .or('team.in.(sales,marketing),role.in.(admin,owner)')
+    .order('name');
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((p) => ({ id: p.id, name: p.name || p.email }));
+}
+
 /** Admin's lists: event kinds with their standard tasks and material, and cost types. */
 export async function getEventLists(includeInactive = false): Promise<{
   kinds: EventListEntry[];

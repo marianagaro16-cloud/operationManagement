@@ -13,6 +13,7 @@ select pg_temp.person('pu_ops', 'power_user', 'operations');
 select pg_temp.person('pm', 'production_manager', 'production');
 select pg_temp.person('user', 'user', 'logistics');
 select pg_temp.person('collector', 'user', 'operations');
+select pg_temp.person('mkt', 'user', 'marketing');
 
 create temp table _c as select id from public.customers order by created_at limit 1;
 grant select on _c to authenticated;
@@ -71,6 +72,37 @@ select pg_temp.cannot('event material: Ventas does not change the standard list'
   $$insert into public.event_kind_materials (kind_id, name) select id, 'ZZ sneaky' from public.event_kinds limit 1$$);
 select pg_temp.can('event material: admin changes the standard list', 'admin',
   $$update public.event_kind_materials set quantity = 6 where name = 'ZZ standard chair'$$);
+select pg_temp.can('event material: Marketing adds a thing', 'mkt',
+  $$insert into public.event_materials (event_id, name) select id, 'ZZ banner' from public.events where name = 'ZZ event'$$);
+select pg_temp.can('event material: Marketing ticks it came back', 'mkt',
+  $$update public.event_materials set came_back = true where name = 'ZZ terminal'$$);
+select pg_temp.cannot('event material: Marketing does not change the standard list', 'mkt',
+  $$update public.event_kind_materials set quantity = 9 where name = 'ZZ standard chair'$$);
+
+-- Event tasks: one may go to Marketing; they see the event's tasks and tick only their own.
+select pg_temp.can('event task: Ventas gives one to Marketing', 'seller',
+  $$insert into public.sales_activities (salesperson_id, kind_id, activity_date, title, event_id, created_by)
+    select pg_temp.id('mkt'), (select id from public.sales_activity_kinds order by created_at limit 1), current_date + 3, 'ZZ photos', id, auth.uid()
+      from public.events where name = 'ZZ event'$$);
+select pg_temp.can('event task: Ventas plans one for themselves', 'seller',
+  $$insert into public.sales_activities (salesperson_id, kind_id, activity_date, title, event_id, created_by)
+    select auth.uid(), (select id from public.sales_activity_kinds order by created_at limit 1), current_date + 3, 'ZZ stand', id, auth.uid()
+      from public.events where name = 'ZZ event'$$);
+select pg_temp.sees('event task: Marketing sees the other tasks of the event', 'mkt', $$select 1 from public.sales_activities where title = 'ZZ stand'$$);
+select pg_temp.hidden('event task: Marketing does not see sales planning', 'mkt', $$select 1 from public.sales_activities where title = 'ZZ sales activity'$$);
+select pg_temp.cannot('event task: Marketing does not tick someone else''s', 'mkt',
+  $$update public.sales_activities set status = 'done', done_at = now() where title = 'ZZ stand'$$);
+select pg_temp.cannot('event task: Marketing does not rename their own', 'mkt',
+  $$update public.sales_activities set title = 'ZZ renamed' where title = 'ZZ photos'$$);
+select pg_temp.can('event task: Marketing ticks their own done', 'mkt',
+  $$update public.sales_activities set status = 'done', done_at = now() where title = 'ZZ photos'$$);
+select pg_temp.cannot('event task: Marketing may not add one', 'mkt',
+  $$insert into public.sales_activities (salesperson_id, kind_id, activity_date, title, event_id, created_by)
+    select auth.uid(), (select id from public.sales_activity_kinds order by created_at limit 1), current_date + 3, 'ZZ own', id, auth.uid()
+      from public.events where name = 'ZZ event'$$);
+select pg_temp.cannot('event task: a task outside an event is not for Marketing', 'seller',
+  $$insert into public.sales_activities (salesperson_id, kind_id, activity_date, title, created_by)
+    values (pg_temp.id('mkt'), (select id from public.sales_activity_kinds order by created_at limit 1), current_date + 3, 'ZZ loose', auth.uid())$$);
 
 -- Merch
 select pg_temp.can('merch: Ventas adds an item', 'seller', $$insert into public.merch_items (name) values ('ZZ pen')$$);

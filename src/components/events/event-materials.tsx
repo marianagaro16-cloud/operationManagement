@@ -10,7 +10,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Card, Checkbox, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { copyEventMaterial, copyStandardMaterial, removeMaterial, saveMaterial, tickMaterial } from '@/server/event-actions';
 import type { EventMaterial, EventRow, EventShift, PastMaterial, PastMaterialEvent, StaffCandidate } from '@/types/events';
-import { useEventLabels, useEventsLimited } from './event-parts';
+import { useEventLabels } from './event-parts';
 
 const qty = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, ''));
 const keyOf = (m: Pick<EventMaterial, 'bringer_profile' | 'bringer_worker'>) =>
@@ -44,13 +44,13 @@ export function EventMaterials({
   const { t, formatDate } = useI18n();
   const router = useRouter();
   const labels = useEventLabels();
-  const limited = useEventsLimited();
   const [editing, setEditing] = useState<EventMaterial | 'new' | null>(null);
   const [copying, setCopying] = useState(false);
   const [showPast, setShowPast] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const canEdit = !limited && event.stage !== 'cancelled';
+  // Sales and Marketing keep it alike.
+  const canEdit = event.stage !== 'cancelled';
   const packed = materials.filter((m) => m.packed).length;
   const back = materials.filter((m) => m.came_back).length;
   const norm = (s: string) => s.trim().toLowerCase();

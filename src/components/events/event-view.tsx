@@ -63,6 +63,7 @@ export function EventView({
   standardMaterials,
   pastMaterials,
   canEditStandard,
+  taskPeople,
   order,
   products,
   returns,
@@ -87,6 +88,8 @@ export function EventView({
   pastMaterials: { things: PastMaterial[]; events: PastMaterialEvent[] };
   /** Admin and owners may put a thing on the kind's standard list from here. */
   canEditStandard: boolean;
+  /** Who a task may go to: sales people and Marketing. */
+  taskPeople: { id: string; name: string }[];
   order: EventOrder | null;
   products: EventProduct[];
   returns: EventReturn[];
@@ -220,7 +223,7 @@ export function EventView({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
-          {!limited && <Tasks event={event} tasks={tasks} people={choices.people} today={today} live={live} />}
+          <Tasks event={event} tasks={tasks} people={taskPeople} viewerId={choices.viewerId} today={today} live={live} />
           {!limited && <ContactsCard event={event} contacts={contacts} today={today} />}
           <Staff event={event} shifts={shifts} staff={staff} live={live} />
           <NotesCard event={event} notes={notes} />
@@ -358,18 +361,22 @@ function Tasks({
   event,
   tasks,
   people,
+  viewerId,
   today,
   live,
 }: {
   event: EventRow;
   tasks: SalesActivity[];
   people: { id: string; name: string }[];
+  viewerId: string;
   today: string;
   live: boolean;
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
   const labels = useEventLabels();
+  // Marketing sees every task and ticks only its own; Sales plans them.
+  const limited = useEventsLimited();
   const [editing, setEditing] = useState<SalesActivity | 'new' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -389,7 +396,7 @@ function Tasks({
     <Section
       title={`${t('event.tasks')}${tasks.length ? ` · ${tasks.length - open}/${tasks.length}` : ''}`}
       action={
-        live && (
+        live && !limited && (
           <Button size="sm" variant="ghost" onClick={() => setEditing('new')}>
             <Plus className="h-3.5 w-3.5" aria-hidden />
             {t('event.addTask')}
@@ -404,9 +411,10 @@ function Tasks({
         <ul className="divide-y divide-border">
           {tasks.map((a) => {
             const late = a.status === 'planned' && a.activity_date < today;
+            const mayTick = !limited || a.salesperson_id === viewerId;
             return (
               <li key={a.id} className="flex items-start gap-2 py-1.5">
-                {a.status === 'planned' ? (
+                {a.status === 'planned' && mayTick ? (
                   <button
                     type="button"
                     aria-label={t('event.taskDone')}
@@ -415,6 +423,8 @@ function Tasks({
                     onClick={() => act(() => recordActivity({ activity_id: a.id, status: 'done' }))}
                     className="mt-0.5 h-[18px] w-[18px] shrink-0 rounded border border-muted hover:border-accent hover:bg-accent/10"
                   />
+                ) : a.status === 'planned' ? (
+                  <span className="mt-0.5 h-[18px] w-[18px] shrink-0 rounded border border-border" />
                 ) : (
                   <span className={cn('mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded', a.status === 'done' ? 'bg-done text-white' : 'bg-surface-2 text-muted')}>
                     {a.status === 'done' ? <Check className="h-3 w-3" aria-hidden /> : <X className="h-3 w-3" aria-hidden />}
@@ -428,7 +438,7 @@ function Tasks({
                     {personName(a.salesperson_id)}
                   </p>
                 </div>
-                {a.status === 'planned' && (
+                {a.status === 'planned' && !limited && (
                   <>
                     <Button size="icon" variant="ghost" aria-label={t('common.edit')} onClick={() => setEditing(a)}>
                       <Pencil className="h-3.5 w-3.5" aria-hidden />
