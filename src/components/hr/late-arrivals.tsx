@@ -115,9 +115,8 @@ export function LateTab({
   ];
   const tiles = periods.map((p) => ({ label: p.label, late: tally(arrivals, 'late', p.from), early: tally(arrivals, 'early', p.from) }));
 
-  // Whoever recorded it, within a day: the database holds the same rule.
-  const editable = (a: HrLateArrival) =>
-    a.created_by === viewerId && Date.now() - new Date(a.created_at).getTime() < 24 * 60 * 60 * 1000;
+  // Whoever recorded it, at any time: the database holds the same rule.
+  const editable = (a: HrLateArrival) => a.created_by === viewerId;
 
   function remove(a: HrLateArrival) {
     if (!window.confirm(t('hrLate.deleteConfirm'))) return;

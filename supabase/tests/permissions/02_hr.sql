@@ -64,4 +64,12 @@ values ((select id from _w where k = 'ops'), current_date, '07:00', '07:30');
 select pg_temp.sees('admin: sees an arrival', 'admin', $$select 1 from public.hr_late_arrivals a join public.hr_workers w on w.id = a.worker_id where w.name = 'ZZ worker ops'$$);
 select pg_temp.hidden('production manager: not an Operations arrival', 'pm', $$select 1 from public.hr_late_arrivals a where a.worker_id in (select id from _w where k = 'ops')$$);
 select pg_temp.hidden('user: no arrivals', 'user', 'select 1 from public.hr_late_arrivals');
+
+-- Correctable by whoever recorded it, also days later; by nobody else.
+insert into public.hr_late_arrivals (worker_id, arrival_date, expected_time, arrived_time, note, created_by, created_at)
+values ((select id from _w where k = 'ops'), current_date - 3, '07:00', '07:20', 'ZZ old', pg_temp.id('admin'), now() - interval '3 days');
+select pg_temp.cannot('arrival: another HR person cannot correct it', 'owner2', $$update public.hr_late_arrivals set note = 'ZZ by owner' where note = 'ZZ old'$$);
+select pg_temp.cannot('arrival: another HR person cannot delete it', 'owner2', $$delete from public.hr_late_arrivals where note = 'ZZ old'$$);
+select pg_temp.can('arrival: its recorder corrects it days later', 'admin', $$update public.hr_late_arrivals set note = 'ZZ fixed' where note = 'ZZ old'$$);
+select pg_temp.can('arrival: its recorder deletes it days later', 'admin', $$delete from public.hr_late_arrivals where note = 'ZZ fixed'$$);
 select pg_temp.hidden('user: no keys register', 'user', 'select 1 from public.hr_keys');
