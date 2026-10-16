@@ -133,9 +133,10 @@ export async function suggestScheduleCleaning(weekId: string): Promise<ActionRes
 }
 
 /**
- * Whose turn the Fritura is for a week, from the weeks before it. Whoever has
- * no working hours on its day is passed over; a week with nothing in it yet
- * tells nothing.
+ * Whose turn the Fritura is for a week, from the weeks before it. Whoever is
+ * marked off that day (vacation, free, sick) is passed over; a day with nothing
+ * entered yet is not planned, not off, so the turn is known before the
+ * schedule is made.
  */
 async function fryingFor(weekId: string, weekStart: string, day: number): Promise<string | null> {
   const supabase = createClient();
@@ -147,7 +148,8 @@ async function fryingFor(weekId: string, weekStart: string, day: number): Promis
   ]);
   const members = (people ?? []) as { id: string; sort_order: number }[];
   const rules = new Map(((kinds ?? []) as KindRule[]).map((k) => [k.id, k]));
-  const away = new Set(blocks.length > 0 ? members.filter((m) => dayHours(blocks, m.id, day, rules) === 0).map((m) => m.id) : []);
+  const planned = new Set(blocks.filter((b) => b.day === day).map((b) => b.person_id));
+  const away = new Set(members.filter((m) => planned.has(m.id) && dayHours(blocks, m.id, day, rules) === 0).map((m) => m.id));
   return fryingTurn(members, (history ?? []) as { week_start: string; frying_person: string | null }[], away);
 }
 
