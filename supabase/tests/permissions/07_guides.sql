@@ -1,12 +1,13 @@
 -- ============================================================
--- Guías: closed to the Ventas team, even on the days they cover someone
--- (2026-10-19). Admin and Owners on the team keep them; a power user
--- outside Ventas who covers reads the guide, its articles, the supplier
--- conditions and the customer specifications.
+-- Guías for the Ventas team (2026-10-19): only on the days they cover
+-- someone, and then the day guide and the articles — never the supplier
+-- conditions or the customer specifications. Admin and Owners on the team
+-- keep everything; a power user outside Ventas who covers reads it all.
 -- ============================================================
 
 select pg_temp.person('away', 'user', 'operations');
 select pg_temp.person('seller', 'power_user', 'sales');
+select pg_temp.person('seller_away', 'power_user', 'sales');
 select pg_temp.person('cover_ops', 'power_user', 'operations');
 select pg_temp.person('sales_owner', 'owner', 'sales');
 
@@ -45,10 +46,12 @@ insert into _q values
   ('customer specification', $$select 1 from public.customer_specifications where body = 'ZZ spec'$$);
 
 select pg_temp.sees('guides ' || k || ': a covering power user outside Ventas', 'cover_ops', q) from _q;
-select pg_temp.hidden('guides ' || k || ': not Ventas, even covering', 'seller', q) from _q;
+select pg_temp.sees('guides ' || k || ': Ventas covering', 'seller', q) from _q where k in ('guide', 'point', 'article');
+select pg_temp.hidden('guides ' || k || ': not Ventas, even covering', 'seller', q) from _q where k not in ('guide', 'point', 'article');
+select pg_temp.hidden('guides ' || k || ': not Ventas when not covering', 'seller_away', q) from _q;
 select pg_temp.sees('guides ' || k || ': an owner on Ventas', 'sales_owner', q) from _q;
 
-select pg_temp.cannot('guides: Ventas covering cannot tick', 'seller',
+select pg_temp.can('guides: Ventas covering ticks', 'seller',
   $$select public.guide_check((select id from public.guide_points where title = 'ZZ point'), 'done', null)$$);
 select pg_temp.can('guides: the covering power user ticks', 'cover_ops',
   $$select public.guide_check((select id from public.guide_points where title = 'ZZ point'), 'done', null)$$);

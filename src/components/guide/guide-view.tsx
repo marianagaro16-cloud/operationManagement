@@ -62,11 +62,11 @@ export function GuideView({
   checks,
   articles,
   suppliers,
-  reader,
+  tabs: shown,
   customers,
 }: {
-  /** Reads guides at all. Someone who only manages customers gets the Clientes tab alone. */
-  reader: boolean;
+  /** The tabs the viewer may open: Clientes alone for whoever only manages customers; no suppliers or Clientes for Ventas. */
+  tabs: GuideTab[];
   /** The Clientes tab, made by the page: the standing notes per customer. */
   customers: ReactNode;
   access: GuideAccess;
@@ -82,16 +82,14 @@ export function GuideView({
   suppliers: SupplierCard[];
 }) {
   const { t } = useI18n();
-  const tabs: { key: GuideTab; label: string }[] = [
-    ...(reader
-      ? [
-          { key: 'days' as const, label: t('guide.tabDays') },
-          { key: 'articles' as const, label: t('guide.tabArticles') },
-          { key: 'suppliers' as const, label: t('guide.tabSuppliers') },
-        ]
-      : []),
-    { key: 'customers', label: t('guide.tabCustomers') },
-  ];
+  const tabs: { key: GuideTab; label: string }[] = (
+    [
+      { key: 'days', label: t('guide.tabDays') },
+      { key: 'articles', label: t('guide.tabArticles') },
+      { key: 'suppliers', label: t('guide.tabSuppliers') },
+      { key: 'customers', label: t('guide.tabCustomers') },
+    ] as const
+  ).filter((item) => shown.includes(item.key));
   const person = guide ? `&person=${guide.profile_id}` : '';
 
   return (

@@ -3,7 +3,6 @@ import { DateTime } from 'luxon';
 import { createAdminClient } from '@/lib/supabase/server';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 import { isoWeekday, openCount, pointsOn } from '@/domain/guide/guide';
-import { guideBarred, type Role, type Team } from '@/lib/authz';
 import { sendToUsers } from './push';
 
 /** To whoever covers, when points of the day are still open (decided 2026-10-06). */
@@ -25,7 +24,7 @@ export async function runGuideNotices(now = new Date()): Promise<{ sent: number 
 
   const { data: periods, error } = await admin
     .from('coverage_assignments')
-    .select('coverer_id, absence_id, coverer:profiles!coverage_assignments_coverer_id_fkey ( role, team ), absence:absences!inner ( status, profile_id, person:profiles!absences_profile_id_fkey ( name, email ) )')
+    .select('coverer_id, absence_id, absence:absences!inner ( status, profile_id, person:profiles!absences_profile_id_fkey ( name, email ) )')
     .eq('cover_date', today)
     .is('removed_at', null)
     .eq('absence.status', 'approved');
@@ -33,11 +32,9 @@ export async function runGuideNotices(now = new Date()): Promise<{ sent: number 
   type Period = {
     coverer_id: string;
     absence_id: string;
-    coverer: { role: Role; team: Team } | null;
     absence: { profile_id: string; person: { name: string | null; email: string } | null };
   };
-  // Ventas covering does not get the guide (2026-10-19), so neither its notices.
-  const rows = ((periods ?? []) as unknown as Period[]).filter((r) => r.coverer && !guideBarred(r.coverer.role, r.coverer.team));
+  const rows = (periods ?? []) as unknown as Period[];
   if (rows.length === 0) return { sent: 0 };
 
   const owners = [...new Set(rows.map((r) => r.absence.profile_id))];

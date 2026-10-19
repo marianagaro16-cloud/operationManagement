@@ -23,12 +23,15 @@ export default async function GuidePage({ searchParams }: { searchParams: { tab?
   if (!viewer) redirect('/login');
   const access = await getGuideAccess();
   const reader = access.edit || access.guides.length > 0;
-  // Whoever manages customers keeps their specifications here, guide or not — except Ventas.
-  const managesCustomers = viewer.can('customers.manage') && !guideBarred(viewer.role, viewer.profile.team);
+  // Ventas reads the guide only while covering, and never suppliers or customers.
+  const barred = guideBarred(viewer.role, viewer.profile.team);
+  // Whoever manages customers keeps their specifications here, guide or not.
+  const managesCustomers = viewer.can('customers.manage') && !barred;
   if (!reader && !managesCustomers) redirect('/dashboard');
 
-  const wanted = TABS.includes(searchParams.tab as GuideTab) ? (searchParams.tab as GuideTab) : 'days';
-  const tab: GuideTab = reader ? wanted : 'customers';
+  const allowed = TABS.filter((t) => (reader || t === 'customers') && !(barred && (t === 'suppliers' || t === 'customers')));
+  const wanted = searchParams.tab as GuideTab;
+  const tab: GuideTab = allowed.includes(wanted) ? wanted : allowed[0]!;
   const today = businessToday();
   // The one asked for; else the one being covered today, one's own, the first.
   const selected =
@@ -40,7 +43,7 @@ export default async function GuidePage({ searchParams }: { searchParams: { tab?
   const [guide, articles, suppliers, users, specifications, specTypes, customers] = await Promise.all([
     selected ? getGuide(selected.profile_id) : null,
     reader ? getArticles() : [],
-    reader ? getSupplierCards() : [],
+    allowed.includes('suppliers') ? getSupplierCards() : [],
     access.edit ? getUsers() : [],
     // Retired ones too, for whoever keeps the list: they are history, behind a toggle.
     tab === 'customers' ? getCustomerSpecifications(managesCustomers) : [],
@@ -64,7 +67,7 @@ export default async function GuidePage({ searchParams }: { searchParams: { tab?
       checks={checks}
       articles={articles}
       suppliers={suppliers}
-      reader={reader}
+      tabs={allowed}
       customers={<SpecificationManager specifications={specifications} types={specTypes} customers={customers} canEdit={managesCustomers} />}
     />
   );
