@@ -82,6 +82,14 @@ export function isSales(role: Role, team: Team): boolean {
 }
 
 /**
+ * Kept out of Guías altogether, even on the days they cover someone: the
+ * Ventas team, unless Admin or an Owner. Mirrors guide_barred().
+ */
+export function guideBarred(role: Role, team: Team): boolean {
+  return team === 'sales' && role !== 'admin' && role !== 'owner';
+}
+
+/**
  * The hierarchy as a number.
  *
  * Deliberately not the array index: `ROLES` is ordered most-privileged-first for

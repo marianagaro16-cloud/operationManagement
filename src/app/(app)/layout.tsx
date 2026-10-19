@@ -7,7 +7,7 @@ import { isCollections } from '@/server/collections';
 import { AppShell } from '@/components/shell/app-shell';
 import { AccountStatusScreen } from '@/components/shell/account-status';
 import { ChoosePasswordScreen } from '@/components/shell/choose-password';
-import { canEditMarketing, canUseReminders } from '@/lib/authz';
+import { canEditMarketing, canUseReminders, guideBarred } from '@/lib/authz';
 import { countNewRequests } from '@/server/marketing-requests';
 import { hasOwnProduction } from '@/server/production';
 import { countNewRepairs } from '@/server/repairs';
@@ -67,7 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ownProduction={ownProduction}
       myTeams={myTeams}
       repairsNew={repairsNew}
-      guide={guideAccess.edit || guideAccess.guides.length > 0 || viewer.can('customers.manage')}
+      guide={guideAccess.edit || guideAccess.guides.length > 0 || (viewer.can('customers.manage') && !guideBarred(viewer.role, viewer.profile.team))}
     >
       {children}
     </AppShell>

@@ -7,6 +7,7 @@ import { businessToday } from '@/lib/datetime';
 import { displayName } from '@/lib/utils';
 import { getCustomerSpecifications, getCustomers, getSpecificationTypes } from '@/server/orders';
 import { SpecificationManager } from '@/components/admin/specification-manager';
+import { guideBarred } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,8 +23,8 @@ export default async function GuidePage({ searchParams }: { searchParams: { tab?
   if (!viewer) redirect('/login');
   const access = await getGuideAccess();
   const reader = access.edit || access.guides.length > 0;
-  // Whoever manages customers keeps their specifications here, guide or not.
-  const managesCustomers = viewer.can('customers.manage');
+  // Whoever manages customers keeps their specifications here, guide or not — except Ventas.
+  const managesCustomers = viewer.can('customers.manage') && !guideBarred(viewer.role, viewer.profile.team);
   if (!reader && !managesCustomers) redirect('/dashboard');
 
   const wanted = TABS.includes(searchParams.tab as GuideTab) ? (searchParams.tab as GuideTab) : 'days';
