@@ -64,6 +64,7 @@ export function EventView({
   pastMaterials,
   canEditStandard,
   salesPeople,
+  taskPeople,
   order,
   products,
   returns,
@@ -90,6 +91,8 @@ export function EventView({
   canEditStandard: boolean;
   /** Who may follow up a contact: people in sales. */
   salesPeople: { id: string; name: string }[];
+  /** Who may be given a task: anyone with an account (2026-10-19). */
+  taskPeople: { id: string; name: string }[];
   order: EventOrder | null;
   products: EventProduct[];
   returns: EventReturn[];
@@ -226,7 +229,7 @@ export function EventView({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
-          <Tasks event={event} tasks={tasks} people={choices.people} viewerId={choices.viewerId} today={today} live={live} />
+          <Tasks event={event} tasks={tasks} people={taskPeople} viewerId={choices.viewerId} today={today} live={live} />
           {!limited && <ContactsCard event={event} contacts={contacts} today={today} followers={salesPeople} />}
           <Staff event={event} shifts={shifts} staff={staff} live={live} />
           <NotesCard event={event} notes={notes} />

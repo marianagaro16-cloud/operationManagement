@@ -10,12 +10,14 @@ import { getAbsenceCalendar } from './absences';
 import { getUsers } from './data';
 import { displayName } from '@/lib/utils';
 import { personSeesExpected } from './expected-deliveries';
+import { getMyEventWork } from './event-assignee';
 
 /*
  * The agenda: one person's days, gathered from every part of the app — their
  * activities and counts, their sales plan, meetings, coverage and absences,
  * the deliveries expected from suppliers (for whoever receives or announces
- * them), and (in their own agenda only) their reminders and personal tasks. Each
+ * them), and (in their own agenda only) their reminders, personal tasks and
+ * what they were given on events (shifts, material, tasks). Each
  * part is read with the viewer's own access, so whoever looks at someone
  * sees what they may see and nothing more.
  */
@@ -42,7 +44,7 @@ export async function getAgenda(personId: string, from: string, to: string, own:
   const seesDeliveries = own || (await personSeesExpected(personId));
   const todayInRange = today >= from && today <= to;
 
-  const [occ, overdue, inv, sales, meetings, coverage, away, reminders, personal, collections, deliveries, lateDeliveries] = await Promise.all([
+  const [occ, overdue, inv, sales, meetings, coverage, away, reminders, personal, collections, deliveries, lateDeliveries, events] = await Promise.all([
     supabase
       .from('task_occurrences')
       .select('id, effective_due_date, status, task:tasks!inner ( title, translations )')
@@ -114,6 +116,8 @@ export async function getAgenda(personId: string, from: string, to: string, own:
     seesDeliveries && todayInRange
       ? supabase.from('expected_deliveries').select(DELIVERY_COLUMNS).eq('status', 'expected').lt('due_date', from)
       : Promise.resolve({ data: [] }),
+    // Read as the viewer: only in their own agenda.
+    own ? getMyEventWork(from, to) : null,
   ]);
 
   // ---- activities ----
@@ -242,6 +246,36 @@ export async function getAgenda(personId: string, from: string, to: string, own:
       href: d.reception_id ? `/goods-reception/${d.reception_id}` : '/goods-reception?tab=expected',
       done: d.status === 'arrived', late, action: null,
       weekOnly: !d.expected_date && d.due_date >= from,
+    });
+  }
+
+  // ---- what they were given on events ----
+  const place = (e: { place_name: string | null; city: string | null }) => [e.place_name, e.city].filter(Boolean).join(', ') || null;
+  for (const s of events?.shifts ?? []) {
+    items.push({
+      key: `shift-${s.id}`, kind: 'shift', id: s.id, date: s.date, start: s.start?.slice(0, 5) ?? null, end: s.end?.slice(0, 5) ?? null,
+      title: s.event.name, detail: place(s.event), href: `/events/${s.event.id}`, done: false, late: false, action: null,
+    });
+  }
+  for (const m of events?.materials ?? []) {
+    items.push({
+      key: `material-${m.event.id}`, kind: 'material', id: m.event.id, date: m.event.start_date, start: null, end: null,
+      // "3/5": packed of what they bring.
+      title: m.event.name, detail: `${m.packed}/${m.total}`, href: `/events/${m.event.id}`,
+      done: m.packed === m.total, late: false, action: null,
+    });
+  }
+  // A salesperson already has their event tasks from the plan.
+  const listed = new Set(items.map((i) => i.key));
+  for (const t of events?.tasks ?? []) {
+    if (listed.has(`sales-${t.id}`)) continue;
+    const open = t.status === 'planned';
+    const late = open && t.date < today;
+    items.push({
+      key: `event_task-${t.id}`, kind: 'event_task', id: t.id,
+      date: late && todayInRange ? today : t.date, start: null, end: null,
+      title: t.title, detail: t.event.name, href: `/events/${t.event.id}`,
+      done: !open, late, action: open ? 'complete_event_task' : null,
     });
   }
 

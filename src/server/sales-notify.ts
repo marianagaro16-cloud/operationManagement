@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { sendToUser } from './push';
 import { timeRange } from '@/domain/sales/times';
+import { isMarketing, isSales, type Role, type Team } from '@/lib/authz';
 
 /*
  * Sales notices. The weekly summary of customers going quiet, for the Ventas team: Monday
@@ -78,6 +79,7 @@ type PlannedRow = {
   title: string | null;
   customer: { company_name: string } | null;
   prospect: { company_name: string } | null;
+  person: { role: Role; team: Team } | null;
 };
 
 /**
@@ -95,13 +97,14 @@ export async function runPlanNotices(now = new Date()): Promise<{ summaries: num
     admin.from('sales_activity_kinds').select('id, name'),
     admin
       .from('sales_activities')
-      .select('id, salesperson_id, kind_id, activity_time, activity_end, title, customer:customers ( company_name ), prospect:prospects ( company_name )')
+      .select('id, salesperson_id, kind_id, activity_time, activity_end, title, customer:customers ( company_name ), prospect:prospects ( company_name ), person:profiles!sales_activities_salesperson_id_fkey ( role, team )')
       .eq('activity_date', today)
       .eq('status', 'planned'),
   ]);
   if (error) throw new Error(`plan notices: ${error.message}`);
   const kindName = new Map(((kinds ?? []) as KindRow[]).map((k) => [k.id, k.name]));
-  const rows = (planned ?? []) as unknown as PlannedRow[];
+  // An event task given to someone outside Sales and Marketing is told the day before instead (event-assignee-notify).
+  const rows = ((planned ?? []) as unknown as PlannedRow[]).filter((r) => r.person && (isSales(r.person.role, r.person.team) || isMarketing(r.person.team)));
   const about = (r: PlannedRow) => r.customer?.company_name ?? r.prospect?.company_name ?? r.title ?? '';
 
   // ---- the day, at 08:00 ----

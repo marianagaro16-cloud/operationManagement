@@ -169,3 +169,35 @@ export interface StaffCandidate {
   id: string;
   name: string;
 }
+
+/* ------------------------- what an assignee was given ------------------------- */
+
+/** An event as whoever was given something on it sees it: what, when, where. */
+export interface EventBrief {
+  id: string;
+  name: string;
+  stage: EventStage;
+  start_date: string;
+  end_date: string;
+  open_time: string | null;
+  close_time: string | null;
+  place_name: string | null;
+  street: string | null;
+  postal_code: string | null;
+  city: string | null;
+}
+
+/** The viewer's shifts, material and event tasks over some days (my_event_work). */
+export interface MyEventWork {
+  shifts: { id: string; date: string; start: string | null; end: string | null; event: EventBrief }[];
+  /** Per event, on its first day: how much of what they bring is packed. */
+  materials: { event: EventBrief; total: number; packed: number }[];
+  tasks: { id: string; title: string; date: string; status: 'planned' | 'done' | 'not_done'; event: EventBrief }[];
+}
+
+/** One event, only the viewer's part of it (my_event). */
+export interface MyEvent extends EventBrief {
+  shifts: { id: string; date: string; start: string | null; end: string | null; note: string | null }[];
+  materials: { id: string; name: string; quantity: number | null; packed: boolean; came_back: boolean }[];
+  tasks: { id: string; title: string; date: string; status: 'planned' | 'done' | 'not_done' }[];
+}

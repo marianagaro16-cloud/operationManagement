@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DateTime } from 'luxon';
 import {
-  BellRing, Boxes, Check, ChevronLeft, ChevronRight, ClipboardList, Handshake, ListTodo, Plane, Plus, Receipt, ShieldCheck, Truck, Users, X,
+  BellRing, Boxes, Check, ChevronLeft, ChevronRight, ClipboardList, Handshake, ListChecks, ListTodo, Package, PartyPopper, Plane, Plus, Receipt, ShieldCheck, Truck, Users, X,
 } from 'lucide-react';
+import { completeMyEventTask } from '@/server/event-assignee-actions';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { BUSINESS_TZ } from '@/lib/datetime';
@@ -35,6 +36,9 @@ const ICON: Record<AgendaKind, typeof Check> = {
   personal: ListTodo,
   collection: Receipt,
   delivery: Truck,
+  shift: PartyPopper,
+  material: Package,
+  event_task: ListChecks,
 };
 
 const TONE: Record<AgendaKind, string> = {
@@ -48,6 +52,9 @@ const TONE: Record<AgendaKind, string> = {
   personal: 'border-l-subtle',
   collection: 'border-l-late',
   delivery: 'border-l-done',
+  shift: 'border-l-warn',
+  material: 'border-l-accent',
+  event_task: 'border-l-accent',
 };
 
 const weekOf = (date: string) => {
@@ -311,6 +318,8 @@ export function Entry({ item: i, kinds, compact = false }: { item: AgendaItem; k
   const detail =
     i.kind === 'delivery'
       ? load || null
+      : i.kind === 'material' && i.detail
+      ? t('agenda.packedOf', { packed: i.detail.split('/')[0]!, total: i.detail.split('/')[1]! })
       : i.kind === 'activity' && i.detail === 'blocked'
       ? t('agenda.blocked')
       : i.kind === 'activity' && i.detail
@@ -361,6 +370,12 @@ export function Entry({ item: i, kinds, compact = false }: { item: AgendaItem; k
       {recording && <ProductionDialog occurrenceId={i.id} onClose={() => setRecording(false)} onDone={() => setGone(true)} />}
       {!done && i.action === 'complete_activity' && (
         <Button size="sm" variant="secondary" className={cn('mt-1', compact && 'h-6 px-2 text-[11px]')} loading={pending} onClick={() => run(() => completeOccurrence(i.id))}>
+          <Check className="h-3 w-3" aria-hidden />
+          {t('agenda.markDone')}
+        </Button>
+      )}
+      {!done && i.action === 'complete_event_task' && (
+        <Button size="sm" variant="secondary" className={cn('mt-1', compact && 'h-6 px-2 text-[11px]')} loading={pending} onClick={() => run(() => completeMyEventTask(i.id))}>
           <Check className="h-3 w-3" aria-hidden />
           {t('agenda.markDone')}
         </Button>

@@ -1359,6 +1359,29 @@ export type Database = {
           },
         ]
       }
+      event_assignee_notices: {
+        Row: {
+          notice_date: string
+          profile_id: string
+        }
+        Insert: {
+          notice_date: string
+          profile_id: string
+        }
+        Update: {
+          notice_date?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_assignee_notices_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_cost_types: {
         Row: {
           created_at: string
@@ -11543,6 +11566,10 @@ export type Database = {
         }
         Returns: string
       }
+      event_brief: {
+        Args: { e: Database["public"]["Tables"]["events"]["Row"] }
+        Returns: Json
+      }
       event_cancel: {
         Args: { p_event_id: string; p_reason: string }
         Returns: string
@@ -11609,6 +11636,7 @@ export type Database = {
       }
       get_viewer: { Args: never; Returns: Json }
       guide_access: { Args: never; Returns: Json }
+      guide_barred: { Args: never; Returns: boolean }
       guide_can_edit: { Args: never; Returns: boolean }
       guide_can_see: { Args: { p_owner_id: string }; Returns: boolean }
       guide_check: {
@@ -12095,6 +12123,13 @@ export type Database = {
         Args: { p_line_id: string; p_quantity: number }
         Returns: undefined
       }
+      my_event: { Args: { p_event_id: string }; Returns: Json }
+      my_event_material_tick: {
+        Args: { p_field: string; p_id: string; p_value: boolean }
+        Returns: undefined
+      }
+      my_event_task_done: { Args: { p_id: string }; Returns: undefined }
+      my_event_work: { Args: { p_from: string; p_to: string }; Returns: Json }
       my_team: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       my_teams: { Args: never; Returns: Database["public"]["Enums"]["team"][] }
       next_goods_reception_report_version: {

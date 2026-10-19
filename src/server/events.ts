@@ -138,7 +138,7 @@ export async function getStaffCandidates(): Promise<StaffCandidate[]> {
   ];
 }
 
-/** Who an event's task may go to: people in sales (Ventas, Admin, Owners) and in Marketing. */
+/** Who may be an event's responsible person: people in sales (Ventas, Admin, Owners) and in Marketing. */
 export async function getEventTaskPeople(): Promise<{ id: string; name: string }[]> {
   const supabase = createClient();
   const { data, error } = await supabase

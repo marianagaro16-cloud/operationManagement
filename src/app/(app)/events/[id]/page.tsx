@@ -9,14 +9,22 @@ import { getEventPosts } from '@/server/marketing';
 import { isAdminRole, isMarketing, isSales } from '@/lib/authz';
 import { EventsReadOnlyProvider } from '@/components/events/event-parts';
 import { businessToday } from '@/lib/datetime';
+import { getMyEvent } from '@/server/event-assignee';
+import { MyEventView } from '@/components/events/my-event-view';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EventPage({ params }: { params: { id: string } }) {
   const viewer = await getViewer();
+  if (!viewer) redirect('/login');
   // Sales, Admin and Owners; Marketing too, alike.
-  const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
-  if (!viewer || !(sales || isMarketing(viewer.profile.team))) redirect('/dashboard');
+  const sales = isSales(viewer.role, viewer.profile.team);
+  if (!(sales || isMarketing(viewer.profile.team))) {
+    // Anyone else: only their own part, when they were given something on it.
+    const mine = await getMyEvent(params.id);
+    if (!mine) redirect('/dashboard');
+    return <MyEventView event={mine} today={businessToday()} />;
+  }
 
   const [found, { kinds, costTypes, kindMaterials }, people, customers, staff, catalog, methods, pastMaterials, salesPeople] = await Promise.all([
     getEvent(params.id),
@@ -29,6 +37,8 @@ export default async function EventPage({ params }: { params: { id: string } }) 
     getPastMaterials(params.id),
     getSalesPeople(),
   ]);
+  // An event task may go to anyone with an account.
+  const taskPeople = staff.filter((s) => s.kind === 'profile').map(({ id, name }) => ({ id, name }));
   // The content plan's posts about this event; RLS returns none to whoever cannot read the plan.
   const posts = found ? await getEventPosts(params.id) : [];
   if (!found) notFound();
@@ -40,6 +50,7 @@ export default async function EventPage({ params }: { params: { id: string } }) 
         standardMaterials={kindMaterials.filter((m) => m.kind_id === found.event.kind_id).map((m) => m.name)}
         pastMaterials={pastMaterials}
         salesPeople={salesPeople}
+        taskPeople={taskPeople}
         canEditStandard={isAdminRole(viewer.role)}
         choices={{ kinds, people, customers, viewerId: viewer.profile.id }}
         staff={staff}

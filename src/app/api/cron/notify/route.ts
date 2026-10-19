@@ -8,6 +8,7 @@ import { runBlockedReminders } from '@/server/block-notify';
 import { runMerchJobs } from '@/server/merch-notify';
 import { runOwnerDigest } from '@/server/digest-notify';
 import { runEventMaterialNotices } from '@/server/event-material-notify';
+import { runEventAssigneeNotices } from '@/server/event-assignee-notify';
 import { businessToday, addDays } from '@/lib/datetime';
 
 // web-push needs Node crypto; it cannot run on the Edge runtime.
@@ -84,10 +85,11 @@ export async function GET(request: Request) {
     digest = { error: e instanceof Error ? e.message : String(e) };
   }
 
-  // The day before an event: its material not packed yet, to the responsible person.
-  let material: { sent: number } | { error: string };
+  // The day before an event: its material not packed yet, to the responsible person;
+  // and to whoever was given something on it, their shift, material and tasks.
+  let material: { sent: number; assignees: number } | { error: string };
   try {
-    material = await runEventMaterialNotices();
+    material = { ...(await runEventMaterialNotices()), assignees: (await runEventAssigneeNotices()).sent };
   } catch (e) {
     material = { error: e instanceof Error ? e.message : String(e) };
   }
