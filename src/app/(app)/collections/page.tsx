@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getViewer } from '@/server/data';
-import { getCases, getCollectionCustomers, getCollectionTeam, getPrepayCustomers, isCollections } from '@/server/collections';
+import { getCases, getCollectionCustomers, getCollectionTeam, getPrepayCustomers, getPrepayFirstOrders, isCollections } from '@/server/collections';
 import { CaseList } from '@/components/collections/case-list';
 import { businessToday } from '@/lib/datetime';
 
@@ -12,13 +12,14 @@ export default async function CollectionsPage({ searchParams }: { searchParams: 
   if (!viewer) redirect('/login');
   if (!(await isCollections())) redirect('/dashboard');
   const tab = searchParams.tab === 'closed' ? 'closed' : searchParams.tab === 'prepay' ? 'prepay' : 'open';
-  const [cases, otherCases, team, customers, prepay] = await Promise.all([
+  const [cases, otherCases, team, customers, prepay, prepayFirst] = await Promise.all([
     tab === 'prepay' ? Promise.resolve([]) : getCases(tab === 'open'),
     // The other tab's cases: the search looks in open and closed together.
     tab === 'prepay' ? Promise.resolve([]) : getCases(tab !== 'open'),
     getCollectionTeam(),
     getCollectionCustomers(),
     tab === 'prepay' ? getPrepayCustomers() : Promise.resolve([]),
+    tab === 'prepay' ? getPrepayFirstOrders() : Promise.resolve([]),
   ]);
-  return <CaseList tab={tab} prepay={prepay} cases={cases} otherCases={otherCases} today={businessToday()} viewerId={viewer.profile.id} team={team} customers={customers} />;
+  return <CaseList tab={tab} prepay={prepay} prepayFirst={prepayFirst} cases={cases} otherCases={otherCases} today={businessToday()} viewerId={viewer.profile.id} team={team} customers={customers} />;
 }

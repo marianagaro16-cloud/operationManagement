@@ -8,6 +8,7 @@ import { useI18n } from '@/i18n';
 import { Badge, Card, Checkbox, EmptyState, Input } from '@/components/ui/primitives';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import type { SalesCustomerRow } from '@/types/sales';
+import type { PrepayFirstOrders } from '@/types/collections';
 
 /** Every customer, those ordering most recently first. */
 export function SalesCustomerList({
@@ -15,9 +16,12 @@ export function SalesCustomerList({
   today,
   flagged = {},
   prepay = [],
+  prepayFirst = [],
 }: {
   /** Customers who must pay before delivery. */
   prepay?: string[];
+  /** Customers still within their first N orders paid in advance. */
+  prepayFirst?: PrepayFirstOrders[];
   customers: SalesCustomerRow[];
   today: string;
   /** Customers with an open collection case, and how far: a reminder, or payments pending. */
@@ -71,6 +75,10 @@ export function SalesCustomerList({
                   {flagged[c.id] === 'pending' && <Badge tone="late">{t('collection.flag')}</Badge>}
                   {flagged[c.id] === 'reminder' && <Badge tone="warn">{t('collection.flagReminder')}</Badge>}
                   {prepay.includes(c.id) && <Badge tone="late">{t('collection.prepay')}</Badge>}
+                  {!prepay.includes(c.id) && (() => {
+                    const first = prepayFirst.find((p) => p.id === c.id);
+                    return first && <Badge tone="late">{t('collection.prepayFirstBadge', { counted: first.counted, of: first.first })}</Badge>;
+                  })()}
                 </span>
                 <span className="block truncate text-[12px] text-muted">
                   {[c.company_name_addition, c.city].filter(Boolean).join(' · ')}

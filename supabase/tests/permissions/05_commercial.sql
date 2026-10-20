@@ -150,3 +150,31 @@ select pg_temp.can('merch: Ventas adds an item', 'seller', $$insert into public.
 select pg_temp.can('merch: a power user adds an item', 'pu_ops', $$insert into public.merch_items (name) values ('ZZ pen 2')$$);
 select pg_temp.cannot('merch: a plain user may not', 'user', $$insert into public.merch_items (name) values ('ZZ pen 3')$$);
 select pg_temp.cannot('merch: the production manager may not', 'pm', $$insert into public.merch_items (name) values ('ZZ pen 4')$$);
+
+-- First orders paid in advance: set by whoever creates the customer; changed later by the collections team only.
+select pg_temp.can('prepay first orders: a new customer carries it', 'admin',
+  $$insert into public.customers (company_name, prepay_first_orders) values ('ZZ prepay customer', 3)$$);
+select pg_temp.cannot('prepay first orders: an admin outside the team cannot change it later', 'admin',
+  $$update public.customers set prepay_first_orders = 5 where company_name = 'ZZ prepay customer'$$);
+select pg_temp.cannot('prepay first orders: not through the team''s function either', 'admin',
+  $$select public.set_customer_prepay_first_orders((select id from public.customers where company_name = 'ZZ prepay customer'), 5)$$);
+select pg_temp.can('prepay first orders: the collections team changes it', 'collector',
+  $$select public.set_customer_prepay_first_orders((select id from public.customers where company_name = 'ZZ prepay customer'), 5)$$);
+select pg_temp.check('prepay first orders: the change is kept',
+  (select prepay_first_orders = 5 from public.customers where company_name = 'ZZ prepay customer'));
+
+-- Counted: the customer's first N sale orders by creation, cancelled ones not counted.
+create temp table _po as
+  select o.customer_id, array_agg(o.id order by o.created_at, o.id) as ids
+  from public.orders o where o.order_type = 'sale' and o.status <> 'cancelled'
+  group by o.customer_id having count(*) >= 2 limit 1;
+grant select on _po to authenticated;
+select pg_temp.can('prepay first orders: the team sets one on a customer with orders', 'collector',
+  $$select public.set_customer_prepay_first_orders((select customer_id from _po), 1)$$);
+select pg_temp.check('prepay first orders: the first order is in advance',
+  (select public.in_advance(o) from public.orders o where o.id = (select ids[1] from _po)));
+select pg_temp.check('prepay first orders: the second is not',
+  (select not public.in_advance(o) from public.orders o where o.id = (select ids[2] from _po)));
+select pg_temp.check('prepay first orders: the status counts every sale order',
+  coalesce((select s.counted = cardinality(p.ids) from (select pg_temp.act_as('user')) a, public.prepay_first_orders_status() s join _po p on p.customer_id = s.customer_id), false));
+select pg_temp.as_system();

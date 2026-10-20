@@ -1199,6 +1199,7 @@ export type Database = {
           longitude: number | null
           name: string | null
           postal_code: string | null
+          prepay_first_orders: number
           prepay_required: boolean
           prepay_since: string | null
           street: string | null
@@ -1222,6 +1223,7 @@ export type Database = {
           longitude?: number | null
           name?: string | null
           postal_code?: string | null
+          prepay_first_orders?: number
           prepay_required?: boolean
           prepay_since?: string | null
           street?: string | null
@@ -1245,6 +1247,7 @@ export type Database = {
           longitude?: number | null
           name?: string | null
           postal_code?: string | null
+          prepay_first_orders?: number
           prepay_required?: boolean
           prepay_since?: string | null
           street?: string | null
@@ -11807,6 +11810,10 @@ export type Database = {
         Args: { p_from: string; p_to: string; p_worker_id: string }
         Returns: Json
       }
+      in_advance: {
+        Args: { o: Database["public"]["Tables"]["orders"]["Row"] }
+        Returns: boolean
+      }
       in_incident_scope: {
         Args: { p_team: Database["public"]["Enums"]["team"] }
         Returns: boolean
@@ -12141,6 +12148,7 @@ export type Database = {
         Returns: number
       }
       order_is_prepared: { Args: { p_order_id: string }; Returns: boolean }
+      order_prepay_place: { Args: { p_order_id: string }; Returns: number }
       order_set_box_quantity: {
         Args: { p_box_type_id: string; p_order_id: string; p_quantity: number }
         Returns: undefined
@@ -12162,6 +12170,14 @@ export type Database = {
       preparation_date_for: {
         Args: { p_delivery_date: string; p_lead_days: number }
         Returns: string
+      }
+      prepay_first_orders_status: {
+        Args: never
+        Returns: {
+          counted: number
+          customer_id: string
+          first_orders: number
+        }[]
       }
       recent_production_lots: {
         Args: { p_product_id: string }
@@ -12402,6 +12418,10 @@ export type Database = {
       }
       set_customer_prepay: {
         Args: { p_customer_id: string; p_on: boolean }
+        Returns: undefined
+      }
+      set_customer_prepay_first_orders: {
+        Args: { p_count: number; p_customer_id: string }
         Returns: undefined
       }
       set_line_shortfall: {

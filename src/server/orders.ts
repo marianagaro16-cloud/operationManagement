@@ -32,7 +32,7 @@ import type {
 const ORDER_SELECT = `
   id, reference, customer_id, order_date, delivery_date, delivery_time, preparation_date,
   delivery_method_id, status, order_type, note, generated_from_template_id, import_source, created_by, updated_by,
-  created_at, updated_at,
+  created_at, updated_at, in_advance,
   customer:customers!inner ( id, name, is_active, prepay_required, customer_type_id, customer_type:customer_types ( id, slug, name, sort_order, is_active ) ),
   ready_at, ready_by, shipped_at, shipped_by,
   creator:profiles!orders_created_by_fkey ( name, email ),

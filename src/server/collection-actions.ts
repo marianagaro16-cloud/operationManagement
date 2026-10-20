@@ -370,6 +370,49 @@ export async function customerPrepay(customerId: string): Promise<boolean> {
   return Boolean(data?.prepay_required);
 }
 
+/**
+ * What an order of this customer should say about paying first: always (the
+ * collections mark), or which of the first N it is. A new order takes the
+ * next place; an existing one keeps its own.
+ */
+export async function customerPrepayCheck(
+  customerId: string,
+  orderId?: string,
+): Promise<{ always: boolean; place: number | null; of: number }> {
+  const none = { always: false, place: null, of: 0 };
+  if (!uuid.safeParse(customerId).success) return none;
+  const supabase = createClient();
+  const { data } = await supabase.from('customers').select('prepay_required, prepay_first_orders').eq('id', customerId).maybeSingle();
+  if (!data) return none;
+  const of = data.prepay_first_orders;
+  if (of === 0) return { always: data.prepay_required, place: null, of };
+  const existing = orderId && uuid.safeParse(orderId).success
+    ? (await supabase.from('orders').select('customer_id').eq('id', orderId).maybeSingle()).data
+    : null;
+  let place: number | null;
+  if (existing?.customer_id === customerId) {
+    place = (await supabase.rpc('order_prepay_place', { p_order_id: orderId! })).data ?? null;
+  } else {
+    const { data: status } = await supabase.rpc('prepay_first_orders_status');
+    place = (((status ?? []) as { customer_id: string; counted: number }[]).find((r) => r.customer_id === customerId)?.counted ?? 0) + 1;
+  }
+  return { always: data.prepay_required, place: place !== null && place <= of ? place : null, of };
+}
+
+/** How many first orders a customer pays in advance (0 = none). The collections team only. */
+export async function setCustomerPrepayFirstOrders(customerId: string, count: number): Promise<ActionResult> {
+  if (!uuid.safeParse(customerId).success) return { ok: false, error: 'not_authorized' };
+  if (!z.number().int().min(0).max(99).safeParse(count).success) return { ok: false, error: 'invalid_count' };
+  const supabase = createClient();
+  const { error } = await supabase.rpc('set_customer_prepay_first_orders', { p_customer_id: customerId, p_count: count });
+  if (error) return fail(error);
+  revalidatePath('/collections');
+  revalidatePath('/sales');
+  revalidatePath(`/sales/customers/${customerId}`);
+  revalidatePath('/orders');
+  return { ok: true, data: undefined };
+}
+
 /** Put a customer on, or take them off, payment in advance. The collections team only. */
 export async function setCustomerPrepay(customerId: string, on: boolean): Promise<ActionResult> {
   if (!uuid.safeParse(customerId).success) return { ok: false, error: 'not_authorized' };

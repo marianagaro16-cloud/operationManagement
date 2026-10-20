@@ -67,3 +67,11 @@ export interface CollectionAgency {
   sort_order: number;
   is_active: boolean;
 }
+
+/** A customer whose first `first` sale orders are paid in advance; `counted` orders so far (cancelled ones not counted). */
+export interface PrepayFirstOrders {
+  id: string;
+  name: string;
+  first: number;
+  counted: number;
+}

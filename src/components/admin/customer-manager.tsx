@@ -257,6 +257,8 @@ function CustomerDialog({
   const [country, setCountry] = useState(customer?.country ?? 'CH');
   const [deliveryNotes, setDeliveryNotes] = useState(customer?.delivery_notes ?? '');
   const [active, setActive] = useState(customer?.is_active ?? true);
+  // New customers only: afterwards the collections team changes it.
+  const [prepayFirst, setPrepayFirst] = useState('');
   const typeLabel = useCustomerTypeLabel();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -278,6 +280,7 @@ function CustomerDialog({
           country: (country.trim() || 'CH').toUpperCase(),
           delivery_notes: deliveryNotes.trim() || null,
           is_active: active,
+          ...(customer ? {} : { prepay_first_orders: Number(prepayFirst) || 0 }),
         },
         customer?.id,
       );
@@ -365,6 +368,19 @@ function CustomerDialog({
             </Field>
           </div>
         </div>
+
+        {!customer && (
+          <Field label={t('master.prepayFirstOrders')} hint={t('master.prepayFirstOrdersHint')} htmlFor="c-prepay-first">
+            <Input
+              id="c-prepay-first"
+              value={prepayFirst}
+              onChange={(e) => setPrepayFirst(e.target.value.replace(/D/g, '').slice(0, 2))}
+              inputMode="numeric"
+              placeholder="0"
+              className="max-w-24"
+            />
+          </Field>
+        )}
 
         <Checkbox
           label={t('status.active')}

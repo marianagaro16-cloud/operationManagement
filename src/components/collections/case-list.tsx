@@ -14,7 +14,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { PageHeader } from '@/components/shell/app-shell';
 import { createCase } from '@/server/collection-actions';
-import type { CollectionCaseRow } from '@/types/collections';
+import type { CollectionCaseRow, PrepayFirstOrders } from '@/types/collections';
 import { StageBadge, chf, useCollectionLabels } from './collection-parts';
 import { PrepayList } from './prepay-list';
 
@@ -28,9 +28,12 @@ export function CaseList({
   team,
   customers,
   prepay = [],
+  prepayFirst = [],
 }: {
   /** Customers who must pay before delivery. */
   prepay?: { id: string; name: string; since: string | null }[];
+  /** Customers whose first N orders are paid in advance. */
+  prepayFirst?: PrepayFirstOrders[];
   tab: 'open' | 'closed' | 'prepay';
   cases: CollectionCaseRow[];
   /** The cases of the other tab — closed on "open", open on "closed": only the search reads them. */
@@ -97,7 +100,7 @@ export function CaseList({
       )}
 
       {tab === 'prepay' ? (
-        <PrepayList prepay={prepay} customers={customers} />
+        <PrepayList prepay={prepay} prepayFirst={prepayFirst} customers={customers} />
       ) : shown.length === 0 ? (
         <EmptyState title={searching ? t('collection.noneFound') : tab === 'open' ? t('collection.noneOpen') : t('collection.noneClosed')} />
       ) : (

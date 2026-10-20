@@ -7,6 +7,7 @@ import type {
   CollectionEvent,
   CollectionInvoice,
   CollectionPayment,
+  PrepayFirstOrders,
 } from '@/types/collections';
 
 /*
@@ -151,4 +152,17 @@ export async function getPrepayCustomers(): Promise<{ id: string; name: string; 
   const supabase = createClient();
   const { data } = await supabase.from('customers').select('id, company_name, prepay_since').eq('prepay_required', true).order('company_name');
   return (data ?? []).map((c) => ({ id: c.id, name: c.company_name, since: c.prepay_since }));
+}
+
+/** Customers whose first N orders are paid in advance, with how many orders have counted so far. Any approved user may read it. */
+export async function getPrepayFirstOrders(): Promise<PrepayFirstOrders[]> {
+  const supabase = createClient();
+  const { data: status } = await supabase.rpc('prepay_first_orders_status');
+  const rows = (status ?? []) as { customer_id: string; first_orders: number; counted: number }[];
+  if (rows.length === 0) return [];
+  const { data: names } = await supabase.from('customers').select('id, company_name').in('id', rows.map((r) => r.customer_id));
+  const name = new Map((names ?? []).map((c) => [c.id, c.company_name]));
+  return rows
+    .map((r) => ({ id: r.customer_id, name: name.get(r.customer_id) ?? '', first: r.first_orders, counted: r.counted }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }

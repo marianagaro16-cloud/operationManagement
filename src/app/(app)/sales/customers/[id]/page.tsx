@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getViewer } from '@/server/data';
 import { getActivityKinds, getCustomerFile, getWonFrom } from '@/server/sales';
 import { CustomerFile } from '@/components/sales/customer-file';
-import { getCustomerCases, getFlaggedCustomers, isCollections } from '@/server/collections';
+import { getCustomerCases, getFlaggedCustomers, getPrepayFirstOrders, isCollections } from '@/server/collections';
 import { customerPrepay } from '@/server/collection-actions';
 import { getNotes } from '@/server/notes';
 import { getActaTopics, getTargetActas } from '@/server/sales-actas';
@@ -16,13 +16,14 @@ export default async function SalesCustomerPage({ params }: { params: { id: stri
   const viewer = await getViewer();
   if (!viewer || !isSales(viewer.role, viewer.profile.team)) redirect('/dashboard');
   const today = businessToday();
-  const [view, wonFrom, kinds, flagged, team, prepay, quickNotes, actaTopics, merchHistory, merchItems] = await Promise.all([
+  const [view, wonFrom, kinds, flagged, team, prepay, prepayFirst, quickNotes, actaTopics, merchHistory, merchItems] = await Promise.all([
     getCustomerFile(params.id),
     getWonFrom(params.id),
     getActivityKinds(true),
     getFlaggedCustomers(),
     isCollections(),
     customerPrepay(params.id),
+    getPrepayFirstOrders(),
     getNotes({ customerId: params.id }),
     getActaTopics(true),
     getMerchHistory({ customerId: params.id }),
@@ -46,7 +47,7 @@ export default async function SalesCustomerPage({ params }: { params: { id: stri
       actas={actas}
       actaTopics={actaTopics}
       merch={{ history: merchHistory, items: merchItems }}
-      collections={{ flagged: flagged.get(params.id) ?? null, prepay, cases }}
+      collections={{ flagged: flagged.get(params.id) ?? null, prepay, prepayFirst: prepayFirst.find((c) => c.id === params.id && c.counted < c.first) ?? null, cases }}
     />
   );
 }

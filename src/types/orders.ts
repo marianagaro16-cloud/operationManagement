@@ -291,6 +291,8 @@ export interface Order {
   updated_by: string | null;
   created_at: string;
   updated_at: string;
+  /** One of the customer's first N orders paid in advance (computed in the database). */
+  in_advance?: boolean;
   /**
    * Who entered the order. Null for orders the system generated from a
    * standing order, and for any whose author's account was removed.

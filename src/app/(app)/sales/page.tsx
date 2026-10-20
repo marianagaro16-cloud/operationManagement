@@ -9,7 +9,7 @@ import { getMeetingsFor } from '@/server/meetings';
 import { getActaList, getActaTopics, getActaWork } from '@/server/sales-actas';
 import { ActaList } from '@/components/sales/acta-list';
 import { buildSummary, listSummaries } from '@/server/sales-summary';
-import { getFlaggedCustomers, getPrepayCustomers } from '@/server/collections';
+import { getFlaggedCustomers, getPrepayCustomers, getPrepayFirstOrders } from '@/server/collections';
 import { SummaryTab } from '@/components/summaries/summary-tab';
 import { PlanningView } from '@/components/sales/planning';
 import { SalesReportView } from '@/components/sales/sales-report';
@@ -50,7 +50,7 @@ export default async function SalesPage({
   const sumFrom = isDate(searchParams.from) ? searchParams.from! : monday.toISODate()!;
   const sumTo = isDate(searchParams.to) && searchParams.to! >= sumFrom ? searchParams.to! : monday.endOf('week').toISODate()!;
 
-  const [customers, quiet, prospects, people, customerTypes, lists, report, kinds, summary, previousSummaries, flagged, prepay, actaWork, actas, actaTopics] = await Promise.all([
+  const [customers, quiet, prospects, people, customerTypes, lists, report, kinds, summary, previousSummaries, flagged, prepay, prepayFirst, actaWork, actas, actaTopics] = await Promise.all([
     tab === 'customers' ? getSalesCustomers() : Promise.resolve([]),
     getQuietCustomers(),
     tab === 'prospects' ? getProspects() : Promise.resolve([]),
@@ -64,6 +64,7 @@ export default async function SalesPage({
     // Payments pending: a flag, nothing more.
     tab === 'customers' ? getFlaggedCustomers() : Promise.resolve(new Map<string, 'reminder' | 'pending'>()),
     tab === 'customers' ? getPrepayCustomers() : Promise.resolve([]),
+    tab === 'customers' ? getPrepayFirstOrders() : Promise.resolve([]),
     // The viewer's own Actas to write and follow-ups due: the tab's count.
     getActaWork(viewer.profile.id, today),
     tab === 'actas' ? getActaList(today) : Promise.resolve([]),
@@ -75,7 +76,7 @@ export default async function SalesPage({
       <SalesHeader tab={tab} quietCount={quiet.length} actaCount={actaWork.toWrite.count + actaWork.followUps.count} />
       {tab === 'actas' && <ActaList rows={actas} kinds={kinds} topics={actaTopics} today={today} />}
       {tab === 'quiet' && <QuietCustomerList customers={quiet} />}
-      {tab === 'customers' && <SalesCustomerList customers={customers} today={today} flagged={Object.fromEntries(flagged)} prepay={prepay.map((c) => c.id)} />}
+      {tab === 'customers' && <SalesCustomerList customers={customers} today={today} flagged={Object.fromEntries(flagged)} prepay={prepay.map((c) => c.id)} prepayFirst={prepayFirst.filter((c) => c.counted < c.first)} />}
       {tab === 'planning' && (
         <PlanningTab
           date={date}

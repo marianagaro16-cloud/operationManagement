@@ -533,7 +533,7 @@ function ReadyTab({
   // Only ids still on the tab count — a refresh may have removed some.
   const chosen = orders.filter((o) => selected.has(o.id)).map((o) => o.id);
   // Customers among them who pay in advance: named once before shipping.
-  const prepayNames = [...new Set(orders.filter((o) => selected.has(o.id) && o.customer.prepay_required).map((o) => o.customer.name))];
+  const prepayNames = [...new Set(orders.filter((o) => selected.has(o.id) && (o.customer.prepay_required || o.in_advance)).map((o) => o.customer.name))];
   const [checkPayment, setCheckPayment] = useState(false);
 
   const toggle = (id: string) =>

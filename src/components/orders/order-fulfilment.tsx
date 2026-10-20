@@ -152,7 +152,7 @@ export function OrderFulfilment({
             <Button
               size="sm"
               variant="primary"
-              onClick={() => (order.customer.prepay_required && !checkPayment ? setCheckPayment(true) : run(() => setOrdersShipped([order.id], true)))}
+              onClick={() => ((order.customer.prepay_required || order.in_advance) && !checkPayment ? setCheckPayment(true) : run(() => setOrdersShipped([order.id], true)))}
               loading={pending}
             >
               <Truck className="h-3.5 w-3.5" aria-hidden />

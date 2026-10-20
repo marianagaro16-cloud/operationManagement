@@ -15,7 +15,7 @@ import type { PreviewLine } from '@/domain/orders/import/pipeline';
 import { businessToday } from '@/lib/datetime';
 import { productLabel, type Customer, type DeliveryMethod, type Order, type OrderType, type Product } from '@/types/orders';
 import { saveOrder } from '@/server/order-actions';
-import { customerPaymentFlag, customerPrepay } from '@/server/collection-actions';
+import { customerPaymentFlag, customerPrepayCheck } from '@/server/collection-actions';
 import { pendingMerchFor } from '@/server/merch-actions';
 import { ReminderDialog } from '@/components/reminders/reminder-dialog';
 import { useOrderReminderDates } from './order-reminder';
@@ -95,20 +95,21 @@ export function OrderDialog({
   // A customer in collection: said, never blocked.
   const [pendingPayments, setPendingPayments] = useState<'reminder' | 'pending' | null>(null);
   // …and one who must pay before delivery.
-  const [prepay, setPrepay] = useState(false);
+  // Always, or this is one of their first N orders.
+  const [prepay, setPrepay] = useState<{ always: boolean; place: number | null; of: number }>({ always: false, place: null, of: 0 });
   useEffect(() => {
     let live = true;
     if (!customerId) {
       setPendingPayments(null);
-      setPrepay(false);
+      setPrepay({ always: false, place: null, of: 0 });
       return;
     }
     customerPaymentFlag(customerId).then((level) => live && setPendingPayments(level));
-    customerPrepay(customerId).then((on) => live && setPrepay(on));
+    customerPrepayCheck(customerId, order?.id).then((p) => live && setPrepay(p));
     return () => {
       live = false;
     };
-  }, [customerId]);
+  }, [customerId, order?.id]);
   // Merch waiting for this customer: said, so nobody is surprised on the card.
   const [merch, setMerch] = useState<Awaited<ReturnType<typeof pendingMerchFor>>>([]);
   useEffect(() => {
@@ -381,9 +382,13 @@ export function OrderDialog({
             ⚠ {pendingPayments === 'pending' ? t('collection.orderWarning') : t('collection.orderWarningReminder')}
           </p>
         )}
-        {prepay && (
+        {prepay.always ? (
           <p className="-mt-1.5 flex items-center gap-1.5 rounded-lg border border-late/40 bg-late/[0.06] px-3 py-2 text-[12.5px] font-medium text-late">
             ⚠ {t('collection.prepayOrderWarning')}
+          </p>
+        ) : prepay.place !== null && orderType === 'sale' && (
+          <p className="-mt-1.5 flex items-center gap-1.5 rounded-lg border border-late/40 bg-late/[0.06] px-3 py-2 text-[12.5px] font-medium text-late">
+            ⚠ {t('collection.prepayFirstOrderWarning', { place: prepay.place, of: prepay.of })}
           </p>
         )}
 

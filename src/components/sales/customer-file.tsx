@@ -11,7 +11,7 @@ import { Badge, Card, EmptyState } from '@/components/ui/primitives';
 import { NoteText } from '@/components/ui/note';
 import { NoteStar } from './note-star';
 import { StageBadge as CollectionStageBadge, chf } from '@/components/collections/collection-parts';
-import type { CollectionCaseRow } from '@/types/collections';
+import type { CollectionCaseRow, PrepayFirstOrders } from '@/types/collections';
 import { KindBadge, useKinds } from './activity-kind';
 import { NoteDialog, PlanForTargetDialog, PlannedList } from './target-plan';
 import type { ActivityKind, Amount } from '@/types/sales';
@@ -47,7 +47,7 @@ export function CustomerFile({
   actas: ActaRow[];
   actaTopics: ActaTopic[];
   /** Payments pending — and, for the collections team, the cases. */
-  collections: { flagged: 'reminder' | 'pending' | null; prepay: boolean; cases: CollectionCaseRow[] | null };
+  collections: { flagged: 'reminder' | 'pending' | null; prepay: boolean; prepayFirst: PrepayFirstOrders | null; cases: CollectionCaseRow[] | null };
   view: CustomerFileView;
   /** The prospect this customer was won from: its contact details live there. */
   wonFromId: string | null;
@@ -81,6 +81,9 @@ export function CustomerFile({
           {collections.flagged === 'pending' && <Badge tone="late">{t('collection.flag')}</Badge>}
           {collections.flagged === 'reminder' && <Badge tone="warn">{t('collection.flagReminder')}</Badge>}
           {collections.prepay && <Badge tone="late">{t('collection.prepay')}</Badge>}
+          {!collections.prepay && collections.prepayFirst && (
+            <Badge tone="late">{t('collection.prepayFirstBadge', { counted: collections.prepayFirst.counted, of: collections.prepayFirst.first })}</Badge>
+          )}
         </div>
         <p className="mt-1 break-words text-[12.5px] text-muted">
           {[customer.company_name_addition, customer.type, address].filter(Boolean).join(' · ')}

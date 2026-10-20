@@ -390,6 +390,8 @@ const customerSchema = z.object({
    *  Required when creating a customer: see saveCustomer. */
   customer_type_id: z.string().uuid().nullable().optional(),
   is_active: z.boolean(),
+  /** First N sale orders paid in advance. Set on creation only; afterwards the collections team changes it. */
+  prepay_first_orders: z.number().int().min(0).max(99).optional(),
 });
 
 export async function saveCustomer(
@@ -450,6 +452,7 @@ export async function saveCustomer(
       ? {}
       : { customer_type_id: parsed.data.customer_type_id }),
     is_active: parsed.data.is_active,
+    ...(id ? {} : { prepay_first_orders: parsed.data.prepay_first_orders ?? 0 }),
   };
   const { error } = id
     ? await supabase.from('customers').update(row).eq('id', id)
