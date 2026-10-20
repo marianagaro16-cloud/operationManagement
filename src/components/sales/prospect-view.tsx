@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Pencil, Plus, Trophy, XCircle } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { NoteText } from '@/components/ui/note';
 import { NoteStar } from './note-star';
@@ -48,6 +48,8 @@ export function ProspectView({
   const errorText = useProspectError();
   const [editing, setEditing] = useState(false);
   const [winning, setWinning] = useState(false);
+  // The new customer's first orders paid in advance, as in the new-customer form.
+  const [prepayFirst, setPrepayFirst] = useState('');
   const [losing, setLosing] = useState(false);
   const [noting, setNoting] = useState(false);
   const [planning, setPlanning] = useState(false);
@@ -59,7 +61,7 @@ export function ProspectView({
   function win() {
     setError(null);
     startTransition(async () => {
-      const res = await winProspect(prospect.id);
+      const res = await winProspect(prospect.id, Number(prepayFirst) || 0);
       setWinning(false);
       if (!res.ok) return setError(errorText(res.error));
       router.push(`/sales/customers/${res.data.customerId}`);
@@ -191,16 +193,31 @@ export function ProspectView({
         />
       )}
       {losing && <LoseDialog prospectId={prospect.id} reasons={choices.lostReasons} onClose={() => setLosing(false)} />}
-      <ConfirmDialog
+      <Dialog
         open={winning}
         onClose={() => setWinning(false)}
-        onConfirm={win}
         title={t('sales.winTitle')}
-        message={t('sales.winBody')}
-        confirmLabel={t('sales.win')}
-        cancelLabel={t('common.cancel')}
-        loading={pending}
-      />
+        description={t('sales.winBody')}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setWinning(false)} disabled={pending}>{t('common.cancel')}</Button>
+            <Button variant="primary" onClick={win} loading={pending}>{t('sales.win')}</Button>
+          </>
+        }
+      >
+        <div className="space-y-3.5">
+          <Field label={t('master.prepayFirstOrders')} hint={t('master.prepayFirstOrdersHint')} htmlFor="win-prepay-first">
+            <Input
+              id="win-prepay-first"
+              value={prepayFirst}
+              onChange={(e) => setPrepayFirst(e.target.value.replace(/D/g, '').slice(0, 2))}
+              inputMode="numeric"
+              placeholder="0"
+              className="max-w-24"
+            />
+          </Field>
+        </div>
+      </Dialog>
     </>
   );
 }

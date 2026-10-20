@@ -178,3 +178,10 @@ select pg_temp.check('prepay first orders: the second is not',
 select pg_temp.check('prepay first orders: the status counts every sale order',
   coalesce((select s.counted = cardinality(p.ids) from (select pg_temp.act_as('user')) a, public.prepay_first_orders_status() s join _po p on p.customer_id = s.customer_id), false));
 select pg_temp.as_system();
+
+-- Winning a prospect sets the new customer's first orders paid in advance, like the new-customer form.
+insert into public.prospects (company_name, owner_id, created_by) values ('ZZ won prospect', pg_temp.id('seller'), pg_temp.id('seller'));
+select pg_temp.can('prepay first orders: Ventas sets them when winning a prospect', 'seller',
+  $$select public.sales_prospect_win((select id from public.prospects where company_name = 'ZZ won prospect'), 2)$$);
+select pg_temp.check('prepay first orders: the won customer carries them',
+  (select prepay_first_orders = 2 from public.customers where company_name = 'ZZ won prospect'));

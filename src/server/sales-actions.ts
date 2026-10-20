@@ -459,9 +459,10 @@ export async function saveProspect(
 }
 
 /** Won: the customer is created, the notes go to its file, and what was planned stays planned with it. */
-export async function winProspect(id: string): Promise<ActionResult<{ customerId: string }>> {
+export async function winProspect(id: string, prepayFirstOrders = 0): Promise<ActionResult<{ customerId: string }>> {
+  if (!z.number().int().min(0).max(99).safeParse(prepayFirstOrders).success) return { ok: false, error: 'invalid_count' };
   const supabase = createClient();
-  const { data, error } = await supabase.rpc('sales_prospect_win', { p_prospect_id: id });
+  const { data, error } = await supabase.rpc('sales_prospect_win', { p_prospect_id: id, p_prepay_first_orders: prepayFirstOrders });
   if (error) return fail(error);
   revalidateSales(`/sales/prospects/${id}`);
   return { ok: true, data: { customerId: data as string } };

@@ -12377,7 +12377,10 @@ export type Database = {
         Args: { p_note: string; p_prospect_id: string; p_reason_id: string }
         Returns: undefined
       }
-      sales_prospect_win: { Args: { p_prospect_id: string }; Returns: string }
+      sales_prospect_win: {
+        Args: { p_prepay_first_orders?: number; p_prospect_id: string }
+        Returns: string
+      }
       sales_quiet_customers: {
         Args: never
         Returns: {
