@@ -17,19 +17,21 @@ import { localizedName, localizedNameDescription } from '@/lib/localized-content
 import { addEvaluation } from '@/server/hr-actions';
 import { WorkerDialog, useHrError, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
-import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrKey, HrLateArrival, HrLateReason, HrNoteType, HrPerson, HrStats, HrTraining, HrTrainingKind, HrWorkerDate, HrWorkerFile } from '@/types/hr';
+import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrKey, HrLateArrival, HrLateReason, HrNoteType, HrPerson, HrStats, HrChecklist, HrTraining, HrTrainingKind, HrWorkerDate, HrWorkerFile } from '@/types/hr';
 import { LateSinceEvaluation, LateTab } from './late-arrivals';
 import { LogTab } from './note-log';
 import { KeyRegister } from './key-register';
 import { WorkerDates } from './worker-dates';
 import { TrainingTab } from './training-tab';
 import { requiredTrainings } from '@/domain/hr/trainings';
+import { ChecklistTab } from './checklist-tab';
+import { checklistState, type ChecklistFacts } from '@/domain/hr/checklists';
 import type { MeetingRecord } from '@/types/meetings';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { RequestStatus } from './evaluation-parts';
 import { teamLabelKey } from '@/lib/authz';
 
-export type HrTab = 'log' | 'late' | 'keys' | 'training' | 'evaluations' | 'app';
+export type HrTab = 'log' | 'late' | 'keys' | 'training' | 'checklists' | 'evaluations' | 'app';
 
 /**
  * One worker's file: who they are, the log, their evaluations, and — when
@@ -59,10 +61,15 @@ export function WorkerFile({
   dates,
   trainingKinds,
   trainings,
+  checklists,
+  checklistFacts,
 }: {
   /** Admin's training list, and this worker's trainings, newest first. */
   trainingKinds: HrTrainingKind[];
   trainings: HrTraining[];
+  /** The Ingreso and Salida lists, and what the app knows for their automatic items. */
+  checklists: HrChecklist[];
+  checklistFacts: ChecklistFacts;
   /** The other important dates kept on the file. */
   dates: HrWorkerDate[];
   /** Minutes before the agreed time that are still fine. */
@@ -110,11 +117,16 @@ export function WorkerFile({
 
   // Required trainings missing or expired: counted on the tab, in red.
   const trainingGaps = requiredTrainings(worker, trainingKinds, trainings, today).filter((r) => r.status === 'missing' || r.status === 'expired').length;
+  // Items still open on the Ingreso and Salida lists; red once a list is late.
+  const checklistStates = checklists.map((l) => checklistState(l, l.entries, checklistFacts, today));
+  const checklistOpen = checklistStates.reduce((n, s) => n + s.open, 0);
+  const checklistLate = checklistStates.some((s) => s.overdue);
   const tabs: { key: HrTab; label: string; count?: number; alert?: boolean }[] = [
     { key: 'log', label: t('hr.tabLog'), count: file.notes.length + meetings.length },
     { key: 'late', label: t('hrLate.tab'), count: lateArrivals.length },
     { key: 'keys', label: t('hrKey.tab'), count: keys.filter((k) => !k.returned_on).length },
     { key: 'training', label: t('hrTraining.tab'), count: trainingGaps || undefined, alert: trainingGaps > 0 },
+    { key: 'checklists', label: t('hrChecklist.tab'), count: checklistOpen || undefined, alert: checklistLate },
     { key: 'evaluations', label: t('hr.tabEvaluations'), count: file.evaluations.length },
     { key: 'app', label: t('hr.tabApp') },
   ];
@@ -193,6 +205,7 @@ export function WorkerFile({
       {tab === 'log' && (
         <LogTab file={file} meetings={meetings} noteTypes={noteTypes} people={people} today={today} viewerId={viewerId} viewerName={viewerName} isAdmin={isAdmin} />
       )}
+      {tab === 'checklists' && <ChecklistTab worker={worker} lists={checklists} facts={checklistFacts} today={today} />}
       {tab === 'training' && <TrainingTab worker={worker} kinds={trainingKinds} trainings={trainings} today={today} />}
       {tab === 'keys' && <KeyRegister keys={keys} worker={{ id: worker.id, name: worker.name }} today={today} isAdmin={isAdmin} />}
       {tab === 'late' && (

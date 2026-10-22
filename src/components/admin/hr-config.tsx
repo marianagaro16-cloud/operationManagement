@@ -9,10 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { saveCriterion, saveEvalTemplate, saveLateReason, saveNoteType, saveTrainingKind, setArrivalSetting } from '@/server/hr-actions';
+import { saveCriterion, saveEvalTemplate, saveLateReason, saveChecklistItem, saveNoteType, saveTrainingKind, setArrivalSetting } from '@/server/hr-actions';
 import { TEAMS, type Team } from '@/lib/authz';
 import { localizedName, localizedNameDescription } from '@/lib/localized-content';
-import type { HrCriterion, HrEvalTemplate, HrLateReason, HrNoteType, HrTrainingKind, HrTranslations } from '@/types/hr';
+import type { HrChecklistItem, HrCriterion, HrEvalTemplate, HrLateReason, HrNoteType, HrTrainingKind, HrTranslations } from '@/types/hr';
 import { teamLabelKey } from '@/lib/authz';
 
 type Editing =
@@ -33,9 +33,12 @@ export function HrConfig({
   lateReasons,
   arrivalSettings,
   trainingKinds,
+  checklistItems,
 }: {
   /** The training list, inactive ones included. */
   trainingKinds: HrTrainingKind[];
+  /** The Ingreso and Salida lists, inactive items included. */
+  checklistItems: HrChecklistItem[];
   /** Why someone arrived late, and from how many unexcused in a month HR is told. */
   lateReasons: HrLateReason[];
   arrivalSettings: Record<'hr_late_alert_threshold' | 'hr_early_alert_threshold' | 'hr_early_tolerance_minutes', number>;
@@ -84,6 +87,8 @@ export function HrConfig({
       </section>
 
       <TrainingKinds kinds={trainingKinds} />
+
+      <ChecklistItems items={checklistItems} />
 
       <LateSettings reasons={lateReasons} settings={arrivalSettings} onEdit={(row) => setEditing({ kind: 'reason', row })} row={row} />
 
@@ -375,6 +380,141 @@ function TrainingKindDialog({ kind, onClose }: { kind: HrTrainingKind | null; on
         </fieldset>
         <Field label={t('hr.sortOrder')} htmlFor="hr-training-kind-order">
           <Input id="hr-training-kind-order" type="number" inputMode="numeric" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
+        </Field>
+        <Checkbox label={t('status.active')} checked={active} onChange={(e) => setActive(e.target.checked)} />
+      </div>
+    </Dialog>
+  );
+}
+
+/** Admin's Ingreso and Salida lists. Lists already made keep their items. */
+function ChecklistItems({ items }: { items: HrChecklistItem[] }) {
+  const { t, locale } = useI18n();
+  const [editing, setEditing] = useState<{ row: HrChecklistItem | null; phase: HrChecklistItem['phase'] } | null>(null);
+  const teamLabel = (team: Team) => t(teamLabelKey(team));
+  const autoLabel = (auto: HrChecklistItem['auto']) =>
+    auto === 'keys' ? t('hrChecklist.autoKeys') : auto === 'account' ? t('hrChecklist.autoAccount') : auto === 'trainings' ? t('hrChecklist.autoTrainings') : null;
+  return (
+    <section className="mb-5">
+      <h2 className="mb-1 px-0.5 text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('hrChecklist.items')}</h2>
+      <p className="mb-1.5 px-0.5 text-[12px] text-muted">{t('hrChecklist.itemsHint')}</p>
+      {(['start', 'leave'] as const).map((phase) => (
+        <div key={phase} className="mb-3">
+          <div className="mb-1 flex items-center justify-between gap-2 px-0.5">
+            <h3 className="text-[13px] font-medium">{phase === 'start' ? t('hrChecklist.start') : t('hrChecklist.leave')}</h3>
+            <Button size="sm" variant="secondary" onClick={() => setEditing({ row: null, phase })}>
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              {t('hrChecklist.newItem')}
+            </Button>
+          </div>
+          <Card className="overflow-hidden">
+            <ul className="divide-y divide-border">
+              {items.filter((i) => i.phase === phase).map((i) => (
+                <li key={i.id} className="flex items-center gap-3 px-3.5 py-2">
+                  <div className="min-w-0 flex-1">
+                    <p className={cn('break-words text-[13px]', !i.is_active && 'text-muted line-through')}>{localizedName(i, locale)}</p>
+                    <p className="text-[12px] text-muted">
+                      {[i.teams.length > 0 && i.teams.map(teamLabel).join(', '), autoLabel(i.auto)].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+                  {!i.is_active && <Badge tone="neutral">{t('status.inactive')}</Badge>}
+                  <Button size="icon" variant="ghost" aria-label={t('common.edit')} onClick={() => setEditing({ row: i, phase })}>
+                    <Pencil className="h-3.5 w-3.5" aria-hidden />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+      ))}
+      {editing && <ChecklistItemDialog row={editing.row} phase={editing.phase} onClose={() => setEditing(null)} />}
+    </section>
+  );
+}
+
+function ChecklistItemDialog({ row, phase, onClose }: { row: HrChecklistItem | null; phase: HrChecklistItem['phase']; onClose: () => void }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [name, setName] = useState(row?.name ?? '');
+  const [deName, setDeName] = useState(row?.translations.de?.name ?? '');
+  const [enName, setEnName] = useState(row?.translations.en?.name ?? '');
+  const [teams, setTeams] = useState<Team[]>(row?.teams ?? []);
+  const [auto, setAuto] = useState<HrChecklistItem['auto']>(row?.auto ?? null);
+  const [sortOrder, setSortOrder] = useState(String(row?.sort_order ?? 100));
+  const [active, setActive] = useState(row?.is_active ?? true);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function submit() {
+    setError(null);
+    startTransition(async () => {
+      const res = await saveChecklistItem(
+        {
+          phase,
+          name,
+          translations: { de: { name: deName.trim() || null }, en: { name: enName.trim() || null } },
+          teams,
+          auto,
+          sort_order: Number(sortOrder) || 100,
+          is_active: active,
+        },
+        row?.id,
+      );
+      if (!res.ok) return setError(res.error === 'not_authorized' ? t('hr.errNotAuthorized') : res.error);
+      onClose();
+      router.refresh();
+    });
+  }
+
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={`${phase === 'start' ? t('hrChecklist.start') : t('hrChecklist.leave')} · ${row ? t('common.edit') : t('hrChecklist.newItem')}`}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={pending}>{t('common.cancel')}</Button>
+          <Button variant="primary" onClick={submit} loading={pending} disabled={!name.trim()}>{t('common.save')}</Button>
+        </>
+      }
+    >
+      <div className="space-y-3.5">
+        {error && <ErrorState message={error} />}
+        <Field label={t('hr.name')} required htmlFor="hr-checklist-item-name">
+          <Input id="hr-checklist-item-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        </Field>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Deutsch" hint={t('admin.translationsHint')}>
+            <Input value={deName} onChange={(e) => setDeName(e.target.value)} />
+          </Field>
+          <Field label="English">
+            <Input value={enName} onChange={(e) => setEnName(e.target.value)} />
+          </Field>
+        </div>
+        <fieldset>
+          <legend className="mb-1 text-[12.5px] font-medium">{t('hrChecklist.teams')}</legend>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            {TEAMS.map((team) => (
+              <Checkbox
+                key={team}
+                label={t(teamLabelKey(team))}
+                checked={teams.includes(team)}
+                onChange={(e) => setTeams((list) => (e.target.checked ? [...list, team] : list.filter((x) => x !== team)))}
+              />
+            ))}
+          </div>
+          <p className="mt-1 text-[11.5px] text-muted">{t('hrChecklist.teamsHint')}</p>
+        </fieldset>
+        <Field label={t('hrChecklist.auto')} htmlFor="hr-checklist-item-auto">
+          <Select id="hr-checklist-item-auto" value={auto ?? ''} onChange={(e) => setAuto((e.target.value || null) as HrChecklistItem['auto'])}>
+            <option value="">{t('hrChecklist.autoNone')}</option>
+            <option value="keys">{t('hrChecklist.autoKeys')}</option>
+            <option value="account">{t('hrChecklist.autoAccount')}</option>
+            {phase === 'start' && <option value="trainings">{t('hrChecklist.autoTrainings')}</option>}
+          </Select>
+        </Field>
+        <Field label={t('hr.sortOrder')} htmlFor="hr-checklist-item-order">
+          <Input id="hr-checklist-item-order" type="number" inputMode="numeric" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
         </Field>
         <Checkbox label={t('status.active')} checked={active} onChange={(e) => setActive(e.target.checked)} />
       </div>

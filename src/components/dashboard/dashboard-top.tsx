@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { DateTime } from 'luxon';
 import {
   AlertTriangle, ArrowDownRight, ArrowUpRight, Ban, Bell, Boxes, CalendarCheck, CalendarClock, CalendarOff, CheckCircle2, ChevronRight, ClipboardCheck,
-  ClipboardList, ListTodo, MapPin, Package, Receipt, Target, TrendingUp, Truck, Users, Zap,
+  ClipboardList, ListChecks, ListTodo, MapPin, Package, Receipt, Target, TrendingUp, Truck, Users, Zap,
 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -92,6 +92,7 @@ const NOW_ICON: Record<NowKind, typeof Zap> = {
   evaluationsDue: ClipboardCheck,
   hrFollowUps: ClipboardCheck,
   hrDates: CalendarClock,
+  hrChecklists: ListChecks,
   absencesToApprove: CalendarOff,
   coverageGaps: AlertTriangle,
   meetingInvites: Users,

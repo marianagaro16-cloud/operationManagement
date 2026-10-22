@@ -26,11 +26,14 @@ export function WorkerList({
   teams,
   upcomingDates = [],
   trainingGaps = {},
+  checklists = {},
 }: {
   /** Important dates in the coming 30 days, soonest first. */
   upcomingDates?: ImportantDate[];
   /** Per worker: required trainings missing or expired. */
   trainingGaps?: Record<string, number>;
+  /** Per worker: Ingreso or Salida lists with items still open. */
+  checklists?: Record<string, { phase: 'start' | 'leave'; open: number; overdue: boolean }[]>;
   workers: HrWorker[];
   /** Workers with a note whose follow-up is still open, or already late. */
   followUps: Record<string, 'open' | 'overdue'>;
@@ -158,6 +161,11 @@ export function WorkerList({
                   {w.is_active && (trainingGaps[w.id] ?? 0) > 0 && (
                     <Badge tone="late">{t('hrTraining.gaps', { n: trainingGaps[w.id] })}</Badge>
                   )}
+                  {(checklists[w.id] ?? []).map((c) => (
+                    <Badge key={c.phase} tone={c.overdue ? 'late' : 'accent'}>
+                      {t('hrChecklist.listOpen', { phase: t(c.phase === 'start' ? 'hrChecklist.start' : 'hrChecklist.leave'), n: c.open })}
+                    </Badge>
+                  ))}
                   {followUps[w.id] && (
                     <Badge tone={followUps[w.id] === 'overdue' ? 'late' : 'accent'}>
                       {t(followUps[w.id] === 'overdue' ? 'hrNote.listOverdue' : 'hrNote.listOpen')}

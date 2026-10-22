@@ -102,3 +102,17 @@ select pg_temp.hidden('production manager: not an Operations worker''s training'
 select pg_temp.hidden('user: no trainings', 'user', 'select 1 from public.hr_trainings');
 select pg_temp.can('admin: corrects a training', 'admin',
   format($$update public.hr_trainings set provider = 'zz' where worker_id = %L$$, (select id from _w where k = 'ops')));
+
+-- Checklists (2026-10-22): Admin's lists; a worker's checklist goes with the file.
+insert into public.hr_checklists (worker_id, phase, due_on)
+select id, 'start', current_date + 14 from _w where k in ('prod', 'ops');
+insert into public.hr_checklist_entries (checklist_id, name)
+select c.id, 'ZZ item ' || w.k from public.hr_checklists c join _w w on w.id = c.worker_id;
+
+select pg_temp.sees('production manager: reads the checklist items', 'pm', 'select 1 from public.hr_checklist_items');
+select pg_temp.cannot('production manager: cannot change the checklist items', 'pm', $$update public.hr_checklist_items set name = 'zz' where phase = 'start'$$);
+select pg_temp.sees('production manager: a Production worker''s checklist', 'pm', $$select 1 from public.hr_checklist_entries where name = 'ZZ item prod'$$);
+select pg_temp.hidden('production manager: not an Operations worker''s checklist', 'pm', $$select 1 from public.hr_checklist_entries where name = 'ZZ item ops'$$);
+select pg_temp.can('production manager: ticks a Production item', 'pm', $$update public.hr_checklist_entries set done_at = now() where name = 'ZZ item prod'$$);
+select pg_temp.cannot('production manager: cannot tick an Operations item', 'pm', $$update public.hr_checklist_entries set done_at = now() where name = 'ZZ item ops'$$);
+select pg_temp.hidden('user: no checklists', 'user', $$select 1 from public.hr_checklist_entries where name like 'ZZ item%'$$);

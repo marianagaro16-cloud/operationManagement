@@ -3156,6 +3156,148 @@ export type Database = {
           },
         ]
       }
+      hr_checklist_entries: {
+        Row: {
+          auto: string | null
+          checklist_id: string
+          done_at: string | null
+          done_by: string | null
+          id: string
+          item_id: string | null
+          name: string
+          note: string | null
+          sort_order: number
+          translations: Json
+        }
+        Insert: {
+          auto?: string | null
+          checklist_id: string
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          item_id?: string | null
+          name: string
+          note?: string | null
+          sort_order?: number
+          translations?: Json
+        }
+        Update: {
+          auto?: string | null
+          checklist_id?: string
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          item_id?: string | null
+          name?: string
+          note?: string | null
+          sort_order?: number
+          translations?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_checklist_entries_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "hr_checklists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_checklist_entries_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_checklist_entries_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "hr_checklist_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_checklist_items: {
+        Row: {
+          auto: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          phase: string
+          sort_order: number
+          teams: Database["public"]["Enums"]["team"][]
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          auto?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          phase: string
+          sort_order?: number
+          teams?: Database["public"]["Enums"]["team"][]
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          auto?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          phase?: string
+          sort_order?: number
+          teams?: Database["public"]["Enums"]["team"][]
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hr_checklists: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          due_on: string
+          id: string
+          phase: string
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          due_on: string
+          id?: string
+          phase: string
+          worker_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          due_on?: string
+          id?: string
+          phase?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_checklists_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_checklists_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_criteria: {
         Row: {
           created_at: string
@@ -11858,6 +12000,7 @@ export type Database = {
         Args: { p_team: Database["public"]["Enums"]["team"] }
         Returns: boolean
       }
+      hr_can_checklist: { Args: { p_checklist_id: string }; Returns: boolean }
       hr_can_key: { Args: { p_worker_id: string }; Returns: boolean }
       hr_can_note: { Args: { p_note_id: string }; Returns: boolean }
       hr_can_worker: { Args: { p_worker_id: string }; Returns: boolean }

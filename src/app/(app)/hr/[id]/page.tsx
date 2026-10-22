@@ -4,6 +4,7 @@ import { getUsers, getViewer, getMyTeams } from '@/server/data';
 import { getCriteria, getArrivalSettings, getEvalTemplates, getKeys, getLateArrivals, getLateReasons, getNoteTypes, getTrainingKinds, getTrainings, getWorkerFile, getWorkerStats, getWorkers } from '@/server/hr';
 import { getWorkerEvalRequests } from '@/server/hr-evaluations';
 import { getWorkerDates } from '@/server/hr-dates';
+import { getChecklistFacts, getWorkerChecklists } from '@/server/hr-checklists';
 import { getWorkerMeetingRecords } from '@/server/meeting-records';
 import { WorkerFile, type HrTab } from '@/components/hr/worker-file';
 import { displayName } from '@/lib/utils';
@@ -12,7 +13,7 @@ import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
 
-const TABS: HrTab[] = ['log', 'late', 'keys', 'training', 'evaluations', 'app'];
+const TABS: HrTab[] = ['log', 'late', 'keys', 'training', 'checklists', 'evaluations', 'app'];
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 export default async function WorkerFilePage({
@@ -41,7 +42,7 @@ export default async function WorkerFilePage({
   const from = searchParams.from && ISO.test(searchParams.from) ? searchParams.from : defaultFrom;
   const to = searchParams.to && ISO.test(searchParams.to) ? searchParams.to : today;
 
-  const [meetings, keys, noteTypes, criteria, users, workers, stats, evalRequests, templates, lateArrivals, lateReasons, arrivalSettings, dates, trainingKinds, trainings] = await Promise.all([
+  const [meetings, keys, noteTypes, criteria, users, workers, stats, evalRequests, templates, lateArrivals, lateReasons, arrivalSettings, dates, trainingKinds, trainings, checklists] = await Promise.all([
     // The registered meetings they attended: part of the log.
     getWorkerMeetingRecords(file.worker.id),
     // Counted on the tab.
@@ -62,6 +63,8 @@ export default async function WorkerFilePage({
     // Counted on the tab: what their team requires and is missing.
     getTrainingKinds(true),
     getTrainings(file.worker.id),
+    // Counted on the tab.
+    getWorkerChecklists(file.worker.id),
   ]);
 
   // An account can have one file; offer those still free, and this worker's own.
@@ -81,6 +84,9 @@ export default async function WorkerFilePage({
   ]
     .filter((p) => p.profile_id !== viewer.profile.id)
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  // What the automatic checklist items depend on.
+  const checklistFacts = await getChecklistFacts([file.worker], trainingKinds, trainings, today);
 
   return (
     <WorkerFile
@@ -109,6 +115,8 @@ export default async function WorkerFilePage({
       dates={dates}
       trainingKinds={trainingKinds}
       trainings={trainings}
+      checklists={checklists}
+      checklistFacts={checklistFacts[file.worker.id]}
     />
   );
 }

@@ -11,6 +11,8 @@ import { sendToHrForWorker } from './push';
 import { AGREEMENT_RESULTS, ALL_TOPICS, ASKED_BY, WARNING_LEVELS } from '@/domain/hr/note-structure';
 import { localToUtc } from '@/domain/reminders/schedule';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
+import { checklistDue, itemsFor, type ChecklistPhase } from '@/domain/hr/checklists';
+import type { HrChecklistItem } from '@/types/hr';
 
 /*
  * Human resources writes. Who may do what is RLS's decision (hr_can, and
@@ -78,6 +80,11 @@ export async function saveWorker(input: WorkerInput, workerId?: string): Promise
     left_on: parsed.data.is_active ? null : parsed.data.left_on,
   };
 
+  // Whether this save marks someone as left: that is when the Salida list is made.
+  const wasActive = workerId
+    ? (await supabase.from('hr_workers').select('is_active').eq('id', workerId).maybeSingle()).data?.is_active ?? false
+    : false;
+
   const query = workerId
     ? supabase.from('hr_workers').update(row).eq('id', workerId).select('id').single()
     : supabase
@@ -89,8 +96,128 @@ export async function saveWorker(input: WorkerInput, workerId?: string): Promise
   const { data, error } = await query;
   if (error) return fail(error);
   const id = (data as { id: string }).id;
+  // A new file gets its Ingreso list; marking someone as left, the Salida list.
+  if (!workerId) await createChecklist(id, 'start');
+  else if (wasActive && !row.is_active) await createChecklist(id, 'leave');
   revalidateHr(id);
   return { ok: true, data: { id } };
+}
+
+/* ------------------------------- checklists ------------------------------ */
+
+/**
+ * Make a worker's Ingreso or Salida list from Admin's list as it is now,
+ * due 14 days after the start or 7 after leaving. One per phase: an existing
+ * list is left as it is.
+ */
+async function createChecklist(workerId: string, phase: ChecklistPhase): Promise<ActionResult> {
+  const supabase = createClient();
+  const [{ data: worker }, { data: items }] = await Promise.all([
+    supabase.from('hr_workers').select('team, start_date, left_on').eq('id', workerId).maybeSingle(),
+    supabase.from('hr_checklist_items').select('id, phase, name, translations, teams, auto, sort_order, is_active'),
+  ]);
+  if (!worker) return { ok: false, error: 'not_authorized' };
+  const uid = (await supabase.auth.getUser()).data.user?.id ?? null;
+  const { data: list, error } = await supabase
+    .from('hr_checklists')
+    .insert({ worker_id: workerId, phase, due_on: checklistDue(phase, worker, businessToday()), created_by: uid })
+    .select('id')
+    .single();
+  if (error) return error.message.includes('hr_checklists_worker_id_phase_key') ? { ok: true, data: undefined } : fail(error);
+  const entries = itemsFor((items ?? []) as unknown as HrChecklistItem[], phase, worker.team).map((i) => ({
+    checklist_id: list.id,
+    item_id: i.id,
+    name: i.name,
+    translations: i.translations,
+    auto: i.auto,
+    sort_order: i.sort_order,
+  }));
+  if (entries.length > 0) {
+    const { error: entryError } = await supabase.from('hr_checklist_entries').insert(entries);
+    if (entryError) return fail(entryError);
+  }
+  return { ok: true, data: undefined };
+}
+
+/** Start a list by hand, for someone who joined or left before the lists existed. */
+export async function startChecklist(workerId: string, phase: ChecklistPhase): Promise<ActionResult> {
+  if (phase !== 'start' && phase !== 'leave') return { ok: false, error: 'invalid' };
+  const res = await createChecklist(workerId, phase);
+  if (res.ok) revalidateHr(workerId);
+  return res;
+}
+
+/** Tick or untick an item; a tick keeps who and when. */
+export async function tickChecklistEntry(workerId: string, entryId: string, done: boolean): Promise<ActionResult> {
+  const supabase = createClient();
+  const uid = (await supabase.auth.getUser()).data.user?.id ?? null;
+  const { data, error } = await supabase
+    .from('hr_checklist_entries')
+    .update({ done_at: done ? new Date().toISOString() : null, done_by: done ? uid : null })
+    .eq('id', entryId)
+    .select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidateHr(workerId);
+  return { ok: true, data: undefined };
+}
+
+/** An item's note, ticked or not; the tick stays as it was. */
+export async function setChecklistNote(workerId: string, entryId: string, note: string | null): Promise<ActionResult> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('hr_checklist_entries')
+    .update({ note: note?.trim().slice(0, 2000) || null })
+    .eq('id', entryId)
+    .select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidateHr(workerId);
+  return { ok: true, data: undefined };
+}
+
+export async function setChecklistDue(workerId: string, checklistId: string, dueOn: string): Promise<ActionResult> {
+  if (!DATE.safeParse(dueOn).success) return { ok: false, error: 'invalid_date' };
+  const supabase = createClient();
+  const { data, error } = await supabase.from('hr_checklists').update({ due_on: dueOn }).eq('id', checklistId).eq('worker_id', workerId).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidateHr(workerId);
+  return { ok: true, data: undefined };
+}
+
+/** A list started by mistake. */
+export async function deleteChecklist(workerId: string, checklistId: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('hr_checklists').delete().eq('id', checklistId).eq('worker_id', workerId).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidateHr(workerId);
+  return { ok: true, data: undefined };
+}
+
+const checklistItemSchema = z.object({
+  phase: z.enum(['start', 'leave']),
+  name: z.string().trim().min(1, { message: 'name_required' }).max(200),
+  translations: translationsSchema,
+  teams: z.array(z.enum(TEAMS)).default([]),
+  auto: z.enum(['keys', 'account', 'trainings']).nullable().default(null),
+  sort_order: z.number().int().default(100),
+  is_active: z.boolean().default(true),
+});
+
+/** Admin's Ingreso and Salida lists. Lists already made keep their items. */
+export async function saveChecklistItem(input: z.input<typeof checklistItemSchema>, id?: string): Promise<ActionResult> {
+  const parsed = checklistItemSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_type' };
+  const supabase = createClient();
+  const { data, error } = id
+    ? await supabase.from('hr_checklist_items').update(parsed.data).eq('id', id).select('id')
+    : await supabase.from('hr_checklist_items').insert(parsed.data).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidatePath('/admin/hr');
+  return { ok: true, data: undefined };
 }
 
 /* ---------------------------- important dates ---------------------------- */

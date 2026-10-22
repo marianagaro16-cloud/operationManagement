@@ -325,3 +325,35 @@ export interface HrTraining {
   hours: number | string | null;
   note: string | null;
 }
+
+/** One line of Admin's Ingreso or Salida list. */
+export interface HrChecklistItem {
+  id: string;
+  phase: 'start' | 'leave';
+  name: string;
+  translations: HrTranslations;
+  /** Empty: every team. */
+  teams: Team[];
+  /** The app ticks it itself from keys, the account or the trainings. */
+  auto: 'keys' | 'account' | 'trainings' | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+/** A worker's Ingreso or Salida list, with its items as they were when it was made. */
+export interface HrChecklist {
+  id: string;
+  worker_id: string;
+  phase: 'start' | 'leave';
+  due_on: string;
+  entries: {
+    id: string;
+    name: string;
+    translations: HrTranslations;
+    auto: 'keys' | 'account' | 'trainings' | null;
+    sort_order: number;
+    done_at: string | null;
+    done_by_name: string | null;
+    note: string | null;
+  }[];
+}
