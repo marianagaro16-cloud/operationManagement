@@ -20,6 +20,7 @@ import { businessToday } from '@/lib/datetime';
 import { productLabel, type Brand, type Customer, type DeliveryMethod, type OrderType, type OrderWithProgress, type Product } from '@/types/orders';
 import { IncidentDialog, orderContextFrom } from '@/components/incidents/incident-dialog';
 import type { IncidentCategory, IncidentType } from '@/types/incidents';
+import type { CollectionFlag } from '@/types/collections';
 import { ORDER_TYPES, ORDER_TYPE_LABEL } from './order-types';
 import { OrderDialog } from './order-dialog';
 import { UrgencyBadge } from './urgency-badge';
@@ -49,6 +50,7 @@ export function OrderControl({
   products,
   deliveryMethods,
   brands,
+  paymentFlags = {},
   range,
   anchor,
   filters,
@@ -66,6 +68,8 @@ export function OrderControl({
   products: Product[];
   deliveryMethods: DeliveryMethod[];
   brands: Brand[];
+  /** Customers in collections and how far, for the mark on their orders. */
+  paymentFlags?: Record<string, CollectionFlag>;
   /** The delivery dates shown: a day, a week, a month or a range. */
   range: PeriodRange;
   /** A date inside the period, which the arrows and period buttons move from. */
@@ -481,6 +485,7 @@ export function OrderControl({
                         <OrderCard
                           key={order.id}
                           order={order}
+                          paymentFlag={paymentFlags[order.customer_id] ?? null}
                           canManage={canManage}
                           bulk={bulk}
                           onEdit={() => setEditing(order)}
@@ -534,6 +539,7 @@ export function OrderControl({
 
 function OrderCard({
   order,
+  paymentFlag,
   canManage,
   bulk,
   onEdit,
@@ -542,6 +548,8 @@ function OrderCard({
 }: {
   reminderViewerId?: string;
   order: OrderWithProgress;
+  /** How far the customer is in collections; null when nothing is owed. */
+  paymentFlag: CollectionFlag | null;
   canManage: boolean;
   /** The last Expand all / Collapse all press, applied when it changes. */
   bulk: BulkToggle;
@@ -596,6 +604,14 @@ function OrderCard({
             on the row is what stops a month of giveaways reading as a month
             of trade. */}
         <OrderTypeBadge type={order.order_type} />
+        {/* Payment marks, the same as in Ventas and the order form: overdue
+            invoices by collections stage, and paying before delivery — always
+            for the customer, or as one of its first N orders. */}
+        {!cancelled && paymentFlag === 'pending' && <Badge tone="late">{t('collection.flag')}</Badge>}
+        {!cancelled && paymentFlag === 'reminder' && <Badge tone="warn">{t('collection.flagReminder')}</Badge>}
+        {!cancelled && (order.customer.prepay_required || order.in_advance) && (
+          <Badge tone="late">{t('collection.prepay')}</Badge>
+        )}
         {/* Provenance. A generated order used to be indistinguishable from a
             hand-typed one, so a draft gave the reviewer nothing to review. */}
         {order.generated_from_template_id && (

@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon';
 import { getBoxTypes, getBrands, getCustomers, getDeliveryMethods, getOrdersBoard, getOrdersByDelivery, getProducts, searchOrdersByDelivery } from '@/server/orders';
 import { getIncidentCategories, getIncidentTypes } from '@/server/incidents';
+import { getFlaggedCustomers } from '@/server/collections';
 import { getViewer } from '@/server/data';
 import { customRange, periodRange, type PeriodRange } from '@/domain/orders/reporting';
 import { ORDERS_GO_LIVE } from '@/domain/orders/config';
@@ -162,7 +163,7 @@ export default async function OrdersPage({
     orderType,
   };
 
-  const [orders, customers, products, deliveryMethods, brands, incidentCategories, incidentTypes] =
+  const [orders, customers, products, deliveryMethods, brands, incidentCategories, incidentTypes, paymentFlags] =
     await Promise.all([
       // Matched on the customer, the reference and the products on the order —
       // the three things somebody actually remembers about one.
@@ -175,6 +176,8 @@ export default async function OrdersPage({
       // never made to pay for the vocabulary.
       canReportIncident ? getIncidentCategories() : Promise.resolve([]),
       canReportIncident ? getIncidentTypes() : Promise.resolve([]),
+      // Only how far each customer is in collections, never the case itself.
+      getFlaggedCustomers(),
     ]);
 
   /*
@@ -204,6 +207,7 @@ export default async function OrdersPage({
       products={products}
       deliveryMethods={deliveryMethods}
       brands={brands}
+      paymentFlags={Object.fromEntries(paymentFlags)}
       range={bookRange}
       anchor={bookRange.kind === 'custom' ? bookRange.start : anchor}
       filters={{
