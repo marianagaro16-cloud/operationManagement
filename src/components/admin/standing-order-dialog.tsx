@@ -10,6 +10,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Field, Input, Select } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { nextStandingDelivery } from '@/domain/orders/scheduling';
+import { blueCornLast } from '@/domain/orders/product-order';
 import { businessToday } from '@/lib/datetime';
 import { saveTemplate } from '@/server/order-actions';
 import type {
@@ -242,7 +243,7 @@ export function StandingOrderDialog({
             <div key={index} className="flex items-end gap-2">
               <div className="min-w-0 flex-1">
                 <Combobox
-                  items={products.filter((p) => p.is_active || p.id === line.product_id)}
+                  items={blueCornLast(products.filter((p) => p.is_active || p.id === line.product_id))}
                   value={line.product_id || null}
                   onChange={(id) =>
                     setLines((prev) =>

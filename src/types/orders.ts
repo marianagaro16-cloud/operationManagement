@@ -211,6 +211,8 @@ export interface Product {
    * not yet classified. The subcategory always belongs to the category.
    */
   category_id: string | null;
+  /** The category's name, where the loader fetched it (getProducts does). */
+  category_info?: { name: string } | null;
   subcategory_id: string | null;
   needs_review: boolean;
   is_active: boolean;

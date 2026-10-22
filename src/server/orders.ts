@@ -419,7 +419,7 @@ export async function getProducts(includeInactive = false): Promise<Product[]> {
   // Imported name is the display order; legacy rows fall back to family.
   let q = supabase
     .from('products')
-    .select('*, brand:brands ( id, name, sort_order, is_active )')
+    .select('*, brand:brands ( id, name, sort_order, is_active ), category_info:product_categories ( name )')
     .order('name', { nullsFirst: false })
     .order('family');
   if (!includeInactive) q = q.eq('is_active', true);

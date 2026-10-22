@@ -19,6 +19,7 @@ import {
 } from '@/domain/orders/import/pipeline';
 import type { MatchReason } from '@/domain/orders/import/matching';
 import type { QuantityIssue } from '@/domain/orders/import/packaging';
+import { blueCornLast } from '@/domain/orders/product-order';
 import { productLabel, type Product } from '@/types/orders';
 
 /**
@@ -175,7 +176,7 @@ export function ImportPreview({
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
                   <Combobox
                     className="min-w-0 flex-1"
-                    items={products.filter((p) => p.is_active)}
+                    items={blueCornLast(products.filter((p) => p.is_active))}
                     value={line.productId}
                     onChange={(id) => update(line.key, withProduct(line, id, pipelineProducts))}
                     getKey={(p) => p.id}

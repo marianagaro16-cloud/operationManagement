@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Combobox, type ComboboxHandle } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/primitives';
 import { boxesRequired } from '@/domain/orders/import/packaging';
 import { toQuantity } from '@/domain/orders/progress';
+import { blueCornLast } from '@/domain/orders/product-order';
 import { productLabel, type Product } from '@/types/orders';
 
 /**
@@ -56,6 +57,8 @@ export function OrderLineEditor({
   // so the refs are keyed by index rather than held one at a time.
   const quantityRefs = useRef<(HTMLInputElement | null)[]>([]);
   const productRefs = useRef<(ComboboxHandle | null)[]>([]);
+  // Blue corn sells least, so it is offered after everything else.
+  const sortedProducts = useMemo(() => blueCornLast(products), [products]);
 
   const setLine = (i: number, patch: Partial<DraftLine>) =>
     onChange(lines.map((l, j) => (j === i ? { ...l, ...patch } : l)));
@@ -104,7 +107,7 @@ export function OrderLineEditor({
               <Combobox
                 className="min-w-0 basis-full sm:basis-0 sm:flex-1"
                 handleRef={(h) => { productRefs.current[i] = h; }}
-                items={products}
+                items={sortedProducts}
                 value={line.product_id || null}
                 onChange={(id) => setLine(i, { product_id: id ?? '' })}
                 // Choosing a product lands in its quantity. This is the half
