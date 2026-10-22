@@ -25,6 +25,7 @@ export type NowKind =
   | 'hrFollowUps'
   | 'hrDates'
   | 'hrChecklists'
+  | 'hrEvalsOverdue'
   | 'absencesToApprove'
   | 'coverageGaps'
   | 'meetingInvites'
@@ -69,6 +70,8 @@ export interface NowInput {
   hrDates: { count: number; names: string[] };
   /** Ingreso or Salida lists past their due day with items open, and whose. */
   hrChecklists: { count: number; names: string[] };
+  /** Evaluations past their day on the files the viewer may open, and whose. */
+  hrEvalsOverdue: { count: number; names: string[] };
   /** Absence requests waiting for the viewer's decision; approvers only. */
   absencesToApprove: number;
   /** Absences in the next two weeks with time nobody covers: all for approvers, one's own otherwise. */
@@ -107,6 +110,7 @@ const ORDER: NowKind[] = [
   'evaluationsDue',
   'hrFollowUps',
   'hrChecklists',
+  'hrEvalsOverdue',
   'hrDates',
   'meetingRecords',
   'meetingFollowUps',
@@ -133,6 +137,7 @@ export function buildNowItems(input: NowInput): NowItem[] {
     { kind: 'planLate', level: 'late', count: input.planLate, href: '/sales?tab=planning' },
     { kind: 'evaluationsDue', level: 'today', count: input.evaluationsDue, href: '/evaluations' },
     { kind: 'hrFollowUps', level: input.hrFollowUps.late ? 'late' : 'today', count: input.hrFollowUps.count, href: '/hr?followups=1' },
+    { kind: 'hrEvalsOverdue', level: 'late', count: input.hrEvalsOverdue.count, href: '/hr', names: input.hrEvalsOverdue.names.slice(0, 3) },
     { kind: 'hrChecklists', level: 'late', count: input.hrChecklists.count, href: '/hr', names: input.hrChecklists.names.slice(0, 3) },
     { kind: 'hrDates', level: 'today', count: input.hrDates.count, href: '/hr#dates', names: input.hrDates.names.slice(0, 3) },
     { kind: 'meetingRecords', level: input.meetingRecords.late ? 'late' : 'today', count: input.meetingRecords.count, href: input.meetingRecords.href },

@@ -821,6 +821,20 @@ export async function saveLateReason(input: z.input<typeof lateReasonSchema>, id
   return { ok: true, data: undefined };
 }
 
+/** How many months between evaluations, per team; a team left out has no rule. */
+export async function setEvalIntervals(input: Partial<Record<(typeof TEAMS)[number], number | null>>): Promise<ActionResult> {
+  const parsed = z.record(z.enum(TEAMS), z.number().int().min(1).max(60).nullable()).safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'invalid' };
+  const value = Object.fromEntries(Object.entries(parsed.data).filter(([, n]) => n));
+  const supabase = createClient();
+  const { data, error } = await supabase.from('app_settings').upsert({ key: 'hr_eval_interval_months', value }).select('key');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidatePath('/admin/hr');
+  revalidatePath('/hr', 'layout');
+  return { ok: true, data: undefined };
+}
+
 /** Admin's arrival settings: the alert thresholds and the early tolerance. */
 export async function setArrivalSetting(key: HrArrivalSetting, n: number): Promise<ActionResult> {
   if (!(key in HR_ARRIVAL_SETTINGS)) return { ok: false, error: 'invalid' };

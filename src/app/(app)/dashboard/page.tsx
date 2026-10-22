@@ -13,7 +13,7 @@ import { canUseReminders, isAdminRole, isSales } from '@/lib/authz';
 import { getMyPendingEvaluations } from '@/server/hr-evaluations';
 import { PendingEvaluations } from '@/components/hr/pending-evaluations';
 import { getUpcomingCelebrations } from '@/server/hr-celebrations';
-import { getUpcomingHrDates } from '@/server/hr-dates';
+import { getOverdueEvaluations, getUpcomingHrDates } from '@/server/hr-dates';
 import { getOverdueChecklists } from '@/server/hr-checklists';
 import { countMyFollowUpsDue } from '@/server/hr';
 import { getGuideAccess } from '@/server/guide';
@@ -73,7 +73,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes, hrFollowUps, meetingWork, expectedSoon, actaWork, hrDates, hrChecklists] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes, hrFollowUps, meetingWork, expectedSoon, actaWork, hrDates, hrChecklists, hrEvalsOverdue] = await Promise.all([
     // Today and what is late — no week ahead: one's own are listed, the team's counted.
     getDashboardData(0),
     getOrderDashboardSummary(today),
@@ -123,6 +123,8 @@ export default async function DashboardPage() {
     viewer?.can('hr.manage') ? getUpcomingHrDates() : [],
     // Ingreso and Salida lists past their due day.
     viewer?.can('hr.manage') ? getOverdueChecklists() : { count: 0, names: [] },
+    // Evaluations past their day by the team's rule.
+    viewer?.can('hr.manage') ? getOverdueEvaluations() : [],
   ]);
 
   // ---- whoever plans: their own activities, and the team in one line per area ----
@@ -189,6 +191,7 @@ export default async function DashboardPage() {
     hrFollowUps,
     hrDates: { count: hrDates.length, names: [...new Set(hrDates.map((d) => d.workerName))] },
     hrChecklists,
+    hrEvalsOverdue: { count: hrEvalsOverdue.length, names: hrEvalsOverdue.map((e) => e.name) },
     lateDeliveries: expectedSoon.late,
     deliveriesSoon: expectedSoon.soon,
   });

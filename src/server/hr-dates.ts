@@ -4,6 +4,7 @@ import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 import { noticeStage, upcomingImportantDates, DATE_NOTICE_DAYS, type ImportantDate } from '@/domain/hr/important-dates';
 import { trainingExpiries } from '@/domain/hr/trainings';
+import { lastEvaluations, nextEvaluation, type EvalIntervals } from '@/domain/hr/evaluation-due';
 import type { HrWorkerDate } from '@/types/hr';
 import { sendToUser } from './push';
 
@@ -31,19 +32,55 @@ export async function getWorkerDates(workerId: string): Promise<HrWorkerDate[]> 
   return (data ?? []) as HrWorkerDate[];
 }
 
+/**
+ * When each current worker's next evaluation is due, for the teams Gestión
+ * gives a number of months. As the viewer, or as the system.
+ */
+async function evaluationsDue(asSystem: boolean): Promise<{ worker_id: string; name: string; on_date: string }[]> {
+  const client = asSystem ? createAdminClient() : createClient();
+  const [{ data: setting }, { data: workers }, { data: evaluations }, { data: requests }] = await Promise.all([
+    client.from('app_settings').select('value').eq('key', 'hr_eval_interval_months').maybeSingle(),
+    client.from('hr_workers').select('id, name, team, start_date, trial_end_date').eq('is_active', true),
+    client.from('hr_evaluations').select('worker_id, evaluated_on'),
+    client.from('hr_eval_requests').select('worker_id, created_at'),
+  ]);
+  const intervals = (setting?.value ?? {}) as EvalIntervals;
+  if (Object.keys(intervals).length === 0) return [];
+  const last = lastEvaluations(evaluations ?? [], requests ?? []);
+  return (workers ?? []).flatMap((w) => {
+    const due = nextEvaluation(w, last.get(w.id), intervals);
+    return due ? [{ worker_id: w.id, name: w.name, on_date: due }] : [];
+  });
+}
+
+/** Evaluations past their day among the files the viewer may open: whose, soonest first. */
+export async function getOverdueEvaluations(): Promise<{ workerId: string; name: string; due: string }[]> {
+  const today = businessToday();
+  return (await evaluationsDue(false))
+    .filter((e) => e.on_date < today)
+    .sort((a, b) => a.on_date.localeCompare(b.on_date))
+    .map((e) => ({ workerId: e.worker_id, name: e.name, due: e.on_date }));
+}
+
+/** When one worker's next evaluation is due, or null without a rule. */
+export async function getEvaluationDue(workerId: string): Promise<string | null> {
+  return (await evaluationsDue(false)).find((e) => e.worker_id === workerId)?.on_date ?? null;
+}
+
 /** As the viewer (RLS decides whose), or as the system for the notifier. */
 async function upcoming(asSystem: boolean, today: string, days: number): Promise<ImportantDate[]> {
   const client = asSystem ? createAdminClient() : createClient();
   const until = DateTime.fromISO(today, { zone: BUSINESS_TZ }).plus({ days }).toISODate()!;
-  const [{ data: workers, error }, { data: custom, error: customError }, { data: trainings, error: trainingError }, { data: kinds }] = await Promise.all([
+  const [{ data: workers, error }, { data: custom, error: customError }, { data: trainings, error: trainingError }, { data: kinds }, evaluations] = await Promise.all([
     client.from('hr_workers').select(WORKER_COLUMNS).eq('is_active', true),
     client.from('hr_worker_dates').select('id, worker_id, label, on_date').gte('on_date', today).lte('on_date', until),
     // All of them: whether an expiry still counts depends on a newer training of the kind.
     client.from('hr_trainings').select('id, worker_id, kind_id, done_on, expires_on'),
     client.from('hr_training_kinds').select('id, name'),
+    evaluationsDue(asSystem),
   ]);
   if (error || customError || trainingError) throw new Error(`hr dates: ${(error ?? customError ?? trainingError)!.message}`);
-  return upcomingImportantDates(workers ?? [], custom ?? [], today, days, trainingExpiries(trainings ?? [], kinds ?? []));
+  return upcomingImportantDates(workers ?? [], custom ?? [], today, days, trainingExpiries(trainings ?? [], kinds ?? []), evaluations);
 }
 
 /** What falls in the coming 30 days among the files the viewer may open. Current staff only. */
@@ -62,6 +99,7 @@ const WHAT: Record<ImportantDate['kind'], string> = {
   contract_end: 'Fin del contrato',
   custom: '',
   training: 'Vence la formación',
+  evaluation: 'Toca la evaluación',
 };
 
 /** "Fin del contrato" mid-sentence, without touching a name like HACCP. */

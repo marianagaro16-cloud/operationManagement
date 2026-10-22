@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import { getUsers, getViewer, getMyTeams } from '@/server/data';
 import { getCriteria, getArrivalSettings, getEvalTemplates, getKeys, getLateArrivals, getLateReasons, getNoteTypes, getTrainingKinds, getTrainings, getWorkerFile, getWorkerStats, getWorkers } from '@/server/hr';
 import { getWorkerEvalRequests } from '@/server/hr-evaluations';
-import { getWorkerDates } from '@/server/hr-dates';
+import { getEvaluationDue, getWorkerDates } from '@/server/hr-dates';
 import { getChecklistFacts, getWorkerChecklists } from '@/server/hr-checklists';
 import { getWorkerMeetingRecords } from '@/server/meeting-records';
 import { WorkerFile, type HrTab } from '@/components/hr/worker-file';
@@ -42,7 +42,7 @@ export default async function WorkerFilePage({
   const from = searchParams.from && ISO.test(searchParams.from) ? searchParams.from : defaultFrom;
   const to = searchParams.to && ISO.test(searchParams.to) ? searchParams.to : today;
 
-  const [meetings, keys, noteTypes, criteria, users, workers, stats, evalRequests, templates, lateArrivals, lateReasons, arrivalSettings, dates, trainingKinds, trainings, checklists] = await Promise.all([
+  const [meetings, keys, noteTypes, criteria, users, workers, stats, evalRequests, templates, lateArrivals, lateReasons, arrivalSettings, dates, trainingKinds, trainings, checklists, evaluationDue] = await Promise.all([
     // The registered meetings they attended: part of the log.
     getWorkerMeetingRecords(file.worker.id),
     // Counted on the tab.
@@ -65,6 +65,7 @@ export default async function WorkerFilePage({
     getTrainings(file.worker.id),
     // Counted on the tab.
     getWorkerChecklists(file.worker.id),
+    getEvaluationDue(file.worker.id),
   ]);
 
   // An account can have one file; offer those still free, and this worker's own.
@@ -117,6 +118,7 @@ export default async function WorkerFilePage({
       trainings={trainings}
       checklists={checklists}
       checklistFacts={checklistFacts[file.worker.id]}
+      evaluationDue={evaluationDue}
     />
   );
 }

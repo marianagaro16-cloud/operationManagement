@@ -15,6 +15,7 @@ const none: NowInput = {
   hrFollowUps: { count: 0, late: false },
   hrDates: { count: 0, names: [] },
   hrChecklists: { count: 0, names: [] },
+  hrEvalsOverdue: { count: 0, names: [] },
   absencesToApprove: 0,
   coverageGaps: 0,
   meetingInvites: 0,

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getViewer } from '@/server/data';
-import { getCriteria, getEvalTemplates, getArrivalSettings, getLateReasons, getNoteTypes, getTrainingKinds } from '@/server/hr';
+import { getCriteria, getEvalTemplates, getArrivalSettings, getLateReasons, getEvalIntervals, getNoteTypes, getTrainingKinds } from '@/server/hr';
 import { getChecklistItems } from '@/server/hr-checklists';
 import { HrConfig } from '@/components/admin/hr-config';
 
@@ -15,7 +15,7 @@ export default async function AdminHrPage() {
   if (!viewer?.can('system.configure')) redirect('/admin');
 
   // Inactive rows included: this is where one is switched back on.
-  const [noteTypes, criteria, templates, lateReasons, arrivalSettings, trainingKinds, checklistItems] = await Promise.all([
+  const [noteTypes, criteria, templates, lateReasons, arrivalSettings, trainingKinds, checklistItems, evalIntervals] = await Promise.all([
     getNoteTypes(true),
     getCriteria(true),
     getEvalTemplates(true),
@@ -23,6 +23,7 @@ export default async function AdminHrPage() {
     getArrivalSettings(),
     getTrainingKinds(true),
     getChecklistItems(true),
+    getEvalIntervals(),
   ]);
-  return <HrConfig noteTypes={noteTypes} criteria={criteria} templates={templates} lateReasons={lateReasons} arrivalSettings={arrivalSettings} trainingKinds={trainingKinds} checklistItems={checklistItems} />;
+  return <HrConfig noteTypes={noteTypes} criteria={criteria} templates={templates} lateReasons={lateReasons} arrivalSettings={arrivalSettings} trainingKinds={trainingKinds} checklistItems={checklistItems} evalIntervals={evalIntervals} />;
 }

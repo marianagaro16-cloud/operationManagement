@@ -13,9 +13,10 @@ import { deleteWorkerDate, saveWorkerDate } from '@/server/hr-actions';
 import type { HrWorker, HrWorkerDate } from '@/types/hr';
 import { useHrError } from './worker-dialog';
 
-/** How far off a date is, as a short badge: soon is amber, today red, past grey. */
-export function DateDistance({ d }: { d: Pick<ImportantDate, 'daysAway'> }) {
+/** How far off a date is, as a short badge: soon is amber, today red, past grey — an evaluation not done, red. */
+export function DateDistance({ d }: { d: Pick<ImportantDate, 'daysAway'> & Partial<Pick<ImportantDate, 'kind'>> }) {
   const { t } = useI18n();
+  if (d.daysAway < 0 && d.kind === 'evaluation') return <Badge tone="late">{t('hr.dateLate')}</Badge>;
   if (d.daysAway < 0) return <Badge tone="neutral">{t('hr.datePassed')}</Badge>;
   if (d.daysAway === 0) return <Badge tone="late">{t('hr.dateToday')}</Badge>;
   return <Badge tone={d.daysAway <= DATE_NOTICE_DAYS ? 'warn' : 'neutral'}>{t('hr.dateInDays', { n: d.daysAway })}</Badge>;
@@ -28,18 +29,21 @@ export function useDateLabel() {
     d.kind === 'trial_end' ? t('hr.trialEnd')
       : d.kind === 'contract_end' ? t('hr.contractEnd')
         : d.kind === 'training' ? t('hrTraining.expires', { name: d.label ?? '' })
-          : d.label ?? '';
+          : d.kind === 'evaluation' ? t('hr.nextEvaluation')
+            : d.label ?? '';
 }
 
 /**
  * A file's important dates: the end of the trial period and of the contract
- * (set when editing the file), and any other date kept here.
+ * (set when editing the file), the next evaluation, and any other date kept here.
  */
-export function WorkerDates({ worker, dates, today }: { worker: HrWorker; dates: HrWorkerDate[]; today: string }) {
+export function WorkerDates({ worker, dates, evaluationDue, today }: { worker: HrWorker; dates: HrWorkerDate[]; evaluationDue: string | null; today: string }) {
   const { t, formatDate } = useI18n();
   const label = useDateLabel();
   const [editing, setEditing] = useState<HrWorkerDate | 'new' | null>(null);
-  const all = allImportantDates([worker], dates, today);
+  // Someone who left is not evaluated again.
+  const due = worker.is_active && evaluationDue ? [{ worker_id: worker.id, on_date: evaluationDue }] : [];
+  const all = allImportantDates([worker], dates, today, [], due);
 
   return (
     <Card className="mb-4 p-3.5 sm:p-4">

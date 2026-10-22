@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, EmptyState, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
-import { saveCriterion, saveEvalTemplate, saveLateReason, saveChecklistItem, saveNoteType, saveTrainingKind, setArrivalSetting } from '@/server/hr-actions';
+import { saveCriterion, saveEvalTemplate, saveLateReason, saveChecklistItem, saveNoteType, saveTrainingKind, setArrivalSetting, setEvalIntervals } from '@/server/hr-actions';
 import { TEAMS, type Team } from '@/lib/authz';
 import { localizedName, localizedNameDescription } from '@/lib/localized-content';
 import type { HrChecklistItem, HrCriterion, HrEvalTemplate, HrLateReason, HrNoteType, HrTrainingKind, HrTranslations } from '@/types/hr';
@@ -34,7 +34,10 @@ export function HrConfig({
   arrivalSettings,
   trainingKinds,
   checklistItems,
+  evalIntervals,
 }: {
+  /** Months between evaluations, per team; a team left out has no rule. */
+  evalIntervals: Partial<Record<Team, number>>;
   /** The training list, inactive ones included. */
   trainingKinds: HrTrainingKind[];
   /** The Ingreso and Salida lists, inactive items included. */
@@ -85,6 +88,8 @@ export function HrConfig({
           </ul>
         </Card>
       </section>
+
+      <EvalIntervalsSection intervals={evalIntervals} />
 
       <TrainingKinds kinds={trainingKinds} />
 
@@ -256,6 +261,58 @@ function SettingLine({ settingKey, value, before, after, min, max }: { settingKe
       )}
       {error && <span className="text-late">{error}</span>}
     </form>
+  );
+}
+
+/** How many months between evaluations, per team. */
+function EvalIntervalsSection({ intervals }: { intervals: Partial<Record<Team, number>> }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const initial = Object.fromEntries(TEAMS.map((team) => [team, intervals[team] ? String(intervals[team]) : ''])) as Record<Team, string>;
+  const [values, setValues] = useState(initial);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const changed = TEAMS.some((team) => values[team] !== initial[team]);
+
+  function save() {
+    setError(null);
+    startTransition(async () => {
+      const res = await setEvalIntervals(Object.fromEntries(TEAMS.map((team) => [team, values[team] ? Number(values[team]) : null])));
+      if (!res.ok) return setError(res.error === 'not_authorized' ? t('hr.errNotAuthorized') : t('common.error'));
+      router.refresh();
+    });
+  }
+
+  return (
+    <section className="mb-5">
+      <h2 className="mb-1 px-0.5 text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('hr.evalIntervals')}</h2>
+      <p className="mb-1.5 px-0.5 text-[12px] text-muted">{t('hr.evalIntervalsHint')}</p>
+      <Card className="p-3.5">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {TEAMS.map((team) => (
+            <label key={team} className="flex items-center gap-2 text-[13px]">
+              <span className="min-w-0 flex-1">{t(teamLabelKey(team))}</span>
+              <Input
+                type="number"
+                min={1}
+                max={60}
+                inputMode="numeric"
+                className="h-8 w-16"
+                value={values[team]}
+                onChange={(e) => setValues((v) => ({ ...v, [team]: e.target.value }))}
+              />
+              <span className="w-12 text-muted">{t('hr.months')}</span>
+            </label>
+          ))}
+        </div>
+        {(changed || error) && (
+          <div className="mt-3 flex items-center justify-end gap-2">
+            {error && <span className="text-[12.5px] text-late">{error}</span>}
+            {changed && <Button size="sm" variant="primary" loading={pending} onClick={save}>{t('common.save')}</Button>}
+          </div>
+        )}
+      </Card>
+    </section>
   );
 }
 

@@ -63,6 +63,7 @@ export function WorkerFile({
   trainings,
   checklists,
   checklistFacts,
+  evaluationDue,
 }: {
   /** Admin's training list, and this worker's trainings, newest first. */
   trainingKinds: HrTrainingKind[];
@@ -70,6 +71,8 @@ export function WorkerFile({
   /** The Ingreso and Salida lists, and what the app knows for their automatic items. */
   checklists: HrChecklist[];
   checklistFacts: ChecklistFacts;
+  /** When the next evaluation is due by the team's rule; null without one. */
+  evaluationDue: string | null;
   /** The other important dates kept on the file. */
   dates: HrWorkerDate[];
   /** Minutes before the agreed time that are still fine. */
@@ -181,7 +184,7 @@ export function WorkerFile({
         </div>
       </Card>
 
-      <WorkerDates worker={worker} dates={dates} today={today} />
+      <WorkerDates worker={worker} dates={dates} evaluationDue={evaluationDue} today={today} />
 
       <nav className="mb-3 flex gap-1 overflow-x-auto border-b border-border">
         {tabs.map((item) => (

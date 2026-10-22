@@ -93,6 +93,7 @@ const NOW_ICON: Record<NowKind, typeof Zap> = {
   hrFollowUps: ClipboardCheck,
   hrDates: CalendarClock,
   hrChecklists: ListChecks,
+  hrEvalsOverdue: ClipboardCheck,
   absencesToApprove: CalendarOff,
   coverageGaps: AlertTriangle,
   meetingInvites: Users,

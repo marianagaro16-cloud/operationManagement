@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { BusinessDate } from '@/lib/datetime';
 import { HR_BUCKET } from '@/lib/hr';
+import type { EvalIntervals } from '@/domain/hr/evaluation-due';
 import type {
   HrAgreement,
   HrCriterion,
@@ -380,4 +381,11 @@ export async function getTrainings(workerId?: string): Promise<HrTraining[]> {
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   return (data ?? []) as HrTraining[];
+}
+
+/** Months between evaluations, per team (app_settings 'hr_eval_interval_months'). */
+export async function getEvalIntervals(): Promise<EvalIntervals> {
+  const supabase = createClient();
+  const { data } = await supabase.from('app_settings').select('value').eq('key', 'hr_eval_interval_months').maybeSingle();
+  return (data?.value ?? {}) as EvalIntervals;
 }
