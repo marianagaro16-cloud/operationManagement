@@ -271,6 +271,29 @@ export function nextSundayTurn(members: RotationMember[], duties: { person_id: s
   return [...members].sort((a, b) => (last.get(a.id) ?? '').localeCompare(last.get(b.id) ?? '') || a.sunday_order - b.sunday_order)[0].id;
 }
 
+/**
+ * The Sunday shift a new week gives its Sunday person: the blocks of whoever
+ * worked the most recent Sunday that had work in it (2026-10-22: 10–11 Cocción
+ * de maíz + 11–12 Mantenimiento). Weeks newest first; null when none had work.
+ * Several people on one Sunday: the one with the most hours.
+ */
+export function lastSundayShift(
+  weeks: Block[][],
+  kinds: Map<string, KindRule>,
+): Omit<Block, 'person_id'>[] | null {
+  for (const blocks of weeks) {
+    const working = blocks.filter((b) => b.day === 0 && blockHours(b, kinds) > 0);
+    if (working.length === 0) continue;
+    const people = [...new Set(working.map((b) => b.person_id))];
+    const who = people.sort((a, b) => dayHours(blocks, b, 0, kinds) - dayHours(blocks, a, 0, kinds))[0];
+    return blocks
+      .filter((b) => b.day === 0 && b.person_id === who)
+      .sort((a, b) => a.slot - b.slot)
+      .map(({ person_id: _, ...rest }) => rest);
+  }
+  return null;
+}
+
 /* ------------------------- who opens, who closes ------------------------- */
 
 /** Opening the day: starting at this time or before. */

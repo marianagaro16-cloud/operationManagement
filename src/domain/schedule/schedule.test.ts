@@ -7,6 +7,7 @@ import {
   formatHours,
   fryingTurn,
   isChanged,
+  lastSundayShift,
   nextSundayTurn,
   openersAndClosers,
   parseTime,
@@ -293,6 +294,23 @@ describe('Sundays', () => {
       { person_id: 'jorge', duty_date: '2026-10-18' },
       { person_id: 'freddy', duty_date: '2026-10-04' },
     ])).toBe('freddy');
+  });
+
+  it('takes the Sunday shift from the latest Sunday with work in it', () => {
+    const kinds = new Map([['off', { id: 'off', counts_hours: false }], ['corn', { id: 'corn', counts_hours: true }]]);
+    const b = (person_id: string, day: number, slot: number, start: string | null, end: string | null, kind_id: string | null): Block =>
+      ({ person_id, day, slot, start_time: start, end_time: end, kind_id });
+    const newest = [b('ana', 0, 1, null, null, 'off'), b('ana', 1, 1, '07:00', '15:00', null)];
+    const older = [
+      b('bo', 0, 1, '10:00', '11:00', 'corn'),
+      b('bo', 0, 2, '11:00', '12:00', null),
+      b('cy', 0, 1, '10:00', '10:30', 'corn'),
+    ];
+    expect(lastSundayShift([newest, older], kinds)).toEqual([
+      { day: 0, slot: 1, start_time: '10:00', end_time: '11:00', kind_id: 'corn' },
+      { day: 0, slot: 2, start_time: '11:00', end_time: '12:00', kind_id: null },
+    ]);
+    expect(lastSundayShift([newest], kinds)).toBeNull();
   });
 
   it('finds the week of a date', () => {

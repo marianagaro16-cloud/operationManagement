@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { blockHours, changedCells, cleaningTurns, dayHours, fryingTurn, weekDates, weekStartOf, weekHours, type Block, type KindRule } from '@/domain/schedule/schedule';
+import { blockHours, changedCells, cleaningTurns, dayHours, fryingTurn, lastSundayShift, nextSundayTurn, weekDates, weekStartOf, weekHours, type Block, type KindRule } from '@/domain/schedule/schedule';
 import type { ActionResult } from './actions';
 import type { ScheduleSnapshot, ScheduleWeek } from '@/types/schedule';
 
@@ -86,6 +86,9 @@ export async function createScheduleWeek(input: { date: string; source: 'empty' 
       if (copyError) return fail(copyError);
     }
   }
+  // Whoever comes on Sunday, on it already with the usual Sunday shift.
+  const sundayError = await fillSunday((week as { id: string }).id, weekStart);
+  if (sundayError) return fail(sundayError);
   // Baños and Cocina, by whose turn it is: there to be changed.
   const turns = await cleaningFor((week as { id: string }).id, weekStart, false);
   // And Monday's Fritura, the same way.
@@ -95,6 +98,52 @@ export async function createScheduleWeek(input: { date: string; source: 'empty' 
   }
   revalidate();
   return { ok: true, data: { week_start: weekStart } };
+}
+
+/**
+ * Put the week's Sunday person on its Sunday (2026-10-22): whoever the
+ * register plans for that date, else whose turn it is, with the shift of the
+ * latest published Sunday. Left alone when somebody already works that Sunday
+ * (a copied week) or the person is marked off on it; nothing to copy from,
+ * nothing put.
+ */
+async function fillSunday(weekId: string, weekStart: string): Promise<{ message: string } | null> {
+  const supabase = createClient();
+  const [blocks, { data: kinds }, { data: people }, { data: duties }, { data: before }] = await Promise.all([
+    blocksOf(weekId),
+    supabase.from('schedule_kinds').select('id, counts_hours'),
+    supabase.from('schedule_people').select('id, sunday_order, in_sunday_rotation').eq('is_active', true),
+    supabase.from('schedule_sunday_duty').select('person_id, duty_date').order('duty_date').limit(2000),
+    supabase
+      .from('schedule_weeks')
+      .select('id')
+      .eq('is_pattern', false)
+      .gt('version', 0)
+      .lt('week_start', weekStart)
+      .order('week_start', { ascending: false })
+      .limit(8),
+  ]);
+  const rules = new Map(((kinds ?? []) as KindRule[]).map((k) => [k.id, k]));
+  if (blocks.some((b) => b.day === 0 && blockHours(b, rules) > 0)) return null;
+
+  const active = (people ?? []) as { id: string; sunday_order: number; in_sunday_rotation: boolean }[];
+  const register = (duties ?? []) as { person_id: string | null; duty_date: string }[];
+  const planned = register.find((d) => d.duty_date === weekStart && d.person_id && active.some((p) => p.id === d.person_id))?.person_id;
+  const who = planned ?? nextSundayTurn(active.filter((p) => p.in_sunday_rotation), register);
+  if (!who || blocks.some((b) => b.person_id === who && b.day === 0)) return null;
+
+  const weekIds = ((before ?? []) as { id: string }[]).map((w) => w.id);
+  if (weekIds.length === 0) return null;
+  const { data: sundays } = await supabase.from('schedule_blocks').select(`week_id, ${BLOCK_COLUMNS}`).in('week_id', weekIds).eq('day', 0);
+  const byWeek = weekIds.map((id) =>
+    ((sundays ?? []) as (Block & { week_id: string })[])
+      .filter((b) => b.week_id === id)
+      .map(({ week_id: _, ...b }) => ({ ...b, start_time: hm(b.start_time), end_time: hm(b.end_time) })),
+  );
+  const shift = lastSundayShift(byWeek, rules);
+  if (!shift) return null;
+  const { error } = await supabase.from('schedule_blocks').insert(shift.map((b) => ({ ...b, person_id: who, week_id: weekId })));
+  return error;
 }
 
 /**
