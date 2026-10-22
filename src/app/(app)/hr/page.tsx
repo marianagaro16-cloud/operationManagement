@@ -6,6 +6,9 @@ import { getOverdueEvaluations, getUpcomingHrDates } from '@/server/hr-dates';
 import { getOpenChecklists, type ChecklistSummary } from '@/server/hr-checklists';
 import { businessToday } from '@/lib/datetime';
 import { WorkerList } from '@/components/hr/worker-list';
+import { HrOverview } from '@/components/hr/hr-overview';
+import { getHrOverview } from '@/server/hr-overview';
+import { OVERVIEW_PERIODS, type OverviewPeriod } from '@/domain/hr/overview';
 import { displayName } from '@/lib/utils';
 import { TEAMS, incidentScope } from '@/lib/authz';
 
@@ -15,9 +18,16 @@ export const dynamic = 'force-dynamic';
  * Human resources: every worker with a file. Guarded here as well as by RLS,
  * which is what actually confines a Production manager to Production.
  */
-export default async function HrPage({ searchParams }: { searchParams: { followups?: string } }) {
+export default async function HrPage({ searchParams }: { searchParams: { followups?: string; view?: string; period?: string } }) {
   const viewer = await getViewer();
   if (!viewer?.can('hr.manage')) redirect('/dashboard');
+
+  // Resumen: everyone at a glance over a period.
+  if (searchParams.view === 'summary') {
+    const period = OVERVIEW_PERIODS.includes(searchParams.period as OverviewPeriod) ? (searchParams.period as OverviewPeriod) : '12m';
+    const { rows, from, to } = await getHrOverview(period);
+    return <HrOverview rows={rows} period={period} from={from} to={to} today={businessToday()} />;
+  }
 
   const [workers, users, followUps, allKeys, upcomingDates, trainingKinds, trainings, overdueEvaluations] = await Promise.all([
     getWorkers(), getUsers(), getOpenFollowUps(), getKeys(), getUpcomingHrDates(), getTrainingKinds(), getTrainings(), getOverdueEvaluations(),

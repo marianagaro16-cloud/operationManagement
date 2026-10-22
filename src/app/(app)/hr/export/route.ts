@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getViewer } from '@/server/data';
 import { createClient } from '@/lib/supabase/server';
+import { getHrOverview } from '@/server/hr-overview';
+import { OVERVIEW_PERIODS, type OverviewPeriod } from '@/domain/hr/overview';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,7 +54,41 @@ export async function GET(request: NextRequest) {
   let file: ArrayBuffer | Buffer;
   let filename: string;
 
-  if (kind === 'workers') {
+  if (kind === 'overview') {
+    // The Resumen tab as it is on screen, for the same period.
+    const period = OVERVIEW_PERIODS.includes(p.get('period') as OverviewPeriod) ? (p.get('period') as OverviewPeriod) : '12m';
+    const overview = await getHrOverview(period);
+    const LEVEL_ES = { verbal: 'verbal', written: 'escrita', final: 'final' } as const;
+    file = await workbook(
+      'Resumen',
+      [
+        { header: 'Nombre', key: 'name', width: 26 },
+        { header: 'Equipo', key: 'team', width: 14 },
+        { header: 'Tarde sin excusa', key: 'lateUnexcused', width: 14 },
+        { header: 'Tarde total', key: 'late', width: 11 },
+        { header: 'Temprano', key: 'early', width: 10 },
+        { header: 'Advertencias', key: 'warnings', width: 12 },
+        { header: 'Nivel más alto', key: 'worst', width: 14 },
+        { header: 'Reconocimientos', key: 'recognitions', width: 15 },
+        { header: 'Conversaciones', key: 'conversations', width: 14 },
+        { header: 'Seguimientos abiertos', key: 'openFollowUps', width: 19 },
+        { header: 'Acuerdos no cumplidos', key: 'agreementsNotMet', width: 20 },
+        { header: 'Última evaluación', key: 'lastEvaluation', width: 16 },
+        { header: 'Nota media', key: 'lastScore', width: 11 },
+        { header: 'Próxima evaluación', key: 'nextEvaluation', width: 17 },
+        { header: 'Formación pendiente', key: 'trainingGaps', width: 18 },
+      ],
+      overview.rows.map((r) => ({
+        ...r,
+        team: TEAM_ES[r.team] ?? r.team,
+        worst: r.worstWarning ? LEVEL_ES[r.worstWarning] : '',
+        lastEvaluation: date(r.lastEvaluation),
+        nextEvaluation: date(r.nextEvaluation),
+        lastScore: r.lastScore ?? '',
+      })),
+    );
+    filename = `resumen-rrhh-${overview.from}_${overview.to}`;
+  } else if (kind === 'workers') {
     const { data, error } = await supabase
       .from('hr_workers')
       .select('name, team, position, start_date, birth_date, phone, email, address, emergency_contact, is_active, left_on')

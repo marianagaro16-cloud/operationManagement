@@ -157,3 +157,8 @@ export async function runHrDateNotices(now = new Date()): Promise<{ sent: number
   }
   return { sent };
 }
+
+/** Each current worker's next evaluation, by worker, among the files the viewer may open. */
+export async function getEvalDueMap(): Promise<Record<string, string>> {
+  return Object.fromEntries((await evaluationsDue(false)).map((e) => [e.worker_id, e.on_date]));
+}

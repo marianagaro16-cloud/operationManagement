@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/shell/app-shell';
 import { WorkerDialog, type HrAccount } from './worker-dialog';
 import { HrExport } from './hr-export';
 import { DateDistance, useDateLabel } from './worker-dates';
+import { HrTabs } from './hr-overview';
 import type { ImportantDate } from '@/domain/hr/important-dates';
 import type { Team } from '@/lib/authz';
 import type { HrWorker } from '@/types/hr';
@@ -86,6 +87,8 @@ export function WorkerList({
           </div>
         }
       />
+
+      <HrTabs active="people" />
 
       {/* Where Inicio's line leads: what falls in the coming 30 days. */}
       {upcomingDates.length > 0 && (
