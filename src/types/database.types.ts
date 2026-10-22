@@ -3203,6 +3203,30 @@ export type Database = {
           },
         ]
       }
+      hr_date_notices: {
+        Row: {
+          kind: string
+          on_date: string
+          ref_id: string
+          sent_at: string
+          stage: string
+        }
+        Insert: {
+          kind: string
+          on_date: string
+          ref_id: string
+          sent_at?: string
+          stage: string
+        }
+        Update: {
+          kind?: string
+          on_date?: string
+          ref_id?: string
+          sent_at?: string
+          stage?: string
+        }
+        Relationships: []
+      }
       hr_eval_answers: {
         Row: {
           assignment_id: string
@@ -4127,10 +4151,69 @@ export type Database = {
           },
         ]
       }
+      hr_worker_dates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          note: string | null
+          on_date: string
+          updated_at: string
+          updated_by: string | null
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          note?: string | null
+          on_date: string
+          updated_at?: string
+          updated_by?: string | null
+          worker_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          note?: string | null
+          on_date?: string
+          updated_at?: string
+          updated_by?: string | null
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_worker_dates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_worker_dates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_worker_dates_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_workers: {
         Row: {
           address: string | null
           birth_date: string | null
+          contract_end_date: string | null
           created_at: string
           created_by: string | null
           email: string | null
@@ -4144,11 +4227,13 @@ export type Database = {
           profile_id: string | null
           start_date: string | null
           team: Database["public"]["Enums"]["team"]
+          trial_end_date: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
           birth_date?: string | null
+          contract_end_date?: string | null
           created_at?: string
           created_by?: string | null
           email?: string | null
@@ -4162,11 +4247,13 @@ export type Database = {
           profile_id?: string | null
           start_date?: string | null
           team: Database["public"]["Enums"]["team"]
+          trial_end_date?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
           birth_date?: string | null
+          contract_end_date?: string | null
           created_at?: string
           created_by?: string | null
           email?: string | null
@@ -4180,6 +4267,7 @@ export type Database = {
           profile_id?: string | null
           start_date?: string | null
           team?: Database["public"]["Enums"]["team"]
+          trial_end_date?: string | null
           updated_at?: string
         }
         Relationships: [

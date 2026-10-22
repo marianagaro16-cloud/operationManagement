@@ -3,6 +3,7 @@ import { DateTime } from 'luxon';
 import { getUsers, getViewer, getMyTeams } from '@/server/data';
 import { getCriteria, getArrivalSettings, getEvalTemplates, getKeys, getLateArrivals, getLateReasons, getNoteTypes, getWorkerFile, getWorkerStats, getWorkers } from '@/server/hr';
 import { getWorkerEvalRequests } from '@/server/hr-evaluations';
+import { getWorkerDates } from '@/server/hr-dates';
 import { getWorkerMeetingRecords } from '@/server/meeting-records';
 import { WorkerFile, type HrTab } from '@/components/hr/worker-file';
 import { displayName } from '@/lib/utils';
@@ -40,7 +41,7 @@ export default async function WorkerFilePage({
   const from = searchParams.from && ISO.test(searchParams.from) ? searchParams.from : defaultFrom;
   const to = searchParams.to && ISO.test(searchParams.to) ? searchParams.to : today;
 
-  const [meetings, keys, noteTypes, criteria, users, workers, stats, evalRequests, templates, lateArrivals, lateReasons, arrivalSettings] = await Promise.all([
+  const [meetings, keys, noteTypes, criteria, users, workers, stats, evalRequests, templates, lateArrivals, lateReasons, arrivalSettings, dates] = await Promise.all([
     // The registered meetings they attended: part of the log.
     getWorkerMeetingRecords(file.worker.id),
     // Counted on the tab.
@@ -56,6 +57,8 @@ export default async function WorkerFilePage({
     getLateArrivals(file.worker.id),
     tab === 'late' ? getLateReasons() : Promise.resolve([]),
     tab === 'late' ? getArrivalSettings() : Promise.resolve(null),
+    // Shown above the tabs.
+    getWorkerDates(file.worker.id),
   ]);
 
   // An account can have one file; offer those still free, and this worker's own.
@@ -100,6 +103,7 @@ export default async function WorkerFilePage({
       viewerName={displayName(viewer.profile)}
       people={people}
       earlyTolerance={arrivalSettings?.hr_early_tolerance_minutes}
+      dates={dates}
     />
   );
 }

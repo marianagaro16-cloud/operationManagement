@@ -55,6 +55,8 @@ const workerSchema = z.object({
   position: optionalText,
   start_date: DATE.nullable().optional().transform((v) => v ?? null),
   birth_date: DATE.nullable().optional().transform((v) => v ?? null),
+  trial_end_date: DATE.nullable().optional().transform((v) => v ?? null),
+  contract_end_date: DATE.nullable().optional().transform((v) => v ?? null),
   phone: optionalText,
   email: optionalText,
   address: optionalText,
@@ -89,6 +91,41 @@ export async function saveWorker(input: WorkerInput, workerId?: string): Promise
   const id = (data as { id: string }).id;
   revalidateHr(id);
   return { ok: true, data: { id } };
+}
+
+/* ---------------------------- important dates ---------------------------- */
+
+const workerDateSchema = z.object({
+  label: z.string().trim().min(1, { message: 'name_required' }).max(200),
+  on_date: DATE,
+  note: optionalText,
+});
+
+/**
+ * Any other date HR keeps on a file. Unlike the log, a date is data: whoever
+ * may open the file corrects or removes it.
+ */
+export async function saveWorkerDate(workerId: string, input: z.input<typeof workerDateSchema>, id?: string): Promise<ActionResult> {
+  const parsed = workerDateSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_date' };
+  const supabase = createClient();
+  const uid = (await supabase.auth.getUser()).data.user?.id ?? null;
+  const { data, error } = id
+    ? await supabase.from('hr_worker_dates').update({ ...parsed.data, updated_by: uid }).eq('id', id).eq('worker_id', workerId).select('id')
+    : await supabase.from('hr_worker_dates').insert({ ...parsed.data, worker_id: workerId, created_by: uid }).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidateHr(workerId);
+  return { ok: true, data: undefined };
+}
+
+export async function deleteWorkerDate(workerId: string, id: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('hr_worker_dates').delete().eq('id', id).eq('worker_id', workerId).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidateHr(workerId);
+  return { ok: true, data: undefined };
 }
 
 /* --------------------------------- notes -------------------------------- */

@@ -13,6 +13,10 @@ export interface HrWorker {
   position: string | null;
   start_date: string | null;
   birth_date: string | null;
+  /** End of the trial period (Probezeit). */
+  trial_end_date: string | null;
+  /** End of a fixed-term contract; null = open-ended. */
+  contract_end_date: string | null;
   phone: string | null;
   email: string | null;
   address: string | null;
@@ -20,6 +24,15 @@ export interface HrWorker {
   is_active: boolean;
   left_on: string | null;
   created_at: string;
+}
+
+/** Any other date HR keeps on a file: a name, a date, a note. */
+export interface HrWorkerDate {
+  id: string;
+  worker_id: string;
+  label: string;
+  on_date: string;
+  note: string | null;
 }
 
 export interface HrNoteType {

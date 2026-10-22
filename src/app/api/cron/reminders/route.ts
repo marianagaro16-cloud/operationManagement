@@ -3,6 +3,7 @@ import { isPushConfigured } from '@/server/push';
 import { runReminderNotifications } from '@/server/reminder-notify';
 import { runEvaluationDeadlineReminders } from '@/server/hr-eval-notify';
 import { runCelebrationNotices } from '@/server/hr-celebrations';
+import { runHrDateNotices } from '@/server/hr-dates';
 import { runActaNotices, runPlanNotices, runQuietCustomersSummary } from '@/server/sales-notify';
 import { runCoverageNotices } from '@/server/coverage-notify';
 import { runMeetingNotices, runMeetingRecordNotices } from '@/server/meeting-jobs';
@@ -44,6 +45,8 @@ export async function GET(request: Request) {
     const evaluations = await runEvaluationDeadlineReminders();
     // Birthdays and work anniversaries, from 09:00: 3 days before and on the day.
     const celebrations = await runCelebrationNotices();
+    // Important dates on the worker files, from 09:00: once within the 30 days before, and on the day.
+    const hrDates = await runHrDateNotices();
     // Customers going quiet: the Ventas team's summary, Monday from 09:00.
     const quiet = await runQuietCustomersSummary();
     // The sales planning: each salesperson's day at 08:00, and 15 minutes before a timed activity.
@@ -67,6 +70,7 @@ export async function GET(request: Request) {
       ...result,
       evaluationReminders: evaluations.sent,
       celebrationNotices: celebrations.sent,
+      hrDateNotices: hrDates.sent,
       quietCustomersSummary: quiet.sent,
       planSummaries: plan.summaries,
       planNotices: plan.soon,

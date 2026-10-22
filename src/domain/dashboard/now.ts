@@ -23,6 +23,7 @@ export type NowKind =
   | 'planToday'
   | 'evaluationsDue'
   | 'hrFollowUps'
+  | 'hrDates'
   | 'absencesToApprove'
   | 'coverageGaps'
   | 'meetingInvites'
@@ -63,6 +64,8 @@ export interface NowInput {
   evaluationsDue: number;
   /** Follow-ups of log notes the viewer wrote, due today or before; late once the day has passed. */
   hrFollowUps: { count: number; late: boolean };
+  /** Important dates on the files the viewer may open, in the coming 30 days, and whose. */
+  hrDates: { count: number; names: string[] };
   /** Absence requests waiting for the viewer's decision; approvers only. */
   absencesToApprove: number;
   /** Absences in the next two weeks with time nobody covers: all for approvers, one's own otherwise. */
@@ -100,6 +103,7 @@ const ORDER: NowKind[] = [
   'planLate',
   'evaluationsDue',
   'hrFollowUps',
+  'hrDates',
   'meetingRecords',
   'meetingFollowUps',
   'actasToWrite',
@@ -125,6 +129,7 @@ export function buildNowItems(input: NowInput): NowItem[] {
     { kind: 'planLate', level: 'late', count: input.planLate, href: '/sales?tab=planning' },
     { kind: 'evaluationsDue', level: 'today', count: input.evaluationsDue, href: '/evaluations' },
     { kind: 'hrFollowUps', level: input.hrFollowUps.late ? 'late' : 'today', count: input.hrFollowUps.count, href: '/hr?followups=1' },
+    { kind: 'hrDates', level: 'today', count: input.hrDates.count, href: '/hr#dates', names: input.hrDates.names.slice(0, 3) },
     { kind: 'meetingRecords', level: input.meetingRecords.late ? 'late' : 'today', count: input.meetingRecords.count, href: input.meetingRecords.href },
     { kind: 'meetingFollowUps', level: input.meetingFollowUps.late ? 'late' : 'today', count: input.meetingFollowUps.count, href: input.meetingFollowUps.href },
     { kind: 'actasToWrite', level: input.actasToWrite.late ? 'late' : 'today', count: input.actasToWrite.count, href: input.actasToWrite.href },

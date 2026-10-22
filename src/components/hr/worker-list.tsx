@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, KeyRound, Plus } from 'lucide-react';
+import { CalendarClock, ChevronRight, KeyRound, Plus } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { Badge, Card, Checkbox, EmptyState, Input } from '@/components/ui/primit
 import { PageHeader } from '@/components/shell/app-shell';
 import { WorkerDialog, type HrAccount } from './worker-dialog';
 import { HrExport } from './hr-export';
+import { DateDistance, useDateLabel } from './worker-dates';
+import type { ImportantDate } from '@/domain/hr/important-dates';
 import type { Team } from '@/lib/authz';
 import type { HrWorker } from '@/types/hr';
 import { teamLabelKey } from '@/lib/authz';
@@ -22,7 +24,10 @@ export function WorkerList({
   onlyFollowUps = false,
   accounts,
   teams,
+  upcomingDates = [],
 }: {
+  /** Important dates in the coming 30 days, soonest first. */
+  upcomingDates?: ImportantDate[];
   workers: HrWorker[];
   /** Workers with a note whose follow-up is still open, or already late. */
   followUps: Record<string, 'open' | 'overdue'>;
@@ -38,6 +43,7 @@ export function WorkerList({
   const [showInactive, setShowInactive] = useState(false);
   const [onlyOpen, setOnlyOpen] = useState(onlyFollowUps);
   const [query, setQuery] = useState('');
+  const dateLabel = useDateLabel();
 
   const teamLabel = (team: Team) => (t(teamLabelKey(team)));
   const linked = new Set(workers.map((w) => w.profile_id).filter(Boolean));
@@ -71,6 +77,29 @@ export function WorkerList({
           </div>
         }
       />
+
+      {/* Where Inicio's line leads: what falls in the coming 30 days. */}
+      {upcomingDates.length > 0 && (
+        <Card id="dates" className="mb-4 p-3.5">
+          <h2 className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold">
+            <CalendarClock className="h-4 w-4 text-muted" aria-hidden />
+            {t('hr.datesUpcoming')}
+          </h2>
+          <ul className="divide-y divide-border">
+            {upcomingDates.map((d) => (
+              <li key={`${d.kind}-${d.refId}`}>
+                <Link href={`/hr/${d.workerId}`} className="flex items-center gap-2 py-1.5 text-[13px] hover:text-accent">
+                  <span className="w-24 shrink-0 tabular text-muted">{formatDate(d.date, 'medium')}</span>
+                  <span className="min-w-0 flex-1 break-words">
+                    <span className="font-medium">{d.workerName}</span> · {dateLabel(d)}
+                  </span>
+                  <DateDistance d={d} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <Input
         aria-label={t('hrKey.listSearch')}

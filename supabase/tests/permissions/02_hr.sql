@@ -73,3 +73,16 @@ select pg_temp.cannot('arrival: another HR person cannot delete it', 'owner2', $
 select pg_temp.can('arrival: its recorder corrects it days later', 'admin', $$update public.hr_late_arrivals set note = 'ZZ fixed' where note = 'ZZ old'$$);
 select pg_temp.can('arrival: its recorder deletes it days later', 'admin', $$delete from public.hr_late_arrivals where note = 'ZZ fixed'$$);
 select pg_temp.hidden('user: no keys register', 'user', 'select 1 from public.hr_keys');
+
+-- Important dates (2026-10-22): with the file, correctable by whoever may open it.
+insert into public.hr_worker_dates (worker_id, label, on_date)
+select id, 'ZZ date ' || k, current_date + 10 from _w where k in ('prod', 'ops');
+
+select pg_temp.sees('production manager: a Production worker''s date', 'pm', $$select 1 from public.hr_worker_dates where label = 'ZZ date prod'$$);
+select pg_temp.hidden('production manager: not an Operations worker''s date', 'pm', $$select 1 from public.hr_worker_dates where label = 'ZZ date ops'$$);
+select pg_temp.hidden('user: no worker dates', 'user', $$select 1 from public.hr_worker_dates where label like 'ZZ date%'$$);
+select pg_temp.can('production manager: adds a date to a Production file', 'pm',
+  format($$insert into public.hr_worker_dates (worker_id, label, on_date) values (%L, 'ZZ pm date', current_date)$$, (select id from _w where k = 'prod')));
+select pg_temp.cannot('production manager: cannot add one to an Operations file', 'pm',
+  format($$insert into public.hr_worker_dates (worker_id, label, on_date) values (%L, 'ZZ pm sneaky', current_date)$$, (select id from _w where k = 'ops')));
+select pg_temp.can('admin: corrects a date', 'admin', $$update public.hr_worker_dates set on_date = current_date + 11 where label = 'ZZ date ops'$$);

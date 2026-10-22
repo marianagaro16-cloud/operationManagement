@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { DateTime } from 'luxon';
 import { useI18n } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -17,6 +18,11 @@ export interface HrAccount {
   id: string;
   name: string;
   team: Team;
+}
+
+/** A date some months on, the day before the same day of the month: 1 Oct + 3 months ends 31 Dec. */
+function addMonths(date: string, months: number): string {
+  return DateTime.fromISO(date).plus({ months }).minus({ days: 1 }).toISODate()!;
 }
 
 export function useHrError() {
@@ -56,6 +62,8 @@ export function WorkerDialog({
           position: worker.position,
           start_date: worker.start_date,
           birth_date: worker.birth_date,
+          trial_end_date: worker.trial_end_date,
+          contract_end_date: worker.contract_end_date,
           phone: worker.phone,
           email: worker.email,
           address: worker.address,
@@ -152,6 +160,40 @@ export function WorkerDialog({
               type="date"
               value={text('birth_date')}
               onChange={(e) => set({ birth_date: e.target.value || null })}
+            />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t('hr.trialEnd')} htmlFor="hr-trial">
+            <Input
+              id="hr-trial"
+              type="date"
+              value={text('trial_end_date')}
+              onChange={(e) => set({ trial_end_date: e.target.value || null })}
+            />
+            {/* The usual lengths, counted from the start date. */}
+            {form.start_date && (
+              <span className="mt-1 flex flex-wrap gap-1">
+                {[1, 2, 3].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => set({ trial_end_date: addMonths(form.start_date!, n) })}
+                    className="rounded-md border border-border px-1.5 py-0.5 text-[11px] text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+                  >
+                    {t('hr.trialPlusMonths', { n })}
+                  </button>
+                ))}
+              </span>
+            )}
+          </Field>
+          <Field label={t('hr.contractEnd')} hint={t('hr.contractEndHint')} htmlFor="hr-contract-end">
+            <Input
+              id="hr-contract-end"
+              type="date"
+              value={text('contract_end_date')}
+              onChange={(e) => set({ contract_end_date: e.target.value || null })}
             />
           </Field>
         </div>

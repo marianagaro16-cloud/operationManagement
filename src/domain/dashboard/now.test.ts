@@ -13,6 +13,7 @@ const none: NowInput = {
   planToday: 0,
   evaluationsDue: 0,
   hrFollowUps: { count: 0, late: false },
+  hrDates: { count: 0, names: [] },
   absencesToApprove: 0,
   coverageGaps: 0,
   meetingInvites: 0,

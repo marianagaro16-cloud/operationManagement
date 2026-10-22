@@ -17,10 +17,11 @@ import { localizedName, localizedNameDescription } from '@/lib/localized-content
 import { addEvaluation } from '@/server/hr-actions';
 import { WorkerDialog, useHrError, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
-import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrKey, HrLateArrival, HrLateReason, HrNoteType, HrPerson, HrStats, HrWorkerFile } from '@/types/hr';
+import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrKey, HrLateArrival, HrLateReason, HrNoteType, HrPerson, HrStats, HrWorkerDate, HrWorkerFile } from '@/types/hr';
 import { LateSinceEvaluation, LateTab } from './late-arrivals';
 import { LogTab } from './note-log';
 import { KeyRegister } from './key-register';
+import { WorkerDates } from './worker-dates';
 import type { MeetingRecord } from '@/types/meetings';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { RequestStatus } from './evaluation-parts';
@@ -53,7 +54,10 @@ export function WorkerFile({
   viewerName,
   people,
   earlyTolerance = 10,
+  dates,
 }: {
+  /** The other important dates kept on the file. */
+  dates: HrWorkerDate[];
   /** Minutes before the agreed time that are still fine. */
   earlyTolerance?: number;
   /** Late arrivals, newest first, and the reasons to pick from. */
@@ -154,6 +158,8 @@ export function WorkerFile({
           </div>
         </div>
       </Card>
+
+      <WorkerDates worker={worker} dates={dates} today={today} />
 
       <nav className="mb-3 flex gap-1 overflow-x-auto border-b border-border">
         {tabs.map((item) => (
