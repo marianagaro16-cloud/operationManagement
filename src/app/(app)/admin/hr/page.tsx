@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getViewer } from '@/server/data';
-import { getCriteria, getEvalTemplates, getArrivalSettings, getLateReasons, getNoteTypes } from '@/server/hr';
+import { getCriteria, getEvalTemplates, getArrivalSettings, getLateReasons, getNoteTypes, getTrainingKinds } from '@/server/hr';
 import { HrConfig } from '@/components/admin/hr-config';
 
 export const dynamic = 'force-dynamic';
@@ -14,12 +14,13 @@ export default async function AdminHrPage() {
   if (!viewer?.can('system.configure')) redirect('/admin');
 
   // Inactive rows included: this is where one is switched back on.
-  const [noteTypes, criteria, templates, lateReasons, arrivalSettings] = await Promise.all([
+  const [noteTypes, criteria, templates, lateReasons, arrivalSettings, trainingKinds] = await Promise.all([
     getNoteTypes(true),
     getCriteria(true),
     getEvalTemplates(true),
     getLateReasons(true),
     getArrivalSettings(),
+    getTrainingKinds(true),
   ]);
-  return <HrConfig noteTypes={noteTypes} criteria={criteria} templates={templates} lateReasons={lateReasons} arrivalSettings={arrivalSettings} />;
+  return <HrConfig noteTypes={noteTypes} criteria={criteria} templates={templates} lateReasons={lateReasons} arrivalSettings={arrivalSettings} trainingKinds={trainingKinds} />;
 }

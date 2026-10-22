@@ -25,9 +25,12 @@ export function WorkerList({
   accounts,
   teams,
   upcomingDates = [],
+  trainingGaps = {},
 }: {
   /** Important dates in the coming 30 days, soonest first. */
   upcomingDates?: ImportantDate[];
+  /** Per worker: required trainings missing or expired. */
+  trainingGaps?: Record<string, number>;
   workers: HrWorker[];
   /** Workers with a note whose follow-up is still open, or already late. */
   followUps: Record<string, 'open' | 'overdue'>;
@@ -151,6 +154,9 @@ export function WorkerList({
                       <KeyRound className="mr-1 inline h-3 w-3" aria-hidden />
                       {keys[w.id]!.join(', ')}
                     </Badge>
+                  )}
+                  {w.is_active && (trainingGaps[w.id] ?? 0) > 0 && (
+                    <Badge tone="late">{t('hrTraining.gaps', { n: trainingGaps[w.id] })}</Badge>
                   )}
                   {followUps[w.id] && (
                     <Badge tone={followUps[w.id] === 'overdue' ? 'late' : 'accent'}>

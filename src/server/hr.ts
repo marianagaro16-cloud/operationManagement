@@ -5,6 +5,8 @@ import type {
   HrAgreement,
   HrCriterion,
   HrEvalTemplate,
+  HrTraining,
+  HrTrainingKind,
   HrEvaluation,
   HrKey,
   HrFollowUp,
@@ -350,4 +352,32 @@ export async function getKeys(workerId?: string): Promise<HrKey[]> {
         Number(!!a.returned_on) - Number(!!b.returned_on) ||
         a.key_number.localeCompare(b.key_number, undefined, { numeric: true }),
     );
+}
+
+/* ------------------------------- trainings ------------------------------- */
+
+export async function getTrainingKinds(includeInactive = false): Promise<HrTrainingKind[]> {
+  const supabase = createClient();
+  let query = supabase
+    .from('hr_training_kinds')
+    .select('id, name, translations, validity_months, required_teams, sort_order, is_active')
+    .order('sort_order')
+    .order('name');
+  if (!includeInactive) query = query.eq('is_active', true);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as HrTrainingKind[];
+}
+
+/** Trainings, newest first: one worker's, or every file the viewer may open. RLS: the file's own access. */
+export async function getTrainings(workerId?: string): Promise<HrTraining[]> {
+  const supabase = createClient();
+  let query = supabase
+    .from('hr_trainings')
+    .select('id, worker_id, kind_id, done_on, expires_on, provider, hours, note')
+    .order('done_on', { ascending: false });
+  if (workerId) query = query.eq('worker_id', workerId);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as HrTraining[];
 }

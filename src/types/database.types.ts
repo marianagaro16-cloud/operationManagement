@@ -4151,6 +4151,116 @@ export type Database = {
           },
         ]
       }
+      hr_training_kinds: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          required_teams: Database["public"]["Enums"]["team"][]
+          sort_order: number
+          translations: Json
+          updated_at: string
+          validity_months: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          required_teams?: Database["public"]["Enums"]["team"][]
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+          validity_months?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          required_teams?: Database["public"]["Enums"]["team"][]
+          sort_order?: number
+          translations?: Json
+          updated_at?: string
+          validity_months?: number | null
+        }
+        Relationships: []
+      }
+      hr_trainings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          done_on: string
+          expires_on: string | null
+          hours: number | null
+          id: string
+          kind_id: string
+          note: string | null
+          provider: string | null
+          updated_at: string
+          updated_by: string | null
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          done_on: string
+          expires_on?: string | null
+          hours?: number | null
+          id?: string
+          kind_id: string
+          note?: string | null
+          provider?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          worker_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          done_on?: string
+          expires_on?: string | null
+          hours?: number | null
+          id?: string
+          kind_id?: string
+          note?: string | null
+          provider?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_trainings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_trainings_kind_id_fkey"
+            columns: ["kind_id"]
+            isOneToOne: false
+            referencedRelation: "hr_training_kinds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_trainings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_trainings_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hr_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_worker_dates: {
         Row: {
           created_at: string

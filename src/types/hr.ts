@@ -300,3 +300,28 @@ export interface HrKey {
   returned_on: string | null;
   note: string | null;
 }
+
+/** A kind of training, from Admin's list: how long it is valid, and which teams must have it. */
+export interface HrTrainingKind {
+  id: string;
+  name: string;
+  translations: HrTranslations;
+  /** Empty: it does not expire. */
+  validity_months: number | null;
+  required_teams: Team[];
+  sort_order: number;
+  is_active: boolean;
+}
+
+/** One training someone did. */
+export interface HrTraining {
+  id: string;
+  worker_id: string;
+  kind_id: string;
+  done_on: string;
+  expires_on: string | null;
+  provider: string | null;
+  /** numeric(6,2): may arrive as a string. */
+  hours: number | string | null;
+  note: string | null;
+}

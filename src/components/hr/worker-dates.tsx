@@ -25,7 +25,10 @@ export function DateDistance({ d }: { d: Pick<ImportantDate, 'daysAway'> }) {
 export function useDateLabel() {
   const { t } = useI18n();
   return (d: Pick<ImportantDate, 'kind' | 'label'>) =>
-    d.kind === 'trial_end' ? t('hr.trialEnd') : d.kind === 'contract_end' ? t('hr.contractEnd') : d.label ?? '';
+    d.kind === 'trial_end' ? t('hr.trialEnd')
+      : d.kind === 'contract_end' ? t('hr.contractEnd')
+        : d.kind === 'training' ? t('hrTraining.expires', { name: d.label ?? '' })
+          : d.label ?? '';
 }
 
 /**

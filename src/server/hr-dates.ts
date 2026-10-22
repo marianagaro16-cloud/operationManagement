@@ -3,6 +3,7 @@ import { DateTime } from 'luxon';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { BUSINESS_TZ, businessToday } from '@/lib/datetime';
 import { noticeStage, upcomingImportantDates, DATE_NOTICE_DAYS, type ImportantDate } from '@/domain/hr/important-dates';
+import { trainingExpiries } from '@/domain/hr/trainings';
 import type { HrWorkerDate } from '@/types/hr';
 import { sendToUser } from './push';
 
@@ -34,12 +35,15 @@ export async function getWorkerDates(workerId: string): Promise<HrWorkerDate[]> 
 async function upcoming(asSystem: boolean, today: string, days: number): Promise<ImportantDate[]> {
   const client = asSystem ? createAdminClient() : createClient();
   const until = DateTime.fromISO(today, { zone: BUSINESS_TZ }).plus({ days }).toISODate()!;
-  const [{ data: workers, error }, { data: custom, error: customError }] = await Promise.all([
+  const [{ data: workers, error }, { data: custom, error: customError }, { data: trainings, error: trainingError }, { data: kinds }] = await Promise.all([
     client.from('hr_workers').select(WORKER_COLUMNS).eq('is_active', true),
     client.from('hr_worker_dates').select('id, worker_id, label, on_date').gte('on_date', today).lte('on_date', until),
+    // All of them: whether an expiry still counts depends on a newer training of the kind.
+    client.from('hr_trainings').select('id, worker_id, kind_id, done_on, expires_on'),
+    client.from('hr_training_kinds').select('id, name'),
   ]);
-  if (error || customError) throw new Error(`hr dates: ${(error ?? customError)!.message}`);
-  return upcomingImportantDates(workers ?? [], custom ?? [], today, days);
+  if (error || customError || trainingError) throw new Error(`hr dates: ${(error ?? customError ?? trainingError)!.message}`);
+  return upcomingImportantDates(workers ?? [], custom ?? [], today, days, trainingExpiries(trainings ?? [], kinds ?? []));
 }
 
 /** What falls in the coming 30 days among the files the viewer may open. Current staff only. */
@@ -57,14 +61,18 @@ const WHAT: Record<ImportantDate['kind'], string> = {
   trial_end: 'Fin del periodo de prueba',
   contract_end: 'Fin del contrato',
   custom: '',
+  training: 'Vence la formación',
 };
+
+/** "Fin del contrato" mid-sentence, without touching a name like HACCP. */
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 /** Written in Spanish, like every other server-sent notification. */
 function message(d: ImportantDate): { title: string; body: string } {
-  const what = d.kind === 'custom' ? d.label ?? '' : WHAT[d.kind];
+  const what = d.kind === 'custom' ? d.label ?? '' : d.kind === 'training' ? `${WHAT.training} ${d.label ?? ''}`.trim() : WHAT[d.kind];
   return d.daysAway === 0
-    ? { title: `${what} hoy`, body: `${d.workerName}: ${what.toLowerCase()} es hoy.` }
-    : { title: what, body: `${d.workerName}: ${what.toLowerCase()} el ${day(d.date)} (en ${d.daysAway === 1 ? '1 día' : `${d.daysAway} días`}).` };
+    ? { title: `${what} hoy`, body: `${d.workerName}: ${lowerFirst(what)} es hoy.` }
+    : { title: what, body: `${d.workerName}: ${lowerFirst(what)} el ${day(d.date)} (en ${d.daysAway === 1 ? '1 día' : `${d.daysAway} días`}).` };
 }
 
 /**

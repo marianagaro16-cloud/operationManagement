@@ -86,3 +86,19 @@ select pg_temp.can('production manager: adds a date to a Production file', 'pm',
 select pg_temp.cannot('production manager: cannot add one to an Operations file', 'pm',
   format($$insert into public.hr_worker_dates (worker_id, label, on_date) values (%L, 'ZZ pm sneaky', current_date)$$, (select id from _w where k = 'ops')));
 select pg_temp.can('admin: corrects a date', 'admin', $$update public.hr_worker_dates set on_date = current_date + 11 where label = 'ZZ date ops'$$);
+
+-- Trainings (2026-10-22): the kinds are Admin's list; a training goes with the file.
+insert into public.hr_training_kinds (name) values ('ZZ kind');
+insert into public.hr_trainings (worker_id, kind_id, done_on)
+select id, (select id from public.hr_training_kinds where name = 'ZZ kind'), current_date from _w where k in ('prod', 'ops');
+
+select pg_temp.sees('production manager: reads the training kinds', 'pm', $$select 1 from public.hr_training_kinds where name = 'ZZ kind'$$);
+select pg_temp.cannot('production manager: cannot change the training kinds', 'pm', $$update public.hr_training_kinds set name = 'zz' where name = 'ZZ kind'$$);
+select pg_temp.hidden('user: no training kinds', 'user', $$select 1 from public.hr_training_kinds where name = 'ZZ kind'$$);
+select pg_temp.sees('production manager: a Production worker''s training', 'pm',
+  format('select 1 from public.hr_trainings where worker_id = %L', (select id from _w where k = 'prod')));
+select pg_temp.hidden('production manager: not an Operations worker''s training', 'pm',
+  format('select 1 from public.hr_trainings where worker_id = %L', (select id from _w where k = 'ops')));
+select pg_temp.hidden('user: no trainings', 'user', 'select 1 from public.hr_trainings');
+select pg_temp.can('admin: corrects a training', 'admin',
+  format($$update public.hr_trainings set provider = 'zz' where worker_id = %L$$, (select id from _w where k = 'ops')));

@@ -128,6 +128,66 @@ export async function deleteWorkerDate(workerId: string, id: string): Promise<Ac
   return { ok: true, data: undefined };
 }
 
+/* ------------------------------- trainings ------------------------------- */
+
+const trainingSchema = z
+  .object({
+    kind_id: z.string().uuid({ message: 'kind_required' }),
+    done_on: DATE,
+    expires_on: DATE.nullable().optional().transform((v) => v ?? null),
+    provider: optionalText,
+    hours: z.number().positive().max(9999).nullable().optional().transform((v) => v ?? null),
+    note: optionalText,
+  })
+  .refine((v) => !v.expires_on || v.expires_on >= v.done_on, { message: 'expiry_before_done' });
+
+/** A training someone did. A record, not the log: whoever may open the file corrects or removes it. */
+export async function saveTraining(workerId: string, input: z.input<typeof trainingSchema>, id?: string): Promise<ActionResult> {
+  const parsed = trainingSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_training' };
+  const supabase = createClient();
+  const uid = (await supabase.auth.getUser()).data.user?.id ?? null;
+  const { data, error } = id
+    ? await supabase.from('hr_trainings').update({ ...parsed.data, updated_by: uid }).eq('id', id).eq('worker_id', workerId).select('id')
+    : await supabase.from('hr_trainings').insert({ ...parsed.data, worker_id: workerId, created_by: uid }).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidateHr(workerId);
+  return { ok: true, data: undefined };
+}
+
+export async function deleteTraining(workerId: string, id: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('hr_trainings').delete().eq('id', id).eq('worker_id', workerId).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidateHr(workerId);
+  return { ok: true, data: undefined };
+}
+
+const trainingKindSchema = z.object({
+  name: z.string().trim().min(1, { message: 'name_required' }).max(100),
+  translations: translationsSchema,
+  validity_months: z.number().int().min(1).max(240).nullable().optional().transform((v) => v ?? null),
+  required_teams: z.array(z.enum(TEAMS)).default([]),
+  sort_order: z.number().int().default(100),
+  is_active: z.boolean().default(true),
+});
+
+export async function saveTrainingKind(input: z.input<typeof trainingKindSchema>, id?: string): Promise<ActionResult> {
+  const parsed = trainingKindSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_type' };
+  const supabase = createClient();
+  const { data, error } = id
+    ? await supabase.from('hr_training_kinds').update(parsed.data).eq('id', id).select('id')
+    : await supabase.from('hr_training_kinds').insert(parsed.data).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidatePath('/admin/hr');
+  revalidatePath('/hr', 'layout');
+  return { ok: true, data: undefined };
+}
+
 /* --------------------------------- notes -------------------------------- */
 
 const sectionText = z.string().trim().max(10000).nullable().optional().transform((v) => v || null);

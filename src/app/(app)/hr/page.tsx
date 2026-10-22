@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getUsers, getViewer, getMyTeams } from '@/server/data';
-import { getKeys, getOpenFollowUps, getWorkers } from '@/server/hr';
+import { getKeys, getOpenFollowUps, getTrainingKinds, getTrainings, getWorkers } from '@/server/hr';
+import { requiredTrainings } from '@/domain/hr/trainings';
 import { getUpcomingHrDates } from '@/server/hr-dates';
 import { businessToday } from '@/lib/datetime';
 import { WorkerList } from '@/components/hr/worker-list';
@@ -17,11 +18,19 @@ export default async function HrPage({ searchParams }: { searchParams: { followu
   const viewer = await getViewer();
   if (!viewer?.can('hr.manage')) redirect('/dashboard');
 
-  const [workers, users, followUps, allKeys, upcomingDates] = await Promise.all([getWorkers(), getUsers(), getOpenFollowUps(), getKeys(), getUpcomingHrDates()]);
+  const [workers, users, followUps, allKeys, upcomingDates, trainingKinds, trainings] = await Promise.all([
+    getWorkers(), getUsers(), getOpenFollowUps(), getKeys(), getUpcomingHrDates(), getTrainingKinds(), getTrainings(),
+  ]);
   // Per worker: the keys they hold now.
   const keys: Record<string, string[]> = {};
   for (const k of allKeys) if (k.worker_id && !k.returned_on) (keys[k.worker_id] ??= []).push(k.key_number);
   const today = businessToday();
+  // Per worker: required trainings missing or expired.
+  const trainingGaps: Record<string, number> = {};
+  for (const w of workers) {
+    const gaps = requiredTrainings(w, trainingKinds, trainings, today).filter((r) => r.status === 'missing' || r.status === 'expired').length;
+    if (gaps > 0) trainingGaps[w.id] = gaps;
+  }
   // Per worker: a follow-up is open, or one is already late.
   const open: Record<string, 'open' | 'overdue'> = {};
   for (const f of followUps) if (open[f.worker_id] !== 'overdue') open[f.worker_id] = f.due_on < today ? 'overdue' : 'open';
@@ -35,6 +44,7 @@ export default async function HrPage({ searchParams }: { searchParams: { followu
       keys={keys}
       onlyFollowUps={searchParams.followups === '1'}
       upcomingDates={upcomingDates}
+      trainingGaps={trainingGaps}
       accounts={users
         // Nobody files themselves: their own file would be hidden from them.
         .filter((u) => u.status === 'approved' && u.id !== viewer.profile.id)

@@ -17,17 +17,19 @@ import { localizedName, localizedNameDescription } from '@/lib/localized-content
 import { addEvaluation } from '@/server/hr-actions';
 import { WorkerDialog, useHrError, type HrAccount } from './worker-dialog';
 import type { Team } from '@/lib/authz';
-import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrKey, HrLateArrival, HrLateReason, HrNoteType, HrPerson, HrStats, HrWorkerDate, HrWorkerFile } from '@/types/hr';
+import type { HrCriterion, HrEvalRequest, HrEvalTemplate, HrEvaluation, HrKey, HrLateArrival, HrLateReason, HrNoteType, HrPerson, HrStats, HrTraining, HrTrainingKind, HrWorkerDate, HrWorkerFile } from '@/types/hr';
 import { LateSinceEvaluation, LateTab } from './late-arrivals';
 import { LogTab } from './note-log';
 import { KeyRegister } from './key-register';
 import { WorkerDates } from './worker-dates';
+import { TrainingTab } from './training-tab';
+import { requiredTrainings } from '@/domain/hr/trainings';
 import type { MeetingRecord } from '@/types/meetings';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { RequestStatus } from './evaluation-parts';
 import { teamLabelKey } from '@/lib/authz';
 
-export type HrTab = 'log' | 'late' | 'keys' | 'evaluations' | 'app';
+export type HrTab = 'log' | 'late' | 'keys' | 'training' | 'evaluations' | 'app';
 
 /**
  * One worker's file: who they are, the log, their evaluations, and — when
@@ -55,7 +57,12 @@ export function WorkerFile({
   people,
   earlyTolerance = 10,
   dates,
+  trainingKinds,
+  trainings,
 }: {
+  /** Admin's training list, and this worker's trainings, newest first. */
+  trainingKinds: HrTrainingKind[];
+  trainings: HrTraining[];
   /** The other important dates kept on the file. */
   dates: HrWorkerDate[];
   /** Minutes before the agreed time that are still fine. */
@@ -101,10 +108,13 @@ export function WorkerFile({
     worker.email,
   ].filter(Boolean) as string[];
 
-  const tabs: { key: HrTab; label: string; count?: number }[] = [
+  // Required trainings missing or expired: counted on the tab, in red.
+  const trainingGaps = requiredTrainings(worker, trainingKinds, trainings, today).filter((r) => r.status === 'missing' || r.status === 'expired').length;
+  const tabs: { key: HrTab; label: string; count?: number; alert?: boolean }[] = [
     { key: 'log', label: t('hr.tabLog'), count: file.notes.length + meetings.length },
     { key: 'late', label: t('hrLate.tab'), count: lateArrivals.length },
     { key: 'keys', label: t('hrKey.tab'), count: keys.filter((k) => !k.returned_on).length },
+    { key: 'training', label: t('hrTraining.tab'), count: trainingGaps || undefined, alert: trainingGaps > 0 },
     { key: 'evaluations', label: t('hr.tabEvaluations'), count: file.evaluations.length },
     { key: 'app', label: t('hr.tabApp') },
   ];
@@ -174,7 +184,7 @@ export function WorkerFile({
           >
             {item.label}
             {item.count !== undefined && item.count > 0 && (
-              <span className="ml-1.5 text-[11px] tabular text-subtle">{item.count}</span>
+              <span className={cn('ml-1.5 text-[11px] tabular', item.alert ? 'font-semibold text-late' : 'text-subtle')}>{item.count}</span>
             )}
           </Link>
         ))}
@@ -183,6 +193,7 @@ export function WorkerFile({
       {tab === 'log' && (
         <LogTab file={file} meetings={meetings} noteTypes={noteTypes} people={people} today={today} viewerId={viewerId} viewerName={viewerName} isAdmin={isAdmin} />
       )}
+      {tab === 'training' && <TrainingTab worker={worker} kinds={trainingKinds} trainings={trainings} today={today} />}
       {tab === 'keys' && <KeyRegister keys={keys} worker={{ id: worker.id, name: worker.name }} today={today} isAdmin={isAdmin} />}
       {tab === 'late' && (
         <LateTab
