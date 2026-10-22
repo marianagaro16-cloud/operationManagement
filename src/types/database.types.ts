@@ -12419,6 +12419,10 @@ export type Database = {
         Args: { p_date: string; p_worker_id: string }
         Returns: string
       }
+      search_order_ids: {
+        Args: { p_from: string; p_terms: Json; p_to: string }
+        Returns: string[]
+      }
       set_customer_prepay: {
         Args: { p_customer_id: string; p_on: boolean }
         Returns: undefined

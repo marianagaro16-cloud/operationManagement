@@ -5,6 +5,8 @@ import { weekDays } from '@/domain/orders/scheduling';
 import { OVERDUE_LOOKBACK_DAYS } from '@/domain/buckets';
 import { addDays, BUSINESS_TZ, type BusinessDate } from '@/lib/datetime';
 import { DateTime } from 'luxon';
+import { fold } from '@/lib/search';
+import { productLabel } from '@/types/orders';
 import type {
   BoxType,
   Brand,
@@ -90,8 +92,7 @@ function withProgress(orders: Order[]): OrderWithProgress[] {
   }));
 }
 
-/** Order Control: filtered by DELIVERY date. */
-export async function getOrdersByDelivery(filters: {
+type DeliveryFilters = {
   from: BusinessDate;
   to: BusinessDate;
   customerId?: string;
@@ -99,7 +100,12 @@ export async function getOrdersByDelivery(filters: {
   status?: string;
   /** 'sale', 'consignment', 'sample', 'replacement' or 'sponsorship'. */
   orderType?: string;
-}): Promise<OrderWithProgress[]> {
+  /** Only these orders — the matches of a text search. */
+  ids?: string[];
+};
+
+/** Order Control: filtered by DELIVERY date. */
+export async function getOrdersByDelivery(filters: DeliveryFilters): Promise<OrderWithProgress[]> {
   const supabase = createClient();
   let q = supabase
     .from('orders')
@@ -109,6 +115,7 @@ export async function getOrdersByDelivery(filters: {
     .order('delivery_date', { ascending: true })
     .order('reference', { ascending: true });
 
+  if (filters.ids) q = q.in('id', filters.ids);
   if (filters.customerId) q = q.eq('customer_id', filters.customerId);
   if (filters.orderType) q = q.eq('order_type', filters.orderType);
   if (filters.deliveryMethodId) q = q.eq('delivery_method_id', filters.deliveryMethodId);
@@ -121,6 +128,59 @@ export async function getOrdersByDelivery(filters: {
   const { data, error } = await q;
   if (error) throw new Error(error.message);
   return withProgress(sortLines((data ?? []) as unknown as Order[]));
+}
+
+/** Ids per request when fetching search matches; keeps the URL short. */
+const SEARCH_ID_CHUNK = 100;
+
+/**
+ * Order Control's free-text search: customer, reference or product, every
+ * term required, accents ignored.
+ *
+ * The matching happens in the database (search_order_ids) so only the
+ * matching orders are fetched — fetching the whole history and filtering
+ * here was slow and, past the row cap, silently missed older orders. The
+ * accent folding stays here: each term is matched against the customer and
+ * product lists, inactive ones included since old orders still carry them,
+ * and the database gets the ids.
+ */
+export async function searchOrdersByDelivery(
+  filters: Omit<DeliveryFilters, 'ids'> & { query: string },
+): Promise<OrderWithProgress[]> {
+  const { query, ...rest } = filters;
+  const [customers, products] = await Promise.all([getCustomers(true), getProducts(true)]);
+  const customerText = customers.map((c) => ({ id: c.id, text: fold(c.name) }));
+  const productText = products.map((p) => ({ id: p.id, text: fold(`${p.code ?? ''} ${productLabel(p)}`) }));
+
+  const terms = fold(query.trim())
+    .split(/\s+/)
+    // A bare "#" is in every order's "#1001", so it narrows nothing.
+    .filter((term) => term && term !== '#')
+    .map((term) => {
+      const digits = term.replace(/^#/, '');
+      return {
+        c: customerText.filter((c) => c.text.includes(term)).map((c) => c.id),
+        p: productText.filter((p) => p.text.includes(term)).map((p) => p.id),
+        r: /^\d+$/.test(digits) ? digits : null,
+      };
+    });
+
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('search_order_ids', {
+    p_from: rest.from,
+    p_to: rest.to,
+    p_terms: terms,
+  });
+  if (error) throw new Error(error.message);
+  const ids = (data ?? []) as string[];
+  if (ids.length === 0) return [];
+
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += SEARCH_ID_CHUNK) chunks.push(ids.slice(i, i + SEARCH_ID_CHUNK));
+  const found = (await Promise.all(chunks.map((chunk) => getOrdersByDelivery({ ...rest, ids: chunk })))).flat();
+  return found.sort(
+    (a, b) => a.delivery_date.localeCompare(b.delivery_date) || Number(a.reference) - Number(b.reference),
+  );
 }
 
 /**

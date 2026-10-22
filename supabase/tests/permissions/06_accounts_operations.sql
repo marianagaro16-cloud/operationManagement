@@ -41,6 +41,8 @@ select pg_temp.sees('orders: the production manager reads them', 'pm', 'select 1
 select pg_temp.cannot('orders: the production manager cannot change one', 'pm',
   $$update public.orders set note = 'zz' where id = (select id from public.orders order by created_at desc limit 1)$$);
 select pg_temp.sees('orders: a logistics user reads them', 'userA', 'select 1 from public.orders');
+select pg_temp.sees('orders: the production manager can search them', 'pm',
+  $$select 1 from public.search_order_ids('2000-01-01', '2100-01-01', '[]'::jsonb)$$);
 select pg_temp.cannot('orders: nobody deletes the order history', 'admin',
   $$delete from public.order_audit_log where id = (select id from public.order_audit_log limit 1)$$);
 

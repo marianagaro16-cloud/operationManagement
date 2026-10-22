@@ -1,12 +1,10 @@
 import { DateTime } from 'luxon';
-import { getBoxTypes, getBrands, getCustomers, getDeliveryMethods, getOrdersBoard, getOrdersByDelivery, getProducts } from '@/server/orders';
+import { getBoxTypes, getBrands, getCustomers, getDeliveryMethods, getOrdersBoard, getOrdersByDelivery, getProducts, searchOrdersByDelivery } from '@/server/orders';
 import { getIncidentCategories, getIncidentTypes } from '@/server/incidents';
 import { getViewer } from '@/server/data';
 import { customRange, periodRange, type PeriodRange } from '@/domain/orders/reporting';
 import { ORDERS_GO_LIVE } from '@/domain/orders/config';
 import { BUSINESS_TZ, addDays, businessToday } from '@/lib/datetime';
-import { filterByQuery } from '@/lib/search';
-import { productLabel } from '@/types/orders';
 import { displayName } from '@/lib/utils';
 import { OrderControl } from '@/components/orders/order-control';
 import { asOrderType } from '@/components/orders/order-types';
@@ -155,16 +153,20 @@ export default async function OrdersPage({
 
   const canReportIncident = viewer.can('incidents.manage');
 
-  const [found, customers, products, deliveryMethods, brands, incidentCategories, incidentTypes] =
+  const orderFilters = {
+    from: start,
+    to: end,
+    customerId: searchParams.customer,
+    deliveryMethodId: searchParams.method,
+    status: searchParams.status,
+    orderType,
+  };
+
+  const [orders, customers, products, deliveryMethods, brands, incidentCategories, incidentTypes] =
     await Promise.all([
-      getOrdersByDelivery({
-        from: start,
-        to: end,
-        customerId: searchParams.customer,
-        deliveryMethodId: searchParams.method,
-        status: searchParams.status,
-        orderType,
-      }),
+      // Matched on the customer, the reference and the products on the order —
+      // the three things somebody actually remembers about one.
+      query ? searchOrdersByDelivery({ ...orderFilters, query }) : getOrdersByDelivery(orderFilters),
       getCustomers(),
       getProducts(),
       getDeliveryMethods(),
@@ -174,18 +176,6 @@ export default async function OrdersPage({
       canReportIncident ? getIncidentCategories() : Promise.resolve([]),
       canReportIncident ? getIncidentTypes() : Promise.resolve([]),
     ]);
-
-  // Matched on the customer, the reference and the products on the order —
-  // the three things somebody actually remembers about one.
-  const orders = query
-    ? filterByQuery(
-        found,
-        query,
-        (o) =>
-          `${o.customer.name} #${o.reference} ${o.reference} ` +
-          o.lines.map((l) => `${l.product.code ?? ''} ${productLabel(l.product)}`).join(' '),
-      )
-    : found;
 
   /*
    * The brand filter is applied HERE rather than in the query.

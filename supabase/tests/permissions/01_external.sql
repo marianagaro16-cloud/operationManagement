@@ -11,6 +11,8 @@ select pg_temp.as_system();
 
 -- The operation is closed.
 select pg_temp.hidden('external: no orders', 'ext', 'select 1 from public.orders');
+select pg_temp.hidden('external: the order search finds nothing', 'ext',
+  $$select 1 from public.search_order_ids('2000-01-01', '2100-01-01', '[]'::jsonb)$$);
 select pg_temp.hidden('external: no order lines', 'ext', 'select 1 from public.order_lines');
 select pg_temp.hidden('external: no lots', 'ext', 'select 1 from public.lot_allocations');
 select pg_temp.hidden('external: no inventories', 'ext', 'select 1 from public.inventory_instances');
