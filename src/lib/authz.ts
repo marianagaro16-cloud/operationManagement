@@ -160,6 +160,10 @@ export const PERMISSIONS = [
   'goods_reception.manage_config',
   'goods_reception.manage_all',
 
+  // Production plans (Plan de Producción). No role holds it by default: Admin
+  // and Owners plan; someone covering them is given it with the coverage.
+  'production_plans.manage',
+
   // ADMIN-ONLY — listed so the matrix can render them locked, never grantable
   'users.manage',
   'users.approve',
@@ -340,4 +344,17 @@ export function wouldOrphanAdmins(params: {
   const { currentRole, nextRole, approvedAdminCount } = params;
   if (!isAdminRole(currentRole) || isAdminRole(nextRole)) return false;
   return approvedAdminCount <= 1;
+}
+
+/**
+ * What a person does with production plans. Mirrors can_plan_production() and
+ * can_read_production_plan() in SQL, which are what enforce it: planners
+ * (production_plans.manage — Admin, Owners, a coverer given it) make them; the
+ * Production manager reads every plan; Production's users read today's.
+ */
+export function productionPlanAccess(role: Role, team: Team, canPlan: boolean): 'plan' | 'read' | 'today' | null {
+  if (canPlan) return 'plan';
+  if (role === 'production_manager') return 'read';
+  if (role === 'user' && team === 'production') return 'today';
+  return null;
 }

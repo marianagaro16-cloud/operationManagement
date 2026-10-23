@@ -14,7 +14,7 @@ import { FormNoteSubmit } from '@/components/ui/enter-to-save';
 import { InboxLink } from './inbox-link';
 import { ReloadButton } from './reload-button';
 import { QuickNoteButton } from '@/components/notes/quick-note-button';
-import { atLeast, can, canManageMerch, canReadMarketing, canReadSchedule, canRequestMarketing, isExternal, isMarketing, isSales, ordersReadOnly, type Permission, type Role, type Team } from '@/lib/authz';
+import { atLeast, can, canManageMerch, canReadMarketing, canReadSchedule, canRequestMarketing, isExternal, isMarketing, isSales, ordersReadOnly, productionPlanAccess, type Permission, type Role, type Team } from '@/lib/authz';
 import type { Profile } from '@/types/database';
 import { opensManagement } from '@/components/admin/sections';
 
@@ -173,6 +173,11 @@ export function AppShell({
     // What one produced oneself — past days only.
     ...(ownProduction && !plansWork
       ? [{ href: '/production/mine', label: t('production.mineTitle'), icon: Factory, primary: false, group: 'operation' as const }]
+      : []),
+    // Production plans (the Plan de Producción sheets): planners make them, the
+    // Production manager reads them, Production's users read today's.
+    ...(productionPlanAccess(role, profile.team as Team, can(role, held, 'production_plans.manage'))
+      ? [{ href: '/production-plans', label: t('productionPlans.navLabel'), icon: ClipboardList, primary: false, group: 'production' as const }]
       : []),
     ...activitiesFor('production'),
     ...((can(role, held, 'orders.manage') || can(role, held, 'incidents.manage')) && (role !== 'production_manager' || myTeams.includes('production'))
