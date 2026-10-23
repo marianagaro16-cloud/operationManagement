@@ -2,9 +2,15 @@
 
 import { useMemo, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Pencil, Plus, X } from 'lucide-react';
+import { AlertTriangle, Download, Pencil, Plus, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { filterByQuery } from '@/lib/search';
+import {
+  filterProducts,
+  hasMissingWeight,
+  hasSuggestedWeight,
+  productFiltersToParams,
+  type WeightFilter,
+} from '@/domain/master/filters';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -77,7 +83,7 @@ export function ProductManager({
   // A category id, or 'none' — how somebody works through the products
   // that still need classifying.
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [weightFilter, setWeightFilter] = useState<'' | 'suggested' | 'missing'>('');
+  const [weightFilter, setWeightFilter] = useState<WeightFilter>('');
 
   const inactiveCount = products.filter((p) => !p.is_active).length;
   const reviewCount = products.filter((p) => p.needs_review).length;
@@ -86,36 +92,12 @@ export function ProductManager({
   const weightSuggestedCount = products.filter((p) => p.is_active && hasSuggestedWeight(p)).length;
   const noWeightCount = products.filter((p) => p.is_active && hasMissingWeight(p)).length;
 
-  // The shared matcher, so this screen agrees with the order form's product
-  // picker: accent-folded, and terms are ANDed so "tortilla 1kg" narrows
-  // instead of returning nothing.
-  const visible = useMemo(
-    () =>
-      filterByQuery(
-        products
-          .filter((p) => showInactive || p.is_active)
-          .filter((p) =>
-            brandFilter === '' ? true
-              : brandFilter === 'none' ? p.brand_id === null
-                : p.brand_id === brandFilter,
-          )
-          .filter((p) =>
-            categoryFilter === '' ? true
-              : categoryFilter === 'none' ? p.category_id === null
-                : p.category_id === categoryFilter,
-          )
-          .filter((p) =>
-            weightFilter === 'suggested' ? hasSuggestedWeight(p)
-              : weightFilter === 'missing' ? hasMissingWeight(p)
-                : true,
-          ),
-        query,
-        // Searchable by code, name and BRAND, which is how people actually
-        // look — "masamor" should find the Masamor range.
-        (p) => `${p.code ?? ''} ${p.name ?? ''} ${p.family} ${p.brand?.name ?? ''}`,
-      ),
-    [products, query, showInactive, brandFilter, categoryFilter, weightFilter],
+  // Shared with the Excel download, so the file holds exactly these rows.
+  const filters = useMemo(
+    () => ({ query, showInactive, brand: brandFilter, category: categoryFilter, weight: weightFilter }),
+    [query, showInactive, brandFilter, categoryFilter, weightFilter],
   );
+  const visible = useMemo(() => filterProducts(products, filters), [products, filters]);
 
   return (
     <>
@@ -123,10 +105,22 @@ export function ProductManager({
         title={t('master.productsTitle')}
         subtitle={t('master.productsSubtitle')}
         action={
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            {t('master.newProduct')}
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* The rows on screen, with the filters as they are. */}
+            {visible.length > 0 && (
+              <a
+                href={`/admin/products/export?${productFiltersToParams(filters)}`}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[12.5px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+              >
+                <Download className="h-3.5 w-3.5" aria-hidden />
+                {t('master.downloadExcel')}
+              </a>
+            )}
+            <Button variant="primary" onClick={() => setCreating(true)}>
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              {t('master.newProduct')}
+            </Button>
+          </div>
         }
       />
 
@@ -572,13 +566,6 @@ function classificationLabel(
   return sub ? `${category} · ${sub}` : category;
 }
 
-function hasSuggestedWeight(p: Product): boolean {
-  return p.net_weight_suggested || p.gross_weight_suggested;
-}
-
-function hasMissingWeight(p: Product): boolean {
-  return p.net_weight_kg === null || p.gross_weight_kg === null;
-}
 
 /**
  * A product's two weights in its list row.

@@ -2,10 +2,10 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, MapPin, Pencil, Plus } from 'lucide-react';
+import { Check, Download, MapPin, Pencil, Plus } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { useCustomerTypeLabel } from '@/components/customers/use-customer-type-label';
-import { filterByQuery } from '@/lib/search';
+import { customerFiltersToParams, filterCustomers, type AddressFilter } from '@/domain/master/filters';
 import { formatAddress } from '@/domain/orders/route';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -54,7 +54,7 @@ export function CustomerManager({
    * left to look at — and the others answer "which ones are doubtful" and
    * "which have no address at all".
    */
-  const [addressFilter, setAddressFilter] = useState<'' | 'unchecked' | 'approximate' | 'missing' | 'checked'>('');
+  const [addressFilter, setAddressFilter] = useState<AddressFilter>('');
   const typeLabel = useCustomerTypeLabel();
 
   const inactiveCount = customers.filter((c) => !c.is_active).length;
@@ -62,36 +62,12 @@ export function CustomerManager({
   // anybody having to go looking for it.
   const unclassified = customers.filter((c) => c.is_active && !c.customer_type_id).length;
 
-  // The same matcher the order picker uses: accent-folded and multi-term, so
-  // "wulflingen" finds Wülflingen here as well. This screen used to roll its
-  // own lowercase substring test, which meant the same typed string found a
-  // customer on one screen and reported nothing on another.
-  const visible = useMemo(
-    () =>
-      filterByQuery(
-        customers
-          .filter((c) => showInactive || c.is_active)
-          .filter((c) =>
-            typeFilter === ''
-              ? true
-              : typeFilter === 'none'
-                ? !c.customer_type_id
-                : c.customer_type_id === typeFilter,
-          )
-          .filter((c) => {
-            const hasAddress = Boolean(c.city || c.street);
-            if (addressFilter === 'missing') return !hasAddress;
-            if (addressFilter === 'approximate') return c.location_precision === 'city';
-            if (addressFilter === 'checked') return Boolean(c.address_checked_at);
-            if (addressFilter === 'unchecked') return hasAddress && !c.address_checked_at;
-            return true;
-          }),
-        query,
-        // Search covers BOTH fields, since the team may know either.
-        (c) => `${c.company_name} ${c.company_name_addition ?? ''}`,
-      ),
-    [customers, query, showInactive, typeFilter, addressFilter],
+  // Shared with the Excel download, so the file holds exactly these rows.
+  const filters = useMemo(
+    () => ({ query, showInactive, type: typeFilter, address: addressFilter }),
+    [query, showInactive, typeFilter, addressFilter],
   );
+  const visible = useMemo(() => filterCustomers(customers, filters), [customers, filters]);
 
   const withAddress = customers.filter((c) => c.city || c.street);
   const unchecked = withAddress.filter((c) => !c.address_checked_at).length;
@@ -104,10 +80,22 @@ export function CustomerManager({
         title={t('master.customersTitle')}
         subtitle={t('master.customersSubtitle')}
         action={
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            {t('master.newCustomer')}
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* The rows on screen, with the filters as they are. */}
+            {visible.length > 0 && (
+              <a
+                href={`/admin/customers/export?${customerFiltersToParams(filters)}`}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[12.5px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+              >
+                <Download className="h-3.5 w-3.5" aria-hidden />
+                {t('master.downloadExcel')}
+              </a>
+            )}
+            <Button variant="primary" onClick={() => setCreating(true)}>
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              {t('master.newCustomer')}
+            </Button>
+          </div>
         }
       />
 

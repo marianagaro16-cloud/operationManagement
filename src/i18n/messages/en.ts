@@ -1303,6 +1303,7 @@ export const en = {
     recurringSubtitle: 'Templates propose draft orders for your review — they never confirm one',
     newCustomer: 'New customer',
     newProduct: 'New product',
+    downloadExcel: 'Download Excel',
     newMethod: 'New shipping method',
     name: 'Name',
     code: 'Code',

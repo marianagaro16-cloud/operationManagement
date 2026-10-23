@@ -1281,6 +1281,7 @@ export const de: Messages = {
     recurringSubtitle: 'Vorlagen schlagen Entwürfe zur Prüfung vor — sie bestätigen nie eine Bestellung',
     newCustomer: 'Neuer Kunde',
     newProduct: 'Neues Produkt',
+    downloadExcel: 'Excel herunterladen',
     newMethod: 'Neue Versandart',
     name: 'Name',
     code: 'Code',

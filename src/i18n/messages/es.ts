@@ -1281,6 +1281,7 @@ export const es: Messages = {
     recurringSubtitle: 'Las plantillas proponen borradores para tu revisión — nunca confirman un pedido',
     newCustomer: 'Nuevo cliente',
     newProduct: 'Nuevo producto',
+    downloadExcel: 'Descargar Excel',
     newMethod: 'Nueva forma de envío',
     name: 'Nombre',
     code: 'Código',

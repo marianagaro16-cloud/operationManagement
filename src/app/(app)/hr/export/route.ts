@@ -3,6 +3,7 @@ import { getViewer } from '@/server/data';
 import { createClient } from '@/lib/supabase/server';
 import { getHrOverview } from '@/server/hr-overview';
 import { OVERVIEW_PERIODS, type OverviewPeriod } from '@/domain/hr/overview';
+import { workbook } from '@/server/xlsx';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,21 +24,6 @@ const TEAM_ES: Record<string, string> = {
   sales: 'Ventas',
   marketing: 'Marketing',
 };
-
-type Column = { header: string; key: string; width: number };
-
-async function workbook(name: string, columns: Column[], rows: Record<string, unknown>[]) {
-  // Dynamic, so a large CommonJS dependency stays out of every other request.
-  const ExcelJS = await import('exceljs');
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet(name);
-  ws.columns = columns;
-  ws.getRow(1).font = { bold: true };
-  ws.views = [{ state: 'frozen', ySplit: 1 }];
-  for (const r of rows) ws.addRow(r);
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: columns.length } };
-  return wb.xlsx.writeBuffer();
-}
 
 const nameOf = (p: { name: string | null; email: string } | null) => (p ? p.name || p.email : '');
 const date = (iso: string | null) => (iso ? new Date(`${iso.slice(0, 10)}T12:00:00Z`) : null);
