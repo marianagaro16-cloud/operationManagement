@@ -726,7 +726,7 @@ export async function refreshTemplateFromProducts(
   }
 
   // Two statements rather than a loop each: these lists reach three digits on
-  // a brand like Complementarios, and a request per row would be a request
+  // a brand like Colectivo Comestibles, and a request per row would be a request
   // per row.
   if (plan.reactivate.length > 0) {
     const { error } = await supabase

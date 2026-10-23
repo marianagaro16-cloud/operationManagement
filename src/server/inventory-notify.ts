@@ -227,7 +227,7 @@ export async function notifyPhysicalCountDone(instanceId: string, completedBy: s
  * Tell the inventory notice people about stock close to its expiry date, when
  * a count of a template that asks for it is completed.
  *
- * Only templates with short_shelf_life_months set — today Complementarios,
+ * Only templates with short_shelf_life_months set — today Colectivo Comestibles,
  * at three months — and only when something is actually short: no alert that
  * says "nothing to report". The same list is shown on the inventory page, so
  * nobody depends on having push switched on to see it.
