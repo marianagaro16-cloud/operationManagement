@@ -392,6 +392,25 @@ const customerSchema = z.object({
   is_active: z.boolean(),
   /** First N sale orders paid in advance. Set on creation only; afterwards the collections team changes it. */
   prepay_first_orders: z.number().int().min(0).max(99).optional(),
+  /** Public: the external account sees it too. Optional so older callers leave it alone. */
+  website: z.string().trim().max(300).nullable().optional(),
+  /** Contact, billing and tax details (customer_details). Absent leaves them alone. */
+  details: z
+    .object({
+      email: z.string().trim().max(200).nullable(),
+      email2: z.string().trim().max(200).nullable(),
+      phone: z.string().trim().max(60).nullable(),
+      phone2: z.string().trim().max(60).nullable(),
+      mobile: z.string().trim().max(60).nullable(),
+      language: z.enum(['de', 'fr', 'it', 'en', 'es']).nullable(),
+      billing_address: z.string().trim().max(500).nullable(),
+      billing_postal_code: z.string().trim().max(20).nullable(),
+      billing_city: z.string().trim().max(100).nullable(),
+      billing_country: z.string().trim().length(2).nullable(),
+      vat_no: z.string().trim().max(60).nullable(),
+      uid_no: z.string().trim().max(60).nullable(),
+    })
+    .optional(),
 });
 
 export async function saveCustomer(
@@ -453,12 +472,23 @@ export async function saveCustomer(
       : { customer_type_id: parsed.data.customer_type_id }),
     is_active: parsed.data.is_active,
     ...(id ? {} : { prepay_first_orders: parsed.data.prepay_first_orders ?? 0 }),
+    ...(parsed.data.website === undefined ? {} : { website: parsed.data.website || null }),
   };
-  const { error } = id
-    ? await supabase.from('customers').update(row).eq('id', id)
-    : await supabase.from('customers').insert(row);
+  const { data: saved, error } = id
+    ? await supabase.from('customers').update(row).eq('id', id).select('id').single()
+    : await supabase.from('customers').insert(row).select('id').single();
   if (error) return fail(error);
+
+  if (parsed.data.details) {
+    // Empty fields saved as empty, not as ''.
+    const details = Object.fromEntries(Object.entries(parsed.data.details).map(([k, v]) => [k, v || null]));
+    const { error: detailsError } = await supabase
+      .from('customer_details')
+      .upsert({ customer_id: (saved as { id: string }).id, ...details }, { onConflict: 'customer_id' });
+    if (detailsError) return fail(detailsError);
+  }
   revalidatePath('/admin/customers');
+  revalidatePath('/sales', 'layout');
   return { ok: true, data: undefined };
 }
 

@@ -8,6 +8,7 @@ import { DateTime } from 'luxon';
 import { fold } from '@/lib/search';
 import { productLabel } from '@/types/orders';
 import type {
+  CustomerDetails,
   BoxType,
   Brand,
   Customer,
@@ -383,6 +384,31 @@ export async function getOrder(id: string): Promise<OrderWithProgress | null> {
 }
 
 /* ------------------------------ master data ----------------------------- */
+
+const DETAILS_COLUMNS =
+  'customer_id, bexio_no, email, email2, phone, phone2, mobile, language, billing_address, billing_postal_code, billing_city, billing_country, vat_no, uid_no, bexio_remarks';
+
+/** One customer's contact, billing and tax details; null when none were ever kept (or for the external account). */
+export async function getCustomerDetails(customerId: string): Promise<CustomerDetails | null> {
+  const supabase = createClient();
+  const { data } = await supabase.from('customer_details').select(DETAILS_COLUMNS).eq('customer_id', customerId).maybeSingle();
+  return (data as CustomerDetails | null) ?? null;
+}
+
+/** A customer's website: kept on the customer, so the external account may see it too. */
+export async function getCustomerWebsite(customerId: string): Promise<string | null> {
+  const supabase = createClient();
+  const { data } = await supabase.from('customers').select('website').eq('id', customerId).maybeSingle();
+  return (data as { website: string | null } | null)?.website ?? null;
+}
+
+/** Everyone's, by customer: for the customer master. */
+export async function getCustomerDetailsMap(): Promise<Record<string, CustomerDetails>> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('customer_details').select(DETAILS_COLUMNS);
+  if (error) throw new Error(error.message);
+  return Object.fromEntries(((data ?? []) as CustomerDetails[]).map((d) => [d.customer_id, d]));
+}
 
 export async function getCustomers(includeInactive = false): Promise<Customer[]> {
   const supabase = createClient();

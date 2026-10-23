@@ -20,6 +20,8 @@ import { TargetActas } from './acta-list';
 import type { CustomerFileView } from '@/server/sales';
 import type { MerchHistoryEntry, MerchItemRow } from '@/types/merch';
 import { CustomerMerch } from '@/components/merch/customer-merch';
+import { CustomerContact } from '@/components/customers/customer-contact';
+import type { CustomerDetails } from '@/types/orders';
 
 const number = (n: number, digits = 0) =>
   new Intl.NumberFormat('de-CH', { maximumFractionDigits: digits }).format(Number(n));
@@ -39,7 +41,10 @@ export function CustomerFile({
   actas,
   actaTopics,
   merch,
+  contact,
 }: {
+  /** Email, phones, website, billing address, tax numbers. */
+  contact?: { details: CustomerDetails | null; website: string | null };
   /** What merch they received or are due, and the items to hand over in person. */
   merch?: { history: MerchHistoryEntry[]; items: MerchItemRow[] };
   quickNotes?: QuickNote[];
@@ -88,6 +93,11 @@ export function CustomerFile({
         <p className="mt-1 break-words text-[12.5px] text-muted">
           {[customer.company_name_addition, customer.type, address].filter(Boolean).join(' · ')}
         </p>
+        {contact && (
+          <div className="mt-2">
+            <CustomerContact details={contact.details} website={contact.website} />
+          </div>
+        )}
         {wonFromId && (
           <Link href={`/sales/prospects/${wonFromId}`} className="mt-1 inline-block text-[12.5px] font-medium text-accent hover:underline">
             {t('sales.wonFrom')}

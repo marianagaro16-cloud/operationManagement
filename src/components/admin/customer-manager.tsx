@@ -15,7 +15,7 @@ import { NoteTextarea } from '@/components/ui/note-textarea';
 import { PageHeader } from '@/components/shell/app-shell';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { saveCustomer, setAddressChecked, setCustomerType } from '@/server/order-actions';
-import type { Customer, CustomerType } from '@/types/orders';
+import type { Customer, CustomerDetails, CustomerType } from '@/types/orders';
 import { NoteText } from '@/components/ui/note';
 import { noteToPlainLine } from '@/domain/notes';
 
@@ -33,10 +33,13 @@ import { noteToPlainLine } from '@/domain/notes';
 export function CustomerManager({
   customers,
   customerTypes,
+  details = {},
   reminderViewerId,
 }: {
   customers: Customer[];
   customerTypes: CustomerType[];
+  /** Contact, billing and tax details, by customer. */
+  details?: Record<string, CustomerDetails>;
   /** Null when the viewer cannot use reminders; the row button then renders nothing. */
   reminderViewerId: string | null;
 }) {
@@ -213,6 +216,7 @@ export function CustomerManager({
         <CustomerDialog
           key={editing?.id ?? 'new'}
           customer={editing}
+          details={editing ? details[editing.id] ?? null : null}
           customerTypes={customerTypes}
           onClose={() => { setCreating(false); setEditing(null); }}
           onSaved={() => { setCreating(false); setEditing(null); router.refresh(); }}
@@ -222,18 +226,33 @@ export function CustomerManager({
   );
 }
 
+const CONTACT_FIELDS = [
+  'email', 'email2', 'phone', 'phone2', 'mobile', 'language',
+  'billing_address', 'billing_postal_code', 'billing_city', 'billing_country', 'vat_no', 'uid_no',
+] as const;
+type ContactField = (typeof CONTACT_FIELDS)[number];
+const LANGUAGES = ['de', 'fr', 'it', 'en', 'es'] as const;
+
 function CustomerDialog({
   customer,
+  details,
   customerTypes,
   onClose,
   onSaved,
 }: {
   customer: Customer | null;
+  /** Contact, billing and tax details, where kept. */
+  details: CustomerDetails | null;
   customerTypes: CustomerType[];
   onClose: () => void;
   onSaved: () => void;
 }) {
   const { t } = useI18n();
+  const [website, setWebsite] = useState(customer?.website ?? '');
+  const [contact, setContact] = useState<Record<ContactField, string>>(
+    () => Object.fromEntries(CONTACT_FIELDS.map((k) => [k, details?.[k] ?? ''])) as Record<ContactField, string>,
+  );
+  const setField = (k: ContactField) => (value: string) => setContact((c) => ({ ...c, [k]: value }));
   const [companyName, setCompanyName] = useState(customer?.company_name ?? '');
   const [addition, setAddition] = useState(customer?.company_name_addition ?? '');
   const [typeId, setTypeId] = useState(customer?.customer_type_id ?? '');
@@ -269,6 +288,12 @@ function CustomerDialog({
           delivery_notes: deliveryNotes.trim() || null,
           is_active: active,
           ...(customer ? {} : { prepay_first_orders: Number(prepayFirst) || 0 }),
+          website: website.trim() || null,
+          details: {
+            ...(Object.fromEntries(CONTACT_FIELDS.map((k) => [k, contact[k].trim() || null])) as Record<ContactField, string | null>),
+            language: (contact.language || null) as (typeof LANGUAGES)[number] | null,
+            billing_country: contact.billing_country.trim().toUpperCase() || null,
+          },
         },
         customer?.id,
       );
@@ -354,6 +379,66 @@ function CustomerDialog({
                 rows={2}
               />
             </Field>
+          </div>
+        </div>
+
+        {/* How to reach them and where to bill them: first brought over from bexio. */}
+        <div>
+          <p className="mb-2 text-[13px] font-medium">{t('customerContact.title')}</p>
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={t('customerContact.email')} htmlFor="c-email">
+                <Input id="c-email" type="email" value={contact.email} onChange={(e) => setField('email')(e.target.value)} />
+              </Field>
+              <Field label={t('customerContact.email2')} htmlFor="c-email2">
+                <Input id="c-email2" type="email" value={contact.email2} onChange={(e) => setField('email2')(e.target.value)} />
+              </Field>
+              <Field label={t('customerContact.phone')} htmlFor="c-phone">
+                <Input id="c-phone" type="tel" value={contact.phone} onChange={(e) => setField('phone')(e.target.value)} />
+              </Field>
+              <Field label={t('customerContact.phone2')} htmlFor="c-phone2">
+                <Input id="c-phone2" type="tel" value={contact.phone2} onChange={(e) => setField('phone2')(e.target.value)} />
+              </Field>
+              <Field label={t('customerContact.mobile')} htmlFor="c-mobile">
+                <Input id="c-mobile" type="tel" value={contact.mobile} onChange={(e) => setField('mobile')(e.target.value)} />
+              </Field>
+              <Field label={t('customerContact.language')} htmlFor="c-language">
+                <Select id="c-language" value={contact.language} onChange={(e) => setField('language')(e.target.value)}>
+                  <option value="">—</option>
+                  {LANGUAGES.map((l) => <option key={l} value={l}>{t(`customerContact.lang.${l}`)}</option>)}
+                </Select>
+              </Field>
+            </div>
+            <Field label={t('customerContact.website')} hint={t('customerContact.websiteHint')} htmlFor="c-website">
+              <Input id="c-website" value={website} onChange={(e) => setWebsite(e.target.value)} />
+            </Field>
+            <Field label={t('customerContact.billing')} hint={t('customerContact.billingHint')} htmlFor="c-billing">
+              <NoteTextarea id="c-billing" value={contact.billing_address} onChange={(e) => setField('billing_address')(e.target.value)} rows={2} />
+            </Field>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label={t('master.postalCode')} htmlFor="c-billing-zip">
+                <Input id="c-billing-zip" value={contact.billing_postal_code} onChange={(e) => setField('billing_postal_code')(e.target.value)} />
+              </Field>
+              <Field label={t('master.city')} htmlFor="c-billing-city">
+                <Input id="c-billing-city" value={contact.billing_city} onChange={(e) => setField('billing_city')(e.target.value)} />
+              </Field>
+              <Field label={t('master.country')} htmlFor="c-billing-country">
+                <Input id="c-billing-country" value={contact.billing_country} onChange={(e) => setField('billing_country')(e.target.value.toUpperCase().slice(0, 2))} />
+              </Field>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={t('customerContact.uid')} htmlFor="c-uid">
+                <Input id="c-uid" value={contact.uid_no} onChange={(e) => setField('uid_no')(e.target.value)} />
+              </Field>
+              <Field label={t('customerContact.vat')} htmlFor="c-vat">
+                <Input id="c-vat" value={contact.vat_no} onChange={(e) => setField('vat_no')(e.target.value)} />
+              </Field>
+            </div>
+            {details?.bexio_remarks && (
+              <p className="whitespace-pre-line text-[12px] text-muted">
+                <span className="font-medium text-fg">{t('customerContact.remarks')}:</span> {details.bexio_remarks}
+              </p>
+            )}
           </div>
         </div>
 

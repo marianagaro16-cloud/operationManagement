@@ -66,6 +66,8 @@ export interface Customer {
   country?: string | null;
   /** What the driver needs to know: which door, which hours, who to ask for. */
   delivery_notes?: string | null;
+  /** Public: also shown to the external Marketing account. */
+  website?: string | null;
   /** Geocoded from the address when it is saved; null when it could not be placed. */
   latitude?: number | string | null;
   longitude?: number | string | null;
@@ -88,6 +90,30 @@ export interface Customer {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * A customer's contact, billing and tax details (2026-10-23, first filled
+ * from bexio). Its own table: closed to the external Marketing account.
+ * The customer's own address is where we DELIVER; billing is apart.
+ */
+export interface CustomerDetails {
+  customer_id: string;
+  bexio_no: number | null;
+  email: string | null;
+  email2: string | null;
+  phone: string | null;
+  phone2: string | null;
+  mobile: string | null;
+  /** de, fr, it, en, es */
+  language: string | null;
+  billing_address: string | null;
+  billing_postal_code: string | null;
+  billing_city: string | null;
+  billing_country: string | null;
+  vat_no: string | null;
+  uid_no: string | null;
+  bexio_remarks: string | null;
 }
 
 export interface DeliveryMethod {

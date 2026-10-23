@@ -9,6 +9,7 @@ import { getActaTopics, getTargetActas } from '@/server/sales-actas';
 import { isSales } from '@/lib/authz';
 import { getMerchHistory, getMerchItems } from '@/server/merch';
 import { businessToday } from '@/lib/datetime';
+import { getCustomerDetails, getCustomerWebsite } from '@/server/orders';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ export default async function SalesCustomerPage({ params }: { params: { id: stri
   const viewer = await getViewer();
   if (!viewer || !isSales(viewer.role, viewer.profile.team)) redirect('/dashboard');
   const today = businessToday();
-  const [view, wonFrom, kinds, flagged, team, prepay, prepayFirst, quickNotes, actaTopics, merchHistory, merchItems] = await Promise.all([
+  const [view, wonFrom, kinds, flagged, team, prepay, prepayFirst, quickNotes, actaTopics, merchHistory, merchItems, details, website] = await Promise.all([
     getCustomerFile(params.id),
     getWonFrom(params.id),
     getActivityKinds(true),
@@ -28,6 +29,8 @@ export default async function SalesCustomerPage({ params }: { params: { id: stri
     getActaTopics(true),
     getMerchHistory({ customerId: params.id }),
     getMerchItems(),
+    getCustomerDetails(params.id),
+    getCustomerWebsite(params.id),
   ]);
   if (!view) notFound();
   // The collections team sees the cases; everyone else only that payments are pending.
@@ -40,6 +43,7 @@ export default async function SalesCustomerPage({ params }: { params: { id: stri
     <CustomerFile
       view={view}
       wonFromId={wonFrom?.id ?? null}
+      contact={{ details, website }}
       kinds={kinds}
       viewerId={viewer.profile.id}
       today={today}

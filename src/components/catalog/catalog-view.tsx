@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/shell/app-shell';
 import { filterByQuery } from '@/lib/search';
 
 type Product = { id: string; name: string; code: string | null; detail: string | null; brand: string | null };
-type Customer = { id: string; name: string; addition: string | null; city: string | null; type: { slug: string; name: string } | null };
+type Customer = { id: string; name: string; addition: string | null; city: string | null; website: string | null; type: { slug: string; name: string } | null };
 
 /** Products by brand and customers by name: read-only, searchable. */
 export function CatalogView({ tab, products, customers }: { tab: 'products' | 'customers'; products: Product[]; customers: Customer[] }) {
@@ -83,6 +83,11 @@ export function CatalogView({ tab, products, customers }: { tab: 'products' | 'c
               <div className="min-w-0 flex-1">
                 <p className="text-[13.5px] font-medium">{c.name}</p>
                 {(c.addition || c.city) && <p className="text-[12px] text-muted">{[c.addition, c.city].filter(Boolean).join(' · ')}</p>}
+                {c.website && (
+                  <a href={/^https?:\/\//i.test(c.website) ? c.website : `https://${c.website}`} target="_blank" rel="noreferrer" className="text-[12px] text-accent hover:underline">
+                    {c.website.replace(/^https?:\/\//i, '')}
+                  </a>
+                )}
               </div>
               {c.type && <Badge tone="neutral">{typeLabel(c.type)}</Badge>}
             </div>

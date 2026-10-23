@@ -21,7 +21,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: { ta
       .order('name'),
     supabase
       .from('customers')
-      .select('id, company_name, company_name_addition, city, customer_type:customer_types ( slug, name )')
+      .select('id, company_name, company_name_addition, city, website, customer_type:customer_types ( slug, name )')
       .eq('is_active', true)
       .order('company_name'),
   ]);
@@ -36,11 +36,12 @@ export default async function CatalogPage({ searchParams }: { searchParams: { ta
         detail: [p.presentation, p.category].filter(Boolean).join(' · ') || null,
         brand: p.brand?.name ?? null,
       }))}
-      customers={((customers ?? []) as unknown as { id: string; company_name: string; company_name_addition: string | null; city: string | null; customer_type: { slug: string; name: string } | null }[]).map((c) => ({
+      customers={((customers ?? []) as unknown as { id: string; company_name: string; company_name_addition: string | null; city: string | null; website: string | null; customer_type: { slug: string; name: string } | null }[]).map((c) => ({
         id: c.id,
         name: c.company_name,
         addition: c.company_name_addition,
         city: c.city,
+        website: c.website,
         type: c.customer_type,
       }))}
     />
