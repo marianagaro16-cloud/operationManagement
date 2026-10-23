@@ -45,12 +45,19 @@ const PAIRS = {
   Rajapack: 527,
   'Euelbräu GmbH': 609,
   Bianchi: 730,
+  'ENTOMOS AG': 788,
+  'Importaciones Cuesta': 718,
+  'KFN - Kalkfabrik Netstal AG': 565,
+  'IFCO SYSTEMS (Schweiz) GmbH': 525,
+  'Daga Plus Printing House': 647,
+  'pb-onlinehandel': 517,
+  Packartis: 816,
 };
 
 const COUNTRY = {
   Switzerland: 'CH', Germany: 'DE', Denmark: 'DK', Slovakia: 'SK', France: 'FR', Italy: 'IT', Austria: 'AT',
   Liechtenstein: 'LI', Spain: 'ES', Netherlands: 'NL', Belgium: 'BE', Luxembourg: 'LU', Mexico: 'MX', Sweden: 'SE',
-  'Czech Republic': 'CZ', Czechia: 'CZ', 'United States': 'US', USA: 'US',
+  'Czech Republic': 'CZ', Czechia: 'CZ', Bulgaria: 'BG', 'United States': 'US', USA: 'US',
 };
 
 const wb = new ExcelJS.Workbook();
