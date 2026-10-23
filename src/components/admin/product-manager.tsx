@@ -21,6 +21,7 @@ import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { saveProduct } from '@/server/order-actions';
 import { addProductAlias, deleteProductAlias } from '@/server/import-actions';
 import { saveProductSuppliers } from '@/server/supplier-actions';
+import { SupplierLinksField, cleanLinks } from './supplier-links-field';
 import type { ProductSupplier } from '@/server/suppliers';
 import type { Supplier } from '@/types/goods-reception';
 import type { ProductAliasRow } from '@/server/order-import';
@@ -409,10 +410,7 @@ function ProductDialog({
         return;
       }
       if (product && supplierOptions && JSON.stringify(links) !== JSON.stringify(initialLinks)) {
-        const saved = await saveProductSuppliers(
-          product.id,
-          links.map((l) => ({ ...l, supplier_code: l.supplier_code?.trim() || null })),
-        );
+        const saved = await saveProductSuppliers(product.id, cleanLinks(links));
         if (!saved.ok) return setError(saved.error);
       }
       onSaved();
@@ -550,50 +548,7 @@ function ProductDialog({
 
         {/* Who we buy it from: the office only, on an existing product. */}
         {product && supplierOptions && (
-          <Field label={t('productSuppliers.title')} hint={t('productSuppliers.hint')}>
-            <div className="space-y-1.5">
-              {links.map((link, index) => (
-                <div key={link.supplier_id} className="flex flex-wrap items-center gap-2">
-                  <label className="flex items-center gap-1.5 text-[12.5px]">
-                    <input
-                      type="radio"
-                      name="p-main-supplier"
-                      className="h-4 w-4 accent-accent"
-                      checked={link.is_main}
-                      onChange={() => setLinks((all) => all.map((l, i) => ({ ...l, is_main: i === index })))}
-                    />
-                    {t('productSuppliers.main')}
-                  </label>
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
-                    {supplierOptions.find((s) => s.id === link.supplier_id)?.name ?? '—'}
-                  </span>
-                  <Input
-                    aria-label={t('productSuppliers.code')}
-                    placeholder={t('productSuppliers.code')}
-                    value={link.supplier_code ?? ''}
-                    onChange={(e) => setLinks((all) => all.map((l, i) => (i === index ? { ...l, supplier_code: e.target.value } : l)))}
-                    className="max-w-[9rem]"
-                  />
-                  <Button size="icon" variant="ghost" aria-label={t('common.delete')} onClick={() => setLinks((all) => all.filter((_, i) => i !== index))}>
-                    <X className="h-3.5 w-3.5" aria-hidden />
-                  </Button>
-                </div>
-              ))}
-              <Select
-                aria-label={t('productSuppliers.add')}
-                value=""
-                onChange={(e) =>
-                  e.target.value &&
-                  setLinks((all) => [...all, { supplier_id: e.target.value, is_main: all.length === 0, supplier_code: null }])
-                }
-              >
-                <option value="">{t('productSuppliers.add')}</option>
-                {supplierOptions
-                  .filter((s) => s.is_active && !links.some((l) => l.supplier_id === s.id))
-                  .map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </Select>
-            </div>
-          </Field>
+          <SupplierLinksField name="p-main-supplier" options={supplierOptions} links={links} onChange={setLinks} />
         )}
 
         {/* Only on an existing product: an alias needs something to point at,

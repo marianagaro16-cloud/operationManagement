@@ -34,3 +34,17 @@ select pg_temp.can('an alternative supplier is fine', 'boss',
   $q$insert into public.product_suppliers (product_id, supplier_id, is_main)
      select ps.product_id, (select id from public.suppliers where name <> 'ZZ supplier' order by name limit 1), false
        from public.product_suppliers ps join public.suppliers s on s.id = ps.supplier_id where s.name = 'ZZ supplier'$q$);
+
+-- Raw materials and packaging: inventory items, same rules.
+insert into public.inventory_item_suppliers (item_id, supplier_id, is_main)
+values ((select i.id from public.inventory_template_items i join public.inventory_templates t on t.id = i.template_id where t.slug = 'materia-prima' order by i.sort_order limit 1),
+        (select id from public.suppliers where name = 'ZZ supplier'), true);
+select pg_temp.sees('the office sees who supplies a raw material', 'power', $q$select 1 from public.inventory_item_suppliers ps join public.suppliers s on s.id = ps.supplier_id where s.name = 'ZZ supplier'$q$);
+select pg_temp.hidden('a receiver does not', 'receiver', $q$select 1 from public.inventory_item_suppliers ps join public.suppliers s on s.id = ps.supplier_id where s.name = 'ZZ supplier'$q$);
+select pg_temp.hidden('the Production manager does not', 'pm', $q$select 1 from public.inventory_item_suppliers ps join public.suppliers s on s.id = ps.supplier_id where s.name = 'ZZ supplier'$q$);
+select pg_temp.cannot('a receiver cannot add one', 'receiver',
+  $q$insert into public.inventory_item_suppliers (item_id, supplier_id) select item_id, (select id from public.suppliers where name <> 'ZZ supplier' order by name limit 1) from public.inventory_item_suppliers limit 1$q$);
+select pg_temp.cannot('two main suppliers for one item are refused', 'boss',
+  $q$insert into public.inventory_item_suppliers (item_id, supplier_id, is_main)
+     select ps.item_id, (select id from public.suppliers where name <> 'ZZ supplier' order by name limit 1), true
+       from public.inventory_item_suppliers ps join public.suppliers s on s.id = ps.supplier_id where s.name = 'ZZ supplier'$q$);

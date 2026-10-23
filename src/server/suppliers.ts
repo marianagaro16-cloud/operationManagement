@@ -78,3 +78,21 @@ export async function getProductSuppliersMap(): Promise<Record<string, ProductSu
   for (const list of Object.values(map)) list.sort((a, b) => Number(b.is_main) - Number(a.is_main));
   return map;
 }
+
+/** Who supplies each raw material or packaging item (inventory items, not products). */
+export interface ItemSupplier {
+  item_id: string;
+  supplier_id: string;
+  is_main: boolean;
+  supplier_code: string | null;
+}
+
+export async function getItemSuppliersMap(): Promise<Record<string, ItemSupplier[]>> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('inventory_item_suppliers').select('item_id, supplier_id, is_main, supplier_code');
+  if (error) throw new Error(error.message);
+  const map: Record<string, ItemSupplier[]> = {};
+  for (const row of (data ?? []) as ItemSupplier[]) (map[row.item_id] ??= []).push(row);
+  for (const list of Object.values(map)) list.sort((a, b) => Number(b.is_main) - Number(a.is_main));
+  return map;
+}

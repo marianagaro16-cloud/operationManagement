@@ -16,7 +16,7 @@ const OFFICE = ['owner', 'admin', 'power_user'];
 function fail(error: { message?: string; code?: string } | string): { ok: false; error: string } {
   if (typeof error === 'string') return { ok: false, error };
   if (error.message?.includes('row-level security') || error.code === '42501') return { ok: false, error: 'not_authorized' };
-  if (error.message?.includes('product_suppliers_one_main')) return { ok: false, error: 'one_main' };
+  if (error.message?.includes('_one_main')) return { ok: false, error: 'one_main' };
   return { ok: false, error: error.message ?? 'unknown' };
 }
 
@@ -68,22 +68,40 @@ const linksSchema = z
   .refine((list) => list.filter((l) => l.is_main).length <= 1, 'one_main')
   .refine((list) => new Set(list.map((l) => l.supplier_id)).size === list.length, 'duplicate');
 
-/** Who supplies a product: the whole list, replaced. */
-export async function saveProductSuppliers(productId: string, links: z.input<typeof linksSchema>): Promise<ActionResult> {
+/** A product's or an inventory item's suppliers: the whole list, replaced. */
+async function replaceLinks(
+  table: 'product_suppliers' | 'inventory_item_suppliers',
+  key: 'product_id' | 'item_id',
+  id: string,
+  links: z.input<typeof linksSchema>,
+): Promise<ActionResult> {
   const parsed = linksSchema.safeParse(links);
-  if (!z.string().uuid().safeParse(productId).success || !parsed.success) return fail('invalid');
+  if (!z.string().uuid().safeParse(id).success || !parsed.success) return fail('invalid');
   const viewer = await getViewer();
   if (!viewer || !OFFICE.includes(viewer.role)) return fail('not_authorized');
 
   const supabase = createClient();
-  const { error: cleared } = await supabase.from('product_suppliers').delete().eq('product_id', productId);
+  const { error: cleared } = await supabase.from(table).delete().eq(key, id);
   if (cleared) return fail(cleared);
   if (parsed.data.length > 0) {
     const { error } = await supabase
-      .from('product_suppliers')
-      .insert(parsed.data.map((l) => ({ ...l, supplier_code: l.supplier_code || null, product_id: productId })));
+      .from(table)
+      .insert(parsed.data.map((l) => ({ ...l, supplier_code: l.supplier_code || null, [key]: id })));
     if (error) return fail(error);
   }
-  revalidatePath('/admin/products');
   return { ok: true, data: undefined };
+}
+
+/** Who supplies a product. */
+export async function saveProductSuppliers(productId: string, links: z.input<typeof linksSchema>): Promise<ActionResult> {
+  const res = await replaceLinks('product_suppliers', 'product_id', productId, links);
+  if (res.ok) revalidatePath('/admin/products');
+  return res;
+}
+
+/** Who supplies a raw material or a packaging item. */
+export async function saveItemSuppliers(itemId: string, links: z.input<typeof linksSchema>): Promise<ActionResult> {
+  const res = await replaceLinks('inventory_item_suppliers', 'item_id', itemId, links);
+  if (res.ok) revalidatePath('/admin/inventory', 'layout');
+  return res;
 }

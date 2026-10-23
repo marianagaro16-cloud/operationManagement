@@ -17,6 +17,10 @@ import {
 import { useInventoryError } from '@/components/inventory/inventory-bits';
 import type { InventoryTemplate, InventoryTemplateItem } from '@/types/inventory';
 import type { Profile } from '@/types/database';
+import type { Supplier } from '@/types/goods-reception';
+import type { ItemSupplier } from '@/server/suppliers';
+import { saveItemSuppliers } from '@/server/supplier-actions';
+import { SupplierLinksField, cleanLinks } from './supplier-links-field';
 
 type ItemRow = InventoryTemplateItem & {
   product: { id: string; name: string | null; code: string | null } | null;
@@ -36,12 +40,18 @@ export function InventoryItemsManager({
   assigneeIds,
   users,
   products,
+  supplierOptions = null,
+  itemSuppliers = {},
 }: {
   template: InventoryTemplate;
   items: ItemRow[];
   assigneeIds: string[];
   users: Profile[];
   products: { id: string; name: string | null; code: string | null }[];
+  /** Every supplier, for the office; null for everyone else. */
+  supplierOptions?: Supplier[] | null;
+  /** Who supplies each item (raw materials, packaging). */
+  itemSuppliers?: Record<string, ItemSupplier[]>;
 }) {
   const { t } = useI18n();
   const translateError = useInventoryError();
@@ -242,6 +252,8 @@ export function InventoryItemsManager({
           templateId={template.id}
           item={editing}
           products={products}
+          supplierOptions={supplierOptions}
+          itemSuppliers={editing ? itemSuppliers[editing.id] ?? [] : []}
           nextSortOrder={(items.at(-1)?.sort_order ?? 0) + 10}
           onClose={() => {
             setCreating(false);
@@ -317,12 +329,16 @@ function ItemDialog({
   templateId,
   item,
   products,
+  supplierOptions,
+  itemSuppliers,
   nextSortOrder,
   onClose,
 }: {
   templateId: string;
   item: ItemRow | null;
   products: { id: string; name: string | null; code: string | null }[];
+  supplierOptions: Supplier[] | null;
+  itemSuppliers: ItemSupplier[];
   nextSortOrder: number;
   onClose: () => void;
 }) {
@@ -336,6 +352,10 @@ function ItemDialog({
   const [productId, setProductId] = useState(item?.product_id ?? '');
   const [nameDe, setNameDe] = useState(item?.translations?.de?.name ?? '');
   const [nameEn, setNameEn] = useState(item?.translations?.en?.name ?? '');
+  const initialLinks = itemSuppliers.map(({ supplier_id, is_main, supplier_code }) => ({ supplier_id, is_main, supplier_code }));
+  const [links, setLinks] = useState(initialLinks);
+  // A product's suppliers live on the product; these are for what isn't one.
+  const showSuppliers = Boolean(item && supplierOptions && !productId);
 
   return (
     <Dialog
@@ -368,8 +388,12 @@ function ItemDialog({
                   },
                   item?.id,
                 );
-                if (res.ok) onClose();
-                else setError(translateError(res.error));
+                if (!res.ok) return setError(translateError(res.error));
+                if (item && showSuppliers && JSON.stringify(links) !== JSON.stringify(initialLinks)) {
+                  const saved = await saveItemSuppliers(item.id, cleanLinks(links));
+                  if (!saved.ok) return setError(saved.error);
+                }
+                onClose();
               })
             }
           >
@@ -409,6 +433,10 @@ function ItemDialog({
             ))}
           </Select>
         </Field>
+
+        {showSuppliers && supplierOptions && (
+          <SupplierLinksField name="i-main-supplier" options={supplierOptions} links={links} onChange={setLinks} />
+        )}
 
         {error && <p className="text-[12px] text-late">{error}</p>}
       </div>

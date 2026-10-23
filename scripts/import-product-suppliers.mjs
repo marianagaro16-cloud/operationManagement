@@ -10,6 +10,10 @@
  * alternatives separated by ";". Names must match a supplier exactly (case
  * and accents aside); anything unknown is reported and that row skipped. A
  * row's list replaces what the product had; an empty row leaves it alone.
+ *
+ * Rows whose id reads "item:<uuid>" are raw materials and packaging — items
+ * on the Materia Prima and Empaques inventory lists, not products — and go to
+ * inventory_item_suppliers instead.
  */
 import ExcelJS from 'exceljs';
 import { createClient } from '@supabase/supabase-js';
@@ -59,14 +63,17 @@ ws.eachRow((row, n) => {
     problems.push(`row ${n} ${product}: unknown supplier ${unknown.map((u) => `"${u}"`).join(', ')}`);
     return;
   }
+  const item = productId.startsWith('item:');
   plan.push({
-    productId,
+    table: item ? 'inventory_item_suppliers' : 'product_suppliers',
+    key: item ? 'item_id' : 'product_id',
+    productId: item ? productId.slice(5) : productId,
     product,
     links: names.map((nm, i) => ({ supplier_id: byName.get(fold(nm)).id, is_main: Boolean(main) && i === 0 })),
   });
 });
 
-console.log(`${plan.length} products with suppliers · ${plan.filter((p) => p.links.length > 1).length} with alternatives`);
+console.log(`${plan.filter((p) => p.key === 'product_id').length} products · ${plan.filter((p) => p.key === 'item_id').length} raw material / packaging items with suppliers · ${plan.filter((p) => p.links.length > 1).length} with alternatives`);
 if (problems.length) {
   console.log(`Skipped (${problems.length}):`);
   for (const p of problems) console.log(`  ${p}`);
@@ -78,13 +85,13 @@ if (!apply) {
 
 let written = 0;
 for (const p of plan) {
-  const { error: cleared } = await admin.from('product_suppliers').delete().eq('product_id', p.productId);
+  const { error: cleared } = await admin.from(p.table).delete().eq(p.key, p.productId);
   if (cleared) {
     console.error(`  ${p.product}: ${cleared.message}`);
     continue;
   }
-  const { error: e } = await admin.from('product_suppliers').insert(p.links.map((l) => ({ ...l, product_id: p.productId })));
+  const { error: e } = await admin.from(p.table).insert(p.links.map((l) => ({ ...l, [p.key]: p.productId })));
   if (e) console.error(`  ${p.product}: ${e.message}`);
   else written++;
 }
-console.log(`\nWritten: ${written} products.`);
+console.log(`\nWritten: ${written} rows.`);
