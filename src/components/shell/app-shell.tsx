@@ -147,6 +147,11 @@ export function AppShell({
     ...((can(role, held, 'orders.manage') || can(role, held, 'incidents.manage')) && role !== 'production_manager'
       ? [{ href: '/incidents?area=logistics', label: t('incident.navLabel'), icon: AlertTriangle, primary: false, group: 'logistics' as const }]
       : []),
+    // The Palomo's rounds and costs: Logística (their own) and the office (all
+    // of it). Whoever covers Logística taps from the route in Pedidos.
+    ...(myTeams.includes('logistics') || role === 'owner' || role === 'admin' || role === 'power_user'
+      ? [{ href: '/palomo', label: t('palomo.navLabel'), icon: Truck, primary: false, group: 'logistics' as const }]
+      : []),
     ...activitiesFor('logistics'),
     // ---- the operation: the warehouse ----
     // Goods Reception is its own section: a supplier delivery has no customer

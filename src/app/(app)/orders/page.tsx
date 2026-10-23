@@ -13,6 +13,7 @@ import { OrdersBoard, OrdersTabs, type OrdersMode, type OrdersTab } from '@/comp
 import { redirect } from 'next/navigation';
 import { ordersReadOnly } from '@/lib/authz';
 import { getRouteOrigin, getRouteStops } from '@/server/route';
+import { getLastKm, getOpenTrip, getTrips, getVehicle, getVehicleAccess } from '@/server/vehicle';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,6 +93,8 @@ export default async function OrdersPage({
       getRouteOrigin(),
     ]);
     const hasOwnVehicle = methods.some((m) => m.own_vehicle);
+    // Today's round with the Palomo, on the route: for whoever drives it, and the office.
+    const palomo = tab === 'route' && date === today ? await getPalomoRound(viewer, today) : null;
     return (
       <OrdersBoard
         tab={tab}
@@ -110,6 +113,8 @@ export default async function OrdersPage({
         route={route}
         routeOrigin={routeOrigin}
         hasOwnVehicle={hasOwnVehicle}
+        palomo={palomo}
+        viewerId={viewer.profile.id}
       />
     );
   }
@@ -230,4 +235,14 @@ export default async function OrdersPage({
 
 function isDate(value: string | undefined): value is string {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
+
+/** "Salgo" / "Regresé" for today, when the viewer drives or is the office. */
+async function getPalomoRound(viewer: NonNullable<Awaited<ReturnType<typeof getViewer>>>, today: string) {
+  const access = await getVehicleAccess(viewer);
+  if (!access.office && !access.driver) return null;
+  const vehicle = await getVehicle();
+  if (!vehicle) return null;
+  const [open, todays, lastKm] = await Promise.all([getOpenTrip(vehicle.id), getTrips(vehicle.id, today, today), getLastKm(vehicle.id)]);
+  return { vehicleName: vehicle.name, access, open, todays, lastKm };
 }

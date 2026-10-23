@@ -26,6 +26,17 @@ import { BoxTypesProvider } from './order-boxes';
 import { OrdersReadOnlyProvider, useOrdersReadOnly } from './orders-read-only';
 import { dayTotals, type DayTotal } from '@/domain/orders/day-totals';
 import { RouteView } from './route-view';
+import { RoundCard } from '@/components/vehicle/round-card';
+import type { VehicleAccess, VehicleTrip } from '@/server/vehicle';
+
+/** Today's round with the Palomo, as the route shows it. */
+export interface PalomoRound {
+  vehicleName: string;
+  access: VehicleAccess;
+  open: VehicleTrip | null;
+  todays: VehicleTrip[];
+  lastKm: number | null;
+}
 import type { RouteOrigin, RouteStopRow } from '@/server/route';
 import type { BoxType } from '@/types/orders';
 
@@ -143,6 +154,8 @@ export function OrdersBoard({
   route,
   routeOrigin,
   hasOwnVehicle,
+  palomo = null,
+  viewerId,
   toPrepare,
   carriedOver,
   ready,
@@ -159,6 +172,9 @@ export function OrdersBoard({
   route: RouteStopRow[];
   routeOrigin: RouteOrigin | null;
   hasOwnVehicle: boolean;
+  /** Today's Palomo round, for whoever drives it and the office; null otherwise. */
+  palomo?: PalomoRound | null;
+  viewerId: string;
   /** May move between days and open the order book. */
   canBrowse: boolean;
   /** Sees orders without being able to change them. */
@@ -241,7 +257,20 @@ export function OrdersBoard({
       {tab === 'ready' && <ReadyTab orders={ready} canManage={canManage} bulk={bulk} showsBacklog={date === today} />}
       {tab === 'shipped' && <ShippedTab orders={shipped} canManage={canManage} bulk={bulk} />}
       {tab === 'route' && (
-        <RouteView stops={route} origin={routeOrigin} date={date} canReorder={!readOnly} />
+        <div className="space-y-3">
+          {palomo && (
+            <RoundCard
+              vehicleName={palomo.vehicleName}
+              open={palomo.open}
+              today={palomo.todays}
+              lastKm={palomo.lastKm}
+              access={palomo.access}
+              viewerId={viewerId}
+              todayDate={today}
+            />
+          )}
+          <RouteView stops={route} origin={routeOrigin} date={date} canReorder={!readOnly} />
+        </div>
       )}
     </BoxTypesProvider>
     </OrdersReadOnlyProvider>
