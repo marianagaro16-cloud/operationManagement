@@ -56,7 +56,9 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       // Who goods come FROM, and who carried them. Master data in the same
       // sense customers are, so they live beside them rather than inside the
       // reception module — a supplier outlives any one delivery.
-      { href: '/admin/suppliers', label: 'gr.suppliersTitle', permission: 'goods_reception.manage_config' },
+      // Also for the office (Power User via products.manage): their contact and
+      // ordering details live here (2026-10-23); the page itself checks the role.
+      { href: '/admin/suppliers', label: 'gr.suppliersTitle', permission: ['goods_reception.manage_config', 'products.manage'] },
       { href: '/admin/transporters', label: 'gr.transportersTitle', permission: 'goods_reception.manage_config' },
       { href: '/admin/products', label: 'master.productsTitle', permission: 'products.manage' },
       { href: '/admin/brands', label: 'master.brandsTitle', permission: 'products.manage' },

@@ -26,6 +26,8 @@ import {
 } from '@/server/goods-reception-actions';
 import type { Supplier, Transporter } from '@/types/goods-reception';
 import { useReceptionError } from '@/components/goods-reception/reception-bits';
+import { SupplierDetailsDialog } from './supplier-details-dialog';
+import type { SupplierDetails, SupplierOrderCard } from '@/server/suppliers';
 
 /**
  * Supplier and Transporter master data.
@@ -43,9 +45,15 @@ import { useReceptionError } from '@/components/goods-reception/reception-bits';
 export function ReceptionMaster({
   kind,
   rows,
+  canConfigure = true,
+  office = null,
 }: {
   kind: 'supplier' | 'transporter';
   rows: (Supplier | Transporter)[];
+  /** Add, rename, switch off. False for the office opening suppliers for their details only. */
+  canConfigure?: boolean;
+  /** Suppliers' details and Guías cards: for the office only; null for everyone else. */
+  office?: { details: Record<string, SupplierDetails>; cards: Record<string, SupplierOrderCard> } | null;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -53,6 +61,7 @@ export function ReceptionMaster({
   const [showInactive, setShowInactive] = useState(false);
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<Supplier | Transporter | null>(null);
+  const [detailing, setDetailing] = useState<Supplier | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -78,10 +87,12 @@ export function ReceptionMaster({
         title={t(isSupplier ? 'gr.suppliersTitle' : 'gr.transportersTitle')}
         subtitle={t(isSupplier ? 'gr.suppliersSubtitle' : 'gr.transportersSubtitle')}
         action={
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" aria-hidden />
-            {t(isSupplier ? 'gr.addSupplier' : 'gr.addTransporter')}
-          </Button>
+          canConfigure ? (
+            <Button variant="primary" onClick={() => setCreating(true)}>
+              <Plus className="h-4 w-4" aria-hidden />
+              {t(isSupplier ? 'gr.addSupplier' : 'gr.addTransporter')}
+            </Button>
+          ) : undefined
         }
       />
 
@@ -113,6 +124,11 @@ export function ReceptionMaster({
               <Card className="flex items-center justify-between gap-3 p-3">
                 <div className="min-w-0">
                   <p className="truncate text-[13.5px] font-medium">{row.name}</p>
+                  {office?.details[row.id] && (
+                    <p className="mt-0.5 truncate text-[12px] text-muted">
+                      {[office.details[row.id].email, office.details[row.id].phone, office.details[row.id].city].filter(Boolean).join(' · ')}
+                    </p>
+                  )}
                   {!row.is_active && (
                     <p className="mt-0.5 text-[12px] text-muted">{t('gr.inactiveNotice')}</p>
                   )}
@@ -122,17 +138,26 @@ export function ReceptionMaster({
                   <Badge tone={row.is_active ? 'done' : 'neutral'}>
                     {t(row.is_active ? 'gr.active' : 'gr.inactive')}
                   </Badge>
-                  <Button size="sm" variant="ghost" onClick={() => setRenaming(row)}>
-                    {t('gr.rename')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={pending}
-                    onClick={() => toggleActive(row)}
-                  >
-                    {t(row.is_active ? 'gr.deactivate' : 'gr.reactivate')}
-                  </Button>
+                  {isSupplier && office && (
+                    <Button size="sm" variant="secondary" onClick={() => setDetailing(row)}>
+                      {t('supplierDetails.open')}
+                    </Button>
+                  )}
+                  {canConfigure && (
+                    <>
+                      <Button size="sm" variant="ghost" onClick={() => setRenaming(row)}>
+                        {t('gr.rename')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={pending}
+                        onClick={() => toggleActive(row)}
+                      >
+                        {t(row.is_active ? 'gr.deactivate' : 'gr.reactivate')}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </Card>
             </li>
@@ -145,6 +170,17 @@ export function ReceptionMaster({
           title={t(isSupplier ? 'gr.addSupplier' : 'gr.addTransporter')}
           onClose={() => setCreating(false)}
           onSubmit={(name) => (isSupplier ? createSupplier({ name }) : createTransporter({ name }))}
+        />
+      )}
+
+      {detailing && office && (
+        <SupplierDetailsDialog
+          key={detailing.id}
+          supplierId={detailing.id}
+          supplierName={detailing.name}
+          details={office.details[detailing.id] ?? null}
+          card={office.cards[detailing.id] ?? null}
+          onClose={() => setDetailing(null)}
         />
       )}
 

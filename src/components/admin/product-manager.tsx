@@ -20,6 +20,9 @@ import { PageHeader } from '@/components/shell/app-shell';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { saveProduct } from '@/server/order-actions';
 import { addProductAlias, deleteProductAlias } from '@/server/import-actions';
+import { saveProductSuppliers } from '@/server/supplier-actions';
+import type { ProductSupplier } from '@/server/suppliers';
+import type { Supplier } from '@/types/goods-reception';
 import type { ProductAliasRow } from '@/server/order-import';
 import { suggestNetWeightKg } from '@/domain/orders/weight';
 import { noteToPlainLine } from '@/domain/notes';
@@ -62,6 +65,8 @@ export function ProductManager({
   brands,
   categories,
   subcategories,
+  supplierOptions = null,
+  productSuppliers = {},
   reminderViewerId,
 }: {
   products: Product[];
@@ -70,6 +75,9 @@ export function ProductManager({
   brands: Brand[];
   categories: ProductCategory[];
   subcategories: ProductSubcategory[];
+  /** Every supplier, for the office (who supplies each product); null for everyone else. */
+  supplierOptions?: Supplier[] | null;
+  productSuppliers?: Record<string, ProductSupplier[]>;
   /** Null when the viewer cannot use reminders; the row button then renders nothing. */
   reminderViewerId: string | null;
 }) {
@@ -279,6 +287,8 @@ export function ProductManager({
           brands={brands}
           categories={categories}
           subcategories={subcategories}
+          supplierOptions={supplierOptions}
+          productSuppliers={editing ? productSuppliers[editing.id] ?? [] : []}
           onClose={() => { setCreating(false); setEditing(null); }}
           onSaved={() => { setCreating(false); setEditing(null); router.refresh(); }}
           onAliasChanged={() => router.refresh()}
@@ -295,6 +305,8 @@ function ProductDialog({
   brands,
   categories,
   subcategories,
+  supplierOptions,
+  productSuppliers,
   onClose,
   onSaved,
   onAliasChanged,
@@ -305,6 +317,10 @@ function ProductDialog({
   brands: Brand[];
   categories: ProductCategory[];
   subcategories: ProductSubcategory[];
+  /** Every supplier, for the office; null for everyone else. */
+  supplierOptions: Supplier[] | null;
+  /** Who supplies this product now. */
+  productSuppliers: ProductSupplier[];
   onClose: () => void;
   onSaved: () => void;
   onAliasChanged: () => void;
@@ -350,6 +366,9 @@ function ProductDialog({
   const [needsReview, setNeedsReview] = useState(product?.needs_review ?? false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Who supplies it, for the office: the main one first.
+  const initialLinks = productSuppliers.map(({ supplier_id, is_main, supplier_code }) => ({ supplier_id, is_main, supplier_code }));
+  const [links, setLinks] = useState(initialLinks);
 
   function submit() {
     setError(null);
@@ -388,6 +407,13 @@ function ProductDialog({
               : res.error,
         );
         return;
+      }
+      if (product && supplierOptions && JSON.stringify(links) !== JSON.stringify(initialLinks)) {
+        const saved = await saveProductSuppliers(
+          product.id,
+          links.map((l) => ({ ...l, supplier_code: l.supplier_code?.trim() || null })),
+        );
+        if (!saved.ok) return setError(saved.error);
       }
       onSaved();
     });
@@ -521,6 +547,54 @@ function ProductDialog({
         <Field label={t('master.notes')} htmlFor="p-notes">
           <NoteTextarea id="p-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </Field>
+
+        {/* Who we buy it from: the office only, on an existing product. */}
+        {product && supplierOptions && (
+          <Field label={t('productSuppliers.title')} hint={t('productSuppliers.hint')}>
+            <div className="space-y-1.5">
+              {links.map((link, index) => (
+                <div key={link.supplier_id} className="flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-1.5 text-[12.5px]">
+                    <input
+                      type="radio"
+                      name="p-main-supplier"
+                      className="h-4 w-4 accent-accent"
+                      checked={link.is_main}
+                      onChange={() => setLinks((all) => all.map((l, i) => ({ ...l, is_main: i === index })))}
+                    />
+                    {t('productSuppliers.main')}
+                  </label>
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+                    {supplierOptions.find((s) => s.id === link.supplier_id)?.name ?? '—'}
+                  </span>
+                  <Input
+                    aria-label={t('productSuppliers.code')}
+                    placeholder={t('productSuppliers.code')}
+                    value={link.supplier_code ?? ''}
+                    onChange={(e) => setLinks((all) => all.map((l, i) => (i === index ? { ...l, supplier_code: e.target.value } : l)))}
+                    className="max-w-[9rem]"
+                  />
+                  <Button size="icon" variant="ghost" aria-label={t('common.delete')} onClick={() => setLinks((all) => all.filter((_, i) => i !== index))}>
+                    <X className="h-3.5 w-3.5" aria-hidden />
+                  </Button>
+                </div>
+              ))}
+              <Select
+                aria-label={t('productSuppliers.add')}
+                value=""
+                onChange={(e) =>
+                  e.target.value &&
+                  setLinks((all) => [...all, { supplier_id: e.target.value, is_main: all.length === 0, supplier_code: null }])
+                }
+              >
+                <option value="">{t('productSuppliers.add')}</option>
+                {supplierOptions
+                  .filter((s) => s.is_active && !links.some((l) => l.supplier_id === s.id))
+                  .map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </Select>
+            </div>
+          </Field>
+        )}
 
         {/* Only on an existing product: an alias needs something to point at,
             and saving the product first is what creates it. */}

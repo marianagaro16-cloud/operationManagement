@@ -8,6 +8,8 @@ import {
 } from '@/server/orders';
 import { getProductAliases } from '@/server/order-import';
 import { ProductManager } from '@/components/admin/product-manager';
+import { getSuppliers } from '@/server/goods-reception';
+import { getProductSuppliersMap } from '@/server/suppliers';
 import { canUseReminders } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +17,10 @@ export const dynamic = 'force-dynamic';
 export default async function ProductsPage() {
   // Aliases and the customer list are what the product editor needs to say
   // "this customer calls it that" — the only place those mappings are set.
-  const [products, aliases, customers, brands, categories, subcategories, viewer] = await Promise.all([
+  const viewer = await getViewer();
+  // Who supplies each product: the office only (2026-10-23).
+  const office = viewer?.role === 'owner' || viewer?.role === 'admin' || viewer?.role === 'power_user';
+  const [products, aliases, customers, brands, categories, subcategories, supplierOptions, productSuppliers] = await Promise.all([
     getProducts(true),
     getProductAliases(),
     getCustomers(true),
@@ -24,7 +29,8 @@ export default async function ProductsPage() {
     getBrands(true),
     getProductCategories(true),
     getProductSubcategories(true),
-    getViewer(),
+    office ? getSuppliers(true) : null,
+    office ? getProductSuppliersMap() : {},
   ]);
 
   return (
@@ -35,6 +41,8 @@ export default async function ProductsPage() {
       brands={brands}
       categories={categories}
       subcategories={subcategories}
+      supplierOptions={supplierOptions}
+      productSuppliers={productSuppliers}
       reminderViewerId={viewer && canUseReminders(viewer) ? viewer.profile.id : null}
     />
   );
