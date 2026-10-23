@@ -14,7 +14,7 @@ insert into public.suppliers (name) values ('ZZ supplier');
 insert into public.supplier_details (supplier_id, email, iban)
 values ((select id from public.suppliers where name = 'ZZ supplier'), 'zz@example.invalid', 'CH00 0000');
 insert into public.product_suppliers (product_id, supplier_id, is_main)
-values ((select id from public.products where is_active order by name limit 1), (select id from public.suppliers where name = 'ZZ supplier'), true);
+values ((select p.id from public.products p where p.is_active and not exists (select 1 from public.product_suppliers x where x.product_id = p.id) order by p.name limit 1), (select id from public.suppliers where name = 'ZZ supplier'), true);
 
 select pg_temp.sees('the Power User sees a supplier''s details', 'power', $q$select 1 from public.supplier_details where email = 'zz@example.invalid'$q$);
 select pg_temp.sees('Admin does', 'boss', $q$select 1 from public.supplier_details where email = 'zz@example.invalid'$q$);
@@ -37,7 +37,7 @@ select pg_temp.can('an alternative supplier is fine', 'boss',
 
 -- Raw materials and packaging: inventory items, same rules.
 insert into public.inventory_item_suppliers (item_id, supplier_id, is_main)
-values ((select i.id from public.inventory_template_items i join public.inventory_templates t on t.id = i.template_id where t.slug = 'materia-prima' order by i.sort_order limit 1),
+values ((select i.id from public.inventory_template_items i join public.inventory_templates t on t.id = i.template_id where t.slug in ('materia-prima', 'empaques', 'masamor') and not exists (select 1 from public.inventory_item_suppliers x where x.item_id = i.id) order by i.sort_order limit 1),
         (select id from public.suppliers where name = 'ZZ supplier'), true);
 select pg_temp.sees('the office sees who supplies a raw material', 'power', $q$select 1 from public.inventory_item_suppliers ps join public.suppliers s on s.id = ps.supplier_id where s.name = 'ZZ supplier'$q$);
 select pg_temp.hidden('a receiver does not', 'receiver', $q$select 1 from public.inventory_item_suppliers ps join public.suppliers s on s.id = ps.supplier_id where s.name = 'ZZ supplier'$q$);
