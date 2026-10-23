@@ -74,6 +74,8 @@ const deliverySchema = z
     expected_week: z.string().date().nullable(),
     pallets: z.number().int().positive().max(999).nullable(),
     storage: z.array(z.enum(STORAGE_TYPES)).min(1),
+    // Which Lager: always said, so the floor knows where to take it.
+    location_id: z.string().uuid(),
     note: z.string().trim().max(2000).nullable(),
     lines: z.array(lineSchema).max(50),
   })
@@ -100,15 +102,18 @@ export async function saveExpectedDelivery(id: string | null, input: ExpectedDel
   const supabase = createClient();
   let deliveryId = id;
   let moved = false;
+  let relocated = false;
 
   if (id) {
     const { data: existing } = await supabase
       .from('expected_deliveries')
-      .select('status, due_date, moved_count')
+      .select('status, due_date, moved_count, location_id')
       .eq('id', id)
       .maybeSingle();
     if (!existing) return fail('expected_not_found');
-    const before = existing as { status: string; due_date: string; moved_count: number };
+    const before = existing as { status: string; due_date: string; moved_count: number; location_id: string | null };
+    // A first Lager on an older entry is not a change anyone needs telling about.
+    relocated = before.location_id !== null && before.location_id !== fields.location_id;
     if (before.status !== 'expected') return fail('expected_not_open');
     // The day may stay in the past (it is late); it may not be moved into the past.
     if (dueDate(when) !== before.due_date && dueDate(when) < businessToday()) return fail('expected_in_past');
@@ -145,6 +150,7 @@ export async function saveExpectedDelivery(id: string | null, input: ExpectedDel
 
   if (!id) await notifyExpectedChange('entered', deliveryId!, ctx.viewer.profile.id);
   else if (moved) await notifyExpectedChange('moved', deliveryId!, ctx.viewer.profile.id);
+  else if (relocated) await notifyExpectedChange('relocated', deliveryId!, ctx.viewer.profile.id);
 
   revalidate();
   return { ok: true, data: deliveryId! };
@@ -269,6 +275,11 @@ export async function linkExpectedDelivery(deliveryId: string, receptionId: stri
   const supabase = createClient();
   const { error } = await supabase.rpc('link_expected_delivery', { p_delivery: deliveryId, p_reception: receptionId });
   if (error) return mapError(error);
+
+  // The reception says where the goods went, unless it already does.
+  const { data: announced } = await supabase.from('expected_deliveries').select('location_id').eq('id', deliveryId).maybeSingle();
+  const lager = (announced as { location_id: string | null } | null)?.location_id;
+  if (lager) await supabase.from('goods_receptions').update({ location_id: lager }).eq('id', receptionId).is('location_id', null);
 
   revalidate(receptionId);
   return { ok: true, data: undefined };

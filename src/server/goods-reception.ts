@@ -12,6 +12,7 @@ import type {
   ReceptionReportSnapshot,
   ReceivedProductFilters,
   ReceivedProductRow,
+  Lager,
   LineUnit,
   Supplier,
   Transporter,
@@ -39,11 +40,12 @@ export const RECEPTION_PAGE_SIZE = 25;
  * the incidents module knowing anything about receptions.
  */
 const LIST_SELECT = `
-  id, reference, reception_number, supplier_id, transporter_id, delivery_note,
+  id, reference, reception_number, supplier_id, transporter_id, location_id, delivery_note,
   received_at, received_by, condition, quantity_check, comments, status,
   completed_at, completed_by, created_by, updated_by, created_at, updated_at,
   supplier:suppliers ( id, name, is_active ),
   transporter:transporters ( id, name, is_active ),
+  location:inventory_locations ( id, name ),
   receiver:profiles!goods_receptions_received_by_fkey ( id, name, email ),
   exceptions:goods_reception_exceptions ( id ),
   incidents ( id )
@@ -83,6 +85,18 @@ export async function getTransporters(includeInactive = false): Promise<Transpor
   const { data, error } = await query.order('name');
   if (error) throw new Error(error.message);
   return (data ?? []) as Transporter[];
+}
+
+/**
+ * The Lagers goods go to: the inventory locations kept in Gestión →
+ * Inventario. Inactive ones too, so an entry naming one still shows it; the
+ * forms offer the active ones.
+ */
+export async function getLagers(): Promise<Lager[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('inventory_locations').select('id, name, is_active').order('sort_order').order('name');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Lager[];
 }
 
 /** Products offered when recording an exception. Active only — §22. */
@@ -216,11 +230,12 @@ export async function getReceptions(
 /* ------------------------------- the detail ------------------------------ */
 
 const DETAIL_SELECT = `
-  id, reference, reception_number, supplier_id, transporter_id, delivery_note,
+  id, reference, reception_number, supplier_id, transporter_id, location_id, delivery_note,
   received_at, received_by, condition, quantity_check, comments, status,
   completed_at, completed_by, created_by, updated_by, created_at, updated_at,
   supplier:suppliers ( id, name, is_active, created_at, updated_at ),
   transporter:transporters ( id, name, is_active, created_at, updated_at ),
+  location:inventory_locations ( id, name ),
   receiver:profiles!goods_receptions_received_by_fkey ( id, name, email ),
   completer:profiles!goods_receptions_completed_by_fkey ( name, email ),
   lines:goods_reception_lines (

@@ -11,13 +11,13 @@ import { BUSINESS_TZ, addDays } from '@/lib/datetime';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/shell/app-shell';
-import { Badge, Card, EmptyState, Field } from '@/components/ui/primitives';
+import { Badge, Card, EmptyState, Field, Select } from '@/components/ui/primitives';
 import { NoteText } from '@/components/ui/note';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { arrivalVerdict, groupExpected, isLate, type ExpectedSection } from '@/domain/goods-reception/expected';
 import { cancelExpectedDelivery } from '@/server/expected-delivery-actions';
 import type { Product } from '@/types/orders';
-import type { ExpectedDelivery, Supplier, Transporter } from '@/types/goods-reception';
+import type { ExpectedDelivery, Lager, Supplier, Transporter } from '@/types/goods-reception';
 import { ExpectedForm } from './expected-form';
 import { ReceptionForm } from './reception-form';
 import { ExpectedLines, LoadBadges, ReceptionTabs, useExpectedError, useExpectedLabels } from './expected-bits';
@@ -36,6 +36,7 @@ export function ExpectedList({
   today,
   suppliers,
   transporters,
+  lagers,
   products,
   canManage,
   canRegister,
@@ -46,6 +47,7 @@ export function ExpectedList({
   today: string;
   suppliers: Supplier[];
   transporters: Transporter[];
+  lagers: Lager[];
   /** For the lines of the form; empty for whoever only reads. */
   products: Product[];
   canManage: boolean;
@@ -57,8 +59,13 @@ export function ExpectedList({
   const [editing, setEditing] = useState<ExpectedDelivery | null>(null);
   const [cancelling, setCancelling] = useState<ExpectedDelivery | null>(null);
   const [arriving, setArriving] = useState<ExpectedDelivery | null>(null);
+  // '' is every Lager; 'none' the older entries that do not say yet.
+  const [lagerFilter, setLagerFilter] = useState('');
+  const inLager = (d: ExpectedDelivery) =>
+    lagerFilter === '' ? true : lagerFilter === 'none' ? !d.location_id : d.location_id === lagerFilter;
 
-  const sections = groupExpected(open, today);
+  const sections = groupExpected(open.filter(inLager), today);
+  const shownHistory = history?.filter(inLager) ?? null;
   const heading = (s: ExpectedSection<ExpectedDelivery>) =>
     s.kind === 'late'
       ? t('grx.late')
@@ -87,7 +94,17 @@ export function ExpectedList({
 
       <ReceptionTabs tab="expected" expectedCount={open.length} />
 
-      <div className="mb-3 flex justify-end">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <Select
+          value={lagerFilter}
+          onChange={(e) => setLagerFilter(e.target.value)}
+          aria-label={t('grx.lager')}
+          className="max-w-[15rem]"
+        >
+          <option value="">{t('grx.allLagers')}</option>
+          {lagers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          {open.some((d) => !d.location_id) && <option value="none">{t('grx.noLager')}</option>}
+        </Select>
         <Link
           href={history ? '/goods-reception?tab=expected' : '/goods-reception?tab=expected&show=history'}
           className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-accent hover:underline"
@@ -97,12 +114,12 @@ export function ExpectedList({
         </Link>
       </div>
 
-      {history ? (
-        history.length === 0 ? (
+      {shownHistory ? (
+        shownHistory.length === 0 ? (
           <EmptyState title={t('grx.emptyHistory')} icon={<History className="h-5 w-5" aria-hidden />} />
         ) : (
           <ul className="space-y-1.5">
-            {history.map((d) => <li key={d.id}><ExpectedCard delivery={d} today={today} /></li>)}
+            {shownHistory.map((d) => <li key={d.id}><ExpectedCard delivery={d} today={today} /></li>)}
           </ul>
         )
       ) : sections.length === 0 ? (
@@ -137,6 +154,7 @@ export function ExpectedList({
           delivery={editing ?? undefined}
           suppliers={suppliers.filter((s) => s.is_active || s.id === editing?.supplier_id)}
           transporters={transporters.filter((tr) => tr.is_active || tr.id === editing?.transporter_id)}
+          lagers={lagers}
           products={products}
           today={today}
           onClose={() => {
@@ -152,6 +170,7 @@ export function ExpectedList({
         <ReceptionForm
           suppliers={suppliers.filter((s) => s.is_active || s.id === arriving.supplier_id)}
           transporters={transporters.filter((tr) => tr.is_active || tr.id === arriving.transporter_id)}
+          lagers={lagers}
           expected={open}
           arrivalOf={arriving}
           onClose={() => setArriving(null)}

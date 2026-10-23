@@ -6,6 +6,7 @@ import {
   getReceptionHistory,
   getReceptionProducts,
   getSuppliers,
+  getLagers,
   getTransporters,
   isReceptionAssignee,
 } from '@/server/goods-reception';
@@ -59,9 +60,10 @@ export default async function ReceptionDetailPage({
   // What arrived: the receivers while it is open, the office at any time.
   const canEditLines = canEdit || expectedAccess.manage;
 
-  const [suppliers, transporters, products, incidentTypes, history] = await Promise.all([
+  const [suppliers, transporters, lagers, products, incidentTypes, history] = await Promise.all([
     getSuppliers(),
     getTransporters(),
+    getLagers(),
     // Only offered when the viewer can actually add an exception — loading
     // the whole product master for a read-only reader is wasted bytes on a
     // phone.
@@ -77,6 +79,7 @@ export default async function ReceptionDetailPage({
       reception={reception}
       suppliers={suppliers}
       transporters={transporters}
+      lagers={lagers}
       products={products}
       incidentTypes={incidentTypes}
       history={history}

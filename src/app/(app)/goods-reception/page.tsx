@@ -5,6 +5,7 @@ import {
   getReceptionProducts,
   getReceptions,
   getSuppliers,
+  getLagers,
   getTransporters,
   isReceptionAssignee,
 } from '@/server/goods-reception';
@@ -95,11 +96,12 @@ export default async function GoodsReceptionPage({
   }
 
   if (tab === 'expected') {
-    const [open, history, suppliers, transporters, products, assignee] = await Promise.all([
+    const [open, history, suppliers, transporters, lagers, products, assignee] = await Promise.all([
       getOpenExpected(),
       one('show') === 'history' ? getExpectedHistory() : null,
       getSuppliers(true),
       getTransporters(true),
+      getLagers(),
       access.manage ? getReceptionProducts() : [],
       isReceptionAssignee(viewer.profile.id),
     ]);
@@ -110,6 +112,7 @@ export default async function GoodsReceptionPage({
         today={businessToday()}
         suppliers={suppliers}
         transporters={transporters}
+        lagers={lagers}
         products={products}
         canManage={access.manage}
         canRegister={assignee || canManageAll}
@@ -140,13 +143,14 @@ export default async function GoodsReceptionPage({
 
   const page = Math.max(1, Number(one('page') ?? '1') || 1);
 
-  const [receptions, suppliers, transporters, users, assignee, expected] = await Promise.all([
+  const [receptions, suppliers, transporters, lagers, users, assignee, expected] = await Promise.all([
     getReceptions(filters, page),
     // Inactive suppliers are included so a filter on a deactivated one still
     // resolves — history keeps them, and a filter that cannot name them would
     // make those receptions unreachable.
     getSuppliers(true),
     getTransporters(true),
+    getLagers(),
     getUsers(),
     isReceptionAssignee(viewer.profile.id),
     access.see ? getOpenExpected() : null,
@@ -157,6 +161,7 @@ export default async function GoodsReceptionPage({
       page={receptions}
       suppliers={suppliers}
       transporters={transporters}
+      lagers={lagers}
       receivers={users
         .filter((u) => u.status === 'approved')
         .map((u) => ({ id: u.id, name: u.name, email: u.email }))}

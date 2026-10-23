@@ -32,7 +32,7 @@ export async function agendaPeople(viewer: { id: string; role: Role; team: Team 
     .map((u) => ({ id: u.id, name: displayName(u) }));
 }
 
-const DELIVERY_COLUMNS = 'id, status, expected_date, expected_week, due_date, pallets, storage, reception_id, supplier:suppliers ( name )';
+const DELIVERY_COLUMNS = 'id, status, expected_date, expected_week, due_date, pallets, storage, reception_id, supplier:suppliers ( name ), location:inventory_locations ( name )';
 
 const zurich = (iso: string) => DateTime.fromISO(iso, { zone: 'utc' }).setZone(BUSINESS_TZ);
 
@@ -236,13 +236,14 @@ export async function getAgenda(personId: string, from: string, to: string, own:
   type Delivery = {
     id: string; status: 'expected' | 'arrived'; expected_date: string | null; expected_week: string | null; due_date: string;
     pallets: number | null; storage: string[]; reception_id: string | null; supplier: { name: string } | null;
+    location: { name: string } | null;
   };
   for (const d of ([...(deliveries.data ?? []), ...(lateDeliveries.data ?? [])] as unknown as Delivery[])) {
     const late = d.status === 'expected' && d.due_date < today;
     items.push({
       key: `delivery-${d.id}`, kind: 'delivery', id: d.id,
       date: d.due_date < from ? today : (d.expected_date ?? d.expected_week!), start: null, end: null,
-      title: d.supplier?.name ?? '', detail: `${d.pallets ?? ''}|${d.storage.join(',')}`,
+      title: d.supplier?.name ?? '', detail: `${d.pallets ?? ''}|${d.storage.join(',')}|${d.location?.name ?? ''}`,
       href: d.reception_id ? `/goods-reception/${d.reception_id}` : '/goods-reception?tab=expected',
       done: d.status === 'arrived', late, action: null,
       weekOnly: !d.expected_date && d.due_date >= from,

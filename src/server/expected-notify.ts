@@ -26,6 +26,7 @@ interface Announced {
   storage: StorageType[];
   created_by: string;
   supplier: { name: string } | null;
+  location: { name: string } | null;
 }
 
 const day = (date: string) => DateTime.fromISO(date, { zone: BUSINESS_TZ }).setLocale('es').toFormat('ccc dd.LL.');
@@ -35,9 +36,13 @@ function when(d: Pick<Announced, 'expected_date' | 'expected_week'>): string {
   return d.expected_date ? day(d.expected_date) : `semana del ${day(d.expected_week!).split(' ')[1]}`;
 }
 
-/** "17 pallets · seco" */
-function what(d: Pick<Announced, 'pallets' | 'storage'>): string {
-  return [d.pallets ? `${d.pallets} pallet${d.pallets === 1 ? '' : 's'}` : null, d.storage.map((s) => STORAGE[s]).join(' y ')]
+/** "17 pallets · seco · Lager 4to Piso" */
+function what(d: Pick<Announced, 'pallets' | 'storage' | 'location'>): string {
+  return [
+    d.pallets ? `${d.pallets} pallet${d.pallets === 1 ? '' : 's'}` : null,
+    d.storage.map((s) => STORAGE[s]).join(' y '),
+    d.location?.name ?? null,
+  ]
     .filter(Boolean)
     .join(' · ');
 }
@@ -56,15 +61,15 @@ async function load(ids: string[]): Promise<Announced[]> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from('expected_deliveries')
-    .select('id, expected_date, expected_week, pallets, storage, created_by, supplier:suppliers ( name )')
+    .select('id, expected_date, expected_week, pallets, storage, created_by, supplier:suppliers ( name ), location:inventory_locations ( name )')
     .in('id', ids);
   if (error) throw new Error(`expected deliveries: ${error.message}`);
   return (data ?? []) as unknown as Announced[];
 }
 
-/** Entered, moved to another day, or cancelled: the receivers hear it, whoever did it aside. */
+/** Entered, moved to another day or Lager, or cancelled: the receivers hear it, whoever did it aside. */
 export async function notifyExpectedChange(
-  kind: 'entered' | 'moved' | 'cancelled',
+  kind: 'entered' | 'moved' | 'relocated' | 'cancelled',
   deliveryId: string,
   actorId: string,
 ): Promise<void> {
@@ -73,7 +78,13 @@ export async function notifyExpectedChange(
     if (!d) return;
     const name = d.supplier?.name ?? '';
     const title =
-      kind === 'entered' ? `Entrega esperada: ${name}` : kind === 'moved' ? `Cambió la fecha: ${name}` : `Entrega cancelada: ${name}`;
+      kind === 'entered'
+        ? `Entrega esperada: ${name}`
+        : kind === 'moved'
+          ? `Cambió la fecha: ${name}`
+          : kind === 'relocated'
+            ? `Cambió el lager: ${name}`
+            : `Entrega cancelada: ${name}`;
     await sendToUsers(await receivers(actorId), {
       title,
       body: kind === 'cancelled' ? `Estaba prevista para ${when(d)}.` : [when(d), what(d)].filter(Boolean).join(' · '),

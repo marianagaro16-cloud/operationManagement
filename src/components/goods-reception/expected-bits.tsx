@@ -2,13 +2,14 @@
 
 import { useCallback } from 'react';
 import Link from 'next/link';
+import { MapPin } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { addDays } from '@/lib/datetime';
 import { formatQuantity, type LineUnit, type StorageType } from '@/domain/goods-reception/expected';
 import { productLabel } from '@/types/orders';
 import { Badge, Input } from '@/components/ui/primitives';
-import type { ExpectedDelivery, ExpectedLine } from '@/types/goods-reception';
+import type { ExpectedDelivery, ExpectedLine, Lager } from '@/types/goods-reception';
 
 /* Small shared pieces of the expected deliveries' screens. */
 
@@ -44,8 +45,9 @@ export function useExpectedLabels() {
   return { storage, unit, lineName, when, pallets };
 }
 
-/** "17 pallets", and where they go. */
-export function LoadBadges({ delivery }: { delivery: Pick<ExpectedDelivery, 'pallets' | 'storage'> }) {
+/** "17 pallets", how they are kept, and which Lager they go to. */
+export function LoadBadges({ delivery }: { delivery: Pick<ExpectedDelivery, 'pallets' | 'storage' | 'status'> & { location?: Lager | null } }) {
+  const { t } = useI18n();
   const labels = useExpectedLabels();
   return (
     <>
@@ -53,6 +55,15 @@ export function LoadBadges({ delivery }: { delivery: Pick<ExpectedDelivery, 'pal
       {delivery.storage.map((s) => (
         <Badge key={s} tone={s === 'dry' ? 'neutral' : 'warn'}>{labels.storage(s)}</Badge>
       ))}
+      {delivery.location ? (
+        <Badge tone="neutral">
+          <MapPin className="mr-0.5 inline h-3 w-3" aria-hidden />
+          {delivery.location.name}
+        </Badge>
+      ) : (
+        // Entered before the Lager was asked: the office still has to say.
+        delivery.status === 'expected' && <Badge tone="warn">{t('grx.noLager')}</Badge>
+      )}
     </>
   );
 }

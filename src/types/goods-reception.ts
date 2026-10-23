@@ -85,6 +85,8 @@ export interface GoodsReception {
   reception_number: string;
   supplier_id: string | null;
   transporter_id: string | null;
+  /** The Lager the goods went to (an inventory location); optional. */
+  location_id: string | null;
   delivery_note: string | null;
   received_at: string;
   received_by: string;
@@ -101,7 +103,16 @@ export interface GoodsReception {
 
   supplier?: Supplier | null;
   transporter?: Transporter | null;
+  location?: Lager | null;
   receiver?: { id: string; name: string | null; email: string } | null;
+}
+
+/** A Lager goods go to: one of the inventory locations. */
+export interface Lager {
+  id: string;
+  name: string;
+  /** Present where the loader asked for it (getLagers). */
+  is_active?: boolean;
 }
 
 /** A row of the list screen: the reception plus the counts it is judged by. */
@@ -215,6 +226,8 @@ export interface ExpectedDelivery {
   moved_count: number;
   pallets: number | null;
   storage: StorageType[];
+  /** The Lager it goes to. Required when entered; null on entries older than 2026-10-23. */
+  location_id: string | null;
   note: string | null;
   status: ExpectedStatus;
   reception_id: string | null;
@@ -225,6 +238,7 @@ export interface ExpectedDelivery {
 
   supplier?: { id: string; name: string } | null;
   transporter?: { id: string; name: string } | null;
+  location?: Lager | null;
   creator?: { name: string | null; email: string } | null;
   reception?: { id: string; reception_number: string; received_at: string } | null;
   lines: ExpectedLine[];

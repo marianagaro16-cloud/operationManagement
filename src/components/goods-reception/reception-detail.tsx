@@ -34,7 +34,7 @@ import {
   deleteReceptionEvidence,
   reopenReception,
 } from '@/server/goods-reception-actions';
-import type { ExpectedDelivery, ReceptionAuditEntry, ReceptionDetail, Supplier, Transporter } from '@/types/goods-reception';
+import type { ExpectedDelivery, ReceptionAuditEntry, ReceptionDetail, Lager, Supplier, Transporter } from '@/types/goods-reception';
 import type { Product } from '@/types/orders';
 import type { IncidentType } from '@/types/incidents';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
@@ -68,6 +68,7 @@ export function ReceptionDetailView({
   reception,
   suppliers,
   transporters,
+  lagers,
   products,
   incidentTypes,
   history,
@@ -96,6 +97,7 @@ export function ReceptionDetailView({
   reception: ReceptionDetail;
   suppliers: Supplier[];
   transporters: Transporter[];
+  lagers: Lager[];
   products: Product[];
   incidentTypes: IncidentType[];
   history: ReceptionAuditEntry[];
@@ -203,6 +205,7 @@ export function ReceptionDetailView({
                 value={reception.transporter?.name ?? null}
                 absent={t('gr.noTransporter')}
               />
+              <Detail label={t('grx.lager')} value={reception.location?.name ?? null} />
               <Detail label={t('gr.deliveryNote')} value={reception.delivery_note} mono />
               <Detail
                 label={t('gr.receivedBy')}
@@ -380,6 +383,7 @@ export function ReceptionDetailView({
           reception={reception}
           suppliers={suppliers}
           transporters={transporters}
+          lagers={lagers}
           onClose={() => setEditing(false)}
         />
       )}

@@ -14,7 +14,7 @@ import {
 import { createReception, updateReception } from '@/server/goods-reception-actions';
 import type { ReceptionInput } from '@/server/goods-reception-actions';
 import { registerExpectedArrival } from '@/server/expected-delivery-actions';
-import type { ExpectedDelivery, GoodsReception, Supplier, Transporter } from '@/types/goods-reception';
+import type { ExpectedDelivery, GoodsReception, Lager, Supplier, Transporter } from '@/types/goods-reception';
 import { fromLocalInput, toLocalInput, useReceptionError, useReceptionLabels } from './reception-bits';
 import { ExpectedLines, LoadBadges, initialReceived, toReceived, useExpectedError, useExpectedLabels } from './expected-bits';
 
@@ -39,6 +39,7 @@ export function ReceptionForm({
   reception,
   suppliers,
   transporters,
+  lagers,
   expected = [],
   arrivalOf,
   onClose,
@@ -47,6 +48,7 @@ export function ReceptionForm({
   reception?: GoodsReception;
   suppliers: Supplier[];
   transporters: Transporter[];
+  lagers: Lager[];
   /** Deliveries still expected, as far as the viewer sees them; a new reception may be one of them. */
   expected?: ExpectedDelivery[];
   /** Opened from an expected delivery: it starts out chosen. */
@@ -64,6 +66,8 @@ export function ReceptionForm({
 
   const [supplierId, setSupplierId] = useState(reception?.supplier_id ?? arrivalOf?.supplier_id ?? '');
   const [transporterId, setTransporterId] = useState(reception?.transporter_id ?? arrivalOf?.transporter_id ?? '');
+  // Where it went: what the expected delivery said, unless changed here.
+  const [locationId, setLocationId] = useState(reception?.location_id ?? arrivalOf?.location_id ?? '');
   // "Is it this one?" — only asked of a new reception.
   const candidates = reception ? [] : expected.filter((d) => d.supplier_id === supplierId);
   const [arrivalId, setArrivalId] = useState(arrivalOf?.id ?? '');
@@ -75,6 +79,7 @@ export function ReceptionForm({
     setArrivalId(id);
     setReceived(initialReceived(chosen?.lines ?? []));
     if (chosen?.transporter_id && !transporterId) setTransporterId(chosen.transporter_id);
+    if (chosen?.location_id && !locationId) setLocationId(chosen.location_id);
   }
   const [deliveryNote, setDeliveryNote] = useState(reception?.delivery_note ?? '');
   // §14: defaults to now, correctable by hand. A delivery registered an hour
@@ -98,6 +103,7 @@ export function ReceptionForm({
     const input: ReceptionInput = {
       supplier_id: supplierId || null,
       transporter_id: transporterId || null,
+      location_id: locationId || null,
       delivery_note: deliveryNote.trim() || null,
       received_at: fromLocalInput(receivedAt),
       condition: (condition || null) as ReceptionInput['condition'],
@@ -227,6 +233,19 @@ export function ReceptionForm({
                 {tr.name}
               </option>
             ))}
+          </Select>
+        </Field>
+
+        <Field label={t('grx.lager')} htmlFor="gr-lager">
+          <Select id="gr-lager" value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+            <option value="">—</option>
+            {lagers
+              .filter((l) => l.is_active !== false || l.id === reception?.location_id)
+              .map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
           </Select>
         </Field>
 

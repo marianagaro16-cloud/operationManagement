@@ -2237,7 +2237,10 @@ export const de: Messages = {
     pallets: 'Pallets',
     onePallet: '1 pallet',
     palletsCount: '{count} pallets',
-    storage: 'Wohin damit',
+    storage: 'Aufbewahrung',
+    lager: 'Lager',
+    allLagers: 'Alle Lager',
+    noLager: 'Lager fehlt',
     storageLabel: {
       dry: 'Trocken',
       refrigerated: 'Gekühlt',

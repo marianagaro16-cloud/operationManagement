@@ -27,6 +27,7 @@ import type {
   ReceptionListItem,
   ReceptionPage,
   Supplier,
+  Lager,
   Transporter,
 } from '@/types/goods-reception';
 import { ReceptionForm } from './reception-form';
@@ -47,6 +48,7 @@ export function ReceptionList({
   page,
   suppliers,
   transporters,
+  lagers,
   receivers,
   canCreate,
   canExport,
@@ -58,6 +60,7 @@ export function ReceptionList({
   page: ReceptionPage;
   suppliers: Supplier[];
   transporters: Transporter[];
+  lagers: Lager[];
   receivers: { id: string; name: string | null; email: string }[];
   canCreate: boolean;
   canExport: boolean;
@@ -271,6 +274,7 @@ export function ReceptionList({
         <ReceptionForm
           suppliers={suppliers}
           transporters={transporters}
+          lagers={lagers}
           expected={expected ?? []}
           onClose={() => setCreating(false)}
         />
@@ -305,6 +309,7 @@ function ReceptionRow({ row }: { row: ReceptionListItem }) {
             <p className="mt-0.5 truncate text-[12px] text-muted">
               {date(row.received_at)} · {time(row.received_at)}
               {row.transporter ? ` · ${row.transporter.name}` : ''}
+              {row.location ? ` · ${row.location.name}` : ''}
               {row.delivery_note ? ` · ${row.delivery_note}` : ''}
             </p>
 

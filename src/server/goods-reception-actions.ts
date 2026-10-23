@@ -74,6 +74,8 @@ async function receptionViewer() {
 const receptionSchema = z.object({
   supplier_id: z.string().uuid().nullable(),
   transporter_id: z.string().uuid().nullable(),
+  // The Lager it went to; filled in from an expected delivery.
+  location_id: z.string().uuid().nullable(),
   delivery_note: z.string().trim().max(120).nullable(),
   received_at: z.string().datetime(),
   condition: z.enum(RECEPTION_CONDITIONS).nullable(),

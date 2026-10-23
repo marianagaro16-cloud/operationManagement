@@ -2269,7 +2269,10 @@ export const en = {
     pallets: 'Pallets',
     onePallet: '1 pallet',
     palletsCount: '{count} pallets',
-    storage: 'Where it goes',
+    storage: 'Storage type',
+    lager: 'Lager',
+    allLagers: 'All Lagers',
+    noLager: 'Lager missing',
     storageLabel: {
       dry: 'Dry',
       refrigerated: 'Refrigerated',

@@ -14,7 +14,7 @@ import { NoteTextarea } from '@/components/ui/note-textarea';
 import { LINE_UNITS, STORAGE_TYPES, formatQuantity, mondayOf, type LineUnit, type StorageType } from '@/domain/goods-reception/expected';
 import { saveExpectedDelivery } from '@/server/expected-delivery-actions';
 import { productLabel, type Product } from '@/types/orders';
-import type { ExpectedDelivery, Supplier, Transporter } from '@/types/goods-reception';
+import type { ExpectedDelivery, Lager, Supplier, Transporter } from '@/types/goods-reception';
 import { useExpectedError, useExpectedLabels } from './expected-bits';
 
 interface DraftLine {
@@ -41,6 +41,7 @@ export function ExpectedForm({
   delivery,
   suppliers,
   transporters,
+  lagers,
   products,
   today,
   onClose,
@@ -49,6 +50,7 @@ export function ExpectedForm({
   delivery?: ExpectedDelivery;
   suppliers: Supplier[];
   transporters: Transporter[];
+  lagers: Lager[];
   products: Product[];
   today: string;
   onClose: () => void;
@@ -66,6 +68,7 @@ export function ExpectedForm({
   const [date, setDate] = useState(delivery?.expected_date ?? delivery?.expected_week ?? '');
   const [pallets, setPallets] = useState(delivery?.pallets ? String(delivery.pallets) : '');
   const [storage, setStorage] = useState<StorageType[]>(delivery?.storage ?? []);
+  const [locationId, setLocationId] = useState(delivery?.location_id ?? '');
   const [note, setNote] = useState(delivery?.note ?? '');
   const [lines, setLines] = useState<DraftLine[]>(
     () =>
@@ -87,7 +90,7 @@ export function ExpectedForm({
   const linesValid = filled.every(
     (l) => (l.source === 'catalogue' ? Boolean(l.product_id) : l.description.trim().length > 0) && Number(l.quantity) > 0,
   );
-  const ready = supplierId !== '' && date !== '' && storage.length > 0 && linesValid;
+  const ready = supplierId !== '' && date !== '' && storage.length > 0 && locationId !== '' && linesValid;
   const monday = mode === 'week' && date ? mondayOf(date) : null;
 
   function submit() {
@@ -99,6 +102,7 @@ export function ExpectedForm({
         expected_week: mode === 'week' ? date : null,
         pallets: pallets ? Number(pallets) : null,
         storage,
+        location_id: locationId,
         note: note.trim() || null,
         lines: filled.map((l) => ({
           product_id: l.source === 'catalogue' ? l.product_id : null,
@@ -185,6 +189,15 @@ export function ExpectedForm({
               />
             ))}
           </div>
+        </Field>
+
+        <Field label={t('grx.lager')} htmlFor="grx-lager" required>
+          <Select id="grx-lager" value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+            <option value="">—</option>
+            {lagers
+              .filter((l) => l.is_active !== false || l.id === delivery?.location_id)
+              .map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </Select>
         </Field>
 
         <Field label={t('grx.note')} hint={t('grx.noteHint')} htmlFor="grx-note">

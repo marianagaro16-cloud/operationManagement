@@ -14,9 +14,10 @@ import { isReceptionAssignee } from './goods-reception';
 
 const SELECT = `
   id, supplier_id, transporter_id, expected_date, expected_week, due_date, moved_count,
-  pallets, storage, note, status, reception_id, cancelled_at, cancel_reason, created_by, created_at,
+  pallets, storage, location_id, note, status, reception_id, cancelled_at, cancel_reason, created_by, created_at,
   supplier:suppliers ( id, name ),
   transporter:transporters ( id, name ),
+  location:inventory_locations ( id, name ),
   creator:profiles!expected_deliveries_created_by_fkey ( name, email ),
   reception:goods_receptions ( id, reception_number, received_at ),
   lines:expected_delivery_lines (
@@ -103,16 +104,23 @@ export async function getExpectedSoon(today: BusinessDate): Promise<{ late: stri
   const supabase = createClient();
   const { data, error } = await supabase
     .from('expected_deliveries')
-    .select('expected_date, due_date, supplier:suppliers ( name )')
+    .select('expected_date, due_date, supplier:suppliers ( name ), location:inventory_locations ( name )')
     .eq('status', 'expected')
     .lte('due_date', addDays(today, 1))
     .order('due_date');
   if (error) return { late: [], soon: [] };
-  const rows = (data ?? []) as unknown as { expected_date: string | null; due_date: string; supplier: { name: string } | null }[];
+  const rows = (data ?? []) as unknown as {
+    expected_date: string | null;
+    due_date: string;
+    supplier: { name: string } | null;
+    location: { name: string } | null;
+  }[];
+  // "Intercheese (Lager 4to Piso)": where it goes, at a glance.
+  const name = (r: (typeof rows)[number]) => (r.location ? `${r.supplier?.name ?? ''} (${r.location.name})` : r.supplier?.name ?? '');
   return {
-    late: rows.filter((r) => r.due_date < today).map((r) => r.supplier?.name ?? ''),
+    late: rows.filter((r) => r.due_date < today).map(name),
     // A week without a day is not "today": it has its own line in the list.
-    soon: rows.filter((r) => r.expected_date && r.expected_date >= today).map((r) => r.supplier?.name ?? ''),
+    soon: rows.filter((r) => r.expected_date && r.expected_date >= today).map(name),
   };
 }
 

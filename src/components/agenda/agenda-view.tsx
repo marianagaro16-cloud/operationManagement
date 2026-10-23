@@ -301,11 +301,12 @@ export function Entry({ item: i, kinds, compact = false }: { item: AgendaItem; k
 
   // A follow-up: "promise:1250.00" or "follow_up:1250.00".
   const [collectionWhat, collectionOpen] = i.kind === 'collection' && i.detail ? i.detail.split(':') : [null, null];
-  // An expected delivery: "17|dry,frozen" — pallets, and where they go.
-  const [pallets, storage] = i.kind === 'delivery' && i.detail ? i.detail.split('|') : [null, null];
+  // An expected delivery: "17|dry,frozen|Lager 4to Piso" — pallets, how they are kept, which Lager.
+  const [pallets, storage, lager] = i.kind === 'delivery' && i.detail ? i.detail.split('|') : [null, null, null];
   const load = [
     pallets ? (pallets === '1' ? t('grx.onePallet') : t('grx.palletsCount', { count: pallets })) : null,
     ...(storage ? storage.split(',').map((s) => t(`grx.storageLabel.${s}` as MessageKey)) : []),
+    lager || null,
   ].filter(Boolean).join(' · ');
   const title =
     i.kind === 'absence'
