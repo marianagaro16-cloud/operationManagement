@@ -11,7 +11,7 @@ import { Card, Checkbox, ErrorState, Field, Input } from '@/components/ui/primit
 import { Combobox } from '@/components/ui/combobox';
 import { NoteText } from '@/components/ui/note';
 import { NoteTextarea } from '@/components/ui/note-textarea';
-import { planLot, planTotals } from '@/domain/production-plan/plan';
+import { planLot, planTotals, type MaterialLot } from '@/domain/production-plan/plan';
 import {
   addPlanRow,
   deletePlanRow,
@@ -32,19 +32,24 @@ export function usePlanError() {
   return (code: string) => (KNOWN_ERRORS.has(code) ? t(`productionPlans.error.${code}` as MessageKey) : code);
 }
 
-/** One plan: its figures, the sheet, notes and corn lots. Planners edit; everyone else reads. */
+/** One plan: its figures, the sheet, raw material lots and notes. Planners edit; everyone else reads. */
 export function PlanView({
   line,
   products,
   plan,
   editable,
   customers,
+  materials,
+  lots,
 }: {
   line: ProductionLine;
   products: LineProduct[];
   plan: ProductionPlan;
   editable: boolean;
   customers: { id: string; name: string }[];
+  /** The Materia Prima items, and their lots from the inventory (planners only). */
+  materials: { id: string; name: string }[];
+  lots: MaterialLots;
 }) {
   const { t, formatDate } = useI18n();
   const router = useRouter();
@@ -168,7 +173,7 @@ export function PlanView({
         onDeleteRow={(row) => setDeletingRow(row)}
       />
 
-      <DetailsCard plan={plan} line={line} editable={editable} />
+      <DetailsCard plan={plan} line={line} editable={editable} materials={materials} lots={lots} />
 
       {rowDialog && (
         <RowDialog
@@ -285,46 +290,122 @@ function RowDialog({
   );
 }
 
-/** Notes, the corn and its lots, and the line's standing notes. */
-function DetailsCard({ plan, line, editable }: { plan: ProductionPlan; line: ProductionLine; editable: boolean }) {
-  const { t } = useI18n();
+
+/** A raw material's lots in the Materia Prima inventory, to pick from. */
+export type MaterialLots = Record<string, { lot: string; quantity: number; counted_on: string }[]>;
+
+/**
+ * Notes, the raw materials' lots, and the line's standing notes.
+ *
+ * Every material the line uses has a lot field; the Materia Prima count's lots
+ * are offered (a single one is already filled) and anything else can be typed.
+ * A material used from two lots gets a second field.
+ */
+function DetailsCard({
+  plan,
+  line,
+  editable,
+  materials,
+  lots,
+}: {
+  plan: ProductionPlan;
+  line: ProductionLine;
+  editable: boolean;
+  materials: { id: string; name: string }[];
+  lots: MaterialLots;
+}) {
+  const { t, formatDate } = useI18n();
   const router = useRouter();
   const translateError = usePlanError();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [notes, setNotes] = useState(plan.notes ?? '');
-  const [lots, setLots] = useState(plan.corn_lots.length ? plan.corn_lots : [{ corn: '', lot: '' }]);
+
+  const lineMaterials = line.material_item_ids.map((id) => materials.find((m) => m.id === id)).filter((m): m is { id: string; name: string } => !!m);
+  const [entries, setEntries] = useState<MaterialLot[]>(() => {
+    const list = [...plan.material_lots];
+    // A material the plan has no field for yet starts with its only lot, if it has one.
+    for (const m of lineMaterials) {
+      if (!list.some((e) => e.item_id === m.id)) list.push({ item_id: m.id, material: m.name, lot: lots[m.id]?.length === 1 ? lots[m.id][0].lot : '' });
+    }
+    return list;
+  });
+  const order = (e: MaterialLot) => {
+    const i = lineMaterials.findIndex((m) => m.id === e.item_id);
+    return i < 0 ? 999 : i;
+  };
+  const shown = entries.map((e, index) => ({ e, index })).sort((a, b) => order(a.e) - order(b.e));
+  const change = (index: number, patch: Partial<MaterialLot>) => {
+    setSaved(false);
+    setEntries((all) => all.map((x, i) => (i === index ? { ...x, ...patch } : x)));
+  };
 
   return (
     <Card className="space-y-3 p-3 sm:p-4">
       <div>
-        <h3 className="mb-1.5 text-[14px] font-semibold">{t('productionPlans.cornLots')}</h3>
+        <h3 className="text-[14px] font-semibold">{t('productionPlans.materialLots')}</h3>
+        {editable && <p className="mb-1.5 mt-0.5 text-[12px] text-muted">{t('productionPlans.materialLotsHint')}</p>}
         {editable ? (
           <div className="space-y-1.5">
-            {lots.map((l, i) => (
-              <div key={i} className="grid grid-cols-2 gap-2">
-                <Input
-                  aria-label={t('productionPlans.corn')}
-                  placeholder={t('productionPlans.cornPlaceholder')}
-                  value={l.corn}
-                  onChange={(e) => { setSaved(false); setLots((all) => all.map((x, j) => (j === i ? { ...x, corn: e.target.value } : x))); }}
-                />
-                <Input
-                  aria-label={t('productionPlans.lot')}
-                  placeholder={t('productionPlans.lot')}
-                  value={l.lot}
-                  onChange={(e) => { setSaved(false); setLots((all) => all.map((x, j) => (j === i ? { ...x, lot: e.target.value } : x))); }}
-                />
-              </div>
-            ))}
-            <button type="button" className="text-[12.5px] font-medium text-accent hover:underline" onClick={() => setLots((all) => [...all, { corn: '', lot: '' }])}>
-              {t('productionPlans.addCorn')}
+            {shown.map(({ e, index }) => {
+              const offered = e.item_id ? lots[e.item_id] ?? [] : [];
+              const listId = `lots-${index}`;
+              const first = entries.findIndex((x) => x.item_id === e.item_id && x.item_id !== null) === index;
+              return (
+                <div key={index} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">
+                  {e.item_id ? (
+                    <span className="truncate text-[13px]">{e.material}</span>
+                  ) : (
+                    <Input aria-label={t('productionPlans.material')} placeholder={t('productionPlans.material')} value={e.material} onChange={(ev) => change(index, { material: ev.target.value })} />
+                  )}
+                  <div>
+                    <Input
+                      aria-label={t('productionPlans.lot')}
+                      placeholder={offered.length ? t('productionPlans.pickLot') : t('productionPlans.typeLot')}
+                      list={offered.length ? listId : undefined}
+                      value={e.lot}
+                      onChange={(ev) => change(index, { lot: ev.target.value })}
+                    />
+                    {offered.length > 0 && (
+                      <datalist id={listId}>
+                        {offered.map((o) => (
+                          <option key={o.lot} value={o.lot}>
+                            {t('productionPlans.lotOption', { quantity: o.quantity, date: formatDate(o.counted_on, 'short') })}
+                          </option>
+                        ))}
+                      </datalist>
+                    )}
+                  </div>
+                  {first && e.item_id ? (
+                    <button
+                      type="button"
+                      className="text-[12px] font-medium text-accent hover:underline"
+                      onClick={() => { setSaved(false); setEntries((all) => [...all, { item_id: e.item_id, material: e.material, lot: '' }]); }}
+                    >
+                      {t('productionPlans.anotherLot')}
+                    </button>
+                  ) : (
+                    <Button size="icon" variant="ghost" aria-label={t('common.delete')} onClick={() => { setSaved(false); setEntries((all) => all.filter((_, i) => i !== index)); }}>
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+            <button
+              type="button"
+              className="text-[12.5px] font-medium text-accent hover:underline"
+              onClick={() => { setSaved(false); setEntries((all) => [...all, { item_id: null, material: '', lot: '' }]); }}
+            >
+              {t('productionPlans.addMaterial')}
             </button>
           </div>
-        ) : plan.corn_lots.length ? (
+        ) : plan.material_lots.some((m) => m.lot) ? (
           <ul className="text-[13px]">
-            {plan.corn_lots.map((l, i) => <li key={i}>{l.corn} · <span className="tabular-nums">{l.lot}</span></li>)}
+            {plan.material_lots.filter((m) => m.lot).map((m, i) => (
+              <li key={i}>{m.material} · <span className="tabular-nums">{m.lot}</span></li>
+            ))}
           </ul>
         ) : (
           <p className="text-[13px] text-muted">—</p>
@@ -347,7 +428,10 @@ function DetailsCard({ plan, line, editable }: { plan: ProductionPlan; line: Pro
             loading={pending}
             onClick={() =>
               startTransition(async () => {
-                const res = await savePlanDetails(plan.id, { notes: notes.trim() || null, corn_lots: lots.map((l) => ({ corn: l.corn.trim(), lot: l.lot.trim() })) });
+                const res = await savePlanDetails(plan.id, {
+                  notes: notes.trim() || null,
+                  material_lots: entries.map((e) => ({ item_id: e.item_id, material: e.material.trim(), lot: e.lot.trim() })),
+                });
                 if (!res.ok) return setError(translateError(res.error));
                 setError(null);
                 setSaved(true);

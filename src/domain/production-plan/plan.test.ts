@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestBefore, groupProducts, planLot, planTotals, rowsFromOrders, type LineFactors, type PlanProduct } from './plan';
+import { bestBefore, groupProducts, latestLots, planLot, planTotals, prefillLots, rowsFromOrders, type LineFactors, type PlanProduct } from './plan';
 
 const bio: LineFactors = {
   pure_share: 1, waste: 0.25, masa_per_grain_kg: 1.8078, sack_kg: 22.68, totopo_factor: 1.5,
@@ -80,5 +80,29 @@ describe('rowsFromOrders', () => {
       new Set(['o4']),
     );
     expect(rows).toEqual([{ customer_id: 'c1', delivery_date: '2026-10-23', delivery_note: 'Palomo', order_ids: ['o1', 'o2'], quantities: { a: 7 } }]);
+  });
+});
+
+describe('latestLots', () => {
+  it('takes the latest count that has a lot, per material', () => {
+    const out = latestLots([
+      { item_id: 'cal', counted_on: '2026-10-20', lot: null, quantity: 23 },
+      { item_id: 'cal', counted_on: '2026-09-24', lot: '29/04/27', quantity: 3 },
+      { item_id: 'cal', counted_on: '2026-09-24', lot: '17/09/27', quantity: 24 },
+      { item_id: 'white', counted_on: '2026-10-20', lot: '0518264EOWC', quantity: 147 },
+      { item_id: 'white', counted_on: '2026-10-20', lot: '0518264EOWC', quantity: 450 },
+      { item_id: 'white', counted_on: '2026-09-24', lot: 'OLD', quantity: 9 },
+    ]);
+    expect(out.cal.map((l) => l.lot)).toEqual(['17/09/27', '29/04/27']);
+    expect(out.white).toEqual([{ lot: '0518264EOWC', quantity: 597, counted_on: '2026-10-20' }]);
+  });
+});
+
+describe('prefillLots', () => {
+  it('fills a material only when it has one lot', () => {
+    expect(prefillLots([{ id: 'a', name: 'Sal' }, { id: 'b', name: 'Cal' }], { a: [{ lot: '2250' }], b: [{ lot: 'x' }, { lot: 'y' }] })).toEqual([
+      { item_id: 'a', material: 'Sal', lot: '2250' },
+      { item_id: 'b', material: 'Cal', lot: '' },
+    ]);
   });
 });

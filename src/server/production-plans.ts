@@ -1,7 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { addDays } from '@/lib/datetime';
-import type { LineFactors, OrderForPlan, PlanProduct, PlanSection } from '@/domain/production-plan/plan';
+import { latestLots, type LineFactors, type MaterialLot, type OrderForPlan, type PlanProduct, type PlanSection } from '@/domain/production-plan/plan';
 
 /*
  * Production plans (2026-10-23): the Excel "Plan de Producción" sheet in the
@@ -17,6 +17,8 @@ export interface ProductionLine extends LineFactors {
   sort_order: number;
   is_active: boolean;
   standing_notes: string | null;
+  /** The Materia Prima items its plans carry a lot for. */
+  material_item_ids: string[];
 }
 
 export interface LineProduct extends PlanProduct {
@@ -51,12 +53,12 @@ export interface ProductionPlan {
   line_id: string;
   plan_date: string;
   notes: string | null;
-  corn_lots: { corn: string; lot: string }[];
+  material_lots: MaterialLot[];
   updated_at: string;
   rows: PlanRow[];
 }
 
-const LINE = 'id, slug, name, machine, sort_order, is_active, standing_notes, pure_share, waste, masa_per_grain_kg, sack_kg, totopo_factor, evaporation, flour_factor, water_factor, salt_factor';
+const LINE = 'id, slug, name, machine, sort_order, is_active, standing_notes, material_item_ids, pure_share, waste, masa_per_grain_kg, sack_kg, totopo_factor, evaporation, flour_factor, water_factor, salt_factor';
 const num = (v: unknown) => (v == null ? null : Number(v));
 
 function toLine(r: Record<string, unknown>): ProductionLine {
@@ -127,7 +129,7 @@ export async function getProductionPlan(id: string): Promise<ProductionPlan | nu
   const supabase = createClient();
   const { data, error } = await supabase
     .from('production_plans')
-    .select(`id, line_id, plan_date, notes, corn_lots, updated_at,
+    .select(`id, line_id, plan_date, notes, material_lots, updated_at,
       rows:production_plan_rows ( id, customer_id, label, is_reserve, delivery_date, delivery_note, order_ids, sort_order,
         customer:customers ( name ),
         quantities:production_plan_quantities ( product_id, quantity ) )`)
@@ -140,7 +142,7 @@ export async function getProductionPlan(id: string): Promise<ProductionPlan | nu
   };
   return {
     ...plan,
-    corn_lots: Array.isArray(plan.corn_lots) ? plan.corn_lots : [],
+    material_lots: Array.isArray(plan.material_lots) ? plan.material_lots : [],
     rows: plan.rows
       .map(({ customer, quantities, ...row }) => ({
         ...row,
@@ -192,4 +194,40 @@ export async function getOrdersForPlan(lineId: string, planDate: string): Promis
     };
   });
   return { until, orders };
+}
+
+/** The Materia Prima items, in the list's order: what a plan can carry a lot for. */
+export async function getRawMaterials(): Promise<{ id: string; name: string }[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('inventory_template_items')
+    .select('id, name, template:inventory_templates!inner ( slug )')
+    .eq('template.slug', 'materia-prima')
+    .eq('is_active', true)
+    .order('sort_order');
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({ id: (r as { id: string }).id, name: (r as { name: string }).name }));
+}
+
+/**
+ * Each raw material's lots, from the latest completed Materia Prima count
+ * that wrote one for it (latestLots). A year back is plenty.
+ */
+export async function getMaterialLots(today: string): Promise<Record<string, { lot: string; quantity: number; counted_on: string }[]>> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('inventory_entries')
+    // Entries reach their count through the count's item.
+    .select('lot_number, quantity, item:inventory_instance_items!inner ( template_item_id, instance:inventory_instances!inner ( inventory_date, status, template:inventory_templates!inner ( slug ) ) )')
+    .eq('item.instance.template.slug', 'materia-prima')
+    .eq('item.instance.status', 'completed')
+    .gte('item.instance.inventory_date', addDays(today, -365))
+    .not('lot_number', 'is', null);
+  if (error) throw new Error(error.message);
+  return latestLots(
+    (data ?? []).map((r) => {
+      const e = r as unknown as { lot_number: string | null; quantity: number | null; item: { template_item_id: string; instance: { inventory_date: string } } };
+      return { item_id: e.item.template_item_id, counted_on: e.item.instance.inventory_date, lot: e.lot_number, quantity: e.quantity };
+    }),
+  );
 }

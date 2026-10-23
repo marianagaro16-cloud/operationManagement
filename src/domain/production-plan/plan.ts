@@ -163,3 +163,47 @@ export function rowsFromOrders(orders: OrderForPlan[], lineProductIds: Set<strin
   }
   return [...byKey.values()].sort((a, b) => a.delivery_date.localeCompare(b.delivery_date));
 }
+
+/**
+ * The lots a raw material can be taken from: those of the most recent
+ * Materia Prima count where that material has a lot written (a count that
+ * left the lot empty is skipped, not taken as "no lot"). Same lot counted twice
+ * is one lot.
+ */
+export interface CountedLot {
+  item_id: string;
+  counted_on: string;
+  lot: string | null;
+  quantity: number | null;
+}
+
+export function latestLots(entries: CountedLot[]): Record<string, { lot: string; quantity: number; counted_on: string }[]> {
+  const latest = new Map<string, string>();
+  for (const e of entries) {
+    if (!e.lot?.trim()) continue;
+    const seen = latest.get(e.item_id);
+    if (!seen || e.counted_on > seen) latest.set(e.item_id, e.counted_on);
+  }
+  const out: Record<string, { lot: string; quantity: number; counted_on: string }[]> = {};
+  for (const e of entries) {
+    const lot = e.lot?.trim();
+    if (!lot || latest.get(e.item_id) !== e.counted_on) continue;
+    const list = (out[e.item_id] ??= []);
+    const same = list.find((x) => x.lot === lot);
+    if (same) same.quantity += e.quantity ?? 0;
+    else list.push({ lot, quantity: e.quantity ?? 0, counted_on: e.counted_on });
+  }
+  for (const list of Object.values(out)) list.sort((a, b) => b.quantity - a.quantity);
+  return out;
+}
+
+/** A plan's raw material lots to start from: each line material with its only lot, when it has just one. */
+export interface MaterialLot {
+  item_id: string | null;
+  material: string;
+  lot: string;
+}
+
+export function prefillLots(materials: { id: string; name: string }[], lots: Record<string, { lot: string }[]>): MaterialLot[] {
+  return materials.map((m) => ({ item_id: m.id, material: m.name, lot: lots[m.id]?.length === 1 ? lots[m.id][0].lot : '' }));
+}

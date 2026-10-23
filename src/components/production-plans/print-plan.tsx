@@ -10,7 +10,7 @@ import { PlanFigures } from './plan-figures';
 
 /**
  * The plan on a landscape page, as it went on the wall: only what has
- * quantities, the figures, the corn and its lots, the notes. Opens the print
+ * quantities, the figures, the raw materials' lots, the notes. Opens the print
  * dialog once drawn; "Save as PDF" there gives the file.
  */
 export function PrintPlan({ line, plan, products }: { line: ProductionLine; plan: ProductionPlan; products: LineProduct[] }) {
@@ -49,8 +49,8 @@ export function PrintPlan({ line, plan, products }: { line: ProductionLine; plan
       <PlanSheet planDate={plan.plan_date} products={products} rows={plan.rows} totals={totals} onlyFilled compact />
       <div className="mt-3 grid grid-cols-3 gap-4 text-[10.5px]">
         <div>
-          <p className="mb-0.5 font-semibold">{t('productionPlans.cornLots')}</p>
-          {plan.corn_lots.length ? plan.corn_lots.map((l, i) => <p key={i}>{l.corn} · {l.lot}</p>) : <p>—</p>}
+          <p className="mb-0.5 font-semibold">{t('productionPlans.materialLots')}</p>
+          {plan.material_lots.some((m) => m.lot) ? plan.material_lots.filter((m) => m.lot).map((m, i) => <p key={i}>{m.material} · {m.lot}</p>) : <p>—</p>}
         </div>
         <div>
           <p className="mb-0.5 font-semibold">{t('productionPlans.notes')}</p>

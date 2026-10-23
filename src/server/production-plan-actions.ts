@@ -3,9 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { rowsFromOrders } from '@/domain/production-plan/plan';
+import { prefillLots, rowsFromOrders } from '@/domain/production-plan/plan';
+import { businessToday } from '@/lib/datetime';
 import { getViewer } from './data';
-import { getOrdersForPlan } from './production-plans';
+import { getMaterialLots, getOrdersForPlan, getRawMaterials } from './production-plans';
 import type { ActionResult } from './actions';
 
 /*
@@ -70,15 +71,19 @@ async function addOrderRows(planId: string): Promise<ActionResult<{ added: numbe
   return { ok: true, data: { added: rows.length } };
 }
 
-/** A new plan for a line and day: the reserve row, and the orders it covers. */
+/** A new plan for a line and day: the reserve row, the orders it covers, and its raw materials' lots where there is only one. */
 export async function createProductionPlan(input: { line_id: string; plan_date: string }): Promise<ActionResult<{ id: string }>> {
   if (!uuid.safeParse(input.line_id).success || !date.safeParse(input.plan_date).success) return fail('invalid');
   const me = await planner();
   if (!me) return fail('not_authorized');
   const supabase = createClient();
+  const { data: line } = await supabase.from('production_lines').select('material_item_ids').eq('id', input.line_id).single();
+  const ids: string[] = (line as { material_item_ids: string[] } | null)?.material_item_ids ?? [];
+  const [materials, lots] = ids.length ? await Promise.all([getRawMaterials(), getMaterialLots(businessToday())]) : [[], {}];
+  const material_lots = prefillLots(ids.map((id) => materials.find((m) => m.id === id)).filter((m): m is { id: string; name: string } => !!m), lots);
   const { data, error } = await supabase
     .from('production_plans')
-    .insert({ line_id: input.line_id, plan_date: input.plan_date, created_by: me, updated_by: me })
+    .insert({ line_id: input.line_id, plan_date: input.plan_date, material_lots, created_by: me, updated_by: me })
     .select('id')
     .single();
   if (error) return fail(error);
@@ -173,7 +178,7 @@ export async function setPlanQuantity(planId: string, rowId: string, productId: 
 
 const detailsSchema = z.object({
   notes: z.string().trim().max(4000).nullable(),
-  corn_lots: z.array(z.object({ corn: z.string().trim().max(100), lot: z.string().trim().max(60) })).max(10),
+  material_lots: z.array(z.object({ item_id: uuid.nullable(), material: z.string().trim().max(100), lot: z.string().trim().max(60) })).max(30),
 });
 
 export async function savePlanDetails(planId: string, input: z.input<typeof detailsSchema>): Promise<ActionResult> {
@@ -186,7 +191,7 @@ export async function savePlanDetails(planId: string, input: z.input<typeof deta
     .from('production_plans')
     .update({
       notes: parsed.data.notes || null,
-      corn_lots: parsed.data.corn_lots.filter((c) => c.corn || c.lot),
+      material_lots: parsed.data.material_lots.filter((m) => m.material),
       updated_by: me,
       updated_at: new Date().toISOString(),
     })
@@ -234,6 +239,18 @@ export async function saveProductionLine(lineId: string, input: z.input<typeof l
   if (error) return fail(error);
   refresh();
   revalidatePath('/production-plans/settings');
+  return { ok: true, data: undefined };
+}
+
+/** Which Materia Prima items the line's plans carry a lot for. */
+export async function saveLineMaterials(lineId: string, itemIds: string[]): Promise<ActionResult> {
+  if (!uuid.safeParse(lineId).success || !z.array(uuid).max(50).safeParse(itemIds).success) return fail('invalid');
+  if (!(await planner())) return fail('not_authorized');
+  const supabase = createClient();
+  const { error } = await supabase.from('production_lines').update({ material_item_ids: itemIds, updated_at: new Date().toISOString() }).eq('id', lineId);
+  if (error) return fail(error);
+  revalidatePath('/production-plans/settings');
+  refresh();
   return { ok: true, data: undefined };
 }
 

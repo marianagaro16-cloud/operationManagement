@@ -7,18 +7,28 @@ import { ArrowLeft, Trash2 } from 'lucide-react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Card, Field, Input, Select } from '@/components/ui/primitives';
+import { Card, Checkbox, Field, Input, Select } from '@/components/ui/primitives';
 import { Combobox } from '@/components/ui/combobox';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { PLAN_SECTIONS, type PlanSection } from '@/domain/production-plan/plan';
-import { removeLineProduct, saveLineProduct, saveProductionLine } from '@/server/production-plan-actions';
+import { removeLineProduct, saveLineMaterials, saveLineProduct, saveProductionLine } from '@/server/production-plan-actions';
 import type { LineProduct, ProductionLine } from '@/server/production-plans';
 import { usePlanError } from './plan-view';
 
 type CatalogueProduct = { id: string; code: string | null; name: string; weight: number | null };
 
 /** The lines: one tab each — its factors, standing notes and products. */
-export function LineSettings({ lines, lineProducts, products }: { lines: ProductionLine[]; lineProducts: LineProduct[]; products: CatalogueProduct[] }) {
+export function LineSettings({
+  lines,
+  lineProducts,
+  products,
+  materials,
+}: {
+  lines: ProductionLine[];
+  lineProducts: LineProduct[];
+  products: CatalogueProduct[];
+  materials: { id: string; name: string }[];
+}) {
   const { t } = useI18n();
   const [active, setActive] = useState(lines[0]?.id ?? '');
   const line = lines.find((l) => l.id === active);
@@ -47,6 +57,7 @@ export function LineSettings({ lines, lineProducts, products }: { lines: Product
       {line && (
         <div key={line.id} className="space-y-4">
           <FactorsCard line={line} />
+          <MaterialsCard line={line} materials={materials} />
           <ProductsCard line={line} lineProducts={lineProducts.filter((p) => p.line_id === line.id)} products={products} />
         </div>
       )}
@@ -110,6 +121,58 @@ function FactorsCard({ line }: { line: ProductionLine }) {
                 salt_factor: n('salt_factor'),
                 standing_notes: notes.trim() || null,
               });
+              if (!res.ok) return setError(translateError(res.error));
+              setError(null);
+              setSaved(true);
+              router.refresh();
+            })
+          }
+        >
+          {t('common.save')}
+        </Button>
+        {saved && <span className="text-[12px] text-done">{t('productionPlans.saved')}</span>}
+        {error && <span className="text-[12px] text-late">{error}</span>}
+      </div>
+    </Card>
+  );
+}
+
+/** Which raw materials (Materia Prima items) the line's plans carry a lot for. */
+function MaterialsCard({ line, materials }: { line: ProductionLine; materials: { id: string; name: string }[] }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const translateError = usePlanError();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [chosen, setChosen] = useState<string[]>(line.material_item_ids);
+
+  return (
+    <Card className="space-y-3 p-3 sm:p-4">
+      <div>
+        <h2 className="text-[15px] font-semibold">{t('productionPlans.lineMaterials')}</h2>
+        <p className="mt-0.5 text-[12px] text-muted">{t('productionPlans.lineMaterialsHint')}</p>
+      </div>
+      <div className="grid gap-1.5 sm:grid-cols-2">
+        {materials.map((m) => (
+          <Checkbox
+            key={m.id}
+            label={m.name}
+            checked={chosen.includes(m.id)}
+            onChange={(e) => {
+              setSaved(false);
+              setChosen((all) => (e.target.checked ? materials.filter((x) => x.id === m.id || all.includes(x.id)).map((x) => x.id) : all.filter((id) => id !== m.id)));
+            }}
+          />
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          loading={pending}
+          onClick={() =>
+            startTransition(async () => {
+              const res = await saveLineMaterials(line.id, chosen);
               if (!res.ok) return setError(translateError(res.error));
               setError(null);
               setSaved(true);
