@@ -91,7 +91,7 @@ export function PlanSheet({
                           <span className="block leading-tight text-muted" title={p.name}>{shortName(p.name)}</span>
                           {p.best_before_days != null && (
                             <span className="mt-0.5 block text-[10px] text-subtle">
-                              {t('productionPlans.bestBeforeShort')} {formatDate(bestBefore(planDate, p.best_before_days)!, 'short')}
+                              {t('productionPlans.bestBeforeShort')} {formatDate(bestBefore(planDate, p.best_before_days)!, 'shortYear')}
                             </span>
                           )}
                         </th>

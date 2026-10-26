@@ -46,7 +46,7 @@ interface I18nValue {
   setLocale: (l: Locale) => void;
   t: (key: MessageKey, vars?: Record<string, string | number>) => string;
   /** Locale-aware, Zurich-pinned date formatting. */
-  formatDate: (isoDate: string, style?: 'short' | 'medium' | 'weekday' | 'monthYear') => string;
+  formatDate: (isoDate: string, style?: 'short' | 'shortYear' | 'medium' | 'weekday' | 'monthYear') => string;
 }
 
 const I18nContext = createContext<I18nValue | null>(null);
@@ -82,6 +82,8 @@ export function I18nProvider({
         switch (style) {
           case 'short':
             return dt.toFormat('dd.MM.');
+          case 'shortYear':
+            return dt.toFormat('dd.MM.yyyy');
           case 'weekday':
             return dt.toFormat('cccc d LLLL');
           case 'monthYear':
