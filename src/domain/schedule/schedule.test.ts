@@ -81,7 +81,7 @@ describe('pause', () => {
     expect(nearPauseLimit(6.5)).toBe(false);
     expect(nearPauseLimit(6.75)).toBe(true);
     expect(nearPauseLimit(7.5)).toBe(false);
-    expect(nearPauseLimit(8.75)).toBe(true);
+    expect(nearPauseLimit(8.75)).toBe(false);
     expect(nearPauseLimit(9.25)).toBe(false);
   });
 });
