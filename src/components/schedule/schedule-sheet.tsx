@@ -351,7 +351,7 @@ export function ScheduleSheet({
           ))}
           <p style={{ margin: '0 0 10px', fontSize: 10.5, lineHeight: 1.3 }}>
             <NearLimitIcon size={15} />
-            A menos de 15 min de la siguiente pausa: sal a tiempo o toma la pausa, si no el sistema la descuenta.
+            Este día está muy cerca del límite de la pausa. Si llegas un poco antes o te quedas un poco más, el sistema puede descontarte una pausa más. Para que no pierdas ese tiempo, intenta mantener tu horario o tómate la pausa. ¡Gracias!
           </p>
           <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: 6 }}>
             <tbody>
