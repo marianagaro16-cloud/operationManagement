@@ -54,10 +54,10 @@ export function pauseMinutes(hours: number): 0 | 15 | 30 | 60 {
 }
 
 /** How close to a pause limit a day may be planned before it is marked. */
-export const PAUSE_MARGIN_HOURS = 0.5;
+export const PAUSE_MARGIN_HOURS = 0.25;
 
 /**
- * A day planned just under a pause limit (5½, 7, 9 hours; decided
+ * A day planned within 15 minutes under a pause limit (5½, 7, 9 hours; decided
  * 2026-10-27). PROtimer takes the next pause off as soon as the day goes
  * past the limit — 5:33 worked became 5:18 — so a few minutes late out
  * costs a quarter of an hour. Marked so they leave on time or take the pause.

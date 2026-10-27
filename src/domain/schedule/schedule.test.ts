@@ -72,12 +72,14 @@ describe('pause', () => {
     expect(pauseMinutes(9.5)).toBe(60);
   });
 
-  it('marks a day within half an hour under a limit', () => {
+  it('marks a day within a quarter of an hour under a limit', () => {
     expect(nearPauseLimit(4.75)).toBe(false);
-    expect(nearPauseLimit(5)).toBe(true);
+    expect(nearPauseLimit(5)).toBe(false);
+    expect(nearPauseLimit(5.25)).toBe(true);
     expect(nearPauseLimit(5.5)).toBe(true);
     expect(nearPauseLimit(5.75)).toBe(false);
-    expect(nearPauseLimit(6.5)).toBe(true);
+    expect(nearPauseLimit(6.5)).toBe(false);
+    expect(nearPauseLimit(6.75)).toBe(true);
     expect(nearPauseLimit(7.5)).toBe(false);
     expect(nearPauseLimit(8.75)).toBe(true);
     expect(nearPauseLimit(9.25)).toBe(false);

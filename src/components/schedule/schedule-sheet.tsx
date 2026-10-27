@@ -351,7 +351,7 @@ export function ScheduleSheet({
           ))}
           <p style={{ margin: '0 0 10px', fontSize: 10.5, lineHeight: 1.3 }}>
             <NearLimitIcon size={15} />
-            A menos de 30 min de la siguiente pausa: sal a tiempo o toma la pausa, si no PROtimer la descuenta.
+            A menos de 15 min de la siguiente pausa: sal a tiempo o toma la pausa, si no el sistema la descuenta.
           </p>
           <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: 6 }}>
             <tbody>
