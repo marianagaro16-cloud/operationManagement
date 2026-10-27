@@ -986,6 +986,78 @@ export type Database = {
           },
         ]
       }
+      customer_details: {
+        Row: {
+          bexio_no: number | null
+          bexio_remarks: string | null
+          billing_address: string | null
+          billing_city: string | null
+          billing_country: string | null
+          billing_postal_code: string | null
+          customer_id: string
+          email: string | null
+          email2: string | null
+          language: string | null
+          mobile: string | null
+          phone: string | null
+          phone2: string | null
+          uid_no: string | null
+          updated_at: string
+          vat_no: string | null
+        }
+        Insert: {
+          bexio_no?: number | null
+          bexio_remarks?: string | null
+          billing_address?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          customer_id: string
+          email?: string | null
+          email2?: string | null
+          language?: string | null
+          mobile?: string | null
+          phone?: string | null
+          phone2?: string | null
+          uid_no?: string | null
+          updated_at?: string
+          vat_no?: string | null
+        }
+        Update: {
+          bexio_no?: number | null
+          bexio_remarks?: string | null
+          billing_address?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          customer_id?: string
+          email?: string | null
+          email2?: string | null
+          language?: string | null
+          mobile?: string | null
+          phone?: string | null
+          phone2?: string | null
+          uid_no?: string | null
+          updated_at?: string
+          vat_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_details_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_details_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+        ]
+      }
       customer_notes: {
         Row: {
           body: string
@@ -1204,6 +1276,7 @@ export type Database = {
           prepay_since: string | null
           street: string | null
           updated_at: string
+          website: string | null
         }
         Insert: {
           address_checked_at?: string | null
@@ -1228,6 +1301,7 @@ export type Database = {
           prepay_since?: string | null
           street?: string | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
           address_checked_at?: string | null
@@ -1252,6 +1326,7 @@ export type Database = {
           prepay_since?: string | null
           street?: string | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: [
           {
@@ -1310,6 +1385,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_active: boolean
+          is_vehicle: boolean
           location: string | null
           model: string | null
           name: string
@@ -1326,6 +1402,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_vehicle?: boolean
           location?: string | null
           model?: string | null
           name: string
@@ -1342,6 +1419,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_vehicle?: boolean
           location?: string | null
           model?: string | null
           name?: string
@@ -1583,6 +1661,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          material_pack_days: number | null
           name: string
           sort_order: number
           translations: Json
@@ -1592,6 +1671,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          material_pack_days?: number | null
           name: string
           sort_order?: number
           translations?: Json
@@ -1601,6 +1681,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          material_pack_days?: number | null
           name?: string
           sort_order?: number
           translations?: Json
@@ -1627,6 +1708,39 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: true
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_material_pack_notices: {
+        Row: {
+          event_id: string
+          profile_id: string
+          sent_at: string
+        }
+        Insert: {
+          event_id: string
+          profile_id: string
+          sent_at?: string
+        }
+        Update: {
+          event_id?: string
+          profile_id?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_material_pack_notices_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_material_pack_notices_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1910,6 +2024,7 @@ export type Database = {
           kind_id: string
           latitude: number | null
           longitude: number | null
+          material_pack_by: string | null
           name: string
           open_time: string | null
           order_id: string | null
@@ -1942,6 +2057,7 @@ export type Database = {
           kind_id: string
           latitude?: number | null
           longitude?: number | null
+          material_pack_by?: string | null
           name: string
           open_time?: string | null
           order_id?: string | null
@@ -1974,6 +2090,7 @@ export type Database = {
           kind_id?: string
           latitude?: number | null
           longitude?: number | null
+          material_pack_by?: string | null
           name?: string
           open_time?: string | null
           order_id?: string | null
@@ -2061,6 +2178,7 @@ export type Database = {
           expected_date: string | null
           expected_week: string | null
           id: string
+          location_id: string | null
           moved_count: number
           note: string | null
           pallets: number | null
@@ -2082,6 +2200,7 @@ export type Database = {
           expected_date?: string | null
           expected_week?: string | null
           id?: string
+          location_id?: string | null
           moved_count?: number
           note?: string | null
           pallets?: number | null
@@ -2103,6 +2222,7 @@ export type Database = {
           expected_date?: string | null
           expected_week?: string | null
           id?: string
+          location_id?: string | null
           moved_count?: number
           note?: string | null
           pallets?: number | null
@@ -2127,6 +2247,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expected_deliveries_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_locations"
             referencedColumns: ["id"]
           },
           {
@@ -2590,6 +2717,7 @@ export type Database = {
           created_by: string | null
           delivery_note: string | null
           id: string
+          location_id: string | null
           quantity_check: Database["public"]["Enums"]["goods_reception_quantity_check"]
           received_at: string
           received_by: string
@@ -2612,6 +2740,7 @@ export type Database = {
           created_by?: string | null
           delivery_note?: string | null
           id?: string
+          location_id?: string | null
           quantity_check?: Database["public"]["Enums"]["goods_reception_quantity_check"]
           received_at?: string
           received_by: string
@@ -2634,6 +2763,7 @@ export type Database = {
           created_by?: string | null
           delivery_note?: string | null
           id?: string
+          location_id?: string | null
           quantity_check?: Database["public"]["Enums"]["goods_reception_quantity_check"]
           received_at?: string
           received_by?: string
@@ -2658,6 +2788,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receptions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_locations"
             referencedColumns: ["id"]
           },
           {
@@ -5644,6 +5781,45 @@ export type Database = {
           },
         ]
       }
+      inventory_item_suppliers: {
+        Row: {
+          created_at: string
+          is_main: boolean
+          item_id: string
+          supplier_code: string | null
+          supplier_id: string
+        }
+        Insert: {
+          created_at?: string
+          is_main?: boolean
+          item_id: string
+          supplier_code?: string | null
+          supplier_id: string
+        }
+        Update: {
+          created_at?: string
+          is_main?: boolean
+          item_id?: string
+          supplier_code?: string | null
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_item_suppliers_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_template_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_item_suppliers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_locations: {
         Row: {
           created_at: string
@@ -8372,6 +8548,320 @@ export type Database = {
           },
         ]
       }
+      product_suppliers: {
+        Row: {
+          created_at: string
+          is_main: boolean
+          product_id: string
+          supplier_code: string | null
+          supplier_id: string
+        }
+        Insert: {
+          created_at?: string
+          is_main?: boolean
+          product_id: string
+          supplier_code?: string | null
+          supplier_id: string
+        }
+        Update: {
+          created_at?: string
+          is_main?: boolean
+          product_id?: string
+          supplier_code?: string | null
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_suppliers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_suppliers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_suppliers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_line_products: {
+        Row: {
+          best_before_days: number | null
+          group_label: string
+          line_id: string
+          product_id: string
+          section: Database["public"]["Enums"]["production_plan_section"]
+          sort_order: number
+        }
+        Insert: {
+          best_before_days?: number | null
+          group_label: string
+          line_id: string
+          product_id: string
+          section: Database["public"]["Enums"]["production_plan_section"]
+          sort_order?: number
+        }
+        Update: {
+          best_before_days?: number | null
+          group_label?: string
+          line_id?: string
+          product_id?: string
+          section?: Database["public"]["Enums"]["production_plan_section"]
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_line_products_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "production_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_line_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "production_line_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_lines: {
+        Row: {
+          evaporation: number | null
+          flour_factor: number | null
+          id: string
+          is_active: boolean
+          machine: string | null
+          masa_per_grain_kg: number
+          material_item_ids: string[]
+          name: string
+          pure_share: number
+          sack_kg: number
+          salt_factor: number | null
+          slug: string
+          sort_order: number
+          standing_notes: string | null
+          totopo_factor: number
+          updated_at: string
+          waste: number
+          water_factor: number | null
+        }
+        Insert: {
+          evaporation?: number | null
+          flour_factor?: number | null
+          id?: string
+          is_active?: boolean
+          machine?: string | null
+          masa_per_grain_kg?: number
+          material_item_ids?: string[]
+          name: string
+          pure_share?: number
+          sack_kg?: number
+          salt_factor?: number | null
+          slug: string
+          sort_order?: number
+          standing_notes?: string | null
+          totopo_factor?: number
+          updated_at?: string
+          waste?: number
+          water_factor?: number | null
+        }
+        Update: {
+          evaporation?: number | null
+          flour_factor?: number | null
+          id?: string
+          is_active?: boolean
+          machine?: string | null
+          masa_per_grain_kg?: number
+          material_item_ids?: string[]
+          name?: string
+          pure_share?: number
+          sack_kg?: number
+          salt_factor?: number | null
+          slug?: string
+          sort_order?: number
+          standing_notes?: string | null
+          totopo_factor?: number
+          updated_at?: string
+          waste?: number
+          water_factor?: number | null
+        }
+        Relationships: []
+      }
+      production_plan_quantities: {
+        Row: {
+          product_id: string
+          quantity: number
+          row_id: string
+        }
+        Insert: {
+          product_id: string
+          quantity: number
+          row_id: string
+        }
+        Update: {
+          product_id?: string
+          quantity?: number
+          row_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_plan_quantities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "production_plan_quantities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_plan_quantities_row_id_fkey"
+            columns: ["row_id"]
+            isOneToOne: false
+            referencedRelation: "production_plan_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_plan_rows: {
+        Row: {
+          customer_id: string | null
+          delivery_date: string | null
+          delivery_note: string | null
+          id: string
+          is_reserve: boolean
+          label: string | null
+          order_ids: string[]
+          plan_id: string
+          sort_order: number
+        }
+        Insert: {
+          customer_id?: string | null
+          delivery_date?: string | null
+          delivery_note?: string | null
+          id?: string
+          is_reserve?: boolean
+          label?: string | null
+          order_ids?: string[]
+          plan_id: string
+          sort_order?: number
+        }
+        Update: {
+          customer_id?: string | null
+          delivery_date?: string | null
+          delivery_note?: string | null
+          id?: string
+          is_reserve?: boolean
+          label?: string | null
+          order_ids?: string[]
+          plan_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_plan_rows_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_plan_rows_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "production_plan_rows_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "production_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_plans: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          line_id: string
+          material_lots: Json
+          notes: string | null
+          plan_date: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          line_id: string
+          material_lots?: Json
+          notes?: string | null
+          plan_date: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          line_id?: string
+          material_lots?: Json
+          notes?: string | null
+          plan_date?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_plans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_plans_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "production_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_plans_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_records: {
         Row: {
           best_before: string | null
@@ -10909,6 +11399,93 @@ export type Database = {
           },
         ]
       }
+      supplier_details: {
+        Row: {
+          bexio_no: number | null
+          city: string | null
+          contact_person: string | null
+          country: string | null
+          email: string | null
+          iban: string | null
+          lead_time_days: number | null
+          mobile: string | null
+          notes: string | null
+          order_days: number[] | null
+          our_customer_no: string | null
+          payment_terms: string | null
+          phone: string | null
+          postal_code: string | null
+          street: string | null
+          supplier_id: string
+          uid_no: string | null
+          updated_at: string
+          updated_by: string | null
+          vat_no: string | null
+          website: string | null
+        }
+        Insert: {
+          bexio_no?: number | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          email?: string | null
+          iban?: string | null
+          lead_time_days?: number | null
+          mobile?: string | null
+          notes?: string | null
+          order_days?: number[] | null
+          our_customer_no?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          street?: string | null
+          supplier_id: string
+          uid_no?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vat_no?: string | null
+          website?: string | null
+        }
+        Update: {
+          bexio_no?: number | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          email?: string | null
+          iban?: string | null
+          lead_time_days?: number | null
+          mobile?: string | null
+          notes?: string | null
+          order_days?: number[] | null
+          our_customer_no?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          street?: string | null
+          supplier_id?: string
+          uid_no?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vat_no?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_details_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: true
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_details_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_order_info: {
         Row: {
           contact: string | null
@@ -11515,6 +12092,185 @@ export type Database = {
           },
         ]
       }
+      vehicle_costs: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          id: string
+          kind: string
+          litres: number | null
+          note: string | null
+          odometer_km: number | null
+          receipt_path: string | null
+          spent_on: string
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          kind: string
+          litres?: number | null
+          note?: string | null
+          odometer_km?: number | null
+          receipt_path?: string | null
+          spent_on?: string
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          kind?: string
+          litres?: number | null
+          note?: string | null
+          odometer_km?: number | null
+          receipt_path?: string | null
+          spent_on?: string
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_costs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_costs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_trip_changes: {
+        Row: {
+          actor_id: string | null
+          after: Json
+          before: Json
+          changed_at: string
+          id: string
+          trip_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          after: Json
+          before: Json
+          changed_at?: string
+          id?: string
+          trip_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          after?: Json
+          before?: Json
+          changed_at?: string
+          id?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_trip_changes_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_trip_changes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_trips: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          driver_id: string
+          id: string
+          left_at: string
+          left_km: number
+          note: string | null
+          returned_at: string | null
+          returned_km: number | null
+          trip_date: string
+          updated_at: string
+          updated_by: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string
+          id?: string
+          left_at: string
+          left_km: number
+          note?: string | null
+          returned_at?: string | null
+          returned_km?: number | null
+          trip_date?: string
+          updated_at?: string
+          updated_by?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string
+          id?: string
+          left_at?: string
+          left_km?: number
+          note?: string | null
+          returned_at?: string | null
+          returned_km?: number | null
+          trip_date?: string
+          updated_at?: string
+          updated_by?: string | null
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_trips_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_trips_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_trips_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_trips_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       hr_note_follow_up_state: {
@@ -11802,7 +12558,12 @@ export type Database = {
       can_manage_merch: { Args: never; Returns: boolean }
       can_organize_meetings: { Args: never; Returns: boolean }
       can_plan_coverage: { Args: { p_absence_id: string }; Returns: boolean }
+      can_plan_production: { Args: never; Returns: boolean }
       can_read_marketing: { Args: never; Returns: boolean }
+      can_read_production_plan: {
+        Args: { p_plan_date: string }
+        Returns: boolean
+      }
       can_request_marketing: { Args: never; Returns: boolean }
       can_see_expected_deliveries: { Args: never; Returns: boolean }
       can_see_handover: { Args: { p_absence_id: string }; Returns: boolean }
@@ -12365,6 +13126,7 @@ export type Database = {
       is_goods_reception_assignee: { Args: never; Returns: boolean }
       is_maintenance: { Args: never; Returns: boolean }
       is_marketing: { Args: never; Returns: boolean }
+      is_office: { Args: never; Returns: boolean }
       is_owner: { Args: never; Returns: boolean }
       is_owner_account: { Args: { p_profile_id: string }; Returns: boolean }
       is_reminder_participant: {
@@ -12881,6 +13643,9 @@ export type Database = {
       }
       team_scope: { Args: never; Returns: Database["public"]["Enums"]["team"] }
       touch_presence: { Args: { p_path: string }; Returns: undefined }
+      vehicle_driver: { Args: never; Returns: boolean }
+      vehicle_driver_cost: { Args: { p_kind: string }; Returns: boolean }
+      vehicle_office: { Args: never; Returns: boolean }
     }
     Enums: {
       expected_delivery_status: "expected" | "arrived" | "cancelled"
@@ -12936,6 +13701,7 @@ export type Database = {
         | "sponsorship"
         | "consignment"
         | "event"
+      production_plan_section: "tortilla" | "masa" | "totopo" | "tostada"
       schedule_source: "auto" | "manual"
       task_frequency:
         | "daily"
@@ -13149,6 +13915,7 @@ export const Constants = {
         "consignment",
         "event",
       ],
+      production_plan_section: ["tortilla", "masa", "totopo", "tostada"],
       schedule_source: ["auto", "manual"],
       task_frequency: [
         "daily",

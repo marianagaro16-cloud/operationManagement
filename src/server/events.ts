@@ -30,7 +30,7 @@ import { EVENT_BUCKET } from '@/lib/events';
 const EVENT_COLUMNS = `
   id, kind_id, name, stage, cancel_reason, start_date, end_date, open_time, close_time,
   place_name, street, postal_code, city, customer_id, owner_id, description,
-  delivery_date, delivery_method_id, order_id,
+  delivery_date, delivery_method_id, order_id, material_pack_by,
   result_summary, result_rating, result_repeat, result_visitors, result_samples, result_contacts,
   customer:customers ( company_name ),
   owner:profiles!events_owner_id_fkey ( name, email )
@@ -161,7 +161,12 @@ export async function getEventLists(includeInactive = false): Promise<{
 }> {
   const supabase = createClient();
   const read = (table: 'event_kinds' | 'event_cost_types') => {
-    let q = supabase.from(table).select('id, name, translations, sort_order, is_active').order('sort_order').order('name');
+    // Kinds also carry their default pack-by days.
+    let q = supabase
+      .from(table)
+      .select(table === 'event_kinds' ? 'id, name, translations, sort_order, is_active, material_pack_days' : 'id, name, translations, sort_order, is_active')
+      .order('sort_order')
+      .order('name');
     if (!includeInactive) q = q.eq('is_active', true);
     return q;
   };
@@ -185,10 +190,10 @@ export async function getEventLists(includeInactive = false): Promise<{
   if (taskError) throw new Error(taskError.message);
   if (materialError) throw new Error(materialError.message);
   return {
-    kinds: (kinds ?? []) as EventListEntry[],
+    kinds: (kinds ?? []) as unknown as EventListEntry[],
     kindTasks: (kindTasks ?? []) as EventKindTask[],
     kindMaterials: (kindMaterials ?? []).map((m) => ({ ...m, quantity: m.quantity === null ? null : Number(m.quantity) })),
-    costTypes: (costTypes ?? []) as EventListEntry[],
+    costTypes: (costTypes ?? []) as unknown as EventListEntry[],
   };
 }
 

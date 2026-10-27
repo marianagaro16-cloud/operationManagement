@@ -8,7 +8,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Card, Checkbox, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
-import { copyEventMaterial, copyStandardMaterial, removeMaterial, saveMaterial, tickMaterial } from '@/server/event-actions';
+import { copyEventMaterial, copyStandardMaterial, removeMaterial, saveMaterial, setMaterialPackBy, tickMaterial } from '@/server/event-actions';
+import { businessToday } from '@/lib/datetime';
 import type { EventMaterial, EventRow, EventShift, PastMaterial, PastMaterialEvent, StaffCandidate } from '@/types/events';
 import { useEventLabels } from './event-parts';
 
@@ -18,8 +19,9 @@ const keyOf = (m: Pick<EventMaterial, 'bringer_profile' | 'bringer_worker'>) =>
 
 /**
  * What the stand needs that is not for sale — chairs, terminal, flyers. Each
- * thing is ticked when packed, and again when it came back. The day before,
- * the responsible person is told what is not packed yet.
+ * thing is ticked when packed, and again when it came back. By its pack-by
+ * day (else the day before), the responsible person is told what is not
+ * packed yet.
  */
 export function EventMaterials({
   event,
@@ -53,6 +55,7 @@ export function EventMaterials({
   const canEdit = event.stage !== 'cancelled';
   const packed = materials.filter((m) => m.packed).length;
   const back = materials.filter((m) => m.came_back).length;
+  const late = !!event.material_pack_by && packed < materials.length && event.material_pack_by < businessToday();
   const norm = (s: string) => s.trim().toLowerCase();
   const missing = standard.filter((s) => !materials.some((m) => norm(m.name) === norm(s))).length;
   // Used at other events and not on this list yet.
@@ -112,6 +115,26 @@ export function EventMaterials({
             {t('event.addMaterial')}
           </Button>
         )}
+      </div>
+      {/* Empty: the day before the start, as before. */}
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-[12.5px]">
+        <label htmlFor="material-pack-by" className={cn('font-medium', late ? 'text-warn' : 'text-muted')}>
+          {t('event.packByLabel')}
+        </label>
+        {canEdit ? (
+          <Input
+            id="material-pack-by"
+            type="date"
+            className="h-8 w-auto"
+            value={event.material_pack_by ?? ''}
+            max={event.start_date}
+            disabled={pending}
+            onChange={(e) => act(() => setMaterialPackBy(event.id, e.target.value || null))}
+          />
+        ) : (
+          <span className="tabular">{event.material_pack_by ? formatDate(event.material_pack_by, 'weekday') : '—'}</span>
+        )}
+        {!event.material_pack_by && <span className="text-muted">{t('event.packByNone')}</span>}
       </div>
       {error && <div className="mb-2"><ErrorState message={error} /></div>}
 

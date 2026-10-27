@@ -75,3 +75,26 @@ select pg_temp.can('event task: Ventas gives one to someone in Logística', 'sel
 select pg_temp.cannot('sales work: not for someone outside Ventas', 'seller',
   $$insert into public.sales_activities (salesperson_id, kind_id, activity_date, title, customer_id, created_by)
     values (pg_temp.id('jeff'), (select id from public.sales_activity_kinds where slug = 'event_task'), current_date + 1, 'ZZ call', (select id from public.customers order by created_at limit 1), pg_temp.id('seller'))$$);
+
+-- Pack-by day (2026-10-27): set by whoever edits the event; the bringer's
+-- material sits on that day and, not all packed, stays until the event.
+select pg_temp.can('pack-by: Ventas sets the day', 'seller',
+  $$update public.events set material_pack_by = current_date - 1 where id = (select id from _e)$$);
+select pg_temp.cannot('pack-by: a bringer does not set it', 'jeff',
+  $$update public.events set material_pack_by = current_date where id = (select id from _e)$$);
+select pg_temp.cannot('pack-by: not after the start', 'seller',
+  $$update public.events set material_pack_by = current_date + 5 where id = (select id from _e)$$);
+select pg_temp.cannot('pack-by: the kind default is Admin''s', 'seller',
+  $$update public.event_kinds set material_pack_days = 2 where id = (select kind_id from public.events where id = (select id from _e))$$);
+update public.event_materials set packed = false where name = 'ZZ terminal';
+select pg_temp.check('pack-by: not packed after its day, still on the bringer''s list', pg_temp.mine('jeff', 'materials') = 1);
+select pg_temp.check('pack-by: the brief carries the day',
+  (pg_temp.page('jeff') ->> 'material_pack_by')::date = current_date - 1);
+update public.event_kinds set material_pack_days = 2 where id = (select kind_id from public.events where id = (select id from _e));
+insert into public.events (kind_id, name, stage, start_date, end_date, created_by)
+values ((select kind_id from public.events where id = (select id from _e)), 'ZZ fair 2', 'idea', current_date + 10, current_date + 10, pg_temp.id('seller'));
+select pg_temp.check('pack-by: a new event takes its kind''s default',
+  (select material_pack_by from public.events where name = 'ZZ fair 2') = current_date + 8);
+update public.events set start_date = current_date + 14, end_date = current_date + 14 where name = 'ZZ fair 2';
+select pg_temp.check('pack-by: moves with the event',
+  (select material_pack_by from public.events where name = 'ZZ fair 2') = current_date + 12);

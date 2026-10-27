@@ -26,7 +26,7 @@ const KNOWN = [
   'not_authorized', 'owner_not_sales', 'owner_required', 'event_not_idea', 'event_not_found',
   'events_dates', 'events_cancel_reason', 'event_shifts_one_person', 'event_shifts_times', 'salesperson_not_sales',
   'event_closed', 'event_order_ready', 'event_order_shipped', 'duplicate_product', 'invalid_quantity', 'invalid_delivery',
-  'product_not_found', 'prospect_closed', 'first_activity_required',
+  'product_not_found', 'prospect_closed', 'first_activity_required', 'events_material_pack_by_before_start',
 ];
 function fail(error: { message: string }): { ok: false; error: string } {
   if (error.message.includes('row-level security')) return { ok: false, error: 'not_authorized' };
@@ -348,6 +348,17 @@ export async function removeMaterial(id: string, eventId: string): Promise<Actio
   return { ok: true, data: undefined };
 }
 
+/** The day the material must be packed by; null goes back to the day before (RLS: whoever edits the event). */
+export async function setMaterialPackBy(eventId: string, date: string | null): Promise<ActionResult> {
+  if (!uuid.safeParse(eventId).success || (date !== null && !/^\d{4}-\d{2}-\d{2}$/.test(date))) return { ok: false, error: 'invalid_pack_by' };
+  const supabase = createClient();
+  const { data, error } = await supabase.from('events').update({ material_pack_by: date }).eq('id', eventId).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidateEvent(eventId);
+  return { ok: true, data: undefined };
+}
+
 /** The kind's standard material onto the event, leaving out what it already has. */
 export async function copyStandardMaterial(eventId: string): Promise<ActionResult<{ added: number }>> {
   const supabase = createClient();
@@ -599,6 +610,19 @@ const kindMaterialSchema = z.object({
   quantity,
   sort_order: z.number().int().default(100),
 });
+
+/** How many days before the start a kind's material is packed by; null for no default (RLS: is_admin). */
+export async function saveKindPackDays(kindId: string, days: number | null): Promise<ActionResult> {
+  if (!uuid.safeParse(kindId).success || (days !== null && (!Number.isInteger(days) || days < 0 || days > 60))) {
+    return { ok: false, error: 'invalid_pack_days' };
+  }
+  const supabase = createClient();
+  const { data, error } = await supabase.from('event_kinds').update({ material_pack_days: days }).eq('id', kindId).select('id');
+  if (error) return fail(error);
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  revalidatePath('/admin/events');
+  return { ok: true, data: undefined };
+}
 
 /** A kind's standard material (RLS: is_admin). */
 export async function saveKindMaterial(input: z.input<typeof kindMaterialSchema>, id?: string): Promise<ActionResult> {

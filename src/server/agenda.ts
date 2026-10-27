@@ -259,11 +259,15 @@ export async function getAgenda(personId: string, from: string, to: string, own:
     });
   }
   for (const m of events?.materials ?? []) {
+    // On the pack-by day; not all packed after it, it stays on today until the event.
+    const late = m.packed < m.total && m.date < today;
+    if (m.date < from && !(late && todayInRange)) continue;
     items.push({
-      key: `material-${m.event.id}`, kind: 'material', id: m.event.id, date: m.event.start_date, start: null, end: null,
+      key: `material-${m.event.id}`, kind: 'material', id: m.event.id,
+      date: late && todayInRange ? today : m.date, start: null, end: null,
       // "3/5": packed of what they bring.
       title: m.event.name, detail: `${m.packed}/${m.total}`, href: `/events/${m.event.id}`,
-      done: m.packed === m.total, late: false, action: null,
+      done: m.packed === m.total, late, action: null,
     });
   }
   // A salesperson already has their event tasks from the plan.

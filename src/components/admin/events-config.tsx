@@ -10,7 +10,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Badge, Card, Checkbox, ErrorState, Field, Input, Select } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { localizedName } from '@/lib/localized-content';
-import { removeKindMaterial, removeKindTask, saveEventEntry, saveKindMaterial, saveKindTask } from '@/server/event-actions';
+import { removeKindMaterial, removeKindTask, saveEventEntry, saveKindMaterial, saveKindPackDays, saveKindTask } from '@/server/event-actions';
 import type { EventKindMaterial, EventKindTask, EventListEntry } from '@/types/events';
 
 type List = 'kinds' | 'cost_types';
@@ -119,6 +119,34 @@ export function EventsConfig({
                 <p className="border-t border-border px-3.5 pb-0.5 pt-2 text-[11.5px] font-semibold uppercase tracking-wide text-muted">
                   {t('event.standardMaterial')}
                 </p>
+                {/* Copied into each new event of this kind as its pack-by day. */}
+                <div className="flex flex-wrap items-center gap-2 py-1.5 pl-6 pr-3.5 text-[13px]">
+                  <label htmlFor={`pack-days-${k.id}`} className="text-muted">{t('event.packDaysLabel')}</label>
+                  <Input
+                    id={`pack-days-${k.id}`}
+                    key={k.material_pack_days ?? 'none'}
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={60}
+                    className="h-8 w-20"
+                    placeholder="—"
+                    defaultValue={k.material_pack_days ?? ''}
+                    disabled={pending}
+                    onBlur={(e) => {
+                      const raw = e.target.value.trim();
+                      const days = raw === '' ? null : Math.min(Math.max(Math.round(Number(raw) || 0), 0), 60);
+                      if (days === (k.material_pack_days ?? null)) return;
+                      setError(null);
+                      startTransition(async () => {
+                        const res = await saveKindPackDays(k.id, days);
+                        if (!res.ok) return setError(res.error === 'not_authorized' ? t('hr.errNotAuthorized') : res.error);
+                        router.refresh();
+                      });
+                    }}
+                  />
+                  <span className="text-muted">{t('event.packDaysHint')}</span>
+                </div>
                 <ul className="divide-y divide-border">
                   {kindMaterials.filter((m) => m.kind_id === k.id).map((m) => (
                     <li key={m.id} className="flex items-center gap-3 py-1.5 pl-6 pr-3.5">

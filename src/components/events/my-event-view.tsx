@@ -107,6 +107,11 @@ export function MyEventView({ event, today }: { event: MyEvent; today: string })
             <h2 className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">
               {t('event.myMaterials')} · {t('event.materialsPacked', { packed, total: event.materials.length })}
             </h2>
+            {event.material_pack_by && (
+              <p className={cn('mt-0.5 text-[12.5px] font-medium', packed < event.materials.length ? 'text-warn' : 'text-muted')}>
+                {t('event.packBy', { date: formatDate(event.material_pack_by, 'weekday') })}
+              </p>
+            )}
             <p className="mb-1.5 mt-0.5 text-[12px] text-muted">{t('event.myMaterialsHint')}</p>
             <table className="w-full text-[13px]">
               <thead>

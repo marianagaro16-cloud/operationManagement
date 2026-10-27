@@ -9,6 +9,8 @@ export interface EventListEntry {
   translations: Record<string, { name?: string | null }>;
   sort_order: number;
   is_active: boolean;
+  /** Kinds only: material packed so many days before the start; null for no default. */
+  material_pack_days?: number | null;
 }
 
 /** A kind's standard task: days from the start (negative: before), or after the end. */
@@ -45,6 +47,8 @@ export interface EventRow {
   delivery_date: string | null;
   delivery_method_id: string | null;
   order_id: string | null;
+  /** The day the material must be packed by; null: the day before the start. */
+  material_pack_by: string | null;
   /** How it went: asked for when it is marked done. */
   result_summary: string | null;
   result_rating: number | null;
@@ -185,13 +189,14 @@ export interface EventBrief {
   street: string | null;
   postal_code: string | null;
   city: string | null;
+  material_pack_by: string | null;
 }
 
 /** The viewer's shifts, material and event tasks over some days (my_event_work). */
 export interface MyEventWork {
   shifts: { id: string; date: string; start: string | null; end: string | null; event: EventBrief }[];
-  /** Per event, on its first day: how much of what they bring is packed. */
-  materials: { event: EventBrief; total: number; packed: number }[];
+  /** Per event, on its pack-by day (else its first day): how much of what they bring is packed. */
+  materials: { event: EventBrief; date: string; total: number; packed: number }[];
   tasks: { id: string; title: string; date: string; status: 'planned' | 'done' | 'not_done'; event: EventBrief }[];
 }
 

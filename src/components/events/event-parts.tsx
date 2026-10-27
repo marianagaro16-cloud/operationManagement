@@ -39,6 +39,7 @@ export function useEventLabels() {
         case 'owner_required': return t('event.errOwnerRequired');
         case 'event_not_idea': return t('event.errNotIdea');
         case 'events_dates': return t('event.errDates');
+        case 'events_material_pack_by_before_start': return t('event.errPackByAfterStart');
         case 'events_cancel_reason': return t('event.errCancelReason');
         case 'event_shifts_times': return t('event.errShiftTimes');
         case 'event_closed': return t('event.errClosed');
