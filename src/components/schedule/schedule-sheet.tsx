@@ -4,6 +4,7 @@ import {
   dayHours,
   formatHours,
   isChanged,
+  nearPauseLimit,
   pauseMinutes,
   productionStaffing,
   slotKey,
@@ -73,6 +74,17 @@ export function PauseIcon({ minutes, size = 13 }: { minutes: 0 | 15 | 30 | 60; s
       <circle cx="6" cy="6" r={r} fill={minutes === 60 ? '#404040' : '#fff'} stroke="#404040" strokeWidth="0.8" />
       {minutes === 15 && <path d={`M6 6 L6 ${6 - r} A${r} ${r} 0 0 1 ${6 + r} 6 Z`} fill="#404040" />}
       {minutes === 30 && <path d={`M6 ${6 - r} A${r} ${r} 0 0 1 6 ${6 + r} Z`} fill="#404040" />}
+    </svg>
+  );
+}
+
+/** A day planned just under a pause limit: leave on time or take the pause. */
+export function NearLimitIcon({ size = 11 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" aria-label="⚠" role="img" style={{ display: 'block', margin: '1px auto 0' }}>
+      <path d="M6 1 L11.2 10.5 H0.8 Z" fill="#f59e0b" stroke="#b45309" strokeWidth="0.7" strokeLinejoin="round" />
+      <path d="M6 4.3 V7.3" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
+      <circle cx="6" cy="8.9" r="0.7" fill="#fff" />
     </svg>
   );
 }
@@ -247,6 +259,7 @@ export function ScheduleSheet({
                               onClick={onCell ? () => onCell(p.id, d) : undefined}
                             >
                               {worked > 0 && <PauseIcon minutes={pauseMinutes(worked)} />}
+                              {worked > 0 && nearPauseLimit(worked) && <NearLimitIcon />}
                             </td>
                           )}
                         </Slot>
@@ -329,13 +342,17 @@ export function ScheduleSheet({
           <p style={{ margin: '34px 0 4px' }}>
             <strong>P</strong> = Pausenzeit
           </p>
-          {([[0, '≤ 5 Stdn = 0 Min.'], [15, '> 5 Stdn = 15 Min.'], [30, '> 6.5 Stdn = 30 Min.'], [60, '> 9 Stdn = 60 Min.']] as const).map(([m, text]) => (
+          {([[0, '≤ 5.5 Stdn = 0 Min.'], [15, '> 5.5 Stdn = 15 Min.'], [30, '> 7 Stdn = 30 Min.'], [60, '> 9 Stdn = 60 Min.']] as const).map(([m, text]) => (
             <p key={m} style={{ margin: '0 0 10px' }}>
               <PauseIcon minutes={m} size={15} />
               <br />
               {text}
             </p>
           ))}
+          <p style={{ margin: '0 0 10px', fontSize: 10.5, lineHeight: 1.3 }}>
+            <NearLimitIcon size={15} />
+            A menos de 30 min de la siguiente pausa: sal a tiempo o toma la pausa, si no PROtimer la descuenta.
+          </p>
           <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: 6 }}>
             <tbody>
               <tr>

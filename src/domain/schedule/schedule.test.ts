@@ -8,6 +8,7 @@ import {
   fryingTurn,
   isChanged,
   lastSundayShift,
+  nearPauseLimit,
   nextSundayTurn,
   openersAndClosers,
   parseTime,
@@ -62,13 +63,24 @@ describe('hours', () => {
 });
 
 describe('pause', () => {
-  it("follows the day, at the company's limits", () => {
-    expect(pauseMinutes(5)).toBe(0);
-    expect(pauseMinutes(5.25)).toBe(15);
-    expect(pauseMinutes(6.5)).toBe(15);
-    expect(pauseMinutes(6.75)).toBe(30);
+  it('follows the day, at the limits the law gives', () => {
+    expect(pauseMinutes(5.5)).toBe(0);
+    expect(pauseMinutes(5.75)).toBe(15);
+    expect(pauseMinutes(7)).toBe(15);
+    expect(pauseMinutes(7.5)).toBe(30);
     expect(pauseMinutes(9)).toBe(30);
     expect(pauseMinutes(9.5)).toBe(60);
+  });
+
+  it('marks a day within half an hour under a limit', () => {
+    expect(nearPauseLimit(4.75)).toBe(false);
+    expect(nearPauseLimit(5)).toBe(true);
+    expect(nearPauseLimit(5.5)).toBe(true);
+    expect(nearPauseLimit(5.75)).toBe(false);
+    expect(nearPauseLimit(6.5)).toBe(true);
+    expect(nearPauseLimit(7.5)).toBe(false);
+    expect(nearPauseLimit(8.75)).toBe(true);
+    expect(nearPauseLimit(9.25)).toBe(false);
   });
 });
 
