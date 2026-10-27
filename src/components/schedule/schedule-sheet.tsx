@@ -351,7 +351,7 @@ export function ScheduleSheet({
           ))}
           <p style={{ margin: '0 0 10px', fontSize: 10.5, lineHeight: 1.3 }}>
             <NearLimitIcon size={15} />
-            Día al límite de la pausa: si llegas antes o sales más tarde, el sistema te descuenta 15 min de pausa. ¡Mejor tómatela!
+            Día al límite de la pausa: si llegas antes o sales más tarde, el sistema te descuenta 15 min. Si te pasa, tómate 15 min más de descanso ese día: ¡así no los pierdes!
           </p>
           <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: 6 }}>
             <tbody>
