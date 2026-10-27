@@ -17,6 +17,7 @@ import { lineProgress, toQuantity } from '@/domain/orders/progress';
 import { ORDERS_GO_LIVE } from '@/domain/orders/config';
 import { periodLabel, periodRange, shiftCustomRange, shiftPeriod, type PeriodRange } from '@/domain/orders/reporting';
 import { businessToday } from '@/lib/datetime';
+import { usePendingNav } from '@/components/ui/use-pending-nav';
 import { productLabel, type Brand, type Customer, type DeliveryMethod, type OrderType, type OrderWithProgress, type Product } from '@/types/orders';
 import { IncidentDialog, orderContextFrom } from '@/components/incidents/incident-dialog';
 import type { IncidentCategory, IncidentType } from '@/types/incidents';
@@ -99,6 +100,11 @@ export function OrderControl({
   const hasRange = range.kind === 'custom';
   const [draftFrom, setDraftFrom] = useState(range.start);
   const [draftTo, setDraftTo] = useState(range.end);
+  const nav = usePendingNav();
+  // The list stays mounted from period to period, so the range boxes follow
+  // the period that is showing rather than the one the page first opened on.
+  useEffect(() => { setDraftFrom(range.start); setDraftTo(range.end); }, [range.start, range.end]);
+  const shownKind = nav.target ?? range.kind;
   const [editing, setEditing] = useState<OrderWithProgress | null>(null);
   const [creating, setCreating] = useState(false);
   // One dialog for the whole list, exactly as the editor is — not one per card.
@@ -168,12 +174,12 @@ export function OrderControl({
       if (value) params.set(key, value);
       else params.delete(key);
     }
-    router.push(`/orders?${params.toString()}`);
+    nav.go(`/orders?${params.toString()}`);
   };
 
   const applyRange = () => {
     if (!draftFrom || !draftTo) return;
-    router.push(bookHref({ period: 'custom', from: draftFrom, to: draftTo }));
+    nav.go(bookHref({ period: 'custom', from: draftFrom, to: draftTo }));
   };
 
   // What is currently narrowing the list, as removable chips.
@@ -267,11 +273,11 @@ export function OrderControl({
           {BOOK_PERIODS.map((p) => (
             <Link
               key={p}
-              href={p === 'custom' ? bookHref({ period: 'custom', from: range.start, to: range.end }) : bookHref({ period: p })}
+              {...nav.linkProps(p === 'custom' ? bookHref({ period: 'custom', from: range.start, to: range.end }) : bookHref({ period: p }), p)}
               aria-current={range.kind === p ? 'true' : undefined}
               className={cn(
                 'rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors',
-                range.kind === p
+                shownKind === p
                   ? 'border-accent bg-accent/10 text-accent'
                   : 'border-border bg-surface text-muted hover:text-fg',
               )}
@@ -296,7 +302,7 @@ export function OrderControl({
             </span>
           ) : (
             <Link
-              href={prev.href}
+              {...nav.linkProps(prev.href)}
               aria-label={t('calendar.prev')}
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
             >
@@ -307,7 +313,7 @@ export function OrderControl({
             {periodLabel(range, locale)}
           </span>
           <Link
-            href={next.href}
+            {...nav.linkProps(next.href)}
             aria-label={t('calendar.next')}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
           >
@@ -337,7 +343,7 @@ export function OrderControl({
               aria-label={t('report.to')}
               className="w-auto"
             />
-            <Button type="submit" disabled={!draftFrom || !draftTo}>
+            <Button type="submit" disabled={!draftFrom || !draftTo || nav.pending}>
               {t('report.apply')}
             </Button>
           </form>
@@ -454,6 +460,7 @@ export function OrderControl({
         )}
       </div>
 
+      <div className={cn('transition-opacity', nav.pending && 'pointer-events-none opacity-50')} aria-busy={nav.pending}>
       {orders.length > 0 && (
         <div className="mb-3 flex justify-end gap-1.5">
           <Button size="sm" variant="ghost" onClick={() => setBulk({ expanded: true })}>
@@ -503,6 +510,7 @@ export function OrderControl({
           ))}
         </div>
       )}
+      </div>
 
       {(creating || editing) && (
         <OrderDialog

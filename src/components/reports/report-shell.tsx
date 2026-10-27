@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, ErrorState, Field, Input } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
+import { usePendingNav } from '@/components/ui/use-pending-nav';
 import {
   periodLabel,
   shiftCustomRange,
@@ -157,6 +158,11 @@ export function ReportShell({
   const [from, setFrom] = useState(range.start);
   const [to, setTo] = useState(range.end);
   const isCustom = range.kind === 'custom';
+  const nav = usePendingNav();
+  // The shell stays mounted from period to period, so the boxes follow the
+  // range that is showing rather than the one the page first opened on.
+  useEffect(() => { setFrom(range.start); setTo(range.end); }, [range.start, range.end]);
+  const shownKind = (nav.target as ReportPeriod | null) ?? range.kind;
 
   // A custom range slides by its own length rather than by a calendar unit,
   // so "previous" on a 10-day window means the 10 days before it.
@@ -178,10 +184,10 @@ export function ReportShell({
         {PERIODS.map((p) => (
           <Link
             key={p}
-            href={reportHref(tab, range, anchor, { period: p }, filters)}
+            {...nav.linkProps(reportHref(tab, range, anchor, { period: p }, filters), p)}
             className={cn(
               'rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors',
-              range.kind === p
+              shownKind === p
                 ? 'border-accent bg-accent/10 text-accent'
                 : 'border-border bg-surface text-muted hover:text-fg',
             )}
@@ -194,7 +200,7 @@ export function ReportShell({
       {/* Period navigation */}
       <div className="mb-4 flex items-center gap-1">
         <Link
-          href={prevHref}
+          {...nav.linkProps(prevHref)}
           aria-label={t('calendar.prev')}
           className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
         >
@@ -204,7 +210,7 @@ export function ReportShell({
           {periodLabel(range, locale)}
         </span>
         <Link
-          href={nextHref}
+          {...nav.linkProps(nextHref)}
           aria-label={t('calendar.next')}
           className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
         >
@@ -224,9 +230,13 @@ export function ReportShell({
               <Field label={t('report.to')} htmlFor="r-to">
                 <Input id="r-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
               </Field>
-              <Link href={reportHref(tab, range, anchor, { period: 'custom', from, to }, filters)}>
-                <Button variant="primary">{t('report.apply')}</Button>
-              </Link>
+              <Button
+                variant="primary"
+                disabled={!from || !to || nav.pending}
+                onClick={() => nav.go(reportHref(tab, range, anchor, { period: 'custom', from, to }, filters))}
+              >
+                {t('report.apply')}
+              </Button>
             </div>
             {range.clamped && (
               <div className="mt-2"><ErrorState message={t('report.rangeClamped')} /></div>
@@ -235,7 +245,9 @@ export function ReportShell({
         </Card>
       )}
 
-      {children}
+      <div className={cn('transition-opacity', nav.pending && 'pointer-events-none opacity-50')} aria-busy={nav.pending}>
+        {children}
+      </div>
     </>
   );
 }
