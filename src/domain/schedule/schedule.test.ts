@@ -62,11 +62,11 @@ describe('hours', () => {
 });
 
 describe('pause', () => {
-  it('follows the day, at the limits the law gives', () => {
-    expect(pauseMinutes(5.5)).toBe(0);
-    expect(pauseMinutes(5.75)).toBe(15);
-    expect(pauseMinutes(7)).toBe(15);
-    expect(pauseMinutes(7.5)).toBe(30);
+  it("follows the day, at the company's limits", () => {
+    expect(pauseMinutes(5)).toBe(0);
+    expect(pauseMinutes(5.25)).toBe(15);
+    expect(pauseMinutes(6.5)).toBe(15);
+    expect(pauseMinutes(6.75)).toBe(30);
     expect(pauseMinutes(9)).toBe(30);
     expect(pauseMinutes(9.5)).toBe(60);
   });

@@ -329,7 +329,7 @@ export function ScheduleSheet({
           <p style={{ margin: '34px 0 4px' }}>
             <strong>P</strong> = Pausenzeit
           </p>
-          {([[0, '≤ 5.5 Stdn = 0 Min.'], [15, '> 5.5 Stdn = 15 Min.'], [30, '> 7 Stdn = 30 Min.'], [60, '> 9 Stdn = 60 Min.']] as const).map(([m, text]) => (
+          {([[0, '≤ 5 Stdn = 0 Min.'], [15, '> 5 Stdn = 15 Min.'], [30, '> 6.5 Stdn = 30 Min.'], [60, '> 9 Stdn = 60 Min.']] as const).map(([m, text]) => (
             <p key={m} style={{ margin: '0 0 10px' }}>
               <PauseIcon minutes={m} size={15} />
               <br />

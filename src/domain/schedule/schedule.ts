@@ -42,14 +42,14 @@ export function weekHours(blocks: Block[], personId: string, kinds: Map<string, 
 }
 
 /**
- * The pause the law asks for, by the day's working time (ArG Art. 15):
- * up to 5½ hours none, over 5½ up to 7 hours 15 minutes, over 7 up to 9
- * hours 30 minutes, over 9 hours an hour.
+ * The pause for the day's working time — the company's rule (2026-10-27),
+ * stricter than the law's 5½ / 7 / 9 hours: up to 5 hours none, over 5 up to
+ * 6½ hours 15 minutes, over 6½ up to 9 hours 30 minutes, over 9 hours an hour.
  */
 export function pauseMinutes(hours: number): 0 | 15 | 30 | 60 {
   if (hours > 9) return 60;
-  if (hours > 7) return 30;
-  if (hours > 5.5) return 15;
+  if (hours > 6.5) return 30;
+  if (hours > 5) return 15;
   return 0;
 }
 
