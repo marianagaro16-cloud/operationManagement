@@ -35,7 +35,9 @@ export type NowKind =
   | 'actaFollowUps'
   | 'collectionFollowUps'
   | 'lateDeliveries'
-  | 'deliveriesSoon';
+  | 'deliveriesSoon'
+  | 'eventReviews'
+  | 'eventViews';
 
 /** late: past its moment. today: due now or today. */
 export type NowLevel = 'late' | 'today';
@@ -92,6 +94,10 @@ export interface NowInput {
   lateDeliveries: string[];
   /** Expected today and tomorrow: their suppliers. Empty for whoever does not see them. */
   deliveriesSoon: string[];
+  /** The viewer's events whose review is still empty three days after the end; always late. */
+  eventReviews: { count: number; href: string };
+  /** Done events the viewer worked a shift on and has not given their view of, and which. */
+  eventViews: { names: string[]; href: string };
 }
 
 /**
@@ -116,6 +122,8 @@ const ORDER: NowKind[] = [
   'meetingFollowUps',
   'actasToWrite',
   'actaFollowUps',
+  'eventReviews',
+  'eventViews',
   'absencesToApprove',
   'coverageGaps',
   'meetingInvites',
@@ -144,6 +152,8 @@ export function buildNowItems(input: NowInput): NowItem[] {
     { kind: 'meetingFollowUps', level: input.meetingFollowUps.late ? 'late' : 'today', count: input.meetingFollowUps.count, href: input.meetingFollowUps.href },
     { kind: 'actasToWrite', level: input.actasToWrite.late ? 'late' : 'today', count: input.actasToWrite.count, href: input.actasToWrite.href },
     { kind: 'actaFollowUps', level: input.actaFollowUps.late ? 'late' : 'today', count: input.actaFollowUps.count, href: input.actaFollowUps.href },
+    { kind: 'eventReviews', level: 'late', count: input.eventReviews.count, href: input.eventReviews.href },
+    { kind: 'eventViews', level: 'today', count: input.eventViews.names.length, href: input.eventViews.href, names: input.eventViews.names.slice(0, 3) },
     { kind: 'absencesToApprove', level: 'today', count: input.absencesToApprove, href: '/absences?tab=approve' },
     { kind: 'coverageGaps', level: 'today', count: input.coverageGaps, href: '/absences?tab=calendar' },
     { kind: 'meetingInvites', level: 'today', count: input.meetingInvites, href: '/meetings' },

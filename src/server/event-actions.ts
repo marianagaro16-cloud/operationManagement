@@ -6,7 +6,7 @@ import { DateTime } from 'luxon';
 import { createClient } from '@/lib/supabase/server';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { geocodeAddress } from './geocode';
-import { sendToUser } from './push';
+import { sendToUser, sendToUsers } from './push';
 import type { ActionResult } from './actions';
 import { EVENT_ALLOWED_MIME, EVENT_BUCKET, EVENT_MAX_BYTES } from '@/lib/events';
 
@@ -27,6 +27,7 @@ const KNOWN = [
   'events_dates', 'events_cancel_reason', 'event_shifts_one_person', 'event_shifts_times', 'salesperson_not_sales',
   'event_closed', 'event_order_ready', 'event_order_shipped', 'duplicate_product', 'invalid_quantity', 'invalid_delivery',
   'product_not_found', 'prospect_closed', 'first_activity_required', 'events_material_pack_by_before_start',
+  'invalid_results',
 ];
 function fail(error: { message: string }): { ok: false; error: string } {
   if (error.message.includes('row-level security')) return { ok: false, error: 'not_authorized' };
@@ -433,23 +434,80 @@ const resultsSchema = z.object({
   result_visitors: count,
   result_samples: count,
   result_contacts: count,
+  result_went_well: text(5000),
+  result_went_wrong: text(5000),
+  result_next_time: text(5000),
+  result_stand: z.enum(['good', 'average', 'bad']).nullable().optional().transform((v) => v ?? null),
+  result_public: text(1000),
+  result_busiest: text(500),
+  result_weather: text(500),
+  result_competitors: text(2000),
+  result_organiser_rating: z.number().int().min(1).max(5).nullable().optional().transform((v) => v ?? null),
+  result_setup: text(2000),
+  result_staffing: z.enum(['enough', 'short', 'too_many']).nullable().optional().transform((v) => v ?? null),
+  result_materials: text(2000),
 });
 
-/** How it went — and, when asked, the event is marked done in the same step. */
-export async function saveResults(eventId: string, input: z.input<typeof resultsSchema>, markDone = false): Promise<ActionResult> {
+const feedbackSchema = z
+  .array(
+    z.object({
+      product_id: uuid,
+      reaction: z.enum(['liked', 'neutral', 'disliked']).nullable(),
+      most_asked: z.boolean(),
+      comment: text(1000),
+    }),
+  )
+  .max(500);
+
+/**
+ * How it went, with how each product was received — and, when asked, the
+ * event is marked done in the same step. Marking it done asks everyone who
+ * worked a shift for their short view.
+ */
+export async function saveResults(
+  eventId: string,
+  input: z.input<typeof resultsSchema>,
+  markDone = false,
+  feedback: z.input<typeof feedbackSchema> = [],
+): Promise<ActionResult> {
   const parsed = resultsSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: 'invalid_results' };
+  const products = feedbackSchema.safeParse(feedback);
+  if (!parsed.success || !products.success) return { ok: false, error: 'invalid_results' };
   const supabase = createClient();
-  const { data: event } = await supabase.from('events').select('stage').eq('id', eventId).maybeSingle();
+  const { data: event } = await supabase.from('events').select('stage, name, owner_id').eq('id', eventId).maybeSingle();
   if (!event) return { ok: false, error: 'not_authorized' };
   if (event.stage === 'cancelled' || event.stage === 'idea') return { ok: false, error: 'event_closed' };
+
+  const { error: feedbackError } = await supabase.rpc('event_set_product_feedback', { p_event_id: eventId, p_rows: products.data });
+  if (feedbackError) return fail(feedbackError);
+  const finishing = markDone && event.stage === 'confirmed';
   const { error } = await supabase
     .from('events')
-    .update({ ...parsed.data, ...(markDone && event.stage === 'confirmed' ? { stage: 'done' } : {}) })
+    .update({ ...parsed.data, ...(finishing ? { stage: 'done' } : {}) })
     .eq('id', eventId);
   if (error) return fail(error);
+
+  if (finishing) await askStaffForViews(eventId, event.name, event.owner_id);
   revalidateEvent(eventId);
   return { ok: true, data: undefined };
+}
+
+/** Everyone with an account who worked a shift, but the responsible person and whoever marked it done. */
+async function askStaffForViews(eventId: string, name: string, ownerId: string | null) {
+  const supabase = createClient();
+  const [{ data: { user } }, { data: shifts }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('event_shifts').select('profile_id').eq('event_id', eventId).not('profile_id', 'is', null),
+  ]);
+  const to = [...new Set((shifts ?? []).map((s) => s.profile_id as string))].filter((id) => id !== ownerId && id !== user?.id);
+  if (to.length === 0) return;
+  // In Spanish, like every other server-sent notification.
+  await sendToUsers(to, {
+    title: `¿Cómo te fue en ${name}?`,
+    body: 'Danos tu opinión del evento: unas estrellas y qué mejorar. Toma un minuto.',
+    url: `/events/${eventId}#my-review`,
+    tag: `event-review-${eventId}`,
+  }).catch(() => 0);
 }
 
 /* --------------------------------- notes --------------------------------- */

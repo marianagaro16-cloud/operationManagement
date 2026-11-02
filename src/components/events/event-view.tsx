@@ -32,6 +32,9 @@ import type {
   EventContact,
   EventCost,
   EventFile,
+  EventLesson,
+  EventProductFeedback,
+  EventStaffReview,
   EventListEntry,
   EventMaterial,
   EventNote,
@@ -44,7 +47,9 @@ import type {
   EventShift,
   StaffCandidate,
 } from '@/types/events';
-import { ContactsCard, FilesCard, NotesCard, ResultsCard, ResultsDialog, hasResults } from './event-after';
+import { ContactsCard, FilesCard, NotesCard } from './event-after';
+import { LessonsCard, MyReviewCard, ResultsCard, ResultsDialog, type ReviewData } from './event-review';
+import { hasResults } from '@/lib/events';
 import { StageBadge, chf, useEventLabels, useEventsLimited, useEventsReadOnly, useEventsSales } from './event-parts';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { EventDialog, type EventChoices } from './event-dialog';
@@ -71,6 +76,10 @@ export function EventView({
   notes,
   files,
   contacts,
+  feedback,
+  staffReviews,
+  staffMissing,
+  lessons,
   catalog,
   methods,
   choices,
@@ -99,6 +108,11 @@ export function EventView({
   notes: EventNote[];
   files: EventFile[];
   contacts: EventContact[];
+  feedback: EventProductFeedback[];
+  staffReviews: EventStaffReview[];
+  staffMissing: string[];
+  /** "Next time" from earlier events of the same kind. */
+  lessons: EventLesson[];
   /** Every product, for names; the editor offers the active ones. */
   catalog: Product[];
   methods: DeliveryMethod[];
@@ -121,6 +135,10 @@ export function EventView({
   const limited = useEventsLimited();
   const salesLinks = useEventsSales();
   const live = !readOnly && (event.stage === 'idea' || event.stage === 'confirmed');
+  const review: ReviewData = { products, returns, feedback, costs, contacts, files, materials, catalog, staffReviews, staffMissing };
+  // The viewer worked a shift on it: once done, their own short view.
+  const workedHere = shifts.some((s) => s.profile_id === choices.viewerId);
+  const mine = staffReviews.find((r) => r.profile_id === choices.viewerId) ?? null;
 
   const run: Busy = (fn, after) => {
     setError(null);
@@ -223,7 +241,18 @@ export function EventView({
 
       {(event.stage === 'done' || hasResults(event)) && (
         <div className="mb-4">
-          <ResultsCard event={event} />
+          <ResultsCard event={event} data={review} />
+        </div>
+      )}
+      {/* The responsible person writes the full review instead. */}
+      {event.stage === 'done' && workedHere && event.owner_id !== choices.viewerId && (
+        <div className="mb-4">
+          <MyReviewCard eventId={event.id} review={mine} />
+        </div>
+      )}
+      {live && lessons.length > 0 && (
+        <div className="mb-4">
+          <LessonsCard lessons={lessons} />
         </div>
       )}
 
@@ -261,7 +290,7 @@ export function EventView({
         cancelLabel={t('common.cancel')}
         loading={pending}
       />
-      {finishing && <ResultsDialog event={event} markDone onClose={() => setFinishing(false)} />}
+      {finishing && <ResultsDialog event={event} data={review} markDone onClose={() => setFinishing(false)} />}
       <ConfirmDialog
         open={removing}
         onClose={() => setRemoving(false)}
@@ -301,9 +330,9 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+function Section({ id, title, action, children }: { id?: string; title: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <Card className="p-3">
+    <Card id={id} className="scroll-mt-20 p-3">
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <h2 className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">{title}</h2>
         {action}
@@ -704,6 +733,7 @@ function Budget({ event, costs, costTypes }: { event: EventRow; costs: EventCost
 
   return (
     <Section
+      id="budget"
       title={t('event.budget')}
       action={
         event.stage !== 'cancelled' && (

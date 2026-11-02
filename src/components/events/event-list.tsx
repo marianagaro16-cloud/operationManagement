@@ -11,7 +11,7 @@ import { PageHeader } from '@/components/shell/app-shell';
 import type { EventRow } from '@/types/events';
 import { StageBadge, useEventLabels, useEventsReadOnly } from './event-parts';
 import { EventDialog, type EventChoices } from './event-dialog';
-import { Stars } from './event-after';
+import { Stars } from './event-review';
 
 /** Every event: what is coming (ideas and confirmed), and what is past or called off. */
 export function EventList({ events, choices, today }: { events: EventRow[]; choices: EventChoices; today: string }) {

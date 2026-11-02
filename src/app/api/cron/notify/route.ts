@@ -8,6 +8,7 @@ import { runBlockedReminders } from '@/server/block-notify';
 import { runMerchJobs } from '@/server/merch-notify';
 import { runOwnerDigest } from '@/server/digest-notify';
 import { runEventMaterialNotices } from '@/server/event-material-notify';
+import { runEventReviewNotices } from '@/server/event-review-notify';
 import { runEventAssigneeNotices } from '@/server/event-assignee-notify';
 import { businessToday, addDays } from '@/lib/datetime';
 
@@ -94,6 +95,14 @@ export async function GET(request: Request) {
     material = { error: e instanceof Error ? e.message : String(e) };
   }
 
+  // An event's review still empty three days after it: its responsible person, once.
+  let review: { sent: number } | { error: string };
+  try {
+    review = await runEventReviewNotices();
+  } catch (e) {
+    review = { error: e instanceof Error ? e.message : String(e) };
+  }
+
   try {
     // Only orders that could plausibly be urgent: today and the next day, so
     // an evening deadline still notifies. Cancelled orders are excluded.
@@ -116,7 +125,7 @@ export async function GET(request: Request) {
 
     const candidateIds = (orders ?? []).map((o) => (o as { id: string }).id);
     if (candidateIds.length === 0) {
-      return NextResponse.json({ ok: true, today, considered: 0, sent: 0, inventory, blocked, merch, digest, material });
+      return NextResponse.json({ ok: true, today, considered: 0, sent: 0, inventory, blocked, merch, digest, material, review });
     }
 
     // What has already gone out, so escalations notify once each.
@@ -194,6 +203,7 @@ export async function GET(request: Request) {
       merch,
       digest,
       material,
+      review,
       results,
     });
   } catch (e) {

@@ -9,7 +9,7 @@ import { InventoryWidget } from '@/components/inventory/inventory-widget';
 import { PushPrompt } from '@/components/shell/push-prompt';
 import { getDashboardReminders, getPersonalTasks } from '@/server/reminders';
 import { ReminderWidgets } from '@/components/reminders/reminder-widgets';
-import { canUseReminders, isAdminRole, isSales } from '@/lib/authz';
+import { canUseReminders, isAdminRole, isMarketing, isSales } from '@/lib/authz';
 import { getMyPendingEvaluations } from '@/server/hr-evaluations';
 import { PendingEvaluations } from '@/components/hr/pending-evaluations';
 import { getUpcomingCelebrations } from '@/server/hr-celebrations';
@@ -41,6 +41,8 @@ import { getNotes } from '@/server/notes';
 import { compareUrgency, deliveryUrgency } from '@/domain/orders/urgency';
 import { personalTaskPhase } from '@/domain/reminders/schedule';
 import { getExpectedSoon } from '@/server/expected-deliveries';
+import { getEventReviewsToWrite } from '@/server/events';
+import { getMyEventReviewsDue } from '@/server/event-assignee';
 
 // Always render fresh: task and order state change constantly during a shift.
 export const dynamic = 'force-dynamic';
@@ -73,7 +75,7 @@ export default async function DashboardPage() {
   const sales = !!viewer && isSales(viewer.role, viewer.profile.team);
   const inSalesTeam = viewer?.profile.team === 'sales';
 
-  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes, hrFollowUps, meetingWork, expectedSoon, actaWork, hrDates, hrChecklists, hrEvalsOverdue] = await Promise.all([
+  const [data, orders, inventory, reminders, personalTasks, evaluations, celebrations, quiet, todayPlan, planLate, visitPoints, kinds, business, absencesToApprove, coverageToday, needsCover, workingHours, coverageGaps, meetingInvites, agendaToday, collectionFollowUps, quickNotes, hrFollowUps, meetingWork, expectedSoon, actaWork, hrDates, hrChecklists, hrEvalsOverdue, eventReviews, eventViews] = await Promise.all([
     // Today and what is late — no week ahead: one's own are listed, the team's counted.
     getDashboardData(0),
     getOrderDashboardSummary(today),
@@ -125,6 +127,10 @@ export default async function DashboardPage() {
     viewer?.can('hr.manage') ? getOverdueChecklists() : { count: 0, names: [] },
     // Evaluations past their day by the team's rule.
     viewer?.can('hr.manage') ? getOverdueEvaluations() : [],
+    // Events the viewer is responsible for whose review is still empty three days after.
+    viewer && (sales || isMarketing(viewer.profile.team)) ? getEventReviewsToWrite(viewer.profile.id, today) : { count: 0, first: null },
+    // Done events the viewer worked a shift on: their short view, not given yet.
+    viewer ? getMyEventReviewsDue() : [],
   ]);
 
   // ---- whoever plans: their own activities, and the team in one line per area ----
@@ -194,6 +200,8 @@ export default async function DashboardPage() {
     hrEvalsOverdue: { count: hrEvalsOverdue.length, names: hrEvalsOverdue.map((e) => e.name) },
     lateDeliveries: expectedSoon.late,
     deliveriesSoon: expectedSoon.soon,
+    eventReviews: { count: eventReviews.count, href: eventReviews.first ? `/events/${eventReviews.first}` : '/events' },
+    eventViews: { names: eventViews.map((e) => e.name), href: eventViews[0] ? `/events/${eventViews[0].event_id}#my-review` : '/events' },
   });
 
   // Whom the viewer covers today; while it lasts, that person's work is theirs to do.

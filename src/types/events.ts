@@ -56,6 +56,47 @@ export interface EventRow {
   result_visitors: number | null;
   result_samples: number | null;
   result_contacts: number | null;
+  /** The fuller review (2026-11-02): in place of the summary, which old events keep. */
+  result_went_well: string | null;
+  result_went_wrong: string | null;
+  result_next_time: string | null;
+  /** Place and public. */
+  result_stand: 'good' | 'average' | 'bad' | null;
+  result_public: string | null;
+  result_busiest: string | null;
+  result_weather: string | null;
+  result_competitors: string | null;
+  /** Organisation. */
+  result_organiser_rating: number | null;
+  result_setup: string | null;
+  result_staffing: 'enough' | 'short' | 'too_many' | null;
+  result_materials: string | null;
+}
+
+/** How a product taken was received. */
+export interface EventProductFeedback {
+  product_id: string;
+  reaction: 'liked' | 'neutral' | 'disliked' | null;
+  most_asked: boolean;
+  comment: string | null;
+}
+
+/** Someone who worked a shift: their short view, once the event is done. */
+export interface EventStaffReview {
+  profile_id: string;
+  name: string;
+  rating: number | null;
+  went_well: string | null;
+  to_improve: string | null;
+}
+
+/** "Next time" from earlier events of the same kind, for planning this one. */
+export interface EventLesson {
+  event_id: string;
+  name: string;
+  start_date: string;
+  next_time: string;
+  same_name: boolean;
 }
 
 export interface EventNote {
@@ -202,6 +243,8 @@ export interface MyEventWork {
 
 /** One event, only the viewer's part of it (my_event). */
 export interface MyEvent extends EventBrief {
+  /** Their own view of the event, when they worked a shift on it (null before they give it). */
+  review: { rating: number | null; went_well: string | null; to_improve: string | null } | null;
   shifts: { id: string; date: string; start: string | null; end: string | null; note: string | null }[];
   materials: { id: string; name: string; quantity: number | null; packed: boolean; came_back: boolean }[];
   tasks: { id: string; title: string; date: string; status: 'planned' | 'done' | 'not_done' }[];

@@ -5,6 +5,9 @@ import type {
   EventContact,
   EventCost,
   EventFile,
+  EventLesson,
+  EventProductFeedback,
+  EventStaffReview,
   EventKindMaterial,
   EventKindTask,
   EventMaterial,
@@ -20,7 +23,8 @@ import type {
   StaffCandidate,
 } from '@/types/events';
 import { getPlannedForEvent } from './sales';
-import { EVENT_BUCKET } from '@/lib/events';
+import { EVENT_BUCKET, RESULT_COLUMNS, REVIEW_REMIND_DAYS, hasResults } from '@/lib/events';
+import { addDays } from '@/lib/datetime';
 
 /*
  * Events reads. RLS decides who may (is_sales()): the Ventas team, Admin
@@ -32,6 +36,8 @@ const EVENT_COLUMNS = `
   place_name, street, postal_code, city, customer_id, owner_id, description,
   delivery_date, delivery_method_id, order_id, material_pack_by,
   result_summary, result_rating, result_repeat, result_visitors, result_samples, result_contacts,
+  result_went_well, result_went_wrong, result_next_time, result_stand, result_public, result_busiest,
+  result_weather, result_competitors, result_organiser_rating, result_setup, result_staffing, result_materials,
   customer:customers ( company_name ),
   owner:profiles!events_owner_id_fkey ( name, email )
 `;
@@ -65,6 +71,11 @@ export interface EventView {
   notes: EventNote[];
   files: EventFile[];
   contacts: EventContact[];
+  feedback: EventProductFeedback[];
+  staffReviews: EventStaffReview[];
+  /** Who worked a shift with an account and has not given their view yet. */
+  staffMissing: string[];
+  lessons: EventLesson[];
 }
 
 export async function getEvent(id: string): Promise<EventView | null> {
@@ -93,13 +104,16 @@ export async function getEvent(id: string): Promise<EventView | null> {
   const workerName = new Map(workers.filter((w) => w.kind === 'worker').map((w) => [w.id, w.name]));
 
   const event = toEvent(data);
-  const [{ order, products }, returns, notes, files, contacts, materials] = await Promise.all([
+  const [{ order, products }, returns, notes, files, contacts, materials, feedback, staffViews, lessons] = await Promise.all([
     getEventProducts(event),
     getEventReturns(id),
     getEventNotes(id),
     getEventFiles(id),
     getEventContacts(id),
     getEventMaterials(id),
+    getProductFeedback(id),
+    getStaffReviews(id),
+    getEventLessons(event),
   ]);
 
   type RawShift = Omit<EventShift, 'person_name'> & { profile: { name: string | null; email: string } | null };
@@ -112,6 +126,10 @@ export async function getEvent(id: string): Promise<EventView | null> {
     files,
     contacts,
     materials,
+    feedback,
+    staffReviews: staffViews.reviews,
+    staffMissing: staffViews.missing,
+    lessons,
     tasks,
     shifts: ((shifts ?? []) as unknown as RawShift[]).map(({ profile, ...s }) => ({
       ...s,
@@ -342,4 +360,72 @@ async function getEventContacts(eventId: string): Promise<EventContact[]> {
     .order('created_at');
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+async function getProductFeedback(eventId: string): Promise<EventProductFeedback[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('event_product_feedback')
+    .select('product_id, reaction, most_asked, comment')
+    .eq('event_id', eventId);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as EventProductFeedback[];
+}
+
+/** The staff's views, with names; and who worked a shift and has not given one. */
+async function getStaffReviews(eventId: string): Promise<{ reviews: EventStaffReview[]; missing: string[] }> {
+  const supabase = createClient();
+  const [{ data: rows, error }, { data: status, error: statusError }] = await Promise.all([
+    supabase.from('event_staff_reviews').select('profile_id, rating, went_well, to_improve').eq('event_id', eventId),
+    supabase.rpc('event_staff_review_status', { p_event_id: eventId }),
+  ]);
+  if (error) throw new Error(error.message);
+  if (statusError) throw new Error(statusError.message);
+  const people = (status ?? []) as { profile_id: string; name: string; answered: boolean }[];
+  const names = new Map(people.map((s) => [s.profile_id, s.name]));
+  return {
+    reviews: ((rows ?? []) as Omit<EventStaffReview, 'name'>[]).map((r) => ({ ...r, name: names.get(r.profile_id) ?? '—' })),
+    missing: people.filter((s) => !s.answered).map((s) => s.name),
+  };
+}
+
+/**
+ * What earlier events of the same kind said to do next time — the same
+ * event's past editions first, then the latest. Only while planning.
+ */
+async function getEventLessons(event: EventRow): Promise<EventLesson[]> {
+  if (event.stage !== 'idea' && event.stage !== 'confirmed') return [];
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('events')
+    .select('id, name, start_date, result_next_time')
+    .eq('kind_id', event.kind_id)
+    .eq('stage', 'done')
+    .neq('id', event.id)
+    .not('result_next_time', 'is', null)
+    .order('start_date', { ascending: false })
+    .limit(8);
+  if (error) throw new Error(error.message);
+  const key = (n: string) => n.trim().toLowerCase();
+  return (data ?? [])
+    .map((e) => ({ event_id: e.id, name: e.name, start_date: e.start_date, next_time: e.result_next_time!, same_name: key(e.name) === key(event.name) }))
+    .sort((a, b) => Number(b.same_name) - Number(a.same_name) || b.start_date.localeCompare(a.start_date));
+}
+
+/**
+ * The viewer's events whose review is still empty three days after the end —
+ * done or still waiting to be marked done — for their Inicio.
+ */
+export async function getEventReviewsToWrite(viewerId: string, today: string): Promise<{ count: number; first: string | null }> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('events')
+    .select(`id, end_date, ${RESULT_COLUMNS.join(', ')}`)
+    .eq('owner_id', viewerId)
+    .in('stage', ['confirmed', 'done'])
+    .lte('end_date', addDays(today, -REVIEW_REMIND_DAYS))
+    .order('end_date', { ascending: false });
+  if (error) return { count: 0, first: null };
+  const open = ((data ?? []) as unknown as ({ id: string } & Record<string, unknown>)[]).filter((e) => !hasResults(e));
+  return { count: open.length, first: open[0]?.id ?? null };
 }

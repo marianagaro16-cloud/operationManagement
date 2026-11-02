@@ -1845,6 +1845,65 @@ export type Database = {
           },
         ]
       }
+      event_product_feedback: {
+        Row: {
+          comment: string | null
+          event_id: string
+          most_asked: boolean
+          product_id: string
+          reaction: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          comment?: string | null
+          event_id: string
+          most_asked?: boolean
+          product_id: string
+          reaction?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          comment?: string | null
+          event_id?: string
+          most_asked?: boolean
+          product_id?: string
+          reaction?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_product_feedback_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_product_feedback_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lot_allocation_search"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "event_product_feedback_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_product_feedback_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_products: {
         Row: {
           event_id: string
@@ -1950,6 +2009,29 @@ export type Database = {
           },
         ]
       }
+      event_review_notices: {
+        Row: {
+          event_id: string
+          sent_at: string
+        }
+        Insert: {
+          event_id: string
+          sent_at?: string
+        }
+        Update: {
+          event_id?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_review_notices_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_shifts: {
         Row: {
           created_at: string
@@ -2008,6 +2090,51 @@ export type Database = {
           },
         ]
       }
+      event_staff_reviews: {
+        Row: {
+          created_at: string
+          event_id: string
+          profile_id: string
+          rating: number | null
+          to_improve: string | null
+          updated_at: string
+          went_well: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          profile_id: string
+          rating?: number | null
+          to_improve?: string | null
+          updated_at?: string
+          went_well?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          profile_id?: string
+          rating?: number | null
+          to_improve?: string | null
+          updated_at?: string
+          went_well?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_staff_reviews_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_staff_reviews_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           cancel_reason: string | null
@@ -2031,12 +2158,24 @@ export type Database = {
           owner_id: string | null
           place_name: string | null
           postal_code: string | null
+          result_busiest: string | null
+          result_competitors: string | null
           result_contacts: number | null
+          result_materials: string | null
+          result_next_time: string | null
+          result_organiser_rating: number | null
+          result_public: string | null
           result_rating: number | null
           result_repeat: string | null
           result_samples: number | null
+          result_setup: string | null
+          result_staffing: string | null
+          result_stand: string | null
           result_summary: string | null
           result_visitors: number | null
+          result_weather: string | null
+          result_went_well: string | null
+          result_went_wrong: string | null
           stage: string
           start_date: string
           street: string | null
@@ -2064,12 +2203,24 @@ export type Database = {
           owner_id?: string | null
           place_name?: string | null
           postal_code?: string | null
+          result_busiest?: string | null
+          result_competitors?: string | null
           result_contacts?: number | null
+          result_materials?: string | null
+          result_next_time?: string | null
+          result_organiser_rating?: number | null
+          result_public?: string | null
           result_rating?: number | null
           result_repeat?: string | null
           result_samples?: number | null
+          result_setup?: string | null
+          result_staffing?: string | null
+          result_stand?: string | null
           result_summary?: string | null
           result_visitors?: number | null
+          result_weather?: string | null
+          result_went_well?: string | null
+          result_went_wrong?: string | null
           stage?: string
           start_date: string
           street?: string | null
@@ -2097,12 +2248,24 @@ export type Database = {
           owner_id?: string | null
           place_name?: string | null
           postal_code?: string | null
+          result_busiest?: string | null
+          result_competitors?: string | null
           result_contacts?: number | null
+          result_materials?: string | null
+          result_next_time?: string | null
+          result_organiser_rating?: number | null
+          result_public?: string | null
           result_rating?: number | null
           result_repeat?: string | null
           result_samples?: number | null
+          result_setup?: string | null
+          result_staffing?: string | null
+          result_stand?: string | null
           result_summary?: string | null
           result_visitors?: number | null
+          result_weather?: string | null
+          result_went_well?: string | null
+          result_went_wrong?: string | null
           stage?: string
           start_date?: string
           street?: string | null
@@ -12690,9 +12853,30 @@ export type Database = {
         Args: { p_date: string; p_event_id: string; p_method_id: string }
         Returns: undefined
       }
+      event_set_product_feedback: {
+        Args: { p_event_id: string; p_rows: Json }
+        Returns: undefined
+      }
       event_set_products: {
         Args: { p_event_id: string; p_lines: Json }
         Returns: undefined
+      }
+      event_staff_review_save: {
+        Args: {
+          p_event_id: string
+          p_rating: number
+          p_to_improve: string
+          p_went_well: string
+        }
+        Returns: undefined
+      }
+      event_staff_review_status: {
+        Args: { p_event_id: string }
+        Returns: {
+          answered: boolean
+          name: string
+          profile_id: string
+        }[]
       }
       event_staff_workers: {
         Args: never
@@ -13237,6 +13421,14 @@ export type Database = {
       my_event_material_tick: {
         Args: { p_field: string; p_id: string; p_value: boolean }
         Returns: undefined
+      }
+      my_event_reviews_due: {
+        Args: never
+        Returns: {
+          end_date: string
+          event_id: string
+          name: string
+        }[]
       }
       my_event_task_done: { Args: { p_id: string }; Returns: undefined }
       my_event_work: { Args: { p_from: string; p_to: string }; Returns: Json }

@@ -103,7 +103,7 @@ export function EventMaterials({
   };
 
   return (
-    <Card id="materials" className="p-3">
+    <Card id="materials" className="scroll-mt-20 p-3">
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <h2 className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">
           {t('event.materials')}

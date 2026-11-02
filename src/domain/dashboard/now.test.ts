@@ -26,6 +26,8 @@ const none: NowInput = {
   collectionFollowUps: 0,
   lateDeliveries: [],
   deliveriesSoon: [],
+  eventReviews: { count: 0, href: '/events' },
+  eventViews: { names: [], href: '/events' },
 };
 
 describe('buildNowItems', () => {

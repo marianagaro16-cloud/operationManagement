@@ -22,5 +22,25 @@ export async function getMyEvent(id: string): Promise<MyEvent | null> {
   const supabase = createClient();
   const { data, error } = await supabase.rpc('my_event', { p_event_id: id });
   if (error || !data) return null;
-  return data as unknown as MyEvent;
+  const event = data as unknown as Omit<MyEvent, 'review'>;
+  // Their own view of it, when they worked a shift: RLS returns only their own row.
+  let review: MyEvent['review'] = null;
+  if (event.shifts.length > 0) {
+    const { data: mine } = await supabase
+      .from('event_staff_reviews')
+      .select('rating, went_well, to_improve')
+      .eq('event_id', id)
+      .eq('profile_id', (await supabase.auth.getUser()).data.user?.id ?? '')
+      .maybeSingle();
+    review = mine ?? null;
+  }
+  return { ...event, review };
+}
+
+/** Done events the viewer worked a shift on and has not given their view of yet. */
+export async function getMyEventReviewsDue(): Promise<{ event_id: string; name: string; end_date: string }[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('my_event_reviews_due');
+  if (error) return [];
+  return data ?? [];
 }

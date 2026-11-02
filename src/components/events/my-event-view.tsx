@@ -12,6 +12,7 @@ import { timeRange } from '@/domain/sales/times';
 import { completeMyEventTask, tickMyMaterial } from '@/server/event-assignee-actions';
 import type { MyEvent } from '@/types/events';
 import { StageBadge, useEventLabels } from './event-parts';
+import { MyReviewCard } from './event-review';
 
 /**
  * An event for whoever was given something on it, outside Sales and
@@ -87,6 +88,8 @@ export function MyEventView({ event, today }: { event: MyEvent; today: string })
       </Card>
 
       <div className="space-y-4">
+        {/* Once done: their short view of how it went. */}
+        {event.stage === 'done' && event.shifts.length > 0 && <MyReviewCard eventId={event.id} review={event.review} />}
         {event.shifts.length > 0 && (
           <Card className="p-3">
             <h2 className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-wide text-muted">{t('event.myShifts')}</h2>

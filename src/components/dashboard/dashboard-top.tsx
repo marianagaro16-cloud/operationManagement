@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { DateTime } from 'luxon';
 import {
   AlertTriangle, ArrowDownRight, ArrowUpRight, Ban, Bell, Boxes, CalendarCheck, CalendarClock, CalendarOff, CheckCircle2, ChevronRight, ClipboardCheck,
-  ClipboardList, ListChecks, ListTodo, MapPin, Package, Receipt, Target, TrendingUp, Truck, Users, Zap,
+  ClipboardList, ListChecks, ListTodo, MapPin, MessageSquare, Package, Receipt, Star, Target, TrendingUp, Truck, Users, Zap,
 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -104,6 +104,8 @@ const NOW_ICON: Record<NowKind, typeof Zap> = {
   collectionFollowUps: Receipt,
   lateDeliveries: Truck,
   deliveriesSoon: Truck,
+  eventReviews: Star,
+  eventViews: MessageSquare,
 };
 
 /** What is late or due now, most urgent first. A clear day says so. */

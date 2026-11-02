@@ -50,6 +50,8 @@ export function useEventLabels() {
         case 'invalid_delivery': return t('event.errDelivery');
         case 'name_required': return t('event.errNameRequired');
         case 'invalid_results': return t('event.errResults');
+        case 'review_empty': return t('event.errReviewEmpty');
+        case 'event_not_done': return t('event.errNotDone');
         case 'body_required': return t('event.errNoteEmpty');
         case 'type_not_allowed':
         case 'invalid_file': return t('event.errFileGeneric');
