@@ -4641,6 +4641,13 @@ export const es: Messages = {
     bestBeforeShort: 'Cad.',
     totalUnits: 'Total unidades',
     totalKg: 'Total kilos',
+    whatToMake: 'Qué producir',
+    product: 'Producto',
+    units: 'Unidades',
+    kg: 'Kg',
+    bestBefore: 'Consumir antes de',
+    done: 'Hecho',
+    customerDetail: 'Detalle por cliente',
     section: {
       tortilla: 'Tortillas',
       masa: 'Masa',

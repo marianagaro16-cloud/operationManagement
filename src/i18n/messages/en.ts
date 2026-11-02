@@ -4673,6 +4673,13 @@ export const en = {
     bestBeforeShort: 'BB',
     totalUnits: 'Total units',
     totalKg: 'Total kg',
+    whatToMake: 'What to make',
+    product: 'Product',
+    units: 'Units',
+    kg: 'Kg',
+    bestBefore: 'Best before',
+    done: 'Done',
+    customerDetail: 'Per customer',
     section: {
       tortilla: 'Tortillas',
       masa: 'Masa',

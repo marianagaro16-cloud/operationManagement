@@ -4641,6 +4641,13 @@ export const de: Messages = {
     bestBeforeShort: 'MHD',
     totalUnits: 'Total Stück',
     totalKg: 'Total Kilo',
+    whatToMake: 'Was produzieren',
+    product: 'Produkt',
+    units: 'Stück',
+    kg: 'Kg',
+    bestBefore: 'MHD',
+    done: 'Erledigt',
+    customerDetail: 'Pro Kunde',
     section: {
       tortilla: 'Tortillas',
       masa: 'Masa',
