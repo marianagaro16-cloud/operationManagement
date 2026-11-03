@@ -1313,6 +1313,7 @@ export const en = {
     presentation: 'Presentation',
     category: 'Category',
     notes: 'Notes',
+    description: 'Description',
     slug: 'Key',
     needsReview: 'Needs review',
     needsReviewHint: 'Imported with a conflicting or missing code',

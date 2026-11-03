@@ -9100,6 +9100,7 @@ export type Database = {
           category_id: string | null
           code: string | null
           created_at: string
+          description: string | null
           family: string
           gross_weight_kg: number | null
           gross_weight_suggested: boolean
@@ -9121,6 +9122,7 @@ export type Database = {
           category_id?: string | null
           code?: string | null
           created_at?: string
+          description?: string | null
           family: string
           gross_weight_kg?: number | null
           gross_weight_suggested?: boolean
@@ -9142,6 +9144,7 @@ export type Database = {
           category_id?: string | null
           code?: string | null
           created_at?: string
+          description?: string | null
           family?: string
           gross_weight_kg?: number | null
           gross_weight_suggested?: boolean

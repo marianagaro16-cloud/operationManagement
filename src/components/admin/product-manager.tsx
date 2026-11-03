@@ -339,6 +339,7 @@ function ProductDialog({
   );
   const [brandId, setBrandId] = useState(product?.brand_id ?? '');
   const [notes, setNotes] = useState(product?.notes ?? '');
+  const [description, setDescription] = useState(product?.description ?? '');
   const [unitsPerBox, setUnitsPerBox] = useState(
     product?.units_per_box === null || product?.units_per_box === undefined
       ? ''
@@ -387,6 +388,7 @@ function ProductDialog({
           category_id: categoryId || null,
           subcategory_id: categoryId ? subcategoryId || null : null,
           notes: notes.trim() || null,
+          description: description.trim() || null,
           // An empty field is NULL, which says "no reliable conversion" and is
           // a real answer — the importer asks rather than assuming.
           units_per_box: unitsPerBox.trim() ? Number(unitsPerBox) : null,
@@ -541,6 +543,10 @@ function ProductDialog({
             <p className="mt-1 text-[12px] text-late">{t('master.grossBelowNet', { net: Number(netWeight) })}</p>
           )}
         </WeightField>
+
+        <Field label={t('master.description')} htmlFor="p-description">
+          <NoteTextarea id="p-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={4000} />
+        </Field>
 
         <Field label={t('master.notes')} htmlFor="p-notes">
           <NoteTextarea id="p-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />

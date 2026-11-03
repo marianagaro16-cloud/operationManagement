@@ -1291,6 +1291,7 @@ export const de: Messages = {
     presentation: 'Gebinde',
     category: 'Kategorie',
     notes: 'Notizen',
+    description: 'Beschreibung',
     slug: 'Schlüssel',
     needsReview: 'Prüfung nötig',
     needsReviewHint: 'Mit fehlendem oder doppeltem Code importiert',

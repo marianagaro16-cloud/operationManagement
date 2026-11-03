@@ -560,6 +560,7 @@ const productSchema = z.object({
   presentation: z.string().trim().min(1),
   category: z.string().trim().nullable(),
   notes: z.string().trim().nullable(),
+  description: z.string().trim().max(4000).nullable().optional(),
   /**
    * Order units per shipping box. NULL means the conversion is unknown, and
    * the importer must then ask rather than assume — so an empty field here is

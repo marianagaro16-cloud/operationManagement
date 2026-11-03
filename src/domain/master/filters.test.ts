@@ -17,7 +17,7 @@ const customer = (over: Partial<Customer>): Customer => ({
 });
 
 const product = (over: Partial<Product>): Product => ({
-  id: 'p', code: null, name: null, family: '', presentation: '', category: null, notes: null,
+  id: 'p', code: null, name: null, family: '', presentation: '', category: null, notes: null, description: null,
   units_per_box: null, net_weight_kg: 1, net_weight_suggested: false, gross_weight_kg: 1, gross_weight_suggested: false,
   brand_id: null, category_id: null, subcategory_id: null, needs_review: false, is_active: true, ...over,
 });

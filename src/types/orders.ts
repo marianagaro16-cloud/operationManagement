@@ -203,6 +203,8 @@ export interface Product {
   presentation: string;
   category: string | null;
   notes: string | null;
+  /** The product description, plain text with line breaks (from bexio, then kept here). */
+  description: string | null;
   /**
    * Order units (packages of the presentation) per shipping box.
    *

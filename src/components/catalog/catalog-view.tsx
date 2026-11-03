@@ -9,7 +9,7 @@ import { Badge, Card, EmptyState, Input } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/shell/app-shell';
 import { filterByQuery } from '@/lib/search';
 
-type Product = { id: string; name: string; code: string | null; detail: string | null; brand: string | null };
+type Product = { id: string; name: string; code: string | null; detail: string | null; description: string | null; brand: string | null };
 type Customer = { id: string; name: string; addition: string | null; city: string | null; website: string | null; type: { slug: string; name: string } | null };
 
 /** Products by brand and customers by name: read-only, searchable. */
@@ -23,7 +23,7 @@ export function CatalogView({ tab, products, customers }: { tab: 'products' | 'c
     return label === key ? type.name : label;
   };
 
-  const shownProducts = filterByQuery(products, query, (p) => [p.name, p.code ?? '', p.brand ?? '', p.detail ?? ''].join(' '));
+  const shownProducts = filterByQuery(products, query, (p) => [p.name, p.code ?? '', p.brand ?? '', p.detail ?? '', p.description ?? ''].join(' '));
   const shownCustomers = filterByQuery(customers, query, (c) => [c.name, c.addition ?? '', c.city ?? ''].join(' '));
   // Products grouped by brand, brands in name order, those without one last.
   const brands = [...new Set(shownProducts.map((p) => p.brand ?? ''))].sort((a, b) => (a ? (b ? a.localeCompare(b) : -1) : 1));
@@ -67,6 +67,7 @@ export function CatalogView({ tab, products, customers }: { tab: 'products' | 'c
                       <div key={p.id} className="px-3.5 py-2">
                         <p className="text-[13.5px] font-medium">{p.name}</p>
                         {(p.code || p.detail) && <p className="text-[12px] text-muted">{[p.code, p.detail].filter(Boolean).join(' · ')}</p>}
+                        {p.description && <p className="mt-0.5 whitespace-pre-line text-[12px] text-fg/80">{p.description}</p>}
                       </div>
                     ))}
                 </Card>

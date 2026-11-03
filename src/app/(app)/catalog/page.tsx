@@ -16,7 +16,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: { ta
   const [{ data: products }, { data: customers }] = await Promise.all([
     supabase
       .from('products')
-      .select('id, name, code, presentation, category, brand:brands ( name )')
+      .select('id, name, code, presentation, category, description, brand:brands ( name )')
       .eq('is_active', true)
       .order('name'),
     supabase
@@ -29,11 +29,12 @@ export default async function CatalogPage({ searchParams }: { searchParams: { ta
   return (
     <CatalogView
       tab={tab}
-      products={((products ?? []) as unknown as { id: string; name: string; code: string | null; presentation: string | null; category: string | null; brand: { name: string } | null }[]).map((p) => ({
+      products={((products ?? []) as unknown as { id: string; name: string; code: string | null; presentation: string | null; category: string | null; description: string | null; brand: { name: string } | null }[]).map((p) => ({
         id: p.id,
         name: p.name,
         code: p.code,
         detail: [p.presentation, p.category].filter(Boolean).join(' · ') || null,
+        description: p.description,
         brand: p.brand?.name ?? null,
       }))}
       customers={((customers ?? []) as unknown as { id: string; company_name: string; company_name_addition: string | null; city: string | null; website: string | null; customer_type: { slug: string; name: string } | null }[]).map((c) => ({

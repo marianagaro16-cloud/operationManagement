@@ -1291,6 +1291,7 @@ export const es: Messages = {
     presentation: 'Presentación',
     category: 'Categoría',
     notes: 'Notas',
+    description: 'Descripción',
     slug: 'Clave',
     needsReview: 'Requiere revisión',
     needsReviewHint: 'Importado con un código ausente o repetido',
