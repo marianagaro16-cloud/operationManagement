@@ -45,13 +45,54 @@ import type {
 
 const LIST_SELECT = `
   id, template_id, inventory_date, iso_week, iso_year, period_key,
-  name_snapshot, kind, digital_enabled, status, completed_at, completed_by,
+  name_snapshot, kind, digital_enabled, completed_at, completed_by,
   created_at, updated_at,
   template:inventory_templates ( id, slug, name, translations ),
   assignments:inventory_assignments ( user:profiles!inventory_assignments_user_id_fkey ( id, name, email ) ),
-  completed_by_profile:profiles!inventory_instances_completed_by_fkey ( id, name, email ),
-  items:inventory_instance_items ( id, status, digital_quantity )
+  completed_by_profile:profiles!inventory_instances_completed_by_fkey ( id, name, email )
 `;
+
+/*
+ * The status and everything worked out from Inventory Digital are not
+ * readable from the tables: they come from inventory_review_summary /
+ * inventory_review_items, which blank them for whoever counted the inventory
+ * (20270211090000). For that person it is a plain count — no digital figure,
+ * no difference, no "to review".
+ */
+interface ReviewSummary {
+  instance_id: string;
+  status: InventoryStatus;
+  digital_hidden: boolean;
+  item_count: number;
+  review_count: number;
+  resolved_count: number;
+  digital_pending_count: number;
+}
+
+async function reviewSummaries(ids: string[]): Promise<Map<string, ReviewSummary>> {
+  const out = new Map<string, ReviewSummary>();
+  if (ids.length === 0) return out;
+  const supabase = createClient();
+  // Chunked so a long report period never builds one enormous call.
+  for (let i = 0; i < ids.length; i += 500) {
+    const { data, error } = await supabase.rpc('inventory_review_summary', {
+      p_instance_ids: ids.slice(i, i + 500),
+    });
+    if (error) throw new Error(error.message);
+    for (const r of (data ?? []) as ReviewSummary[]) out.set(r.instance_id, r);
+  }
+  return out;
+}
+
+/** What a row the summary did not answer for shows: nothing of the digital side. */
+const NO_SUMMARY: Omit<ReviewSummary, 'instance_id'> = {
+  status: 'in_progress',
+  digital_hidden: true,
+  item_count: 0,
+  review_count: 0,
+  resolved_count: 0,
+  digital_pending_count: 0,
+};
 
 export interface InventoryFilters {
   templateId?: string;
@@ -69,26 +110,25 @@ export interface InventoryFilters {
   offset?: number;
 }
 
-interface RawListRow extends InventoryInstance {
+interface RawListRow extends Omit<InventoryInstance, 'status'> {
   template: InventoryListRow['template'];
   assignments: { user: { id: string; name: string | null; email: string } | null }[] | null;
   completed_by_profile: InventoryListRow['completed_by_profile'];
-  items: { id: string; status: InventoryStatus; digital_quantity: number | null }[] | null;
 }
 
-function shapeListRow(row: RawListRow): InventoryListRow {
-  const items = row.items ?? [];
+function shapeListRow(row: RawListRow, summary: ReviewSummary | undefined): InventoryListRow {
+  const s = summary ?? { instance_id: row.id, ...NO_SUMMARY };
   return {
     ...row,
+    status: s.status,
+    // For the counter the template simply has no Inventory Digital.
+    digital_enabled: row.digital_enabled && !s.digital_hidden,
     assignees: (row.assignments ?? [])
       .map((a) => a.user)
       .filter((u): u is NonNullable<typeof u> => u !== null),
-    item_count: items.length,
-    review_count: items.filter((i) => i.status === 'to_review').length,
-    // Only meaningful when the template uses Inventory Digital at all.
-    digital_pending_count: row.digital_enabled
-      ? items.filter((i) => i.digital_quantity === null).length
-      : 0,
+    item_count: s.item_count,
+    review_count: s.review_count,
+    digital_pending_count: s.digital_pending_count,
   };
 }
 
@@ -117,14 +157,34 @@ export async function getInventories(
       )
     : LIST_SELECT;
 
+  // A status filter means the status as this person sees it, which only the
+  // database can answer: it hands back the page of ids, already filtered.
+  let statusPage: { ids: string[]; total: number } | null = null;
+  if (filters.status) {
+    const { data: page, error: pageError } = await supabase.rpc('inventory_ids_by_status', {
+      p_status: filters.status,
+      p_template_id: filters.templateId,
+      p_iso_week: filters.isoWeek,
+      p_iso_year: filters.isoYear,
+      p_from: filters.from,
+      p_to: filters.to,
+      p_assigned_user: filters.assignedUserId,
+      p_limit: limit,
+      p_offset: offset,
+    });
+    if (pageError) throw new Error(pageError.message);
+    const pageRows = (page ?? []) as { id: string; total: number }[];
+    statusPage = { ids: pageRows.map((r) => r.id), total: Number(pageRows[0]?.total ?? 0) };
+    if (statusPage.ids.length === 0) return { rows: [], total: statusPage.total };
+  }
+
   let query = supabase
     .from('inventory_instances')
     .select(select, { count: 'exact' })
-    .order('inventory_date', { ascending: false })
-    .range(offset, offset + limit - 1);
+    .order('inventory_date', { ascending: false });
+  query = statusPage ? query.in('id', statusPage.ids) : query.range(offset, offset + limit - 1);
 
   if (filters.templateId) query = query.eq('template_id', filters.templateId);
-  if (filters.status) query = query.eq('status', filters.status);
   if (filters.isoWeek) query = query.eq('iso_week', filters.isoWeek);
   if (filters.isoYear) query = query.eq('iso_year', filters.isoYear);
   if (filters.from) query = query.gte('inventory_date', filters.from);
@@ -136,7 +196,9 @@ export async function getInventories(
   const { data, error, count } = await query;
   if (error) throw new Error(error.message);
 
-  let rows = ((data ?? []) as unknown as RawListRow[]).map(shapeListRow);
+  const raw = (data ?? []) as unknown as RawListRow[];
+  const summaries = await reviewSummaries(raw.map((r) => r.id));
+  let rows = raw.map((r) => shapeListRow(r, summaries.get(r.id)));
 
   // Applied after shaping because both are aggregates over the child rows the
   // query already returned; re-querying to express them in SQL would cost a
@@ -144,7 +206,7 @@ export async function getInventories(
   if (filters.digitalPending) rows = rows.filter((r) => r.digital_pending_count > 0);
   if (filters.needsReview) rows = rows.filter((r) => r.review_count > 0);
 
-  return { rows, total: count ?? rows.length };
+  return { rows, total: statusPage?.total ?? count ?? rows.length };
 }
 
 /** Today's and the next `days` inventories — the operator's working view. */
@@ -188,8 +250,7 @@ export async function getInventoryDashboard(days = 14): Promise<{
 
 const DETAIL_ITEM_SELECT = `
   id, instance_id, template_item_id, item_name, item_translations, item_group, item_sort_order,
-  product_id, physical_stock, digital_quantity, difference, status,
-  is_resolved, resolved_at, resolved_by, counted_at, counted_by, created_at, updated_at,
+  product_id, physical_stock, counted_at, counted_by, created_at, updated_at,
   counted_by_profile:profiles!inventory_instance_items_counted_by_fkey ( id, name, email ),
   entries:inventory_entries (
     id, instance_item_id, instance_id, quantity, expiry_date, lot_number,
@@ -212,6 +273,19 @@ const DETAIL_ITEM_SELECT = `
   )
 `;
 
+type ReviewField =
+  | 'status' | 'digital_quantity' | 'difference' | 'is_resolved' | 'resolved_at' | 'resolved_by';
+
+/** A product line the review did not answer for: nothing of the digital side. */
+const HIDDEN_REVIEW: Pick<InventoryItemDetail, ReviewField> = {
+  status: 'in_progress',
+  digital_quantity: null,
+  difference: null,
+  is_resolved: false,
+  resolved_at: null,
+  resolved_by: null,
+};
+
 export async function getInventoryDetail(instanceId: string): Promise<InventoryDetail | null> {
   const supabase = createClient();
   const viewer = await getViewer();
@@ -221,7 +295,7 @@ export async function getInventoryDetail(instanceId: string): Promise<InventoryD
     .from('inventory_instances')
     .select(`
       id, template_id, inventory_date, iso_week, iso_year, period_key,
-      name_snapshot, kind, digital_enabled, status, completed_at, completed_by,
+      name_snapshot, kind, digital_enabled, completed_at, completed_by,
       created_at, updated_at,
       template:inventory_templates ( * ),
       assignments:inventory_assignments ( user:profiles!inventory_assignments_user_id_fkey ( id, name, email ) ),
@@ -235,13 +309,26 @@ export async function getInventoryDetail(instanceId: string): Promise<InventoryD
   if (error) throw new Error(error.message);
   if (!data) return null;
 
-  const raw = data as unknown as InventoryInstance & {
+  const raw = data as unknown as Omit<InventoryInstance, 'status'> & {
     template: InventoryTemplate | null;
     assignments: { user: { id: string; name: string | null; email: string } | null }[] | null;
     completed_by_profile: InventoryDetail['completed_by_profile'];
-    items: InventoryItemDetail[] | null;
+    items: Omit<InventoryItemDetail, ReviewField>[] | null;
     comments: InventoryDetail['general_comments'] | null;
   };
+
+  // The reconciliation side, as this person may see it — blank for the counter.
+  const [summaries, review] = await Promise.all([
+    reviewSummaries([instanceId]),
+    supabase.rpc('inventory_review_items', { p_instance_id: instanceId }),
+  ]);
+  if (review.error) throw new Error(review.error.message);
+  const summary = summaries.get(instanceId) ?? { instance_id: instanceId, ...NO_SUMMARY };
+  const reviewById = new Map(
+    ((review.data ?? []) as ({ item_id: string } & Pick<InventoryItemDetail, ReviewField>)[]).map(
+      ({ item_id, ...r }) => [item_id, r] as const,
+    ),
+  );
 
   // The one authority on whether this user may write: the same SECURITY
   // DEFINER function the RLS policies call. Recomputing the rule in
@@ -272,11 +359,16 @@ export async function getInventoryDetail(instanceId: string): Promise<InventoryD
     .sort((a, b) => a.item_sort_order - b.item_sort_order || a.item_name.localeCompare(b.item_name))
     .map((item) => ({
       ...item,
+      ...(reviewById.get(item.id) ?? HIDDEN_REVIEW),
       entries: (item.entries ?? []).slice().sort((a, b) => a.position - b.position),
     }));
 
   return {
     ...raw,
+    status: summary.status,
+    // For the counter the template simply has no Inventory Digital.
+    digital_enabled: raw.digital_enabled && !summary.digital_hidden,
+    digital_hidden: summary.digital_hidden,
     template: raw.template,
     assignees,
     items,
@@ -425,10 +517,7 @@ export async function getInventoryReport(
 
   const { data, error } = await supabase
     .from('inventory_instances')
-    .select(`
-      id, template_id, status, digital_enabled, name_snapshot,
-      items:inventory_instance_items ( status, digital_quantity, is_resolved )
-    `)
+    .select('id, template_id, name_snapshot')
     .gte('inventory_date', from)
     .lte('inventory_date', to);
 
@@ -445,20 +534,17 @@ export async function getInventoryReport(
   let resolvedDifferences = 0;
   const byTemplate = new Map<string, { templateId: string; name: string; count: number; reviews: number }>();
 
-  for (const row of (data ?? []) as unknown as {
-    id: string;
-    template_id: string;
-    status: InventoryStatus;
-    digital_enabled: boolean;
-    name_snapshot: string;
-    items: { status: InventoryStatus; digital_quantity: number | null; is_resolved: boolean }[] | null;
-  }[]) {
-    totals[row.status] += 1;
-    const items = row.items ?? [];
-    const reviews = items.filter((i) => i.status === 'to_review').length;
+  const rows = (data ?? []) as { id: string; template_id: string; name_snapshot: string }[];
+  const summaries = await reviewSummaries(rows.map((r) => r.id));
+
+  for (const row of rows) {
+    const s = summaries.get(row.id);
+    if (!s) continue;
+    totals[s.status] += 1;
+    const reviews = s.review_count;
     unresolvedDifferences += reviews;
-    resolvedDifferences += items.filter((i) => i.is_resolved).length;
-    if (row.digital_enabled && items.some((i) => i.digital_quantity === null)) digitalPending += 1;
+    resolvedDifferences += s.resolved_count;
+    if (s.digital_pending_count > 0) digitalPending += 1;
 
     const entry = byTemplate.get(row.template_id) ?? {
       templateId: row.template_id,

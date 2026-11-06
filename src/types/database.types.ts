@@ -13142,6 +13142,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      inventory_digital_hidden: {
+        Args: { p_instance_id: string }
+        Returns: boolean
+      }
       inventory_edit_deadline: { Args: { p_date: string }; Returns: string }
       inventory_grant_edit: {
         Args: {
@@ -13172,6 +13176,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      inventory_ids_by_status: {
+        Args: {
+          p_assigned_user?: string
+          p_from?: string
+          p_iso_week?: number
+          p_iso_year?: number
+          p_limit?: number
+          p_offset?: number
+          p_status: Database["public"]["Enums"]["inventory_status"]
+          p_template_id?: string
+          p_to?: string
+        }
+        Returns: {
+          id: string
+          total: number
+        }[]
+      }
       inventory_instance_exists: {
         Args: { p_instance_id: string }
         Returns: boolean
@@ -13182,6 +13203,7 @@ export type Database = {
         Returns: undefined
       }
       inventory_own_only: { Args: never; Returns: boolean }
+      inventory_readable: { Args: { p_instance_id: string }; Returns: boolean }
       inventory_reopen: {
         Args: { p_instance_id: string }
         Returns: {
@@ -13237,6 +13259,30 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      inventory_review_items: {
+        Args: { p_instance_id: string }
+        Returns: {
+          difference: number
+          digital_quantity: number
+          is_resolved: boolean
+          item_id: string
+          resolved_at: string
+          resolved_by: string
+          status: Database["public"]["Enums"]["inventory_status"]
+        }[]
+      }
+      inventory_review_summary: {
+        Args: { p_instance_ids: string[] }
+        Returns: {
+          digital_hidden: boolean
+          digital_pending_count: number
+          instance_id: string
+          item_count: number
+          resolved_count: number
+          review_count: number
+          status: Database["public"]["Enums"]["inventory_status"]
+        }[]
       }
       inventory_revoke_grant: {
         Args: { p_grant_id: string }

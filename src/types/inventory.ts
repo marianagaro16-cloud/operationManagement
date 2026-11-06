@@ -227,6 +227,12 @@ export interface InventoryDetail extends InventoryInstance {
   /** Why editing is closed, so the screen can say so rather than just grey out. */
   lock_reason: 'none' | 'not_assigned' | 'past_deadline' | 'completed' | 'not_approved';
   active_grant: InventoryEditGrant | null;
+  /**
+   * The viewer counts (or counted) this inventory: Inventory Digital and
+   * everything worked out from it is kept from them, and `digital_enabled`
+   * reads false. Decided by the database.
+   */
+  digital_hidden: boolean;
 }
 
 export type {

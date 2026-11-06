@@ -218,9 +218,11 @@ export async function getMaterialLots(today: string): Promise<Record<string, { l
   const { data, error } = await supabase
     .from('inventory_entries')
     // Entries reach their count through the count's item.
-    .select('lot_number, quantity, item:inventory_instance_items!inner ( template_item_id, instance:inventory_instances!inner ( inventory_date, status, template:inventory_templates!inner ( slug ) ) )')
+    .select('lot_number, quantity, item:inventory_instance_items!inner ( template_item_id, instance:inventory_instances!inner ( inventory_date, completed_at, template:inventory_templates!inner ( slug ) ) )')
     .eq('item.instance.template.slug', 'materia-prima')
-    .eq('item.instance.status', 'completed')
+    // Closed counts. Materia Prima has no Inventory Digital, so closed is completed —
+    // and the stored status is not readable from the table (20270211090000).
+    .not('item.instance.completed_at', 'is', null)
     .gte('item.instance.inventory_date', addDays(today, -365))
     .not('lot_number', 'is', null);
   if (error) throw new Error(error.message);
