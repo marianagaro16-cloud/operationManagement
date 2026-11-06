@@ -121,6 +121,19 @@ export function AppShell({
   const external = isExternal(role, profile.team as Team);
   const marketing = isMarketing(profile.team as Team);
 
+  // The team entry's tabs: absences for everyone, the rest only for whom it applies.
+  const peopleTabs = [
+    { href: '/absences', label: t('absence.navLabel'), icon: CalendarOff },
+    // Evaluations this person was asked to fill in about others — only for someone who was ever asked.
+    ...(evaluations.total > 0 ? [{ href: '/evaluations', label: t('hrEval.mine'), icon: ClipboardCheck, badge: evaluations.pending }] : []),
+    // Worker files are about people, not configuration.
+    ...(can(role, held, 'hr.manage') ? [{ href: '/hr', label: t('hr.navLabel'), icon: UserRound }] : []),
+    // The weekly work schedule: Admin and Owners make it, the Production manager reads it.
+    ...(canReadSchedule(role) ? [{ href: '/schedule', label: t('schedule.navLabel'), icon: CalendarClock }] : []),
+  ];
+  // Someone with only their absences there sees it named for what it is, not "Personas".
+  const absencesOnly = peopleTabs.length === 1;
+
   const allNav: NavItem[] = [
     // ---- my day ----
     { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, primary: true, group: 'day' },
@@ -227,7 +240,9 @@ export function AppShell({
 
     // ---- the team ----
     // One entry; absences, evaluations and worker files are its tabs.
-    { href: '/absences', label: t('nav.people'), icon: Users, primary: false, badge: evaluations.pending, group: 'team' },
+    absencesOnly
+      ? { href: '/absences', label: t('absence.navLabel'), icon: CalendarOff, primary: false, group: 'team' }
+      : { href: '/absences', label: t('nav.people'), icon: Users, primary: false, badge: evaluations.pending, group: 'team' },
 
     // ---- management ----
     // Opens at power_user, or to whoever holds a permission one of its
@@ -261,15 +276,7 @@ export function AppShell({
       { href: '/reminders', label: t('reminder.navLabel'), icon: BellRing, badge: reminderAttention },
       { href: '/meetings', label: t('meeting.navLabel'), icon: Users },
     ],
-    '/absences': [
-      { href: '/absences', label: t('absence.navLabel'), icon: CalendarOff },
-      // Evaluations this person was asked to fill in about others — only for someone who was ever asked.
-      ...(evaluations.total > 0 ? [{ href: '/evaluations', label: t('hrEval.mine'), icon: ClipboardCheck, badge: evaluations.pending }] : []),
-      // Worker files are about people, not configuration.
-      ...(can(role, held, 'hr.manage') ? [{ href: '/hr', label: t('hr.navLabel'), icon: UserRound }] : []),
-      // The weekly work schedule: Admin and Owners make it, the Production manager reads it.
-      ...(canReadSchedule(role) ? [{ href: '/schedule', label: t('schedule.navLabel'), icon: CalendarClock }] : []),
-    ],
+    '/absences': peopleTabs,
   };
   const under = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const active = (href: string) =>
