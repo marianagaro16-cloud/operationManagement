@@ -5782,6 +5782,9 @@ export type Database = {
           item_translations: Json
           physical_stock: number
           product_id: string | null
+          recount_notified_at: string | null
+          recount_requested_at: string | null
+          recount_requested_by: string | null
           resolved_at: string | null
           resolved_by: string | null
           status: Database["public"]["Enums"]["inventory_status"]
@@ -5803,6 +5806,9 @@ export type Database = {
           item_translations?: Json
           physical_stock?: number
           product_id?: string | null
+          recount_notified_at?: string | null
+          recount_requested_at?: string | null
+          recount_requested_by?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           status?: Database["public"]["Enums"]["inventory_status"]
@@ -5824,6 +5830,9 @@ export type Database = {
           item_translations?: Json
           physical_stock?: number
           product_id?: string | null
+          recount_notified_at?: string | null
+          recount_requested_at?: string | null
+          recount_requested_by?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           status?: Database["public"]["Enums"]["inventory_status"]
@@ -5857,6 +5866,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_instance_items_recount_requested_by_fkey"
+            columns: ["recount_requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -13116,6 +13132,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["team"]
       }
       inventory_can_edit: { Args: { p_instance_id: string }; Returns: boolean }
+      inventory_can_edit_item: { Args: { p_item_id: string }; Returns: boolean }
       inventory_complete: {
         Args: { p_instance_id: string }
         Returns: {
@@ -13204,6 +13221,10 @@ export type Database = {
       }
       inventory_own_only: { Args: never; Returns: boolean }
       inventory_readable: { Args: { p_instance_id: string }; Returns: boolean }
+      inventory_recount_item_ids: {
+        Args: { p_instance_id: string }
+        Returns: string[]
+      }
       inventory_reopen: {
         Args: { p_instance_id: string }
         Returns: {
@@ -13247,6 +13268,9 @@ export type Database = {
           item_translations: Json
           physical_stock: number
           product_id: string | null
+          recount_notified_at: string | null
+          recount_requested_at: string | null
+          recount_requested_by: string | null
           resolved_at: string | null
           resolved_by: string | null
           status: Database["public"]["Enums"]["inventory_status"]
@@ -13323,6 +13347,9 @@ export type Database = {
           item_translations: Json
           physical_stock: number
           product_id: string | null
+          recount_notified_at: string | null
+          recount_requested_at: string | null
+          recount_requested_by: string | null
           resolved_at: string | null
           resolved_by: string | null
           status: Database["public"]["Enums"]["inventory_status"]

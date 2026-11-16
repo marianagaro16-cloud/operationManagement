@@ -58,6 +58,7 @@ export function InventoryDetailView({
   const [commentOpen, setCommentOpen] = useState(false);
 
   const canEdit = detail.can_edit;
+  const recountIds = useMemo(() => new Set(detail.recount_item_ids), [detail.recount_item_ids]);
   const doneCount = detail.items.filter((i) => i.counted_at).length;
   const notDoneCount = detail.items.length - doneCount;
   const shelfLifeMonths = detail.template?.short_shelf_life_months ?? null;
@@ -186,7 +187,8 @@ export function InventoryDetailView({
       </Card>
 
       {/* --------------------------- lock notice --------------------------- */}
-      {!canEdit && <LockNotice reason={detail.lock_reason} />}
+      {!canEdit && recountIds.size > 0 && <RecountNotice count={recountIds.size} />}
+      {!canEdit && recountIds.size === 0 && <LockNotice reason={detail.lock_reason} />}
       {canEdit && !detail.completed_at && (
         <DeadlineNotice
           inventoryDate={detail.inventory_date}
@@ -278,7 +280,7 @@ export function InventoryDetailView({
               kind={detail.kind}
               digitalEnabled={detail.digital_enabled}
               locations={locations}
-              canEdit={canEdit}
+              canEdit={canEdit || recountIds.has(item.id)}
               canManage={canManage}
             />
           ))}
@@ -334,6 +336,20 @@ export function InventoryDetailView({
         itemId={null}
         hint={t('inventory.generalCommentHint')}
       />
+    </div>
+  );
+}
+
+/** Products reopened for a recount: those, and only those, can be counted again. */
+function RecountNotice({ count }: { count: number }) {
+  const { t } = useI18n();
+  return (
+    <div className="mb-4 rounded-lg border border-accent/25 bg-accent/5 px-3.5 py-2.5 text-[12.5px] text-fg">
+      <p className="flex items-center gap-1.5 font-medium">
+        <RotateCcw className="h-3.5 w-3.5 text-accent" aria-hidden />
+        {t('inventory.recountTitle', { count })}
+      </p>
+      <p className="mt-0.5 text-muted">{t('inventory.recountBody')}</p>
     </div>
   );
 }

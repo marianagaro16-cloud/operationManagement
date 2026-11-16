@@ -1415,6 +1415,8 @@ export const de: Messages = {
     lockNotAssigned: 'Du bist dieser Inventur nicht zugewiesen und kannst sie daher ansehen, aber nicht ändern.',
     lockPastDeadline: 'Das Bearbeitungsfenster endete um 18:00 Uhr am Tag der Inventur. Bitte einen Administrator um temporären Zugriff.',
     lockCompleted: 'Diese Inventur ist abgeschlossen. Ein Administrator kann sie wieder öffnen.',
+    recountTitle: '{count} Produkte zum erneuten Zählen geöffnet',
+    recountBody: 'Du kannst nur diese Produkte ändern. Wenn du eines fertig hast, markiere es als erledigt – dann ist es wieder gesperrt.',
     deadlineAt: 'Bearbeitung heute bis 18:00 Uhr möglich',
     deadlineMinutes: 'Noch {minutes} Minuten zum Bearbeiten',
     grantActive: 'Du hast temporäre Bearbeitungsrechte bis {time}',

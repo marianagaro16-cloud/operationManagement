@@ -336,6 +336,11 @@ export async function getInventoryDetail(instanceId: string): Promise<InventoryD
   const { data: canEdit } = await supabase.rpc('inventory_can_edit', {
     p_instance_id: instanceId,
   });
+  // Products reopened for a recount stay open to the assignees on any day,
+  // even when the inventory itself is closed. Same authority as above.
+  const { data: recountIds } = canEdit
+    ? { data: [] as string[] }
+    : await supabase.rpc('inventory_recount_item_ids', { p_instance_id: instanceId });
 
   const assignees = (raw.assignments ?? [])
     .map((a) => a.user)
@@ -375,6 +380,7 @@ export async function getInventoryDetail(instanceId: string): Promise<InventoryD
     // Comments with no item attached are the inventory-level thread.
     general_comments: (raw.comments ?? []).filter((c) => c.instance_item_id === null),
     can_edit: Boolean(canEdit),
+    recount_item_ids: (recountIds ?? []) as string[],
     lock_reason: lockReason({
       canEdit: Boolean(canEdit),
       canManage: viewer?.can('inventory.manage_instances') ?? false,

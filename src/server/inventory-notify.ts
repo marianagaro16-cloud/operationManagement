@@ -152,7 +152,74 @@ export async function runInventoryNotifications(now: Date = new Date()): Promise
     if (!alreadySent.has(`${row.id}:short_shelf_life_commercial`)) sent += await shareShortShelfLife(row.id);
   }
 
+  sent += await notifyRecounts(now);
+
   return { considered: inventories.length, sent };
+}
+
+/** Quiet time after the last reopen, so a run of reopens makes one notice. */
+const RECOUNT_SETTLE_MS = 5 * 60 * 1000;
+
+/**
+ * Products reopened for a recount, told to the inventory's assignees: one
+ * notice per inventory (decided 2026-11-16), once the reopening has settled.
+ * Says how many, never who reopened them or why — the digital side stays out
+ * of the counter's sight.
+ */
+async function notifyRecounts(now: Date): Promise<number> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('inventory_instance_items')
+    .select('id, instance_id, recount_requested_at, instance:inventory_instances!inner ( name_snapshot, iso_week, assignments:inventory_assignments ( user_id ) )')
+    .not('recount_requested_at', 'is', null)
+    .is('recount_notified_at', null);
+  if (error || !data?.length) return 0;
+
+  type Row = {
+    id: string;
+    instance_id: string;
+    recount_requested_at: string;
+    instance: { name_snapshot: string; iso_week: number; assignments: { user_id: string }[] | null };
+  };
+  const byInstance = new Map<string, Row[]>();
+  for (const row of data as unknown as Row[]) {
+    byInstance.set(row.instance_id, [...(byInstance.get(row.instance_id) ?? []), row]);
+  }
+
+  let sent = 0;
+  for (const [instanceId, rows] of byInstance) {
+    const latest = Math.max(...rows.map((r) => new Date(r.recount_requested_at).getTime()));
+    if (now.getTime() - latest < RECOUNT_SETTLE_MS) continue;
+    const userIds = [...new Set((rows[0].instance.assignments ?? []).map((a) => a.user_id))];
+    if (userIds.length === 0) continue;
+
+    // Claim before sending, as everywhere else: a concurrent run gets nothing.
+    const stamp = now.toISOString();
+    const { data: claimed } = await admin
+      .from('inventory_instance_items')
+      .update({ recount_notified_at: stamp })
+      .in('id', rows.map((r) => r.id))
+      .is('recount_notified_at', null)
+      .select('id');
+    const ids = ((claimed ?? []) as { id: string }[]).map((r) => r.id);
+    if (ids.length === 0) continue;
+
+    const { name_snapshot, iso_week } = rows[0].instance;
+    const recipients = await sendToUsers(userIds, {
+      title: name_snapshot,
+      body: `${ids.length} ${ids.length === 1 ? 'producto reabierto' : 'productos reabiertos'} para volver a contar · KW ${iso_week}`,
+      tag: `inventory-recount-${instanceId}`,
+      url: `/inventory/${instanceId}`,
+    });
+
+    if (recipients === 0) {
+      // Nobody reachable yet: release, so it can still go out later.
+      await admin.from('inventory_instance_items').update({ recount_notified_at: null }).in('id', ids);
+      continue;
+    }
+    sent += recipients;
+  }
+  return sent;
 }
 
 /**

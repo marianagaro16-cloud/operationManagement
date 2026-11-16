@@ -1415,6 +1415,8 @@ export const es: Messages = {
     lockNotAssigned: 'No estás asignado a este inventario: puedes verlo pero no modificarlo.',
     lockPastDeadline: 'El plazo de edición cerró a las 18:00 del día del inventario. Pide acceso temporal a un administrador.',
     lockCompleted: 'Este inventario ya está completado. Un administrador puede reabrirlo.',
+    recountTitle: '{count} productos reabiertos para volver a contar',
+    recountBody: 'Solo puedes cambiar esos productos. Cuando termines cada uno, márcalo como hecho y se vuelve a cerrar.',
     deadlineAt: 'Puedes editar hasta las 18:00 de hoy',
     deadlineMinutes: 'Quedan {minutes} minutos para editar',
     grantActive: 'Tienes permiso temporal de edición hasta las {time}',

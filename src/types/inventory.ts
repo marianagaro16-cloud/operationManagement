@@ -224,6 +224,11 @@ export interface InventoryDetail extends InventoryInstance {
   general_comments: (InventoryComment & { author: Person | null })[];
   /** Server-computed. The UI must never decide this for itself. */
   can_edit: boolean;
+  /**
+   * Products the viewer may count again although the inventory is locked for
+   * them: reopened for a recount, open until marked done. Server-computed.
+   */
+  recount_item_ids: string[];
   /** Why editing is closed, so the screen can say so rather than just grey out. */
   lock_reason: 'none' | 'not_assigned' | 'past_deadline' | 'completed' | 'not_approved';
   active_grant: InventoryEditGrant | null;

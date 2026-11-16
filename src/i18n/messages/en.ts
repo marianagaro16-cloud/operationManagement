@@ -1442,6 +1442,8 @@ export const en = {
     lockNotAssigned: 'You are not assigned to this inventory, so you can view it but not change it.',
     lockPastDeadline: 'The editing window closed at 18:00 on the day of this inventory. Ask an administrator for temporary access.',
     lockCompleted: 'This inventory has been completed. An administrator can reopen it.',
+    recountTitle: '{count} products reopened to count again',
+    recountBody: 'You can change only those products. When you finish each one, mark it done and it locks again.',
     deadlineAt: 'You can edit until 18:00 today',
     deadlineMinutes: '{minutes} minutes left to edit',
     grantActive: 'You have temporary edit permission until {time}',
