@@ -4,9 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { isValidSchedule } from '@/domain/orders/scheduling';
-import { SHORTFALL_CODES, type OrderType } from '@/types/orders';
+import { SHORTFALL_CODES, type Customer, type OrderType, type Product } from '@/types/orders';
 import { getViewer } from './data';
 import { geocodeAddress } from './geocode';
+import { getCustomers, getProducts } from './orders';
 import type { ActionResult } from './actions';
 
 /**
@@ -924,4 +925,26 @@ export async function setSpecificationActive(
   if (error) return fail(error);
   revalidatePath('/admin/specifications');
   return { ok: true, data: undefined };
+}
+
+/* ------------------------- order form lists, on demand ------------------------- */
+
+/**
+ * The full customer and product lists the order and incident dialogs need.
+ *
+ * The order book used to send both with the page — over half a megabyte for
+ * 270 customers and 300 products — to every visit, though most visits open
+ * no dialog. The page now carries only what its customer filter shows and
+ * fetches these in the background once it is on screen. Read under RLS like
+ * any page read.
+ */
+export async function loadOrderFormLists(): Promise<
+  ActionResult<{ customers: Customer[]; products: Product[] }>
+> {
+  try {
+    const [customers, products] = await Promise.all([getCustomers(), getProducts()]);
+    return { ok: true, data: { customers, products } };
+  } catch (error) {
+    return fail(error);
+  }
 }

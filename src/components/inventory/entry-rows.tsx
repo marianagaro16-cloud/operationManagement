@@ -13,7 +13,13 @@ import {
   updateInventoryEntry,
 } from '@/server/inventory-actions';
 import { useInventoryError } from './inventory-bits';
-import type { InventoryEntry, InventoryKind, InventoryLocation } from '@/types/inventory';
+import type { InventoryEntry, InventoryItemDetail, InventoryKind, InventoryLocation } from '@/types/inventory';
+
+/**
+ * The product as a save left it; null means "could not read it back, refresh".
+ * `seq` is the number onSaveStart gave that save, so a late answer is dropped.
+ */
+type OnItem = (item: InventoryItemDetail | null, seq: number) => void;
 
 /**
  * The counting surface.
@@ -35,6 +41,8 @@ export function EntryRows({
   locations,
   disabled,
   onLocalChange,
+  onSaveStart,
+  onItem,
 }: {
   kind: InventoryKind;
   instanceId: string;
@@ -44,6 +52,8 @@ export function EntryRows({
   disabled: boolean;
   /** Lets the parent show the running Physical Stock without a round trip. */
   onLocalChange?: (entryId: string, quantity: number | null) => void;
+  onSaveStart: () => number;
+  onItem: OnItem;
 }) {
   const { t } = useI18n();
   const translateError = useInventoryError();
@@ -53,6 +63,7 @@ export function EntryRows({
   function add() {
     setError(null);
     startTransition(async () => {
+      const seq = onSaveStart();
       const res = await addInventoryEntry({
         instance_item_id: itemId,
         instance_id: instanceId,
@@ -63,6 +74,7 @@ export function EntryRows({
         position: entries.length,
       });
       if (!res.ok) setError(translateError(res.error));
+      else onItem(res.data.item, seq);
     });
   }
 
@@ -81,6 +93,8 @@ export function EntryRows({
           locations={locations}
           disabled={disabled}
           onLocalChange={onLocalChange}
+          onSaveStart={onSaveStart}
+          onItem={onItem}
           onError={setError}
         />
       ))}
@@ -104,6 +118,8 @@ function EntryRow({
   locations,
   disabled,
   onLocalChange,
+  onSaveStart,
+  onItem,
   onError,
 }: {
   kind: InventoryKind;
@@ -112,6 +128,8 @@ function EntryRow({
   locations: InventoryLocation[];
   disabled: boolean;
   onLocalChange?: (entryId: string, quantity: number | null) => void;
+  onSaveStart: () => number;
+  onItem: OnItem;
   onError: (message: string | null) => void;
 }) {
   const { t } = useI18n();
@@ -135,8 +153,10 @@ function EntryRow({
   function save(patch: Record<string, unknown>) {
     onError(null);
     startTransition(async () => {
+      const seq = onSaveStart();
       const res = await updateInventoryEntry(entry.id, instanceId, patch);
       if (!res.ok) onError(translateError(res.error));
+      else onItem(res.data.item, seq);
     });
   }
 
@@ -156,10 +176,13 @@ function EntryRow({
     setDeleting(true);
     onError(null);
     startTransition(async () => {
+      const seq = onSaveStart();
       const res = await deleteInventoryEntry(entry.id, instanceId);
       if (!res.ok) {
         setDeleting(false);
         onError(translateError(res.error));
+      } else {
+        onItem(res.data.item, seq);
       }
     });
   }

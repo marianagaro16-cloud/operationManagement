@@ -30,6 +30,10 @@ import { noteToPlainLine } from '@/domain/notes';
 import { OrderStageChip } from './order-fulfilment';
 import { OrderWeight } from './order-weight';
 import type { BulkToggle } from './preparation-view';
+import { loadOrderFormLists } from '@/server/order-actions';
+
+/** What the customer filter needs; the dialogs load the full lists. */
+export type CustomerOption = Pick<Customer, 'id' | 'name' | 'company_name' | 'company_name_addition'>;
 
 /** The periods the book can show, as in the reports minus Year. */
 const BOOK_PERIODS = ['day', 'week', 'month', 'custom'] as const;
@@ -48,7 +52,6 @@ export function OrderControl({
   tabs,
   orders,
   customers,
-  products,
   deliveryMethods,
   brands,
   paymentFlags = {},
@@ -65,8 +68,7 @@ export function OrderControl({
   /** The Orders section tabs, shown under the heading. */
   tabs?: ReactNode;
   orders: OrderWithProgress[];
-  customers: Customer[];
-  products: Product[];
+  customers: CustomerOption[];
   deliveryMethods: DeliveryMethod[];
   brands: Brand[];
   /** Customers in collections and how far, for the mark on their orders. */
@@ -112,6 +114,26 @@ export function OrderControl({
   const [draftQuery, setDraftQuery] = useState(filters.query ?? '');
   // The last Expand all / Collapse all press; each card starts open.
   const [bulk, setBulk] = useState<BulkToggle>(null);
+
+  /*
+   * The full customer and product lists for the dialogs. Not sent with the
+   * page (they were most of its weight); fetched once the page is on screen,
+   * so a dialog normally opens with them already here. Opening one sooner
+   * just waits for them.
+   */
+  const [formLists, setFormLists] = useState<{ customers: Customer[]; products: Product[] } | null>(null);
+  const [formListsError, setFormListsError] = useState(false);
+  const needsFormLists = canManage || canReportIncident;
+  useEffect(() => {
+    if (!needsFormLists || formLists) return;
+    let cancelled = false;
+    loadOrderFormLists().then((res) => {
+      if (cancelled) return;
+      if (res.ok) setFormLists(res.data);
+      else setFormListsError(true);
+    });
+    return () => { cancelled = true; };
+  }, [needsFormLists, formLists]);
 
   /**
    * A link to the book for a period, keeping the filters unless told not to.
@@ -512,12 +534,18 @@ export function OrderControl({
       )}
       </div>
 
-      {(creating || editing) && (
+      {(creating || editing || reporting) && !formLists && (
+        <p className="fixed inset-x-0 bottom-24 z-50 mx-auto w-fit rounded-lg bg-surface px-3 py-2 text-[13px] shadow-pop md:bottom-6">
+          {formListsError ? t('common.error') : t('common.loading')}
+        </p>
+      )}
+
+      {formLists && (creating || editing) && (
         <OrderDialog
           key={editing?.id ?? 'new'}
           order={editing}
-          customers={customers}
-          products={products}
+          customers={formLists.customers}
+          products={formLists.products}
           deliveryMethods={deliveryMethods}
           currentUserName={currentUserName}
           viewerId={viewerId}
@@ -529,11 +557,11 @@ export function OrderControl({
       {/* The same dialog the order page raises, fed from the row that was
           clicked — so the customer, the dates and the order's own products are
           already filled in and nothing is retyped. */}
-      {reporting && (
+      {formLists && reporting && (
         <IncidentDialog
           key={reporting.id}
-          customers={customers}
-          products={products}
+          customers={formLists.customers}
+          products={formLists.products}
           categories={incidentCategories}
           types={incidentTypes}
           order={orderContextFrom(reporting)}

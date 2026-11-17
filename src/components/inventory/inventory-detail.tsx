@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Lock, MessageSquare, RotateCcw, Search, Users } from 'lucide-react';
 import { useI18n } from '@/i18n';
@@ -17,7 +17,7 @@ import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { DigitalPendingBadge, StatusBadge, useInventoryError } from './inventory-bits';
 import { CommentDialog, ItemCard } from './item-card';
 import { itemNameSearchText, localizedName } from '@/lib/localized-content';
-import type { InventoryDetail, InventoryLocation, InventoryStatus } from '@/types/inventory';
+import type { InventoryDetail, InventoryItemDetail, InventoryLocation, InventoryStatus } from '@/types/inventory';
 import type { Profile } from '@/types/database';
 import { shelfLifeThreshold, shortShelfLife } from '@/domain/inventory/shelf-life';
 import { NoteText } from '@/components/ui/note';
@@ -57,17 +57,30 @@ export function InventoryDetailView({
   const [assignOpen, setAssignOpen] = useState(false);
   const [commentOpen, setCommentOpen] = useState(false);
 
+  // Products a count save sent back since the page last loaded. Saves no
+  // longer re-render the whole page; each one returns its own product, which
+  // replaces the loaded one here. A fresh page load starts clean.
+  const [updatedItems, setUpdatedItems] = useState<Record<string, InventoryItemDetail>>({});
+  useEffect(() => setUpdatedItems({}), [detail]);
+  const allItems = useMemo(
+    () => detail.items.map((i) => updatedItems[i.id] ?? i),
+    [detail.items, updatedItems],
+  );
+  function onItemChange(item: InventoryItemDetail) {
+    setUpdatedItems((prev) => ({ ...prev, [item.id]: item }));
+  }
+
   const canEdit = detail.can_edit;
   const recountIds = useMemo(() => new Set(detail.recount_item_ids), [detail.recount_item_ids]);
-  const doneCount = detail.items.filter((i) => i.counted_at).length;
-  const notDoneCount = detail.items.length - doneCount;
+  const doneCount = allItems.filter((i) => i.counted_at).length;
+  const notDoneCount = allItems.length - doneCount;
   const shelfLifeMonths = detail.template?.short_shelf_life_months ?? null;
   const shortLines = useMemo(
-    () => (shelfLifeMonths ? shortShelfLife(detail.items, detail.inventory_date, shelfLifeMonths) : []),
-    [detail.items, detail.inventory_date, shelfLifeMonths],
+    () => (shelfLifeMonths ? shortShelfLife(allItems, detail.inventory_date, shelfLifeMonths) : []),
+    [allItems, detail.inventory_date, shelfLifeMonths],
   );
   const digitalPendingCount = detail.digital_enabled
-    ? detail.items.filter((i) => i.digital_quantity === null).length
+    ? allItems.filter((i) => i.digital_quantity === null).length
     : 0;
 
   // The shared matcher. A 114-item count is exactly where accent folding and
@@ -76,7 +89,7 @@ export function InventoryDetailView({
   const items = useMemo(
     () =>
       filterByQuery(
-        detail.items.filter(
+        allItems.filter(
           (item) =>
             !onlyOpen || item.status === 'in_progress' || item.status === 'to_review',
         ),
@@ -89,7 +102,7 @@ export function InventoryDetailView({
         // within each half (the sort is stable), so the list still reads in
         // shelf order from the top.
         .sort((a, b) => Number(Boolean(a.counted_at)) - Number(Boolean(b.counted_at))),
-    [detail.items, query, onlyOpen],
+    [allItems, query, onlyOpen],
   );
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
@@ -151,10 +164,10 @@ export function InventoryDetailView({
           )}
 
           {digitalPendingCount > 0 && <DigitalPendingBadge count={digitalPendingCount} />}
-          <Badge tone="neutral">{t('inventory.itemsCounted', { count: detail.items.length })}</Badge>
+          <Badge tone="neutral">{t('inventory.itemsCounted', { count: allItems.length })}</Badge>
           {/* How far the count has got, by product. */}
-          <Badge tone={doneCount === detail.items.length && doneCount > 0 ? 'done' : 'neutral'}>
-            {t('inventory.itemsDone', { done: doneCount, total: detail.items.length })}
+          <Badge tone={doneCount === allItems.length && doneCount > 0 ? 'done' : 'neutral'}>
+            {t('inventory.itemsDone', { done: doneCount, total: allItems.length })}
           </Badge>
 
           {/* The title is a frozen snapshot, deliberately not the live
@@ -282,6 +295,7 @@ export function InventoryDetailView({
               locations={locations}
               canEdit={canEdit || recountIds.has(item.id)}
               canManage={canManage}
+              onItemChange={onItemChange}
             />
           ))}
         </ul>

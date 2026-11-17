@@ -8,6 +8,8 @@ import { planTemplateRefresh } from '@/domain/inventory/refresh';
 import { sendToUser } from './push';
 import type { ActionResult } from './actions';
 import { notifyPhysicalCountDone, notifyShortShelfLife, shareShortShelfLife } from './inventory-notify';
+import { getInventoryItemDetail } from './inventory';
+import type { InventoryItemDetail } from '@/types/inventory';
 
 /**
  * Inventory server actions.
@@ -61,6 +63,26 @@ function revalidateInventory(instanceId?: string) {
   if (instanceId) revalidatePath(`/inventory/${instanceId}`);
 }
 
+/**
+ * What a count save answers with: the product as it now stands.
+ *
+ * Counting saves on every blur. Revalidating here re-rendered the whole
+ * inventory page (1.8 MB for 137 products) and sent it to the tablet after
+ * each number typed, so these actions do not revalidate at all — the screen
+ * swaps in this one product instead. Null (could not be read back) tells the
+ * screen to fall back to a full refresh. The overview and Inicio pick the
+ * change up on their next load.
+ */
+export type InventoryItemResult = ActionResult<{ item: InventoryItemDetail | null }>;
+
+async function itemResult(instanceId: string, itemId: string): Promise<InventoryItemResult> {
+  try {
+    return { ok: true, data: { item: await getInventoryItemDetail(instanceId, itemId) } };
+  } catch {
+    return { ok: true, data: { item: null } };
+  }
+}
+
 /* ------------------------------- entries ------------------------------- */
 
 /**
@@ -88,7 +110,9 @@ const entryInputSchema = z.object({
 
 export type EntryInput = z.infer<typeof entryInputSchema>;
 
-export async function addInventoryEntry(input: EntryInput): Promise<ActionResult<{ id: string }>> {
+export async function addInventoryEntry(
+  input: EntryInput,
+): Promise<ActionResult<{ id: string; item: InventoryItemDetail | null }>> {
   const parsed = entryInputSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_entry' };
@@ -105,8 +129,11 @@ export async function addInventoryEntry(input: EntryInput): Promise<ActionResult
     .single();
 
   if (error) return fail(error);
-  revalidateInventory(parsed.data.instance_id);
-  return { ok: true, data: { id: (data as { id: string }).id } };
+  const fresh = await itemResult(parsed.data.instance_id, parsed.data.instance_item_id);
+  return {
+    ok: true,
+    data: { id: (data as { id: string }).id, item: fresh.ok ? fresh.data.item : null },
+  };
 }
 
 /**
@@ -118,10 +145,9 @@ async function markDoneAfterEmpty(
   supabase: ReturnType<typeof createClient>,
   itemId: string,
   instanceId: string,
-): Promise<ActionResult> {
+): Promise<InventoryItemResult> {
   await supabase.rpc('inventory_item_set_done', { p_item_id: itemId, p_done: true });
-  revalidateInventory(instanceId);
-  return { ok: true, data: undefined };
+  return itemResult(instanceId, itemId);
 }
 
 /**
@@ -140,7 +166,7 @@ async function markDoneAfterEmpty(
 export async function markInventoryItemEmpty(
   itemId: string,
   instanceId: string,
-): Promise<ActionResult> {
+): Promise<InventoryItemResult> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'not_authorized' };
@@ -235,12 +261,11 @@ export async function setInventoryItemDone(
   itemId: string,
   instanceId: string,
   done: boolean,
-): Promise<ActionResult> {
+): Promise<InventoryItemResult> {
   const supabase = createClient();
   const { error } = await supabase.rpc('inventory_item_set_done', { p_item_id: itemId, p_done: done });
   if (error) return fail(error);
-  revalidateInventory(instanceId);
-  return { ok: true, data: undefined };
+  return itemResult(instanceId, itemId);
 }
 
 const entryPatchSchema = entryInputSchema
@@ -251,7 +276,7 @@ export async function updateInventoryEntry(
   entryId: string,
   instanceId: string,
   patch: z.infer<typeof entryPatchSchema>,
-): Promise<ActionResult> {
+): Promise<InventoryItemResult> {
   const parsed = entryPatchSchema.safeParse(patch);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'invalid_entry' };
@@ -261,29 +286,37 @@ export async function updateInventoryEntry(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'not_authorized' };
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('inventory_entries')
     // updated_by, not created_by: the original author of a record is part of
     // its history and is never rewritten by a later editor.
     .update({ ...parsed.data, updated_by: user.id })
-    .eq('id', entryId);
+    .eq('id', entryId)
+    .select('instance_item_id')
+    .maybeSingle();
 
   if (error) return fail(error);
-  revalidateInventory(instanceId);
-  return { ok: true, data: undefined };
+  // Nothing came back: RLS let no row through, which is a refusal.
+  if (!updated) return { ok: false, error: 'not_authorized' };
+  return itemResult(instanceId, (updated as { instance_item_id: string }).instance_item_id);
 }
 
 export async function deleteInventoryEntry(
   entryId: string,
   instanceId: string,
-): Promise<ActionResult> {
+): Promise<InventoryItemResult> {
   const supabase = createClient();
   // The row is audited before it goes (the delete trigger records it), so the
   // count history survives even though the record does not.
-  const { error } = await supabase.from('inventory_entries').delete().eq('id', entryId);
+  const { data: removed, error } = await supabase
+    .from('inventory_entries')
+    .delete()
+    .eq('id', entryId)
+    .select('instance_item_id')
+    .maybeSingle();
   if (error) return fail(error);
-  revalidateInventory(instanceId);
-  return { ok: true, data: undefined };
+  if (!removed) return { ok: false, error: 'not_authorized' };
+  return itemResult(instanceId, (removed as { instance_item_id: string }).instance_item_id);
 }
 
 /* ---------------------------- instance state --------------------------- */

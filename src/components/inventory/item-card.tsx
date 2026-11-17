@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Check, CheckCircle2, ChevronDown, CircleSlash, History, MessageSquare, RotateCcw, ShieldCheck } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn, displayName } from '@/lib/utils';
@@ -32,6 +33,7 @@ export function ItemCard({
   canEdit,
   canManage,
   defaultOpen,
+  onItemChange,
 }: {
   item: InventoryItemDetail;
   instanceId: string;
@@ -41,8 +43,27 @@ export function ItemCard({
   canEdit: boolean;
   canManage: boolean;
   defaultOpen?: boolean;
+  /** A count save hands back the product as it now stands; the page swaps it in. */
+  onItemChange?: (item: InventoryItemDetail) => void;
 }) {
   const { locale, t, formatDate } = useI18n();
+  const router = useRouter();
+  // Count saves no longer re-render the page; they return this one product.
+  // If it could not be read back, a full refresh is the safe answer. Each
+  // save takes a number when it starts, and an answer older than one already
+  // shown is dropped — two quick saves can come back in either order.
+  const saveSeq = useRef(0);
+  const shownSeq = useRef(0);
+  function startSave() {
+    saveSeq.current += 1;
+    return saveSeq.current;
+  }
+  function applyItem(next: InventoryItemDetail | null, seq: number) {
+    if (seq < shownSeq.current) return;
+    shownSeq.current = seq;
+    if (next && onItemChange) onItemChange(next);
+    else router.refresh();
+  }
   const [open, setOpen] = useState(Boolean(defaultOpen));
   const done = Boolean(item.counted_at);
   const entryNotes = item.entries.filter((e) => e.note?.trim());
@@ -52,10 +73,12 @@ export function ItemCard({
   function setDone(next: boolean) {
     setDoneError(null);
     startSavingDone(async () => {
+      const seq = startSave();
       const res = await setInventoryItemDone(item.id, instanceId, next);
       if (!res.ok) { setDoneError(translateError(res.error)); return; }
       // A finished product folds away; a reopened one opens for editing.
       setOpen(!next);
+      applyItem(res.data.item, seq);
     });
   }
   const [digitalOpen, setDigitalOpen] = useState(false);
@@ -93,8 +116,10 @@ export function ItemCard({
   function markEmpty() {
     setEmptyError(null);
     startMarkEmpty(async () => {
+      const seq = startSave();
       const res = await markInventoryItemEmpty(item.id, instanceId);
       if (!res.ok) setEmptyError(translateError(res.error));
+      else applyItem(res.data.item, seq);
     });
   }
   const difference =
@@ -316,6 +341,8 @@ export function ItemCard({
               onLocalChange={(entryId, quantity) =>
                 setLocalQuantities((prev) => ({ ...prev, [entryId]: quantity }))
               }
+              onSaveStart={startSave}
+              onItem={applyItem}
             />
           </div>
 

@@ -37,6 +37,11 @@ export function Dialog({
     if (!open && el.open) el.close();
   }, [open]);
 
+  // A closed dialog is not rendered at all. Pages with a dialog per row (137
+  // products × 4 on an inventory) otherwise sent and drew hundreds of hidden
+  // ones — most of the page's weight. Its contents mount fresh on each open.
+  if (!open) return null;
+
   return (
     <dialog
       ref={ref}

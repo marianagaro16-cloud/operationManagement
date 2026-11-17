@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { getBoxTypes, getBrands, getCustomers, getDeliveryMethods, getOrdersBoard, getOrdersByDelivery, getProducts, searchOrdersByDelivery } from '@/server/orders';
+import { getBoxTypes, getBrands, getCustomers, getDeliveryMethods, getOrdersBoard, getOrdersByDelivery, searchOrdersByDelivery } from '@/server/orders';
 import { getIncidentCategories, getIncidentTypes } from '@/server/incidents';
 import { getFlaggedCustomers } from '@/server/collections';
 import { getViewer } from '@/server/data';
@@ -168,13 +168,12 @@ export default async function OrdersPage({
     orderType,
   };
 
-  const [orders, customers, products, deliveryMethods, brands, incidentCategories, incidentTypes, paymentFlags] =
+  const [orders, customers, deliveryMethods, brands, incidentCategories, incidentTypes, paymentFlags] =
     await Promise.all([
       // Matched on the customer, the reference and the products on the order —
       // the three things somebody actually remembers about one.
       query ? searchOrdersByDelivery({ ...orderFilters, query }) : getOrdersByDelivery(orderFilters),
       getCustomers(),
-      getProducts(),
       getDeliveryMethods(),
       getBrands(),
       // Only for somebody who can actually raise one; a viewer who cannot is
@@ -208,8 +207,14 @@ export default async function OrdersPage({
     <OrderControl
       tabs={<OrdersTabs active="all" withAll />}
       orders={visible}
-      customers={customers}
-      products={products}
+      // Only what the customer filter shows; the dialogs fetch the full
+      // customer and product lists themselves (see loadOrderFormLists).
+      customers={customers.map((c) => ({
+        id: c.id,
+        name: c.name,
+        company_name: c.company_name,
+        company_name_addition: c.company_name_addition,
+      }))}
       deliveryMethods={deliveryMethods}
       brands={brands}
       paymentFlags={Object.fromEntries(paymentFlags)}

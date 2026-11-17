@@ -393,6 +393,44 @@ export async function getInventoryDetail(instanceId: string): Promise<InventoryD
   };
 }
 
+/**
+ * One product line, shaped exactly as getInventoryDetail shapes it.
+ *
+ * What a count save sends back, so the screen updates that one product
+ * instead of re-rendering the whole inventory (1.8 MB for 137 products) after
+ * every quantity typed. Null when the caller may not read it.
+ */
+export async function getInventoryItemDetail(
+  instanceId: string,
+  itemId: string,
+): Promise<InventoryItemDetail | null> {
+  const supabase = createClient();
+  const [{ data, error }, review] = await Promise.all([
+    supabase
+      .from('inventory_instance_items')
+      .select(DETAIL_ITEM_SELECT)
+      .eq('id', itemId)
+      .eq('instance_id', instanceId)
+      .maybeSingle(),
+    supabase.rpc('inventory_review_items', { p_instance_id: instanceId }),
+  ]);
+  if (error) throw new Error(error.message);
+  if (review.error) throw new Error(review.error.message);
+  if (!data) return null;
+
+  const item = data as unknown as Omit<InventoryItemDetail, ReviewField>;
+  const reviewRow = ((review.data ?? []) as ({ item_id: string } & Pick<InventoryItemDetail, ReviewField>)[])
+    .find((r) => r.item_id === itemId);
+  const { item_id: _ignored, ...reviewFields } = reviewRow ?? { item_id: itemId, ...HIDDEN_REVIEW };
+  void _ignored;
+
+  return {
+    ...item,
+    ...reviewFields,
+    entries: (item.entries ?? []).slice().sort((a, b) => a.position - b.position),
+  } as InventoryItemDetail;
+}
+
 /** Explains a read-only screen, so it can say why rather than just look broken. */
 function lockReason(input: {
   canEdit: boolean;
