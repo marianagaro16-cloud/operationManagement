@@ -86,6 +86,7 @@ export function useScheduleErrors() {
       person_exists: 'schedule.errPersonExists',
       hours_order: 'schedule.errHoursOrder',
       not_authorized: 'schedule.errNotAuthorized',
+      not_saved: 'schedule.errNotSaved',
     };
     return known[code] ? t(known[code]) : code || t('common.error');
   };
@@ -214,10 +215,34 @@ export function ScheduleView({
     });
   }
 
+  /*
+   * A slot with only one of its two times waits on this device, not in the
+   * database (a block needs both). It used to wait in memory only, so leaving
+   * the page — another tab of the section, another app page — threw it away.
+   * Kept per week in this browser until its other half arrives.
+   */
+  const halfKey = week ? `schedule.half.${week.id}` : null;
   const setTypedNow = (next: Record<string, Typed>) => {
     typedNow.current = next;
     setTyped(next);
+    if (!halfKey) return;
+    try {
+      const half = Object.fromEntries(Object.entries(next).filter(([, v]) => !v.start !== !v.end));
+      if (Object.keys(half).length > 0) localStorage.setItem(halfKey, JSON.stringify(half));
+      else localStorage.removeItem(halfKey);
+    } catch {}
   };
+  useEffect(() => {
+    if (!halfKey || !canEdit) return;
+    try {
+      const raw = localStorage.getItem(halfKey);
+      if (!raw) return;
+      const half = JSON.parse(raw) as Record<string, Typed>;
+      const next = { ...half, ...typedNow.current };
+      typedNow.current = next;
+      setTyped(next);
+    } catch {}
+  }, [halfKey, canEdit]);
   /** Forget what was typed in a person's day: the dialog has just saved it whole. */
   const forget = (personId: string, d: number) =>
     setTypedNow(Object.fromEntries(Object.entries(typedNow.current).filter(([key]) => !key.startsWith(`${personId}:${d}:`))));
@@ -246,14 +271,22 @@ export function ScheduleView({
       .filter((b) => b.person_id === personId && b.day === d)
       .map((b) => ({ slot: b.slot as 1 | 2, start_time: b.start_time, end_time: b.end_time, kind_id: b.kind_id }));
     setError(null);
-    saving.current = saving.current.then(async () => {
-      const res = await saveScheduleCell(week.id, personId, d, dayBlocks);
-      if (!res.ok) {
-        // Not saved: the sheet goes back to what the server holds, and says why.
-        forget(personId, d);
-        return setError(errorText(res.error));
+    // A save that throws (connection lost, the app updated under an open
+    // page) must not stop the ones after it: a rejected chain skipped every
+    // later save in silence, while the sheet still showed what was typed.
+    saving.current = saving.current.catch(() => undefined).then(async () => {
+      try {
+        const res = await saveScheduleCell(week.id, personId, d, dayBlocks);
+        if (!res.ok) {
+          // Not saved: the sheet goes back to what the server holds, and says why.
+          forget(personId, d);
+          return setError(errorText(res.error));
+        }
+        router.refresh();
+      } catch {
+        // Kept on screen so it can be retyped after a reload, and said plainly.
+        setError(errorText('not_saved'));
       }
-      router.refresh();
     });
   }
 

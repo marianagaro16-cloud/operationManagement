@@ -3406,6 +3406,7 @@ export const de: Messages = {
     errPersonExists: 'Diese Person ist schon im Plan.',
     errHoursOrder: 'Das Maximum darf nicht unter dem Minimum liegen.',
     errNotAuthorized: 'Du darfst den Plan nicht ändern.',
+    errNotSaved: 'Die letzte Zeit konnte nicht gespeichert werden. Lade die Seite neu und gib sie noch einmal ein.',
     nextTurn: 'Nächster Turnus',
     nextTurnBody: '{name}, am {date}',
     assign: 'Zuweisen',

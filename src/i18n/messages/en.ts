@@ -3438,6 +3438,7 @@ export const en = {
     errPersonExists: 'That person is already on the schedule.',
     errHoursOrder: 'The maximum cannot be under the minimum.',
     errNotAuthorized: 'You may not change the schedule.',
+    errNotSaved: 'The last time could not be saved. Reload the page and type it again.',
     nextTurn: 'Next turn',
     nextTurnBody: '{name}, on {date}',
     assign: 'Assign',

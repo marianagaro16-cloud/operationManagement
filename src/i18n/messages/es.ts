@@ -3406,6 +3406,7 @@ export const es: Messages = {
     errPersonExists: 'Esa persona ya está en el horario.',
     errHoursOrder: 'El máximo no puede ser menor que el mínimo.',
     errNotAuthorized: 'No tienes permiso para cambiar el horario.',
+    errNotSaved: 'No se pudo guardar la última hora. Recarga la página y vuelve a escribirla.',
     nextTurn: 'Próximo turno',
     nextTurnBody: '{name}, el {date}',
     assign: 'Asignar',
