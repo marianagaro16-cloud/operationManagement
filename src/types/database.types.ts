@@ -13251,6 +13251,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      inventory_request_recount: {
+        Args: { p_item_ids: string[] }
+        Returns: number
+      }
       inventory_resolve_item: {
         Args: { p_item_id: string; p_note: string }
         Returns: {

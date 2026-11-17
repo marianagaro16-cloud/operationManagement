@@ -10,7 +10,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Badge, Field, Input } from '@/components/ui/primitives';
 import { NoteTextarea } from '@/components/ui/note-textarea';
 import { countState, physicalStock } from '@/domain/inventory/calc';
-import { addInventoryComment, markInventoryItemEmpty, resolveInventoryItem, setInventoryDigital, setInventoryItemDone } from '@/server/inventory-actions';
+import { addInventoryComment, markInventoryItemEmpty, requestInventoryRecount, resolveInventoryItem, setInventoryDigital, setInventoryItemDone } from '@/server/inventory-actions';
 import { DifferenceValue, DigitalPendingBadge, StatusBadge, useInventoryError } from './inventory-bits';
 import { EntryRows } from './entry-rows';
 import { localizedItemName } from '@/lib/localized-content';
@@ -32,6 +32,7 @@ export function ItemCard({
   locations,
   canEdit,
   canManage,
+  canRequestRecount = false,
   defaultOpen,
   onItemChange,
 }: {
@@ -42,6 +43,8 @@ export function ItemCard({
   locations: InventoryLocation[];
   canEdit: boolean;
   canManage: boolean;
+  /** The reviewer (sees the digital side) may send this product back to be counted again. */
+  canRequestRecount?: boolean;
   defaultOpen?: boolean;
   /** A count save hands back the product as it now stands; the page swaps it in. */
   onItemChange?: (item: InventoryItemDetail) => void;
@@ -79,6 +82,17 @@ export function ItemCard({
       // A finished product folds away; a reopened one opens for editing.
       setOpen(!next);
       applyItem(res.data.item, seq);
+    });
+  }
+  // "Volver a contar": back to not done and open for the assignees, who get a
+  // notice. Not offered while it is already waiting for its recount.
+  const recountPending = Boolean(item.recount_requested_at) && !done;
+  const [requestingRecount, startRequestRecount] = useTransition();
+  function requestRecount() {
+    setDoneError(null);
+    startRequestRecount(async () => {
+      const res = await requestInventoryRecount(instanceId, [item.id]);
+      if (!res.ok) setDoneError(translateError(res.error));
     });
   }
   const [digitalOpen, setDigitalOpen] = useState(false);
@@ -195,6 +209,8 @@ export function ItemCard({
             {item.entries.length > 0 && (
               <Badge tone="neutral">{item.entries.length}</Badge>
             )}
+
+            {recountPending && <Badge tone="warn">{t('inventory.recountSection')}</Badge>}
 
             {done && (
               <span className="text-[12px] text-done">
@@ -362,6 +378,13 @@ export function ItemCard({
               <Button size="sm" variant="ghost" onClick={markDigitalEmpty} loading={markingDigitalEmpty}>
                 <CircleSlash className="h-3.5 w-3.5" aria-hidden />
                 {t('inventory.markDigitalEmpty')}
+              </Button>
+            )}
+
+            {canRequestRecount && !recountPending && (
+              <Button size="sm" variant="ghost" onClick={requestRecount} loading={requestingRecount}>
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+                {t('inventory.requestRecount')}
               </Button>
             )}
 

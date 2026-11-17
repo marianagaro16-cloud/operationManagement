@@ -12,7 +12,7 @@ import { Badge, Card, Checkbox, EmptyState, ErrorState, Input, ReadOnlyNotice, S
 import { PageHeader } from '@/components/shell/app-shell';
 import { minutesUntilDeadline } from '@/domain/inventory/calc';
 import { formatCalendarWeek } from '@/domain/inventory/schedule';
-import { completeInventory, reopenInventory, setInventoryAssignees } from '@/server/inventory-actions';
+import { completeInventory, reopenInventory, requestInventoryRecount, setInventoryAssignees } from '@/server/inventory-actions';
 import { QuickReminderButton } from '@/components/reminders/reminder-actions';
 import { DigitalPendingBadge, StatusBadge, useInventoryError } from './inventory-bits';
 import { CommentDialog, ItemCard } from './item-card';
@@ -56,6 +56,7 @@ export function InventoryDetailView({
   const [completeOpen, setCompleteOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [commentOpen, setCommentOpen] = useState(false);
+  const [recountOpen, setRecountOpen] = useState(false);
 
   // Products a count save sent back since the page last loaded. Saves no
   // longer re-render the whole page; each one returns its own product, which
@@ -72,6 +73,15 @@ export function InventoryDetailView({
 
   const canEdit = detail.can_edit;
   const recountIds = useMemo(() => new Set(detail.recount_item_ids), [detail.recount_item_ids]);
+  // Products sent back to be counted again and not yet done: they get their
+  // own list at the top, names only — nothing says why.
+  const isRecount = (i: InventoryItemDetail) => Boolean(i.recount_requested_at) && !i.counted_at;
+  const recountCount = allItems.filter(isRecount).length;
+  // Only the reviewer sends products back; the counter never sees the digital side.
+  const canRequestRecount = canManage && !detail.digital_hidden;
+  const toReviewIds = canRequestRecount
+    ? allItems.filter((i) => i.status === 'to_review' && !isRecount(i)).map((i) => i.id)
+    : [];
   const doneCount = allItems.filter((i) => i.counted_at).length;
   const notDoneCount = allItems.length - doneCount;
   const shelfLifeMonths = detail.template?.short_shelf_life_months ?? null;
@@ -190,6 +200,12 @@ export function InventoryDetailView({
             <MessageSquare className="h-3.5 w-3.5" aria-hidden />
             {t('inventory.generalComment')}
           </Button>
+          {toReviewIds.length > 0 && (
+            <Button size="sm" variant="ghost" onClick={() => setRecountOpen(true)} loading={pending}>
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+              {t('inventory.requestRecountAll', { count: toReviewIds.length })}
+            </Button>
+          )}
           {canManage && detail.completed_at && (
             <Button size="sm" variant="ghost" onClick={() => run(() => reopenInventory(detail.id))} loading={pending}>
               <RotateCcw className="h-3.5 w-3.5" aria-hidden />
@@ -200,7 +216,9 @@ export function InventoryDetailView({
       </Card>
 
       {/* --------------------------- lock notice --------------------------- */}
-      {!canEdit && recountIds.size > 0 && <RecountNotice count={recountIds.size} />}
+      {recountCount > 0 && !canRequestRecount && (canEdit || recountIds.size > 0) && (
+        <RecountNotice count={recountCount} lockedOtherwise={!canEdit} />
+      )}
       {!canEdit && recountIds.size === 0 && <LockNotice reason={detail.lock_reason} />}
       {canEdit && !detail.completed_at && (
         <DeadlineNotice
@@ -274,31 +292,47 @@ export function InventoryDetailView({
             aria-label={t('common.search')}
           />
         </div>
-        <Checkbox
-          label={t('inventory.needsReview')}
-          checked={onlyOpen}
-          onChange={(e) => setOnlyOpen(e.target.checked)}
-        />
+        {/* The counter has no review state to filter by. */}
+        {!detail.digital_hidden && (
+          <Checkbox
+            label={t('inventory.needsReview')}
+            checked={onlyOpen}
+            onChange={(e) => setOnlyOpen(e.target.checked)}
+          />
+        )}
       </div>
 
       {items.length === 0 ? (
         <EmptyState title={t('inventory.emptyHistory')} />
       ) : (
-        <ul className="space-y-2">
-          {items.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              instanceId={detail.id}
-              kind={detail.kind}
-              digitalEnabled={detail.digital_enabled}
-              locations={locations}
-              canEdit={canEdit || recountIds.has(item.id)}
-              canManage={canManage}
-              onItemChange={onItemChange}
-            />
-          ))}
-        </ul>
+        [items.filter(isRecount), items.filter((i) => !isRecount(i))].map((group, g) =>
+          group.length === 0 ? null : (
+            <div key={g} className={g === 0 ? 'mb-5' : undefined}>
+              {g === 0 && (
+                <p className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-warn">
+                  <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+                  {t('inventory.recountSection')} · {group.length}
+                </p>
+              )}
+              <ul className="space-y-2">
+                {group.map((item) => (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    instanceId={detail.id}
+                    kind={detail.kind}
+                    digitalEnabled={detail.digital_enabled}
+                    locations={locations}
+                    canEdit={canEdit || recountIds.has(item.id)}
+                    canManage={canManage}
+                    canRequestRecount={canRequestRecount}
+                    onItemChange={onItemChange}
+                  />
+                ))}
+              </ul>
+            </div>
+          ),
+        )
       )}
 
       {/* ----------------------------- complete ---------------------------- */}
@@ -335,6 +369,20 @@ export function InventoryDetailView({
         loading={pending}
       />
 
+      <ConfirmDialog
+        open={recountOpen}
+        onClose={() => setRecountOpen(false)}
+        onConfirm={() => {
+          setRecountOpen(false);
+          run(() => requestInventoryRecount(detail.id, toReviewIds));
+        }}
+        title={t('inventory.requestRecountAll', { count: toReviewIds.length })}
+        message={t('inventory.requestRecountConfirm', { count: toReviewIds.length })}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
+        loading={pending}
+      />
+
       <AssignDialog
         open={assignOpen}
         onClose={() => setAssignOpen(false)}
@@ -354,8 +402,11 @@ export function InventoryDetailView({
   );
 }
 
-/** Products reopened for a recount: those, and only those, can be counted again. */
-function RecountNotice({ count }: { count: number }) {
+/**
+ * Products sent back to be counted again. With the inventory otherwise
+ * locked, those and only those can be changed.
+ */
+function RecountNotice({ count, lockedOtherwise }: { count: number; lockedOtherwise: boolean }) {
   const { t } = useI18n();
   return (
     <div className="mb-4 rounded-lg border border-accent/25 bg-accent/5 px-3.5 py-2.5 text-[12.5px] text-fg">
@@ -363,7 +414,9 @@ function RecountNotice({ count }: { count: number }) {
         <RotateCcw className="h-3.5 w-3.5 text-accent" aria-hidden />
         {t('inventory.recountTitle', { count })}
       </p>
-      <p className="mt-0.5 text-muted">{t('inventory.recountBody')}</p>
+      <p className="mt-0.5 text-muted">
+        {t(lockedOtherwise ? 'inventory.recountBody' : 'inventory.recountBodyOpen')}
+      </p>
     </div>
   );
 }

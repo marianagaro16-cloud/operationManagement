@@ -123,6 +123,8 @@ export interface InventoryInstanceItem {
   /** When the counter marked this product done. Not part of the review cycle. */
   counted_at: string | null;
   counted_by: string | null;
+  /** Sent back to be counted again ("Volver a contar"); cleared when marked done. */
+  recount_requested_at: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -347,6 +347,24 @@ export async function reopenInventory(instanceId: string): Promise<ActionResult>
   return { ok: true, data: undefined };
 }
 
+/**
+ * "Volver a contar": the reviewer sends products back to whoever counts.
+ * They go back to not done and open for the assignees on any day; the
+ * assignees get one notice (inventory-notify.ts). The database checks that
+ * the caller manages inventories and is not the counter.
+ */
+export async function requestInventoryRecount(
+  instanceId: string,
+  itemIds: string[],
+): Promise<ActionResult> {
+  if (itemIds.length === 0) return { ok: true, data: undefined };
+  const supabase = createClient();
+  const { error } = await supabase.rpc('inventory_request_recount', { p_item_ids: itemIds });
+  if (error) return fail(error);
+  revalidateInventory(instanceId);
+  return { ok: true, data: undefined };
+}
+
 /* --------------------------- Inventory Digital ------------------------- */
 
 /**

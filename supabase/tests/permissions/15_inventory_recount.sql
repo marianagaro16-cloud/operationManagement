@@ -66,3 +66,22 @@ select pg_temp.cannot('counter: after done the product is locked again', 'counte
   $$update public.inventory_entries set quantity = quantity where instance_item_id = (select id from _items where n = 1)$$);
 select pg_temp.cannot('counter: cannot reopen it themselves', 'counter',
   $$select public.inventory_item_set_done((select id from _items where n = 1), false)$$);
+
+-- "Volver a contar" (20270213090000): the reviewer sends a product back.
+select pg_temp.cannot('counter: cannot send products back themselves', 'counter',
+  $$select public.inventory_request_recount(array[(select id from _items where n = 2)])$$);
+select pg_temp.cannot('not assigned user: cannot send products back', 'other',
+  $$select public.inventory_request_recount(array[(select id from _items where n = 2)])$$);
+select pg_temp.can('admin: sends product 2 back to be counted again', 'admin',
+  $$select public.inventory_request_recount(array[(select id from _items where n = 2)])$$);
+select pg_temp.check('sent back: not done, recount asked, notice still to go',
+  (select counted_at is null and recount_requested_at is not null and recount_notified_at is null
+     from public.inventory_instance_items where id = (select id from _items where n = 2)));
+select pg_temp.check('sent back: the counted lines stay',
+  exists (select 1 from public.inventory_entries where instance_item_id = (select id from _items where n = 2) and quantity is not null));
+select pg_temp.can('counter: changes the product sent back', 'counter',
+  $$update public.inventory_entries set quantity = quantity where instance_item_id = (select id from _items where n = 2)$$);
+select pg_temp.act_as('counter');
+select pg_temp.check('counter: sees that product 2 is to count again',
+  (select recount_requested_at is not null from public.inventory_instance_items where id = (select id from _items where n = 2)));
+select pg_temp.as_system();
