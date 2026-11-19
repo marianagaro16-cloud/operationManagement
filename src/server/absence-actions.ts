@@ -6,6 +6,7 @@ import { DateTime } from 'luxon';
 import { createClient } from '@/lib/supabase/server';
 import { BUSINESS_TZ } from '@/lib/datetime';
 import { sendToUser, sendToUsers } from './push';
+import { registersOwnAbsence } from './absences';
 import type { ActionResult } from './actions';
 
 /*
@@ -82,11 +83,11 @@ async function notify(people: string[], title: string, body: string, tag: string
   }
 }
 
-/** Ask for time off: pending until an approver decides; the approvers are told. */
 /**
  * An approver enters someone's absence — approved at once, since holidays
  * are agreed elsewhere; the person is told. Their own waits for another
- * approver, who is told.
+ * approver, who is told — except for whoever is kept in
+ * 'absences.self_register_people' (Mariana), whose own is approved at once.
  */
 export async function registerAbsence(profileId: string, input: AbsenceInput): Promise<ActionResult<{ id: string }>> {
   const parsed = absenceSchema.safeParse(input);
@@ -111,7 +112,7 @@ export async function registerAbsence(profileId: string, input: AbsenceInput): P
   if (error) return fail(error);
   const id = data as string;
   if (profileId === me.id) {
-    await notify(await approversExcept(me.id), 'Ausencia por aprobar', `${me.name}: ${spanOf(v)}`, `absence-${id}`);
+    if (!(await registersOwnAbsence(me.id))) await notify(await approversExcept(me.id), 'Ausencia por aprobar', `${me.name}: ${spanOf(v)}`, `absence-${id}`);
   } else {
     try {
       await sendToUser(profileId, { title: 'Ausencia registrada', body: `${spanOf(v)} (${me.name})`, url: '/absences', tag: `absence-${id}` });

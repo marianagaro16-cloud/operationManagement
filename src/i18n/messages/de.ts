@@ -2880,6 +2880,7 @@ export const de: Messages = {
     register: 'Abwesenheit erfassen',
     registerHint: 'Sie ist beim Speichern genehmigt und bereit für die Vertretungsplanung. Die Person wird benachrichtigt.',
     registerOwnHint: 'Deine eigene Abwesenheit genehmigt eine andere berechtigte Person.',
+    registerOwnApprovedHint: 'Sie ist beim Speichern genehmigt, bereit für die Planung der Vertretung.',
     someHours: 'Einige Stunden',
     fromHour: 'Ab',
     untilHour: 'Bis',

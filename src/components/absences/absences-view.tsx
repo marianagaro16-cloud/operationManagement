@@ -33,6 +33,7 @@ export function AbsencesView({
   tab,
   today,
   viewerId,
+  ownApproved = false,
   approver,
   types,
   mine,
@@ -59,6 +60,8 @@ export function AbsencesView({
   tab: AbsenceTab;
   today: string;
   viewerId: string;
+  /** The viewer's own absences are approved as entered (Mariana). */
+  ownApproved?: boolean;
   approver: boolean;
   types: AbsenceType[];
   mine: AbsenceRow[];
@@ -124,7 +127,7 @@ export function AbsencesView({
       )}
 
       {requesting && (
-        <AbsenceDialog absence={null} types={types} today={today} people={people} viewerId={viewerId} onClose={() => setRequesting(false)} />
+        <AbsenceDialog absence={null} types={types} today={today} people={people} viewerId={viewerId} ownApproved={ownApproved} onClose={() => setRequesting(false)} />
       )}
     </>
   );

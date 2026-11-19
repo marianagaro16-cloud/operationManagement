@@ -2912,6 +2912,7 @@ export const en = {
     register: 'Enter absence',
     registerHint: 'It is approved when saved, ready to plan who covers. The person is notified.',
     registerOwnHint: 'Your own absence is approved by another approver.',
+    registerOwnApprovedHint: 'It is approved when saved, ready to plan who covers.',
     someHours: 'Some hours',
     fromHour: 'From',
     untilHour: 'Until',

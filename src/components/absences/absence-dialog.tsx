@@ -28,11 +28,14 @@ export function AbsenceDialog({
   today,
   people = [],
   viewerId,
+  ownApproved = false,
   onClose,
 }: {
   /** Whom a new absence can be entered for. */
   people?: { id: string; name: string }[];
   viewerId?: string;
+  /** The viewer's own absences are approved as entered (Mariana). */
+  ownApproved?: boolean;
   absence: AbsenceRow | null;
   types: AbsenceType[];
   today: string;
@@ -100,7 +103,7 @@ export function AbsenceDialog({
       open
       onClose={onClose}
       title={absence ? t('absence.edit') : t('absence.register')}
-      description={absence ? undefined : personId === viewerId ? t('absence.registerOwnHint') : t('absence.registerHint')}
+      description={absence ? undefined : personId === viewerId ? t(ownApproved ? 'absence.registerOwnApprovedHint' : 'absence.registerOwnHint') : t('absence.registerHint')}
       className="max-w-lg"
       footer={
         <>

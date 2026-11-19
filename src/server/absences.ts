@@ -1,5 +1,5 @@
 import 'server-only';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import type { AbsenceCalendarEntry, AbsenceEvent, AbsenceRow, AbsenceStatus, AbsenceType } from '@/types/absences';
 
 /*
@@ -26,6 +26,15 @@ export async function isAbsenceApprover(): Promise<boolean> {
   const supabase = createClient();
   const { data } = await supabase.rpc('is_absence_approver');
   return data === true;
+}
+
+/**
+ * Whether this person's own absences are approved as they enter them
+ * ('absences.self_register_people' — Mariana) instead of waiting for another approver.
+ */
+export async function registersOwnAbsence(profileId: string): Promise<boolean> {
+  const { data } = await createAdminClient().from('app_settings').select('value').eq('key', 'absences.self_register_people').maybeSingle();
+  return Array.isArray(data?.value) && (data.value as unknown[]).includes(profileId);
 }
 
 /** The viewer's own absences, latest first. */

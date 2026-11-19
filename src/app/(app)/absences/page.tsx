@@ -7,6 +7,7 @@ import {
   getMyAbsences,
   getPendingAbsences,
   isAbsenceApprover,
+  registersOwnAbsence,
 } from '@/server/absences';
 import { AbsencesView, type AbsenceTab } from '@/components/absences/absences-view';
 import { getAbsenceReport } from '@/server/absence-report';
@@ -33,7 +34,7 @@ export default async function AbsencesPage({
   if (!viewer) redirect('/login');
 
   const today = businessToday();
-  const approver = await isAbsenceApprover();
+  const [approver, ownApproved] = await Promise.all([isAbsenceApprover(), registersOwnAbsence(viewer.profile.id)]);
   const wanted = searchParams.tab as AbsenceTab | undefined;
   const tab: AbsenceTab =
     wanted === 'calendar' || wanted === 'coverage' ? wanted : (wanted === 'approve' || wanted === 'all' || wanted === 'report') && approver ? wanted : 'mine';
@@ -79,6 +80,7 @@ export default async function AbsencesPage({
       today={today}
       viewerId={viewer.profile.id}
       approver={approver}
+      ownApproved={ownApproved}
       types={types}
       mine={mine}
       pending={pending}

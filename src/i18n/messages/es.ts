@@ -2880,6 +2880,7 @@ export const es: Messages = {
     register: 'Registrar ausencia',
     registerHint: 'Queda aprobada al guardarla, lista para planear quién cubre. La persona recibe un aviso.',
     registerOwnHint: 'Tu propia ausencia la aprueba otra persona que aprueba ausencias.',
+    registerOwnApprovedHint: 'Queda aprobada al guardarla, lista para planificar quién cubre.',
     someHours: 'Unas horas',
     fromHour: 'Desde las',
     untilHour: 'Hasta las',
