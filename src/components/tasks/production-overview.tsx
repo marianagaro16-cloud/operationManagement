@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { Factory } from 'lucide-react';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { Factory, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Card, EmptyState } from '@/components/ui/primitives';
+import { ConfirmDialog } from '@/components/ui/dialog';
+import { Card, EmptyState, ErrorState } from '@/components/ui/primitives';
+import { unplanTask } from '@/server/planning-actions';
 import { PageHeader } from '@/components/shell/app-shell';
 import type { MadeProduction, OpenProduction } from '@/server/production';
 import { ProductionDialog, ProductionTargetButton, SHORTFALL_LABEL } from './production-dialog';
@@ -16,6 +19,10 @@ const qty = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).repla
 export function ProductionOverview({ open, made, today }: { open: OpenProduction[]; made: MadeProduction[]; today: string }) {
   const { t, formatDate } = useI18n();
   const [recording, setRecording] = useState<OpenProduction | null>(null);
+  const [cancelling, setCancelling] = useState<OpenProduction | null>(null);
+  const [cancelError, setCancelError] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
   const shortfalls = made.filter((m) => Number(m.produced_quantity) < Number(m.target_quantity)).length;
 
   return (
@@ -24,6 +31,11 @@ export function ProductionOverview({ open, made, today }: { open: OpenProduction
 
       <section className="mb-6">
         <h2 className="mb-1.5 px-0.5 text-[13px] font-semibold">{t('production.toMake', { count: open.length })}</h2>
+        {cancelError && (
+          <div className="mb-2">
+            <ErrorState message={t('production.errCancel')} />
+          </div>
+        )}
         {open.length === 0 ? (
           <EmptyState title={t('production.noneOpen')} />
         ) : (
@@ -45,6 +57,20 @@ export function ProductionOverview({ open, made, today }: { open: OpenProduction
                   <Button size="sm" variant="ghost" onClick={() => setRecording(o)}>
                     <Factory className="h-3.5 w-3.5" aria-hidden />
                     {t('production.record')}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    disabled={pending}
+                    aria-label={t('production.cancelOrder')}
+                    title={t('production.cancelOrder')}
+                    className="h-8 w-8 text-muted hover:text-late"
+                    onClick={() => {
+                      setCancelError(false);
+                      setCancelling(o);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
                   </Button>
                 </div>
               );
@@ -110,6 +136,37 @@ export function ProductionOverview({ open, made, today }: { open: OpenProduction
           onClose={() => setRecording(null)}
         />
       )}
+
+      {/* Cancelling takes the order off its day with no record left (decided
+          2026-11-24): planners only — this page is theirs — and no notices. */}
+      <ConfirmDialog
+        open={cancelling !== null}
+        onClose={() => setCancelling(null)}
+        loading={pending}
+        title={t('production.cancelOrder')}
+        message={
+          cancelling
+            ? t('production.cancelOrderConfirm', {
+                quantity: qty(cancelling.target_quantity),
+                product: cancelling.product_name,
+                date: formatDate(cancelling.due, 'medium'),
+              })
+            : ''
+        }
+        confirmLabel={t('production.cancelOrder')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        onConfirm={() => {
+          if (!cancelling) return;
+          const id = cancelling.occurrence_id;
+          startTransition(async () => {
+            const res = await unplanTask(id);
+            setCancelling(null);
+            if (!res.ok) setCancelError(true);
+            router.refresh();
+          });
+        }}
+      />
     </>
   );
 }

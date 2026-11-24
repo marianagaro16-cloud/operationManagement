@@ -182,6 +182,7 @@ export async function unplanTask(occurrenceId: string): Promise<ActionResult> {
 
   revalidatePath('/calendar');
   revalidatePath('/dashboard');
+  revalidatePath('/production');
   return { ok: true, data: undefined };
 }
 
