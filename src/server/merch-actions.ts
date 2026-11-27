@@ -96,14 +96,14 @@ export async function saveMerchCampaign(input: z.input<typeof campaignSchema>): 
   if (!parsed.success) return { ok: false, error: parsed.error.issues.some((i) => i.path[0] === 'customer_ids') ? 'merch_no_customers' : 'invalid' };
   const c = parsed.data;
   const { data, error } = await createClient().rpc('merch_save_campaign', {
-    p_id: c.id ?? undefined,
+    p_id: (c.id ?? null) as unknown as string,
     p_item_id: c.item_id,
     p_week_start: c.week_start,
     p_quantity: c.quantity,
     p_carry_weeks: c.carry_weeks,
     p_customer_type_ids: c.customer_type_ids,
     p_customer_ids: [...new Set(c.customer_ids)],
-    p_note: c.note ?? undefined,
+    p_note: (c.note ?? null) as unknown as string,
   });
   if (error) return fail(error);
   revalidateMerch();
@@ -160,8 +160,8 @@ export async function setMerchPacking(
   const { error } = await supabase.rpc('merch_set_packing', {
     p_line_id: lineId,
     p_packing: packing,
-    p_reason: reason ?? undefined,
-    p_note: note ?? undefined,
+    p_reason: reason as unknown as string,
+    p_note: note as unknown as string,
   });
   if (error) return fail(error);
 
