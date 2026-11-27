@@ -31,7 +31,14 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // getClaims, not getUser: the project signs tokens with an asymmetric key,
+  // so the JWT is verified locally against the cached JWKS instead of a round
+  // trip to the Auth server on every page load. When Auth was slow (7–14 s
+  // per call) getUser pushed the middleware past Vercel's limit and every
+  // page failed with 504 MIDDLEWARE_INVOCATION_TIMEOUT. An expired token is
+  // still refreshed here (one Auth call), which keeps the cookies fresh.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? data.claims : null;
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
 
